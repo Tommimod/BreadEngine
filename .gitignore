@@ -32,7 +32,11 @@ bld/
 [Ll]og/
 [Ll]ogs/
 .cache/
+.idea/
 .vscode/
+build/
+cmake-build-debug/
+cmake-build-release/
 
 # Visual Studio 2015/2017 cache/options directory
 .vs/
@@ -401,7 +405,6 @@ FodyWeavers.xsd
 *.sln.iml
 build_files
 raylib-master
-Makefile
 /*.sln
 
 # Vi and Vim

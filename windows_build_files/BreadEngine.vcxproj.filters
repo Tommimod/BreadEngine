@@ -1,0 +1,113 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup>
+    <Filter Include="Source Files">
+      <UniqueIdentifier>{4FC737F1-C7A5-4376-A066-2A32D752A2FF}</UniqueIdentifier>
+      <Extensions>cpp;c;cc;cxx;c++;cppm;ixx;def;odl;idl;hpj;bat;asm;asmx</Extensions>
+    </Filter>
+    <Filter Include="Header Files">
+      <UniqueIdentifier>{93995380-89BD-4b04-88EB-625FBE52EBFB}</UniqueIdentifier>
+      <Extensions>h;hh;hpp;hxx;h++;hm;inl;inc;ipp;xsd</Extensions>
+    </Filter>
+    <Filter Include="Resource Files">
+      <UniqueIdentifier>{67DA6AB6-F800-4c08-8B7A-83BB121AAD01}</UniqueIdentifier>
+      <Extensions>rc;ico;cur;bmp;dlg;rc2;rct;bin;rgs;gif;jpg;jpeg;jpe;resx;tiff;tif;png;wav;mfcribbon-ms</Extensions>
+    </Filter>
+    <Filter Include="Engine">
+      <UniqueIdentifier>{8C8C8C8C-8C8C-8C8C-8C8C-8C8C8C8C8C8C}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Engine\Component">
+      <UniqueIdentifier>{1A1A1A1A-1A1A-1A1A-1A1A-1A1A1A1A1A1A}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Engine\UI">
+      <UniqueIdentifier>{2B2B2B2B-2B2B-2B2B-2B2B-2B2B2B2B2B2B}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Libraries">
+      <UniqueIdentifier>{3C3C3C3C-3C3C-3C3C-3C3C-3C3C3C3C3C3C}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Libraries\PugiXML">
+      <UniqueIdentifier>{4D4D4D4D-4D4D-4D4D-4D4D-4D4D4D4D4D4D}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Libraries\Raylib">
+      <UniqueIdentifier>{5E5E5E5E-5E5E-5E5E-5E5E-5E5E5E5E5E5E}</UniqueIdentifier>
+    </Filter>
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="modules\engine\component.h">
+      <Filter>Engine</Filter>
+    </ClInclude>
+    <ClInclude Include="modules\engine\component\transform.h">
+      <Filter>Engine\Component</Filter>
+    </ClInclude>
+    <ClInclude Include="modules\engine\engine.h">
+      <Filter>Engine</Filter>
+    </ClInclude>
+    <ClInclude Include="modules\engine\moduleLoader.h">
+      <Filter>Engine</Filter>
+    </ClInclude>
+    <ClInclude Include="modules\engine\node.h">
+      <Filter>Engine</Filter>
+    </ClInclude>
+    <ClInclude Include="modules\engine\ui\ui_manager.h">
+      <Filter>Engine\UI</Filter>
+    </ClInclude>
+    <ClInclude Include="lib\pugixml\pugiconfig.hpp">
+      <Filter>Libraries\PugiXML</Filter>
+    </ClInclude>
+    <ClInclude Include="lib\pugixml\pugixml.hpp">
+      <Filter>Libraries\PugiXML</Filter>
+    </ClInclude>
+    <ClInclude Include="lib\utils.h">
+      <Filter>Libraries</Filter>
+    </ClInclude>
+    <ClInclude Include="lib\engine\clay.h">
+      <Filter>Libraries\Raylib</Filter>
+    </ClInclude>
+    <ClInclude Include="lib\engine\raylib.h">
+      <Filter>Libraries\Raylib</Filter>
+    </ClInclude>
+    <ClInclude Include="lib\engine\raymath.h">
+      <Filter>Libraries\Raylib</Filter>
+    </ClInclude>
+    <ClInclude Include="lib\engine\rcamera.h">
+      <Filter>Libraries\Raylib</Filter>
+    </ClInclude>
+    <ClInclude Include="lib\engine\rgestures.h">
+      <Filter>Libraries\Raylib</Filter>
+    </ClInclude>
+    <ClInclude Include="lib\engine\rlgl.h">
+      <Filter>Libraries\Raylib</Filter>
+    </ClInclude>
+  </ItemGroup>
+  <ItemGroup>
+    <ClCompile Include="modules\engine\component.cpp">
+      <Filter>Engine</Filter>
+    </ClCompile>
+    <ClCompile Include="modules\engine\component\transform.cpp">
+      <Filter>Engine\Component</Filter>
+    </ClCompile>
+    <ClCompile Include="modules\engine\engine.cpp">
+      <Filter>Engine</Filter>
+    </ClCompile>
+    <ClCompile Include="modules\engine\moduleLoader.cpp">
+      <Filter>Engine</Filter>
+    </ClCompile>
+    <ClCompile Include="modules\engine\node.cpp">
+      <Filter>Engine</Filter>
+    </ClCompile>
+    <ClCompile Include="modules\engine\ui\ui_manager.cpp">
+      <Filter>Engine\UI</Filter>
+    </ClCompile>
+    <ClCompile Include="lib\pugixml\pugixml.cpp">
+      <Filter>Libraries\PugiXML</Filter>
+    </ClCompile>
+    <ClCompile Include="lib\engine\clay_renderer_raylib.c">
+      <Filter>Libraries\Raylib</Filter>
+    </ClCompile>
+  </ItemGroup>
+  <ItemGroup>
+    <Library Include="lib\engine\libraylib.a">
+      <Filter>Libraries\Raylib</Filter>
+    </Library>
+  </ItemGroup>
+</Project>
