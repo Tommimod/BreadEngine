@@ -34,12 +34,10 @@ else ifeq ($(OS),WINDOWS)
     export PATH
 endif
 
-# Общие флаги
 SHARED_FLAGS = -fPIC -shared
 STD_FLAGS = -std=c++20
 
 # Directories
-# Пути к директориям проекта.
 ENGINE_DIR = modules/Engine
 EDITOR_DIR = modules/Editor
 GAME_DIR = games/example_game
@@ -50,11 +48,9 @@ BIN_DIR = bin
 OBJ_DIR = build/obj
 
 # Include paths
-# Пути для включения заголовков.
 INCLUDES = -I$(LIB_ENGINE_DIR) -I$(LIB_EDITOR_DIR) -I$(LIB_PUGIXML_DIR) -I$(ENGINE_DIR) -I$(EDITOR_DIR)
 
 # Object files for incremental compilation
-# Объектные файлы для инкрементальной компиляции.
 ENGINE_CORE_OBJS = $(OBJ_DIR)/Engine.o $(OBJ_DIR)/ModuleLoader.o
 EDITOR_MAIN_OBJS = $(OBJ_DIR)/EditorMain.o
 EDITOR_CORE_OBJS = $(OBJ_DIR)/Editor.o
@@ -63,31 +59,24 @@ GAME_CORE_OBJS = $(OBJ_DIR)/game.o
 PUGIXML_OBJS = $(OBJ_DIR)/pugixml.o
 
 # Conditional Commands
-# Определяем команды для разных ОС на этапе парсинга Make.
-# Это позволяет избежать ifeq внутри рецептов, которые не оцениваются.
-
-# Создание директорий
 ifeq ($(OS),WINDOWS)
     MKDIR_CMD := if not exist build\obj mkdir build\obj && if not exist bin mkdir bin
 else
     MKDIR_CMD := mkdir -p $(OBJ_DIR) && mkdir -p $(BIN_DIR)
 endif
 
-# Копирование ассетов для Editor
 ifeq ($(OS),WINDOWS)
     COPY_EDITOR_ASSETS_CMD := if not exist $(BIN_DIR)\assets\editor mkdir $(BIN_DIR)\assets\editor && xcopy /s /q /y "$(EDITOR_DIR)\assets\*" "$(BIN_DIR)\assets\editor\" >nul 2>&1 || exit 0
 else
     COPY_EDITOR_ASSETS_CMD := mkdir -p $(BIN_DIR)/assets/editor && cp -r $(EDITOR_DIR)/assets/* $(BIN_DIR)/assets/editor/ 2>/dev/null || true
 endif
 
-# Копирование ассетов для Game
 ifeq ($(OS),WINDOWS)
     COPY_GAME_ASSETS_CMD := if not exist $(BIN_DIR)\assets\game mkdir $(BIN_DIR)\assets\game && xcopy /s /q /y "$(GAME_DIR)\assets\*" "$(BIN_DIR)\assets\game\" >nul 2>&1 || exit 0
 else
     COPY_GAME_ASSETS_CMD := mkdir -p $(BIN_DIR)/assets/game && cp -r $(GAME_DIR)/assets/* $(BIN_DIR)/assets/game/ 2>/dev/null || true
 endif
 
-# Очистка
 ifeq ($(OS),WINDOWS)
     CLEAN_CMD := if exist bin (del /s /q "bin\*" 2>nul && rmdir /s /q bin 2>nul) & if exist build\obj (del /s /q "build\obj\*" 2>nul && rmdir /s /q build\obj 2>nul)
 else
@@ -117,17 +106,13 @@ NEW_GAME_WIN := @echo Enter game name: & set /p name= & \
                 echo New game '%%name%%' created in games\%%name%%\ with assets
 
 # Build all
-# Основная цель: сборка редактора и игры.
 all: editor game
 
 # Create directories
-# Создание директорий для объектов и бинарников (условное для ОС).
 $(OBJ_DIR):
 	@$(MKDIR_CMD)
 
 # Incremental compilation rules
-# Правила инкрементальной компиляции исходников в объектные файлы.
-# Добавлен флаг -g для отладки во всех случаях.
 $(OBJ_DIR)/Engine.o: $(ENGINE_DIR)/Engine.cpp $(ENGINE_DIR)/Engine.h | $(OBJ_DIR)
 	$(COMPILER) $(STD_FLAGS) -g -c $< $(INCLUDES) -o $@
 
@@ -150,7 +135,6 @@ $(OBJ_DIR)/pugixml.o: $(LIB_PUGIXML_DIR)/pugixml.cpp | $(OBJ_DIR)
 	$(COMPILER) $(STD_FLAGS) -g -c $< $(INCLUDES) -o $@
 
 # Editor executable (Engine + Editor)
-# Сборка исполняемого файла редактора.
 editor: $(ENGINE_CORE_OBJS) $(EDITOR_CORE_OBJS) $(EDITOR_MAIN_OBJS) $(PUGIXML_OBJS)
 	@$(MKDIR_CMD)
 	$(COMPILER) $(STD_FLAGS) -g $^ $(INCLUDES) \
@@ -162,7 +146,6 @@ editor: $(ENGINE_CORE_OBJS) $(EDITOR_CORE_OBJS) $(EDITOR_MAIN_OBJS) $(PUGIXML_OB
 	@echo "Editor built successfully!"
 
 # Game executable (Engine + Game)
-# Сборка исполняемого файла игры.
 game: $(ENGINE_CORE_OBJS) $(GAME_CORE_OBJS) $(GAME_MAIN_OBJS) $(PUGIXML_OBJS)
 	@$(MKDIR_CMD)
 	$(COMPILER) $(STD_FLAGS) -g $^ $(INCLUDES) \
@@ -174,14 +157,12 @@ game: $(ENGINE_CORE_OBJS) $(GAME_CORE_OBJS) $(GAME_MAIN_OBJS) $(PUGIXML_OBJS)
 	@echo "Game built successfully!"
 
 # Engine as static library (for external projects)
-# Сборка статической библиотеки движка.
 engine_lib: $(ENGINE_CORE_OBJS) $(PUGIXML_OBJS)
 	@$(MKDIR_CMD)
 	ar rcs $(BIN_DIR)/libBreadEngine.a $^
 	@echo "Engine library built successfully!"
 
 # Create new game template
-# Создание шаблона новой игры (интерактивно, с заменой строк).
 new_game:
 ifeq ($(OS),WINDOWS)
 	$(NEW_GAME_WIN)
@@ -190,7 +171,6 @@ else
 endif
 
 # Generate compile_commands.json for better IntelliSense
-# Генерация JSON для IDE (IntelliSense/Clangd).
 compile_commands:
 	@echo "Generating compile_commands.json..."
 	@echo '[' > compile_commands.json
@@ -208,17 +188,14 @@ compile_commands:
 	@echo "compile_commands.json generated!"
 
 # Clean build artifacts
-# Очистка артефактов сборки (условная для ОС).
 clean:
 	@$(CLEAN_CMD)
 	@echo "Cleaned build artifacts and assets!"
 
 # Force rebuild everything
-# Полная пересборка: clean + all.
 rebuild: clean all
 
 # Show build info
-# Вывод информации о сборке и доступных целях.
 info:
 	@echo "Bread Engine Build System (Detected OS: $(OS))"
 	@echo "Available targets:"
@@ -233,9 +210,7 @@ info:
 	@echo "  info         - Show this help"
 
 # Phony targets
-# Псевдоцели, не соответствующие файлам.
 .PHONY: all editor game engine_lib new_game clean rebuild compile_commands info
 
 # Default target
-# По умолчанию — сборка всего.
 .DEFAULT_GOAL := all
