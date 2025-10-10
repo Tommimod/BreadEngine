@@ -1,10 +1,11 @@
 ﻿#include "nodeInspector.h"
+
+#include "engine.h"
 #include "nodeNotificator.h"
 #include "raygui.h"
 #include "uitoolkit/uiPool.h"
 
-namespace BreadEditor
-{
+namespace BreadEditor {
     NodeInspector::NodeInspector(const std::string &id)
     {
         setup(id);
@@ -25,8 +26,7 @@ namespace BreadEditor
     void NodeInspector::draw(const float deltaTime)
     {
         GuiScrollPanel(bounds, title, scrollView, &scrollPos, &scrollView);
-        drawNodes();
-        drawLines();
+        drawLines(Engine::getRootNode());
         UiElement::draw(deltaTime);
     }
 
@@ -38,14 +38,14 @@ namespace BreadEditor
             scrollView = bounds;
         }
 
-        updateScrollView(nodeInstances.back()->getBounds());
+        updateScrollView(nodeUiElements.back()->getBounds());
     }
 
-    NodeInstance *NodeInspector::findNodeInstanceByEngineNode(const Node *node) const
+    NodeUiElement *NodeInspector::findNodeUiElementByEngineNode(const Node *node) const
     {
         for (const auto child: childs)
         {
-            if (const auto nodeInstance = dynamic_cast<NodeInstance *>(child); nodeInstance && nodeInstance->getNode() == node)
+            if (const auto nodeInstance = dynamic_cast<NodeUiElement *>(child); nodeInstance && nodeInstance->getNode() == node)
             {
                 return nodeInstance;
             }
@@ -78,30 +78,37 @@ namespace BreadEditor
 
     void NodeInspector::onNodeCreated(Node *node)
     {
-        constexpr auto nodeInstanceIdFormat = "NinsT_%d";
-        constexpr float nodeHeight = 20.0f;
-        constexpr float nodeWidthInPercent = 0.8f;
+        constexpr auto elementIdFormat = "NinsT_%d";
+        constexpr float elementHeight = 20.0f;
+        constexpr float elementWidthInPercent = 0.8f;
 
-        const auto parentNode = findNodeInstanceByEngineNode(node);
-        const auto id = TextFormat(nodeInstanceIdFormat, static_cast<int>(childs.size()));
-        auto &instance = UiPool::nodeInstancePool.get().setup(id, this, node);
+        const auto parentNode = findNodeUiElementByEngineNode(node);
+        const auto id = TextFormat(elementIdFormat, static_cast<int>(childs.size()));
+        auto &element = UiPool::nodeInstancePool.get().setup(id, this, node);
 
-        instance.setParentNode(parentNode);
-        instance.setAnchor(UI_LEFT_TOP);
-        const auto horizontalSize = instance.getSizeInPixByPercent({nodeWidthInPercent, 0}).x;
-        instance.setSize({horizontalSize, nodeHeight});
-        nodeInstances.emplace_back(&instance);
+        element.setParentNode(parentNode);
+        element.setAnchor(UI_LEFT_TOP);
+        const auto horizontalSize = element.getSizeInPixByPercent({elementWidthInPercent, 0}).x;
+        element.setSize({horizontalSize, elementHeight});
+
+        nodeUiElements.emplace_back(&element);
+        int i = 0;
+        recalculateUiNodes(Engine::getRootNode(), i);
     }
 
     void NodeInspector::onNodeChangedParent(Node *node)
     {
+        int i = 0;
+        recalculateUiNodes(Engine::getRootNode(), i);
     }
 
     void NodeInspector::onNodeRemoved(const Node *node)
     {
-        const auto instance = findNodeInstanceByEngineNode(node);
+        const auto instance = findNodeUiElementByEngineNode(node);
         destroyChild(instance);
-        nodeInstances.erase(ranges::find(nodeInstances, instance));
+        nodeUiElements.erase(ranges::find(nodeUiElements, instance));
+        int i = 0;
+        recalculateUiNodes(Engine::getRootNode(), i);
     }
 
     void NodeInspector::updateScrollView(const Rectangle lastNodeBounds)
@@ -117,31 +124,38 @@ namespace BreadEditor
         }
     }
 
-    void NodeInspector::drawNodes() const
+    void NodeInspector::recalculateUiNodes(Node &startNode, int& nodeOrder) const
     {
-        for (const auto instance: nodeInstances)
+        const auto element = findNodeUiElementByEngineNode(&startNode);
+        constexpr float nodeHorizontalPadding = 15.0f;
+        constexpr float nodeVerticalPadding = 5.0f;
+
+        const auto nodeHeight = element->getSize().y;
+        const auto deepLevel = static_cast<float>(startNode.getDeepLevel());
+
+        const auto horizontalOffset = nodeHorizontalPadding * deepLevel;
+        const auto verticalPadding = (nodeVerticalPadding + nodeHeight) * static_cast<float>(nodeOrder);
+        element->setPosition({nodeHorizontalPadding + horizontalOffset, 25 + verticalPadding});
+        nodeOrder++;
+        if (startNode.getChildCount() == 0)
         {
-            constexpr float nodeHorizontalPadding = 15.0f;
-            constexpr float nodeVerticalPadding = 5.0f;
+            return;
+        }
 
-            const auto node = instance->getNode();
-            const auto nodeHeight = instance->getSize().y;
-            const auto deepLevel = static_cast<float>(node->getDeepLevel());
-
-            const auto horizontalOffset = nodeHorizontalPadding * deepLevel;
-            const auto verticalPadding = (nodeVerticalPadding + nodeHeight) * static_cast<float>(node->getChildCount() - 1);
-            instance->setPosition({nodeHorizontalPadding + horizontalOffset, 25 + verticalPadding});
+        for (const auto child: startNode.getAllChilds())
+        {
+            recalculateUiNodes(*child, nodeOrder);
         }
     }
 
-    void NodeInspector::drawLines() const
+    void NodeInspector::drawLines(Node &startNode) const
     {
         constexpr auto lineColor = BLACK;
-        constexpr auto lineThickness = 1.1f;
+        constexpr auto lineThickness = 1.0f;
         constexpr float nodeHorizontalPadding = 7.5f;
         constexpr float nodeVerticalPadding = 5.0f;
 
-        for (const auto &instance: nodeInstances)
+        for (const auto &instance: nodeUiElements)
         {
             const auto bounds = instance->getBounds();
             auto leftCenterPoint = Vector2{bounds.x, bounds.y + bounds.height * .5f};
@@ -150,7 +164,7 @@ namespace BreadEditor
 
             DrawLineEx(leftCenterPoint, targetPoint, lineThickness, lineColor);
 
-            const bool isLast = nodeInstances.back() == instance;
+            const bool isLast = nodeUiElements.back() == instance;
             int childCount = instance->getNode()->getChildCount();
             if (isLast || childCount == 0)
             {

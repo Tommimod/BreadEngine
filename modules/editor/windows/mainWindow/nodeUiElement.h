@@ -5,14 +5,14 @@ using namespace BreadEngine;
 
 namespace BreadEditor
 {
-    class NodeInstance final : public UiElement
+    class NodeUiElement final : public UiElement
     {
     public:
-        NodeInstance();
+        NodeUiElement();
 
-        ~NodeInstance() override;
+        ~NodeUiElement() override;
 
-        NodeInstance &setup(const std::string &id, UiElement *parentElement, Node *node);
+        NodeUiElement &setup(const std::string &id, UiElement *parentElement, Node *node);
 
         void draw(float deltaTime) override;
 
@@ -20,7 +20,7 @@ namespace BreadEditor
 
         [[nodiscard]] Node *getNode() const;
 
-        void setParentNode(NodeInstance *nextParentNode);
+        void setParentNode(NodeUiElement *nextParentNode);
 
         void setEngineNode(Node *nextEngineNode);
 
@@ -29,6 +29,6 @@ namespace BreadEditor
 
     private:
         Node *engineNode = nullptr;
-        NodeInstance *parentNode = nullptr;
+        NodeUiElement *parentNode = nullptr;
     };
 } // BreadEditor

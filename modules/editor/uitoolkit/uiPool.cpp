@@ -21,9 +21,9 @@ namespace BreadEditor {
     };
     ObjectPool<UiToolbar> UiPool::toolbarPool(UiToolbarFactory, 10);
 
-    auto NodeInstanceFactory = []() -> NodeInstance *
+    auto NodeInstanceFactory = []() -> NodeUiElement *
     {
-        return new NodeInstance();
+        return new NodeUiElement();
     };
-    ObjectPool<NodeInstance> UiPool::nodeInstancePool(NodeInstanceFactory, 10);
+    ObjectPool<NodeUiElement> UiPool::nodeInstancePool(NodeInstanceFactory, 10);
 } // BreadEditor

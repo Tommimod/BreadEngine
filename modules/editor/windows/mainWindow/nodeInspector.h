@@ -1,12 +1,11 @@
 ﻿#pragma once
 #include "action.h"
 #include "node.h"
-#include "nodeInstance.h"
+#include "nodeUiElement.h"
 #include "uitoolkit/uiPanel.h"
 using namespace BreadEngine;
 
-namespace BreadEditor
-{
+namespace BreadEditor {
     class NodeInspector final : public UiElement
     {
     public:
@@ -26,11 +25,11 @@ namespace BreadEditor
     private:
         const char *title = "Node Inspector";
         std::vector<SubscriptionHandle> subscriptionHandles;
-        std::vector<NodeInstance*> nodeInstances;
+        std::vector<NodeUiElement *> nodeUiElements;
         Vector2 scrollPos = {0.0f, 0.0f};
         Rectangle scrollView = {0.0f, 0.0f, 0.0f, 0.0f};
 
-        NodeInstance *findNodeInstanceByEngineNode(const Node *node) const;
+        NodeUiElement *findNodeUiElementByEngineNode(const Node *node) const;
 
         void subscribe();
 
@@ -43,7 +42,9 @@ namespace BreadEditor
         void onNodeRemoved(const Node *node);
 
         void updateScrollView(Rectangle lastNodeBounds);
-        void drawNodes() const;
-        void drawLines() const;
+
+        void recalculateUiNodes(Node &startNode, int& nodeOrder) const;
+
+        void drawLines(Node &startNode) const;
     };
 } // BreadEditor

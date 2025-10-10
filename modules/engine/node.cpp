@@ -19,7 +19,7 @@ namespace BreadEngine
         dispose();
     }
 
-    Node &Node::setup(const std::string &newName)
+    Node &Node::setupAsRoot(const std::string &newName)
     {
         this->name = newName;
         childs = std::vector<Node *>();
@@ -29,14 +29,14 @@ namespace BreadEngine
         return *this;
     }
 
-    Node &Node::setup(const std::string &newName, Node *nextParent)
+    Node &Node::setup(const std::string &newName, Node &nextParent)
     {
         this->name = newName;
         childs = std::vector<Node *>();
         components = std::vector<Component *>();
         transform = addComponent<Transform>();
-        this->parent = nextParent;
-        nextParent->childs.emplace_back(this);
+        this->parent = &nextParent;
+        this->parent->childs.emplace_back(this);
         NodeNotificator::onNodeCreated.invoke(this);
         return *this;
     }
@@ -133,17 +133,6 @@ namespace BreadEngine
 
             comp->onFrameEnd(deltaTime);
         }
-    }
-
-    int Node::getChildsCoundDeep() const
-    {
-        int count = getChildCount();
-        for (const auto &child: childs)
-        {
-            count += child->getChildsCoundDeep();
-        }
-
-        return count;
     }
 
     int Node::getChildCount() const

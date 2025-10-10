@@ -24,7 +24,7 @@ else ifeq ($(OS),Linux)
     LINK_FLAGS = -lGL -lGLU -lX11 -lpthread -ldl -lXi -lSM -lICE -lm
     SED_INPLACE = -i
 else ifeq ($(OS),WINDOWS)
-    COMPILER = g++
+    COMPILER = clang++
     # Use MinGW-compiled raylib for Windows
     RAYLIB_LIB = $(LIB_ENGINE_DIR)/libraylib-win64.a
     LINK_FLAGS = -lopengl32 -lgdi32 -lwinmm -luser32 -lkernel32

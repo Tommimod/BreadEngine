@@ -22,12 +22,12 @@ namespace BreadEditor
         SetTraceLogLevel(LOG_ALL);
         initialized = true;
 
-        const auto rootNode = &Engine::GetInstance().rootNode;
-        auto& testNode = Engine::nodePool.get().setup("1", rootNode);
-        auto& testNode2 = Engine::nodePool.get().setup("2", &testNode);
-        auto& testNode25 = Engine::nodePool.get().setup("2.5", &testNode);
-        auto& testNode444 = Engine::nodePool.get().setup("444", &testNode2);
-        auto& testNode3 = Engine::nodePool.get().setup("3");
+        const auto rootNode = &Engine::getRootNode();
+        auto& testNode = Engine::nodePool.get().setup("1", *rootNode);
+        auto& testNode2 = Engine::nodePool.get().setup("1.1", testNode);
+        auto& testNode25 = Engine::nodePool.get().setup("1.2", testNode);
+        auto& testNode444 = Engine::nodePool.get().setup("1.1.1", testNode2);
+        auto& testNode3 = Engine::nodePool.get().setup("2", *rootNode);
         return true;
     }
 

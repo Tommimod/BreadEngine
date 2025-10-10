@@ -16,7 +16,7 @@ namespace BreadEngine
 
         static ObjectPool<Node> nodePool;
 
-        Node& rootNode;
+        static Node& getRootNode();
 
         static float GetDeltaTime();
 
@@ -55,6 +55,7 @@ namespace BreadEngine
     private:
         Engine();
         ~Engine() = default;
+        static Node rootNode;
 
         Camera3D camera{};
         ModuleLoader *gameModuleLoader = nullptr;

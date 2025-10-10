@@ -2,7 +2,7 @@
 #include "uiPanel.h"
 #include "uiToolbar.h"
 #include "uiLabelButton.h"
-#include "windows/mainWindow/nodeInstance.h"
+#include "windows/mainWindow/nodeUiElement.h"
 #include "objectPool.h"
 using namespace BreadEngine;
 
@@ -14,6 +14,6 @@ namespace BreadEditor
         static ObjectPool<UiLabelButton> labelButtonPool;
         static ObjectPool<UiPanel> panelPool;
         static ObjectPool<UiToolbar> toolbarPool;
-        static ObjectPool<NodeInstance> nodeInstancePool;
+        static ObjectPool<NodeUiElement> nodeInstancePool;
     };
 } // BreadEditor

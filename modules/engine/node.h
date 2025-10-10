@@ -16,9 +16,9 @@ namespace BreadEngine
         Node();
         ~Node();
 
-        Node& setup(const std::string &newName);
+        Node& setupAsRoot(const std::string &newName);
 
-        Node& setup(const std::string &newName, Node *nextParent);
+        Node& setup(const std::string &newName, Node &nextParent);
 
         void dispose() override;
 
@@ -33,8 +33,6 @@ namespace BreadEngine
         void onFrameStart(float deltaTime) const;
 
         void onFrameEnd(float deltaTime) const;
-
-        [[nodiscard]] int getChildsCoundDeep() const;
 
         [[nodiscard]] int getChildCount() const;
 

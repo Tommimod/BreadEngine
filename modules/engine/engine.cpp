@@ -2,17 +2,26 @@
 #include "moduleLoader.h"
 #include <fstream>
 
-namespace BreadEngine
-{
-    auto nodeFactory = []() -> Node* {
+namespace BreadEngine {
+    auto nodeFactory = []() -> Node *
+    {
         return new Node();
     };
     ObjectPool<Node> Engine::nodePool(nodeFactory, 10);
+    Node Engine::rootNode;
+
+    Engine::Engine() = default;
 
     Engine &Engine::GetInstance()
     {
         static Engine instance;
         return instance;
+    }
+
+    Node &Engine::getRootNode()
+    {
+        if (rootNode.getName().empty()) rootNode = rootNode.setupAsRoot("Root");
+        return rootNode;
     }
 
     float Engine::GetDeltaTime()
@@ -158,13 +167,8 @@ namespace BreadEngine
         return collision;
     }
 
-    Engine::Engine() : rootNode(Node().setup("Root"))
-    {
-    }
-
     // Реализация утилит движка
-    namespace Input
-    {
+    namespace Input {
         bool IsKeyPressed(const int key)
         {
             return ::IsKeyPressed(key);
@@ -186,8 +190,7 @@ namespace BreadEngine
         }
     } // namespace Input
 
-    namespace Rendering
-    {
+    namespace Rendering {
         void DrawGrid(const int slices, const float spacing)
         {
             ::DrawGrid(slices, spacing);
@@ -204,8 +207,7 @@ namespace BreadEngine
         }
     } // namespace Rendering
 
-    namespace Time
-    {
+    namespace Time {
         float GetTime()
         {
             return ::GetTime();
