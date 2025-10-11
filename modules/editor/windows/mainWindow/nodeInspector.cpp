@@ -3,6 +3,7 @@
 #include "engine.h"
 #include "nodeNotificator.h"
 #include "raygui.h"
+#include "uitoolkit/uiInteractiveLine.h"
 #include "uitoolkit/uiPool.h"
 
 namespace BreadEditor {
@@ -124,7 +125,7 @@ namespace BreadEditor {
         }
     }
 
-    void NodeInspector::recalculateUiNodes(Node &startNode, int& nodeOrder) const
+    void NodeInspector::recalculateUiNodes(Node &startNode, int &nodeOrder) const
     {
         const auto element = findNodeUiElementByEngineNode(&startNode);
         constexpr float nodeHorizontalPadding = 15.0f;
@@ -151,29 +152,43 @@ namespace BreadEditor {
     void NodeInspector::drawLines(Node &startNode) const
     {
         constexpr auto lineColor = BLACK;
-        constexpr auto lineThickness = 1.0f;
-        constexpr float nodeHorizontalPadding = 7.5f;
-        constexpr float nodeVerticalPadding = 5.0f;
+        constexpr float nodeHorizontalPadding = 15.0f * .5f;
 
-        for (const auto &instance: nodeUiElements)
+        const auto instance = findNodeUiElementByEngineNode(&startNode);
+        const bool isLast = nodeUiElements.back() == instance;
+        int childCount = instance->getNode()->getChildCount();
+        if (isLast || childCount == 0)
         {
-            const auto bounds = instance->getBounds();
-            auto leftCenterPoint = Vector2{bounds.x, bounds.y + bounds.height * .5f};
-            auto targetPoint = Vector2(leftCenterPoint);
-            targetPoint.x -= nodeHorizontalPadding;
+            return;
+        }
 
-            DrawLineEx(leftCenterPoint, targetPoint, lineThickness, lineColor);
+        const auto bounds = instance->getBounds();
+        auto leftCenterPoint = Vector2{bounds.x, bounds.y + bounds.height * .5f};
+        auto targetPoint = Vector2(leftCenterPoint);
+        targetPoint.x -= nodeHorizontalPadding;
+        DrawLineV(leftCenterPoint, targetPoint, lineColor);
 
-            const bool isLast = nodeUiElements.back() == instance;
-            int childCount = instance->getNode()->getChildCount();
-            if (isLast || childCount == 0)
-            {
-                continue;
-            }
+        auto childs = startNode.getAllChilds();
+        auto lastChild = childs.back();
+        auto lastElement = findNodeUiElementByEngineNode(lastChild);
+        auto lastTargetPoint = Vector2(targetPoint);
+        lastTargetPoint.y = lastElement->getBounds().y + lastElement->getBounds().height * .5f;
+        DrawLineV(targetPoint, lastTargetPoint, lineColor);
 
-            auto verticalTargetPoint = Vector2(targetPoint);
-            verticalTargetPoint.y += (nodeVerticalPadding + bounds.height) * static_cast<float>(childCount);
-            DrawLineEx(targetPoint, verticalTargetPoint, lineThickness, lineColor);
+        for (const auto child: childs)
+        {
+            auto childElement = findNodeUiElementByEngineNode(child);
+            auto childBound = childElement->getBounds();
+            auto xPoint = childBound.x;
+            auto yPoint = childBound.y + childBound.height * .5f;
+            auto target = Vector2(xPoint, yPoint);
+            auto from = Vector2{targetPoint.x, yPoint};
+            DrawLineV(from, target, lineColor);
+        }
+
+        for (const auto child: childs)
+        {
+            drawLines(*child);
         }
     }
 } // BreadEditor

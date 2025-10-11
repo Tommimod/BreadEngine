@@ -26,4 +26,10 @@ namespace BreadEditor {
         return new NodeUiElement();
     };
     ObjectPool<NodeUiElement> UiPool::nodeInstancePool(NodeInstanceFactory, 10);
+
+    auto InteractiveLineFactory = []() -> UiInteractiveLine *
+    {
+        return new UiInteractiveLine();
+    };
+    ObjectPool<UiInteractiveLine> UiPool::interactiveLinePool(InteractiveLineFactory, 10);
 } // BreadEditor
