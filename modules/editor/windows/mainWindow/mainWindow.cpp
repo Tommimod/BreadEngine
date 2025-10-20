@@ -22,7 +22,7 @@ namespace BreadEditor
 
         nodeInspector.setPivot({1, 0});
         nodeInspector.setAnchor(UI_FIT_RIGHT_VERTICAL);
-        nodeInspector.setSizePercent({.3f, .5f});
+        nodeInspector.setSizePercentOneTime({.3f, .5f});
         nodeInspector.setPosition({0, toolbar.getSize().y - 1});
     }
 

@@ -91,8 +91,8 @@ namespace BreadEditor {
 
         element.setParentNode(parentNode);
         element.setAnchor(UI_LEFT_TOP);
-        const auto horizontalSize = element.getSizeInPixByPercent({elementWidthInPercent, 0}).x;
-        element.setSize({horizontalSize, elementHeight});
+        element.setSize({0, elementHeight});
+        element.setSizePercentPermanent({elementWidthInPercent, -1});
 
         nodeUiElements.emplace_back(&element);
         int i = 0;

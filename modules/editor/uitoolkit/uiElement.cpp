@@ -1,8 +1,7 @@
 ﻿#include "uiElement.h"
 #include <algorithm>
 
-namespace BreadEditor
-{
+namespace BreadEditor {
     UiElement &UiElement::setup(const std::string &newId)
     {
         this->id = newId;
@@ -68,15 +67,64 @@ namespace BreadEditor
         localSize = size;
     }
 
-    void UiElement::setSizePercent(const Vector2 &percent)
+    void UiElement::setSizePercentOneTime(const Vector2 &percent)
     {
-        setSize(getSizeInPixByPercent(percent));
+        if (percent.x >= 0 && percent.y >= 0)
+        {
+            setSize(getSizeInPixByPercent(percent));
+        }
+        else if (percent.x >= 0 && percent.y < 0)
+        {
+            auto ySize = localSize.y;
+            localSize.x = getSizeInPixByPercentOnlyX(percent);
+            setSize({localSize.x, ySize});
+        }
+        else if (percent.x < 0 && percent.y >= 0)
+        {
+            auto xSize = localSize.x;
+            localSize.y = getSizeInPixByPercentOnlyY(percent);
+            setSize({xSize, localSize.y});
+        }
+
+        sizeInPercents = {-1, -1};
+    }
+
+    void UiElement::setSizePercentPermanent(const Vector2 &percent)
+    {
+        if (percent.x >= 0 && percent.y >= 0)
+        {
+            setSize(getSizeInPixByPercent(percent));
+        }
+        else if (percent.x >= 0 && percent.y < 0)
+        {
+            auto ySize = localSize.y;
+            localSize.x = getSizeInPixByPercentOnlyX(percent);
+            setSize({localSize.x, ySize});
+        }
+        else if (percent.x < 0 && percent.y >= 0)
+        {
+            auto xSize = localSize.x;
+            localSize.y = getSizeInPixByPercentOnlyY(percent);
+            setSize({xSize, localSize.y});
+        }
+
+        sizeInPercents = percent;
     }
 
     void UiElement::setBounds(const Vector2 &position, const Vector2 &size)
     {
         localPosition = position;
         localSize = size;
+    }
+
+    float UiElement::getSizeInPixByPercentOnlyX(const Vector2 &percent) const
+    {
+        return getSizeInPixByPercent(percent).x;
+    }
+
+    float UiElement::getSizeInPixByPercentOnlyY(const Vector2 &percent) const
+    {
+        return getSizeInPixByPercent(percent).y;
     }
 
     Vector2 UiElement::getSizeInPixByPercent(const Vector2 &percent) const
@@ -87,7 +135,8 @@ namespace BreadEditor
         {
             parent->computeBounds();
             effectiveParentBounds = parent->getBounds();
-        } else
+        }
+        else
         {
             effectiveParentBounds = {0.0f, 0.0f, static_cast<float>(GetScreenWidth()), static_cast<float>(GetScreenHeight())};
         }
@@ -196,11 +245,17 @@ namespace BreadEditor
 
     void UiElement::computeBounds()
     {
+        if (sizeInPercents.x >= 0 || sizeInPercents.y >= 0)
+        {
+            setSizePercentPermanent(sizeInPercents);
+        }
+
         Rectangle effectiveParentBounds;
         if (parent)
         {
             effectiveParentBounds = parent->getBounds();
-        } else
+        }
+        else
         {
             effectiveParentBounds = {0.0f, 0.0f, static_cast<float>(GetScreenWidth()), static_cast<float>(GetScreenHeight())};
         }
