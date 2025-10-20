@@ -2,8 +2,7 @@
 #include "raygui.h"
 #include "uitoolkit/uiPool.h"
 
-namespace BreadEditor
-{
+namespace BreadEditor {
     NodeUiElement::NodeUiElement() = default;
 
     NodeUiElement &NodeUiElement::setup(const std::string &id, UiElement *parentElement, Node *node)
@@ -16,7 +15,11 @@ namespace BreadEditor
 
     void NodeUiElement::draw(const float deltaTime)
     {
-        GuiButton(bounds, nullptr);
+        if (GuiButton(bounds, nullptr))
+        {
+            onSelected.invoke(this);
+        }
+
         const auto buttonText = GuiIconText(ICON_CPU, engineNode->getName().c_str());
         GuiLabel(bounds, buttonText);
         UiElement::draw(deltaTime);
@@ -44,6 +47,6 @@ namespace BreadEditor
 
     void NodeUiElement::deleteSelf()
     {
-        UiPool::nodeInstancePool.release(*this);
+        UiPool::nodeUiElementPool.release(*this);
     }
 } // BreadEditor

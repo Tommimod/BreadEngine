@@ -4,7 +4,6 @@
 #include "uiLabelButton.h"
 #include "windows/mainWindow/nodeUiElement.h"
 #include "objectPool.h"
-#include "uiInteractiveLine.h"
 using namespace BreadEngine;
 
 namespace BreadEditor
@@ -15,7 +14,6 @@ namespace BreadEditor
         static ObjectPool<UiLabelButton> labelButtonPool;
         static ObjectPool<UiPanel> panelPool;
         static ObjectPool<UiToolbar> toolbarPool;
-        static ObjectPool<NodeUiElement> nodeInstancePool;
-        static ObjectPool<UiInteractiveLine> interactiveLinePool;
+        static ObjectPool<NodeUiElement> nodeUiElementPool;
     };
 } // BreadEditor

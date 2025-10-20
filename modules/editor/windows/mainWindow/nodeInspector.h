@@ -2,11 +2,11 @@
 #include "action.h"
 #include "node.h"
 #include "nodeUiElement.h"
-#include "uitoolkit/uiPanel.h"
+#include "uitoolkit/IUiResizable.h"
 using namespace BreadEngine;
 
 namespace BreadEditor {
-    class NodeInspector final : public UiElement
+    class NodeInspector final : public UiElement, IUiResizable
     {
     public:
         explicit NodeInspector(const std::string &id);
@@ -28,6 +28,8 @@ namespace BreadEditor {
         std::vector<NodeUiElement *> nodeUiElements;
         Vector2 scrollPos = {0.0f, 0.0f};
         Rectangle scrollView = {0.0f, 0.0f, 0.0f, 0.0f};
+        NodeUiElement *selectedNodeUiElement = nullptr;
+        std::unordered_map<NodeUiElement *, SubscriptionHandle> nodeUiElementSubscriptions;
 
         NodeUiElement *findNodeUiElementByEngineNode(const Node *node) const;
 
@@ -40,10 +42,11 @@ namespace BreadEditor {
         void onNodeChangedParent(Node *node);
 
         void onNodeRemoved(const Node *node);
+        void onNodeSelected(NodeUiElement *nodeUiElement);
 
         void updateScrollView(Rectangle lastNodeBounds);
 
-        void recalculateUiNodes(Node &startNode, int& nodeOrder) const;
+        void recalculateUiNodes(Node &startNode, int &nodeOrder) const;
 
         void drawLines(Node &startNode) const;
     };

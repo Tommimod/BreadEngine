@@ -51,6 +51,8 @@ namespace BreadEngine
 
         // Check if point is inside rectangle
         static bool IsCollisionPointRec(Vector2 point, Rectangle rec);
+        // Check if point is inside rectangle with hole
+        static bool IsCollisionPointRec(const Vector2 point, const Rectangle rec, const Rectangle subtraction);
 
     private:
         Engine();

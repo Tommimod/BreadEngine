@@ -3,19 +3,20 @@
 #include "engine.h"
 #include "nodeNotificator.h"
 #include "raygui.h"
-#include "uitoolkit/uiInteractiveLine.h"
 #include "uitoolkit/uiPool.h"
 
 namespace BreadEditor {
     NodeInspector::NodeInspector(const std::string &id)
     {
         setup(id);
+        isHorizontalResized = true;
         subscribe();
     }
 
     NodeInspector::NodeInspector(const std::string &id, UiElement *parentElement)
     {
         setup(id, parentElement);
+        isHorizontalResized = true;
         subscribe();
     }
 
@@ -40,6 +41,7 @@ namespace BreadEditor {
         }
 
         updateScrollView(nodeUiElements.back()->getBounds());
+        updateResizable(*this);
     }
 
     NodeUiElement *NodeInspector::findNodeUiElementByEngineNode(const Node *node) const
@@ -85,7 +87,7 @@ namespace BreadEditor {
 
         const auto parentNode = findNodeUiElementByEngineNode(node);
         const auto id = TextFormat(elementIdFormat, static_cast<int>(childs.size()));
-        auto &element = UiPool::nodeInstancePool.get().setup(id, this, node);
+        auto &element = UiPool::nodeUiElementPool.get().setup(id, this, node);
 
         element.setParentNode(parentNode);
         element.setAnchor(UI_LEFT_TOP);
@@ -95,6 +97,8 @@ namespace BreadEditor {
         nodeUiElements.emplace_back(&element);
         int i = 0;
         recalculateUiNodes(Engine::getRootNode(), i);
+        auto handler = element.onSelected.subscribe([this](NodeUiElement *nodeUiElement) { this->onNodeSelected(nodeUiElement); });
+        nodeUiElementSubscriptions.emplace(&element, handler);
     }
 
     void NodeInspector::onNodeChangedParent(Node *node)
@@ -106,10 +110,17 @@ namespace BreadEditor {
     void NodeInspector::onNodeRemoved(const Node *node)
     {
         const auto instance = findNodeUiElementByEngineNode(node);
+        instance->onSelected.unsubscribe(nodeUiElementSubscriptions[instance]);
+        nodeUiElementSubscriptions.erase(instance);
         destroyChild(instance);
         nodeUiElements.erase(ranges::find(nodeUiElements, instance));
         int i = 0;
         recalculateUiNodes(Engine::getRootNode(), i);
+    }
+
+    void NodeInspector::onNodeSelected(NodeUiElement *nodeUiElement)
+    {
+        selectedNodeUiElement = nodeUiElement;
     }
 
     void NodeInspector::updateScrollView(const Rectangle lastNodeBounds)
@@ -168,21 +179,22 @@ namespace BreadEditor {
         targetPoint.x -= nodeHorizontalPadding;
         DrawLineV(leftCenterPoint, targetPoint, lineColor);
 
-        auto childs = startNode.getAllChilds();
-        auto lastChild = childs.back();
-        auto lastElement = findNodeUiElementByEngineNode(lastChild);
+        const auto childs = startNode.getAllChilds();
+        const auto lastChild = childs.back();
+        const auto lastElement = findNodeUiElementByEngineNode(lastChild);
         auto lastTargetPoint = Vector2(targetPoint);
-        lastTargetPoint.y = lastElement->getBounds().y + lastElement->getBounds().height * .5f;
+        lastTargetPoint.y = 1 + lastElement->getBounds().y + lastElement->getBounds().height * .5f;
+        targetPoint.y++;
         DrawLineV(targetPoint, lastTargetPoint, lineColor);
 
         for (const auto child: childs)
         {
-            auto childElement = findNodeUiElementByEngineNode(child);
-            auto childBound = childElement->getBounds();
-            auto xPoint = childBound.x;
-            auto yPoint = childBound.y + childBound.height * .5f;
-            auto target = Vector2(xPoint, yPoint);
-            auto from = Vector2{targetPoint.x, yPoint};
+            const auto childElement = findNodeUiElementByEngineNode(child);
+            const auto childBound = childElement->getBounds();
+            const auto xPoint = childBound.x;
+            const auto yPoint = childBound.y + childBound.height * .5f;
+            const auto target = Vector2(xPoint, yPoint);
+            const auto from = Vector2{targetPoint.x, yPoint};
             DrawLineV(from, target, lineColor);
         }
 

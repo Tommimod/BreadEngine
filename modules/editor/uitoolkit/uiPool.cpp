@@ -19,17 +19,11 @@ namespace BreadEditor {
     {
         return new UiToolbar();
     };
-    ObjectPool<UiToolbar> UiPool::toolbarPool(UiToolbarFactory, 10);
+    ObjectPool<UiToolbar> UiPool::toolbarPool(UiToolbarFactory, 2);
 
     auto NodeInstanceFactory = []() -> NodeUiElement *
     {
         return new NodeUiElement();
     };
-    ObjectPool<NodeUiElement> UiPool::nodeInstancePool(NodeInstanceFactory, 10);
-
-    auto InteractiveLineFactory = []() -> UiInteractiveLine *
-    {
-        return new UiInteractiveLine();
-    };
-    ObjectPool<UiInteractiveLine> UiPool::interactiveLinePool(InteractiveLineFactory, 10);
+    ObjectPool<NodeUiElement> UiPool::nodeUiElementPool(NodeInstanceFactory, 10);
 } // BreadEditor

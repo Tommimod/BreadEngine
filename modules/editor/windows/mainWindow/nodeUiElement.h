@@ -1,4 +1,5 @@
 #pragma once
+#include "action.h"
 #include "node.h"
 #include "uitoolkit/uiElement.h"
 using namespace BreadEngine;
@@ -8,6 +9,7 @@ namespace BreadEditor
     class NodeUiElement final : public UiElement
     {
     public:
+        Action<NodeUiElement*> onSelected;
         NodeUiElement();
 
         ~NodeUiElement() override;

@@ -158,13 +158,16 @@ namespace BreadEngine {
 
     bool Engine::IsCollisionPointRec(const Vector2 point, const Rectangle rec)
     {
-        bool collision = false;
+        return point.x >= rec.x && point.x <= rec.x + rec.width &&
+            point.y >= rec.y && point.y <= rec.y + rec.height;
+    }
 
-        if ((point.x >= rec.x) && (point.x <= (rec.x + rec.width)) &&
-            (point.y >= rec.y) && (point.y <= (rec.y + rec.height)))
-            collision = true;
+    bool Engine::IsCollisionPointRec(const Vector2 point, const Rectangle rec, const Rectangle subtraction)
+    {
+        const auto inMainRect = IsCollisionPointRec(point, rec);
+        const auto inSubRect = IsCollisionPointRec(point, subtraction);
 
-        return collision;
+        return inMainRect && !inSubRect;
     }
 
     // Реализация утилит движка
