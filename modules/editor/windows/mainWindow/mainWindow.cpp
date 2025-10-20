@@ -14,16 +14,16 @@ namespace BreadEditor
 
     MainWindow::MainWindow()
         : toolbar(UiPool::toolbarPool.get().setup("mainWindowToolbar", nullptr, 20, {"File", "Edit", "Help"})),
-          nodeInspector(NodeInspector("mainWindowNodeInspector"))
+          nodeTree(NodeTree("mainWindowNodeTree"))
     {
         toolbar.setAnchor(UI_FIT_TOP_HORIZONTAL);
         toolbar.setPivot({0, 0});
         toolbar.setSize({0, 20});
 
-        nodeInspector.setPivot({1, 0});
-        nodeInspector.setAnchor(UI_FIT_RIGHT_VERTICAL);
-        nodeInspector.setSizePercentOneTime({.3f, .5f});
-        nodeInspector.setPosition({0, toolbar.getSize().y - 1});
+        nodeTree.setPivot({1, 0});
+        nodeTree.setAnchor(UI_FIT_RIGHT_VERTICAL);
+        nodeTree.setSizePercentOneTime({.3f, .5f});
+        nodeTree.setPosition({0, toolbar.getSize().y - 1});
     }
 
     MainWindow::~MainWindow()
@@ -36,9 +36,9 @@ namespace BreadEditor
         return toolbar;
     }
 
-    NodeInspector &MainWindow::getNodeInspector()
+    NodeTree &MainWindow::getNodeTree()
     {
-        return nodeInspector;
+        return nodeTree;
     }
 
     void MainWindow::render(const float deltaTime)
@@ -46,7 +46,7 @@ namespace BreadEditor
         toolbar.update(deltaTime);
         toolbar.draw(deltaTime);
 
-        nodeInspector.update(deltaTime);
-        nodeInspector.draw(deltaTime);
+        nodeTree.update(deltaTime);
+        nodeTree.draw(deltaTime);
     }
 } // namespace BreadEditor

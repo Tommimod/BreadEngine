@@ -1,4 +1,4 @@
-﻿#include "nodeInspector.h"
+﻿#include "nodeTree.h"
 
 #include "engine.h"
 #include "nodeNotificator.h"
@@ -6,33 +6,33 @@
 #include "uitoolkit/uiPool.h"
 
 namespace BreadEditor {
-    NodeInspector::NodeInspector(const std::string &id)
+    NodeTree::NodeTree(const std::string &id)
     {
         setup(id);
         isHorizontalResized = true;
         subscribe();
     }
 
-    NodeInspector::NodeInspector(const std::string &id, UiElement *parentElement)
+    NodeTree::NodeTree(const std::string &id, UiElement *parentElement)
     {
         setup(id, parentElement);
         isHorizontalResized = true;
         subscribe();
     }
 
-    NodeInspector::~NodeInspector()
+    NodeTree::~NodeTree()
     {
         unsubscribe();
     }
 
-    void NodeInspector::draw(const float deltaTime)
+    void NodeTree::draw(const float deltaTime)
     {
         GuiScrollPanel(bounds, title, scrollView, &scrollPos, &scrollView);
         drawLines(Engine::getRootNode());
         UiElement::draw(deltaTime);
     }
 
-    void NodeInspector::update(const float deltaTime)
+    void NodeTree::update(const float deltaTime)
     {
         UiElement::update(deltaTime);
         if (scrollView.width == 0 && scrollView.height == 0)
@@ -44,7 +44,7 @@ namespace BreadEditor {
         updateResizable(*this);
     }
 
-    NodeUiElement *NodeInspector::findNodeUiElementByEngineNode(const Node *node) const
+    NodeUiElement *NodeTree::findNodeUiElementByEngineNode(const Node *node) const
     {
         for (const auto child: childs)
         {
@@ -57,11 +57,11 @@ namespace BreadEditor {
         return nullptr;
     }
 
-    void NodeInspector::deleteSelf()
+    void NodeTree::deleteSelf()
     {
     }
 
-    void NodeInspector::subscribe()
+    void NodeTree::subscribe()
     {
         subscriptionHandles.emplace_back(
             NodeNotificator::onNodeCreated.subscribe([this](Node *node) { this->onNodeCreated(node); }));
@@ -71,7 +71,7 @@ namespace BreadEditor {
             NodeNotificator::onNodeDestroyed.subscribe([this](Node *node) { this->onNodeRemoved(node); }));
     }
 
-    void NodeInspector::unsubscribe()
+    void NodeTree::unsubscribe()
     {
         NodeNotificator::onNodeCreated.unsubscribe(subscriptionHandles[0]);
         NodeNotificator::onNodeChangedParent.unsubscribe(subscriptionHandles[1]);
@@ -79,7 +79,7 @@ namespace BreadEditor {
         subscriptionHandles.clear();
     }
 
-    void NodeInspector::onNodeCreated(Node *node)
+    void NodeTree::onNodeCreated(Node *node)
     {
         constexpr auto elementIdFormat = "NinsT_%d";
         constexpr float elementHeight = 20.0f;
@@ -101,13 +101,13 @@ namespace BreadEditor {
         nodeUiElementSubscriptions.emplace(&element, handler);
     }
 
-    void NodeInspector::onNodeChangedParent(Node *node)
+    void NodeTree::onNodeChangedParent(Node *node)
     {
         int i = 0;
         recalculateUiNodes(Engine::getRootNode(), i);
     }
 
-    void NodeInspector::onNodeRemoved(const Node *node)
+    void NodeTree::onNodeRemoved(const Node *node)
     {
         const auto instance = findNodeUiElementByEngineNode(node);
         instance->onSelected.unsubscribe(nodeUiElementSubscriptions[instance]);
@@ -118,12 +118,12 @@ namespace BreadEditor {
         recalculateUiNodes(Engine::getRootNode(), i);
     }
 
-    void NodeInspector::onNodeSelected(NodeUiElement *nodeUiElement)
+    void NodeTree::onNodeSelected(NodeUiElement *nodeUiElement)
     {
         selectedNodeUiElement = nodeUiElement;
     }
 
-    void NodeInspector::updateScrollView(const Rectangle lastNodeBounds)
+    void NodeTree::updateScrollView(const Rectangle lastNodeBounds)
     {
         if (scrollView.x < lastNodeBounds.x)
         {
@@ -136,7 +136,7 @@ namespace BreadEditor {
         }
     }
 
-    void NodeInspector::recalculateUiNodes(Node &startNode, int &nodeOrder) const
+    void NodeTree::recalculateUiNodes(Node &startNode, int &nodeOrder) const
     {
         const auto element = findNodeUiElementByEngineNode(&startNode);
         constexpr float nodeHorizontalPadding = 15.0f;
@@ -160,7 +160,7 @@ namespace BreadEditor {
         }
     }
 
-    void NodeInspector::drawLines(Node &startNode) const
+    void NodeTree::drawLines(Node &startNode) const
     {
         constexpr auto lineColor = BLACK;
         constexpr float nodeHorizontalPadding = 15.0f * .5f;

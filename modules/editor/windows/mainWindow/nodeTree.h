@@ -6,14 +6,14 @@
 using namespace BreadEngine;
 
 namespace BreadEditor {
-    class NodeInspector final : public UiElement, IUiResizable
+    class NodeTree final : public UiElement, IUiResizable
     {
     public:
-        explicit NodeInspector(const std::string &id);
+        explicit NodeTree(const std::string &id);
 
-        explicit NodeInspector(const std::string &id, UiElement *parentElement);
+        explicit NodeTree(const std::string &id, UiElement *parentElement);
 
-        ~NodeInspector() override;
+        ~NodeTree() override;
 
         void draw(float deltaTime) override;
 
