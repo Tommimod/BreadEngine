@@ -60,10 +60,6 @@ namespace BreadEditor {
         return nullptr;
     }
 
-    void NodeTree::deleteSelf()
-    {
-    }
-
     void NodeTree::subscribe()
     {
         subscriptionHandles.emplace_back(

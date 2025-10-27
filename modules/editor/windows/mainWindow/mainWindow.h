@@ -27,6 +27,6 @@ namespace BreadEditor
     private:
         UiToolbar &toolbar;
         NodeTree nodeTree;
-        NodeInspector nodeInspector;
+        NodeInspector *nodeInspector;
     };
 } // namespace BreadEditor

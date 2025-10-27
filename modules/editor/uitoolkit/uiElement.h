@@ -111,6 +111,6 @@ namespace BreadEditor {
 
         [[nodiscard]] virtual Vector2 getComputedSize(const Rectangle &effectiveParentBounds, const Vector2 &prelimPosition) const;
 
-        virtual void deleteSelf() = 0;
+        virtual bool tryDeleteSelf();
     };
 } // namespace BreadEditor

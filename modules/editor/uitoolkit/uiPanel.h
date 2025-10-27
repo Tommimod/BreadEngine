@@ -2,8 +2,7 @@
 
 #include "uiElement.h"
 
-namespace BreadEditor
-{
+namespace BreadEditor {
     class UiPanel : public UiElement
     {
     public:
@@ -22,6 +21,6 @@ namespace BreadEditor
     protected:
         const char *title = nullptr;
 
-        void deleteSelf() override;
+        bool tryDeleteSelf() override;
     };
 } // namespace BreadEditor

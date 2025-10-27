@@ -58,8 +58,9 @@ namespace BreadEditor
         TraceLog(LOG_INFO, "Button clicked: %s", buttonName.c_str());
     }
 
-    void UiToolbar::deleteSelf()
+    bool UiToolbar::tryDeleteSelf()
     {
         UiPool::toolbarPool.release(*this);
+        return true;
     }
 } // namespace BreadEditor

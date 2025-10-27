@@ -1,4 +1,6 @@
 ﻿#include "uiCheckBox.h"
+
+#include <utility>
 #include "uiPool.h"
 
 namespace BreadEditor {
@@ -6,7 +8,7 @@ namespace BreadEditor {
 
     UiCheckBox &UiCheckBox::setup(const std::string &id, bool checked, std::string checkBoxText)
     {
-        this->text = checkBoxText;
+        this->text = std::move(checkBoxText);
         this->internalChecked = checked;
         this->externalChecked = nullptr;
         UiElement::setup(id);
@@ -15,7 +17,7 @@ namespace BreadEditor {
 
     UiCheckBox &UiCheckBox::setup(const std::string &id, UiElement *parentElement, bool checked, std::string checkBoxText)
     {
-        this->text = checkBoxText;
+        this->text = std::move(checkBoxText);
         this->internalChecked = checked;
         this->externalChecked = nullptr;
         UiElement::setup(id, parentElement);
@@ -23,8 +25,7 @@ namespace BreadEditor {
     }
 
     UiCheckBox::~UiCheckBox()
-    {
-    }
+    = default;
 
     void UiCheckBox::draw(float deltaTime)
     {
@@ -50,8 +51,9 @@ namespace BreadEditor {
         internalChecked = isChecked;
     }
 
-    void UiCheckBox::deleteSelf()
+    bool UiCheckBox::tryDeleteSelf()
     {
         UiPool::checkBoxPool.release(*this);
+        return true;
     }
 } // BreadEditor

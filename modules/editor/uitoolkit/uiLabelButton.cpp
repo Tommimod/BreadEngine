@@ -36,8 +36,9 @@ namespace BreadEditor {
         UiElement::update(deltaTime);
     }
 
-    void UiLabelButton::deleteSelf()
+    bool UiLabelButton::tryDeleteSelf()
     {
         UiPool::labelButtonPool.release(*this);
+        return true;
     }
 } // namespace BreadEditor

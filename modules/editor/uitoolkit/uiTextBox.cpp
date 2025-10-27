@@ -68,8 +68,9 @@ namespace BreadEditor {
         internalText = newText;
     }
 
-    void UiTextBox::deleteSelf()
+    bool UiTextBox::tryDeleteSelf()
     {
         UiPool::textBoxPool.release(*this);
+        return true;
     }
 } // BreadEditor

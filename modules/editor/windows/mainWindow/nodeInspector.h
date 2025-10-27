@@ -26,9 +26,6 @@ namespace BreadEditor {
 
         void clear();
 
-    protected:
-        void deleteSelf() override;
-
     private:
         std::map<UiElement *, SubscriptionHandle> subscriptions{};
 

@@ -19,9 +19,6 @@ namespace BreadEditor {
 
         void update(float deltaTime) override;
 
-    protected:
-        void deleteSelf() override;
-
     private:
         const char *title = "Node Inspector";
         std::vector<SubscriptionHandle> subscriptionHandles;

@@ -62,10 +62,6 @@ namespace BreadEditor {
         engineNode = nullptr;
     }
 
-    void NodeInspector::deleteSelf()
-    {
-    }
-
     void NodeInspector::initialize()
     {
         const int verticalOffset = 5;

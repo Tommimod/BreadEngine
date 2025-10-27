@@ -22,7 +22,7 @@ namespace BreadEditor {
         void setChecked(bool isChecked);
 
     protected:
-        void deleteSelf() override;
+        bool tryDeleteSelf() override;
 
     private:
         bool internalChecked = false;

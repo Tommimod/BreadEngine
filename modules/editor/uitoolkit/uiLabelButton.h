@@ -17,7 +17,7 @@ class UiLabelButton : public UiElement
     void update(float deltaTime) override;
 
 protected:
-    void deleteSelf() override;
+    bool tryDeleteSelf() override;
 
 private:
     std::string text;

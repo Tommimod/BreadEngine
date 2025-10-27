@@ -195,7 +195,7 @@ namespace BreadEditor {
     void UiElement::destroyChild(UiElement *child)
     {
         childs.erase(std::ranges::find(childs, child));
-        child->deleteSelf();
+        child->tryDeleteSelf();
     }
 
     void UiElement::destroyChild(const std::string &childId)
@@ -241,7 +241,16 @@ namespace BreadEditor {
         isDisposed = true;
         for (const auto child: childs)
         {
-            child->deleteSelf();
+            if (child == nullptr)
+            {
+                continue;
+            }
+
+            auto isDeleted = child->tryDeleteSelf();
+            if (!isDeleted)
+            {
+                delete child;
+            }
         }
 
         childs.clear();
@@ -329,5 +338,10 @@ namespace BreadEditor {
             size.y = std::max(0.0f, effectiveParentBounds.y + effectiveParentBounds.height - prelimPosition.y);
         }
         return size;
+    }
+
+    bool UiElement::tryDeleteSelf()
+    {
+        return false;
     }
 } // namespace BreadEditor

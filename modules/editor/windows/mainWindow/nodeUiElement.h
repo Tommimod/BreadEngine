@@ -29,7 +29,7 @@ namespace BreadEditor
         void setState(GuiState nextState) override;
 
     protected:
-        void deleteSelf() override;
+        bool tryDeleteSelf() override;
 
     private:
         GuiState localState;

@@ -22,7 +22,7 @@ namespace BreadEditor {
         void setText(std::string newText);
 
     protected:
-        void deleteSelf() override;
+        bool tryDeleteSelf() override;
 
     private:
         std::string internalText;

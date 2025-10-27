@@ -18,7 +18,7 @@ namespace BreadEditor
         void update(float deltaTime) override;
 
     protected:
-        void deleteSelf() override;
+        bool tryDeleteSelf() override;
 
     private:
         void onButtonClicked(const string &buttonName);

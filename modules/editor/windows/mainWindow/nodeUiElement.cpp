@@ -60,8 +60,9 @@ namespace BreadEditor {
         localState = nextState;
     }
 
-    void NodeUiElement::deleteSelf()
+    bool NodeUiElement::tryDeleteSelf()
     {
         UiPool::nodeUiElementPool.release(*this);
+        return true;
     }
 } // BreadEditor

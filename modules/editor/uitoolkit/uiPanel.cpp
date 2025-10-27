@@ -30,8 +30,9 @@ namespace BreadEditor {
         UiElement::update(deltaTime);
     }
 
-    void UiPanel::deleteSelf()
+    bool UiPanel::tryDeleteSelf()
     {
         UiPool::panelPool.release(*this);
+        return true;
     }
 } // namespace BreadEditor
