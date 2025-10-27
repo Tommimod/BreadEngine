@@ -195,7 +195,11 @@ namespace BreadEditor {
     void UiElement::destroyChild(UiElement *child)
     {
         childs.erase(std::ranges::find(childs, child));
-        child->tryDeleteSelf();
+        auto isDeleted = child->tryDeleteSelf();
+        if (!isDeleted)
+        {
+            delete child;
+        }
     }
 
     void UiElement::destroyChild(const std::string &childId)
