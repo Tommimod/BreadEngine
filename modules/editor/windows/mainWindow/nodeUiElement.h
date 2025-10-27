@@ -26,10 +26,13 @@ namespace BreadEditor
 
         void setEngineNode(Node *nextEngineNode);
 
+        void setState(GuiState nextState) override;
+
     protected:
         void deleteSelf() override;
 
     private:
+        GuiState localState;
         Node *engineNode = nullptr;
         NodeUiElement *parentNode = nullptr;
     };

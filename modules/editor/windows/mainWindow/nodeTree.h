@@ -39,9 +39,12 @@ namespace BreadEditor {
 
         void onNodeCreated(Node *node);
 
-        void onNodeChangedParent(Node *node);
+        void onNodeChangedParent();
+
+        void onNodeChangedActive(Node *node);
 
         void onNodeRemoved(const Node *node);
+
         void onNodeSelected(NodeUiElement *nodeUiElement);
 
         void updateScrollView(Rectangle lastNodeBounds);

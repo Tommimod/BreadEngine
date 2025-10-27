@@ -57,6 +57,11 @@ namespace BreadEditor {
         return localSize;
     }
 
+    void UiElement::setState(GuiState nextState)
+    {
+        state = nextState;
+    }
+
     void UiElement::setPosition(const Vector2 &position)
     {
         localPosition = position;

@@ -4,11 +4,12 @@
 
 using namespace BreadEngine;
 
-namespace BreadEditor
-{
+namespace BreadEditor {
     class Editor
     {
     public:
+        MainWindow main_window;
+
         static Editor &GetInstance();
 
         bool Initialize();
@@ -41,28 +42,7 @@ namespace BreadEditor
 
         ~Editor() = default;
 
-        MainWindow main_window;
         bool initialized = false;
         std::string currentProjectPath;
     };
-
-    namespace UI
-    {
-        bool Button(const char *text, float x, float y, float width, float height);
-
-        void Label(const char *text, float x, float y);
-
-        bool TextBox(char *text, int textSize, float x, float y, float width, float height);
-    }
-
-    namespace Project
-    {
-        bool CreateNew(const std::string &name, const std::string &path);
-
-        bool Load(const std::string &path);
-
-        void Save();
-
-        std::string GetCurrentPath();
-    }
 } // namespace BreadEditor

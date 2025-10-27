@@ -4,8 +4,7 @@
 #include "engine.h"
 #include "nodeNotificator.h"
 
-namespace BreadEngine
-{
+namespace BreadEngine {
     Node::Node()
     {
         childs = std::vector<Node *>();
@@ -135,6 +134,17 @@ namespace BreadEngine
         }
     }
 
+    bool Node::getIsActive() const
+    {
+        return isActive;
+    }
+
+    void Node::setIsActive(bool nextIsActive)
+    {
+        isActive = nextIsActive;
+        NodeNotificator::onNodeChangedActive.invoke(this);
+    }
+
     int Node::getChildCount() const
     {
         return static_cast<int>(childs.size());
@@ -178,6 +188,7 @@ namespace BreadEngine
     void Node::setName(const std::string &nextName)
     {
         this->name = nextName;
+        NodeNotificator::onNodeRenamed.invoke(this);
     }
 
     Transform &Node::getTransform() const

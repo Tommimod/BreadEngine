@@ -9,14 +9,14 @@ namespace BreadEditor {
         auto subBounds = bounds;
         if (isHorizontalResized)
         {
-            subBounds.width -= tricknessInPixel;
-            subBounds.x += tricknessInPixel;
+            subBounds.width -= static_cast<float>(tricknessInPixel);
+            subBounds.x += static_cast<float>(tricknessInPixel);
         }
 
         if (isVerticalResized)
         {
-            subBounds.height -= tricknessInPixel;
-            subBounds.y += tricknessInPixel;
+            subBounds.height -= static_cast<float>(tricknessInPixel);
+            subBounds.y += static_cast<float>(tricknessInPixel);
         }
 
         const auto mousePos = GetMousePosition();

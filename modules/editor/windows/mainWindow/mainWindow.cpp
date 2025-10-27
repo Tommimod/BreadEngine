@@ -5,8 +5,7 @@
 
 #include "uitoolkit/uiPool.h"
 
-namespace BreadEditor
-{
+namespace BreadEditor {
     Vector2 MainWindow::getWindowSize()
     {
         return Vector2(static_cast<float>(GetScreenWidth()), static_cast<float>(GetScreenHeight()));
@@ -14,7 +13,8 @@ namespace BreadEditor
 
     MainWindow::MainWindow()
         : toolbar(UiPool::toolbarPool.get().setup("mainWindowToolbar", nullptr, 20, {"File", "Edit", "Help"})),
-          nodeTree(NodeTree("mainWindowNodeTree"))
+          nodeTree(NodeTree("mainWindowNodeTree")),
+          nodeInspector(NodeInspector("mainWindowNodeInspector", &nodeTree))
     {
         toolbar.setAnchor(UI_FIT_TOP_HORIZONTAL);
         toolbar.setPivot({0, 0});
@@ -24,6 +24,12 @@ namespace BreadEditor
         nodeTree.setAnchor(UI_FIT_RIGHT_VERTICAL);
         nodeTree.setSizePercentOneTime({.3f, .5f});
         nodeTree.setPosition({0, toolbar.getSize().y - 1});
+
+        nodeInspector.setPivot({1, 1});
+        nodeInspector.setAnchor(UI_RIGHT_BOTTOM);
+        nodeInspector.setSizePercentOneTime({1, .5f});
+        nodeInspector.setSizePercentPermanent({1, -1});
+        nodeInspector.setPosition({0, toolbar.getSize().y - 1});
     }
 
     MainWindow::~MainWindow()
@@ -39,6 +45,11 @@ namespace BreadEditor
     NodeTree &MainWindow::getNodeTree()
     {
         return nodeTree;
+    }
+
+    NodeInspector & MainWindow::getNodeInspector()
+    {
+        return nodeInspector;
     }
 
     void MainWindow::render(const float deltaTime)

@@ -1,9 +1,13 @@
 #include "nodeUiElement.h"
+
+#include "engine.h"
 #include "raygui.h"
 #include "uitoolkit/uiPool.h"
 
 namespace BreadEditor {
     NodeUiElement::NodeUiElement() = default;
+
+    NodeUiElement::~NodeUiElement() = default;
 
     NodeUiElement &NodeUiElement::setup(const std::string &id, UiElement *parentElement, Node *node)
     {
@@ -11,11 +15,16 @@ namespace BreadEditor {
         return dynamic_cast<NodeUiElement &>(UiElement::setup(id, parentElement));
     }
 
-    NodeUiElement::~NodeUiElement() = default;
-
     void NodeUiElement::draw(const float deltaTime)
     {
-        if (GuiButton(bounds, nullptr))
+        if (parentNode != nullptr)
+        {
+            auto parentState = parentNode->state;
+            state = std::max(localState, parentState);
+        }
+
+        GuiSetState(state);
+        if (GuiButton(bounds, nullptr) || (IsMouseButtonDown(MOUSE_LEFT_BUTTON) && Engine::IsCollisionPointRec(GetMousePosition(), bounds)))
         {
             onSelected.invoke(this);
         }
@@ -43,6 +52,12 @@ namespace BreadEditor {
     void NodeUiElement::setEngineNode(Node *nextEngineNode)
     {
         this->engineNode = nextEngineNode;
+    }
+
+    void NodeUiElement::setState(GuiState nextState)
+    {
+        UiElement::setState(nextState);
+        localState = nextState;
     }
 
     void NodeUiElement::deleteSelf()

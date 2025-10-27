@@ -1,5 +1,6 @@
 ﻿#include "nodeTree.h"
 
+#include "editor.h"
 #include "engine.h"
 #include "nodeNotificator.h"
 #include "raygui.h"
@@ -27,9 +28,11 @@ namespace BreadEditor {
 
     void NodeTree::draw(const float deltaTime)
     {
+        GuiSetState(state);
         GuiScrollPanel(bounds, title, scrollView, &scrollPos, &scrollView);
         drawLines(Engine::getRootNode());
         UiElement::draw(deltaTime);
+        GuiSetState(STATE_NORMAL);
     }
 
     void NodeTree::update(const float deltaTime)
@@ -66,9 +69,11 @@ namespace BreadEditor {
         subscriptionHandles.emplace_back(
             NodeNotificator::onNodeCreated.subscribe([this](Node *node) { this->onNodeCreated(node); }));
         subscriptionHandles.emplace_back(
-            NodeNotificator::onNodeChangedParent.subscribe([this](Node *node) { this->onNodeChangedParent(node); }));
+            NodeNotificator::onNodeChangedParent.subscribe([this](Node *) { this->onNodeChangedParent(); }));
         subscriptionHandles.emplace_back(
             NodeNotificator::onNodeDestroyed.subscribe([this](Node *node) { this->onNodeRemoved(node); }));
+        subscriptionHandles.emplace_back(
+            NodeNotificator::onNodeChangedActive.subscribe([this](Node *node) { this->onNodeChangedActive(node); }));
     }
 
     void NodeTree::unsubscribe()
@@ -76,6 +81,7 @@ namespace BreadEditor {
         NodeNotificator::onNodeCreated.unsubscribe(subscriptionHandles[0]);
         NodeNotificator::onNodeChangedParent.unsubscribe(subscriptionHandles[1]);
         NodeNotificator::onNodeDestroyed.unsubscribe(subscriptionHandles[2]);
+        NodeNotificator::onNodeChangedActive.unsubscribe(subscriptionHandles[3]);
         subscriptionHandles.clear();
     }
 
@@ -85,11 +91,10 @@ namespace BreadEditor {
         constexpr float elementHeight = 20.0f;
         constexpr float elementWidthInPercent = 0.8f;
 
-        const auto parentNode = findNodeUiElementByEngineNode(node);
         const auto id = TextFormat(elementIdFormat, static_cast<int>(childs.size()));
         auto &element = UiPool::nodeUiElementPool.get().setup(id, this, node);
 
-        element.setParentNode(parentNode);
+        element.setParentNode(findNodeUiElementByEngineNode(node->getParent()));
         element.setAnchor(UI_LEFT_TOP);
         element.setSize({0, elementHeight});
         element.setSizePercentPermanent({elementWidthInPercent, -1});
@@ -101,10 +106,16 @@ namespace BreadEditor {
         nodeUiElementSubscriptions.emplace(&element, handler);
     }
 
-    void NodeTree::onNodeChangedParent(Node *node)
+    void NodeTree::onNodeChangedParent()
     {
         int i = 0;
         recalculateUiNodes(Engine::getRootNode(), i);
+    }
+
+    void NodeTree::onNodeChangedActive(Node *node)
+    {
+        const auto instance = findNodeUiElementByEngineNode(node);
+        instance->setState(node->getIsActive() ? STATE_NORMAL : STATE_DISABLED);
     }
 
     void NodeTree::onNodeRemoved(const Node *node)
@@ -121,6 +132,13 @@ namespace BreadEditor {
     void NodeTree::onNodeSelected(NodeUiElement *nodeUiElement)
     {
         selectedNodeUiElement = nodeUiElement;
+        Node *node = nullptr;
+        if (selectedNodeUiElement != nullptr)
+        {
+            node = selectedNodeUiElement->getNode();
+        }
+
+        Editor::GetInstance().main_window.getNodeInspector().lookupNode(node);
     }
 
     void NodeTree::updateScrollView(const Rectangle lastNodeBounds)

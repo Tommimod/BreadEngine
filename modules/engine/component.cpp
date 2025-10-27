@@ -1,6 +1,8 @@
 #include "component.h"
 #include <typeinfo>
 
+#include "node.h"
+
 namespace BreadEngine
 {
     Component::Component(Node *parent)
@@ -50,7 +52,7 @@ namespace BreadEngine
 
     bool Component::getIsActive() const
     {
-        return isActive;
+        return isActive && parent->getIsActive();
     }
 
     void Component::setIsActive(const bool nextActive)

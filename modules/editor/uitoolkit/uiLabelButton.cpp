@@ -21,12 +21,14 @@ namespace BreadEditor {
 
     void UiLabelButton::draw(const float deltaTime)
     {
+        GuiSetState(state);
         if (GuiLabelButton(bounds, text.c_str()))
         {
             onClick.invoke(text);
         }
 
         UiElement::draw(deltaTime);
+        GuiSetState(STATE_NORMAL);
     }
 
     void UiLabelButton::update(const float deltaTime)

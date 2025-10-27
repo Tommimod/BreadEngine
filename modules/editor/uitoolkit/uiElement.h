@@ -1,4 +1,5 @@
 ﻿#pragma once
+#include "raygui.h"
 #include "raylib.h"
 #include <string>
 #include <vector>
@@ -47,17 +48,22 @@ namespace BreadEditor {
 
         [[nodiscard]] Vector2 getSize() const;
 
+        virtual void setState(GuiState nextState);
+
         void setPosition(const Vector2 &position);
 
         void setSize(const Vector2 &size);
 
         void setSizePercentOneTime(const Vector2 &percent);
+
         void setSizePercentPermanent(const Vector2 &percent);
 
         void setBounds(const Vector2 &position, const Vector2 &size);
 
         [[nodiscard]] float getSizeInPixByPercentOnlyX(const Vector2 &percent) const;
+
         [[nodiscard]] float getSizeInPixByPercentOnlyY(const Vector2 &percent) const;
+
         [[nodiscard]] Vector2 getSizeInPixByPercent(const Vector2 &percent) const;
 
         [[nodiscard]] const UiElement *getRootElement() const;
@@ -83,10 +89,12 @@ namespace BreadEditor {
         void dispose() override;
 
     protected:
+        GuiState state = STATE_NORMAL;
+
         Vector2 pivot{};
         Vector2 localPosition{0.0f, 0.0f};
         Vector2 localSize{1.0f, 1.0f};
-        Vector2 sizeInPercents{-1,-1};
+        Vector2 sizeInPercents{-1, -1};
         UiElement *parent = nullptr;
         std::vector<UiElement *> childs{};
         Rectangle bounds{0, 0, 1, 1};

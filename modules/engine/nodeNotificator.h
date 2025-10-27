@@ -9,5 +9,7 @@ namespace BreadEngine {
         static Action<Node *> onNodeCreated;
         static Action<Node *> onNodeChangedParent;
         static Action<Node *> onNodeDestroyed;
+        static Action<Node *> onNodeRenamed;
+        static Action<Node *> onNodeChangedActive;
     };
 } // BreadEngine

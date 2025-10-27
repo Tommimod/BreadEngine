@@ -34,6 +34,10 @@ namespace BreadEngine
 
         void onFrameEnd(float deltaTime) const;
 
+        [[nodiscard]] bool getIsActive() const;
+
+        void setIsActive(bool nextIsActive);
+
         [[nodiscard]] int getChildCount() const;
 
         [[nodiscard]] Node &getChild(int index) const;
@@ -134,6 +138,7 @@ namespace BreadEngine
         }
 
     private:
+        bool isActive = true;
         std::string name;
         std::vector<Node *> childs;
         Node *parent = nullptr;

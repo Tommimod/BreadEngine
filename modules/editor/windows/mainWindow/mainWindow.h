@@ -1,5 +1,6 @@
 #pragma once
 
+#include "nodeInspector.h"
 #include "nodeTree.h"
 #include "../../uitoolkit/uiToolbar.h"
 #include "raylib.h"
@@ -19,11 +20,13 @@ namespace BreadEditor
         [[nodiscard]] UiToolbar &getToolbar() const;
 
         [[nodiscard]] NodeTree &getNodeTree();
+        [[nodiscard]] NodeInspector &getNodeInspector();
 
         void render(float deltaTime);
 
     private:
         UiToolbar &toolbar;
         NodeTree nodeTree;
+        NodeInspector nodeInspector;
     };
 } // namespace BreadEditor

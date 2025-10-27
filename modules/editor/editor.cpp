@@ -1,6 +1,3 @@
-#define RAYGUI_IMPLEMENTATION
-#include "raygui.h"
-
 #include "../engine/engine.h"
 #include "editor.h"
 #include "node.h"
