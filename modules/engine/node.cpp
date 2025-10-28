@@ -62,7 +62,7 @@ namespace BreadEngine {
 
     void Node::changeParent(Node *nextParent)
     {
-        if (parent)
+        if (parent != nullptr)
         {
             parent->unparent(this);
         }
@@ -214,6 +214,21 @@ namespace BreadEngine {
         }
 
         return parent->getDeepLevel() + 1;
+    }
+
+    bool Node::isMyChild(Node *node) const
+    {
+        auto result = std::ranges::find(childs, node) != childs.end();
+        if (!result)
+        {
+            for (auto child: childs)
+            {
+                result = child->isMyChild(node);
+                if (result) break;
+            }
+        }
+
+        return result;
     }
 
     void Node::unparent(Node *node)

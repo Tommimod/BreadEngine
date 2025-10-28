@@ -170,6 +170,12 @@ namespace BreadEditor {
                     return;
                 }
 
+                if (currentNode->isMyChild(parentNode))
+                {
+                    //can't be child of parent
+                    return;
+                }
+
                 if (currentNode->getParent() == parentNode)
                 {
                     parentNode->setChildFirst(currentNode);

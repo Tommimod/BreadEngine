@@ -57,6 +57,7 @@ namespace BreadEngine
         [[nodiscard]] Transform &getTransform() const;
 
         [[nodiscard]] int getDeepLevel() const;
+        [[nodiscard]] bool isMyChild(Node *node) const;
 
         void unparent(Node *node);
 

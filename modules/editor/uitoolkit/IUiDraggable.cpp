@@ -12,12 +12,15 @@ namespace BreadEditor {
     void IUiDraggable::updateDraggable(UiElement *element)
     {
         const auto mousePos = GetMousePosition();
-        if (isDragging && IsMouseButtonUp(MOUSE_LEFT_BUTTON))
+        if (IsMouseButtonUp(MOUSE_LEFT_BUTTON))
         {
-            isDragging = false;
             mousePositionBeforeClick = Vector2Zero();
-            onDragEnded.invoke(element);
             isPrepared = false;
+            if (isDragging)
+            {
+                onDragEnded.invoke(element);
+                isDragging = false;
+            }
         }
 
         if (IsMouseButtonPressed(MOUSE_LEFT_BUTTON) && BreadEngine::Engine::IsCollisionPointRec(mousePos, element->getBounds()))
@@ -36,6 +39,7 @@ namespace BreadEditor {
             {
                 isDragging = true;
                 onDragStarted.invoke(element);
+                TraceLog(LOG_INFO, "Drag started");
             }
 
             if (isDragging && !onlyProvideDragEvents)
