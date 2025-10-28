@@ -14,6 +14,7 @@ namespace BreadEditor {
         UiElement *dragContainer = nullptr;
         bool isDragging = false;
         bool onlyProvideDragEvents = false;
+        void forceStartDrag();
 
     protected:
         void updateDraggable(UiElement *element);

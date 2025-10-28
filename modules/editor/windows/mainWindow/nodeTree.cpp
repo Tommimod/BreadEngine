@@ -62,23 +62,23 @@ namespace BreadEditor {
 
     void NodeTree::subscribe()
     {
-        subscriptionHandles.emplace_back(
+        nodeNotificatorSubscriptions.emplace_back(
             NodeNotificator::onNodeCreated.subscribe([this](Node *node) { this->onNodeCreated(node); }));
-        subscriptionHandles.emplace_back(
-            NodeNotificator::onNodeChangedParent.subscribe([this](Node *) { this->onNodeChangedParent(); }));
-        subscriptionHandles.emplace_back(
+        nodeNotificatorSubscriptions.emplace_back(
+            NodeNotificator::onNodeChangedParent.subscribe([this](Node *node) { this->onNodeChangedParent(node); }));
+        nodeNotificatorSubscriptions.emplace_back(
             NodeNotificator::onNodeDestroyed.subscribe([this](Node *node) { this->onNodeRemoved(node); }));
-        subscriptionHandles.emplace_back(
+        nodeNotificatorSubscriptions.emplace_back(
             NodeNotificator::onNodeChangedActive.subscribe([this](Node *node) { this->onNodeChangedActive(node); }));
     }
 
     void NodeTree::unsubscribe()
     {
-        NodeNotificator::onNodeCreated.unsubscribe(subscriptionHandles[0]);
-        NodeNotificator::onNodeChangedParent.unsubscribe(subscriptionHandles[1]);
-        NodeNotificator::onNodeDestroyed.unsubscribe(subscriptionHandles[2]);
-        NodeNotificator::onNodeChangedActive.unsubscribe(subscriptionHandles[3]);
-        subscriptionHandles.clear();
+        NodeNotificator::onNodeCreated.unsubscribe(nodeNotificatorSubscriptions[0]);
+        NodeNotificator::onNodeChangedParent.unsubscribe(nodeNotificatorSubscriptions[1]);
+        NodeNotificator::onNodeDestroyed.unsubscribe(nodeNotificatorSubscriptions[2]);
+        NodeNotificator::onNodeChangedActive.unsubscribe(nodeNotificatorSubscriptions[3]);
+        nodeNotificatorSubscriptions.clear();
     }
 
     void NodeTree::onNodeCreated(Node *node)
@@ -100,12 +100,17 @@ namespace BreadEditor {
         nodeUiElements.emplace_back(&element);
         int i = 0;
         recalculateUiNodes(Engine::getRootNode(), i);
-        auto handler = element.onSelected.subscribe([this](NodeUiElement *nodeUiElement) { this->onNodeSelected(nodeUiElement); });
-        nodeUiElementSubscriptions.emplace(&element, handler);
+        std::vector<SubscriptionHandle> nodeSubscriptions{};
+        element.onSelected.subscribe([this](NodeUiElement *nodeUiElement) { this->onNodeSelected(nodeUiElement); });
+        element.onDragStarted.subscribe([this](UiElement *uiElement) { this->onElementStartDrag(uiElement); });
+        element.onDragEnded.subscribe([this](UiElement *uiElement) { this->onElementEndDrag(uiElement); });
     }
 
-    void NodeTree::onNodeChangedParent()
+    void NodeTree::onNodeChangedParent(Node *node)
     {
+        const auto instance = findNodeUiElementByEngineNode(node);
+        instance->setParentNode(findNodeUiElementByEngineNode(node->getParent()));
+
         int i = 0;
         recalculateUiNodes(Engine::getRootNode(), i);
     }
@@ -119,8 +124,7 @@ namespace BreadEditor {
     void NodeTree::onNodeRemoved(const Node *node)
     {
         const auto instance = findNodeUiElementByEngineNode(node);
-        instance->onSelected.unsubscribe(nodeUiElementSubscriptions[instance]);
-        nodeUiElementSubscriptions.erase(instance);
+        instance->onSelected.unsubscribeAll();
         destroyChild(instance);
         nodeUiElements.erase(ranges::find(nodeUiElements, instance));
         int i = 0;
@@ -137,6 +141,47 @@ namespace BreadEditor {
         }
 
         Editor::GetInstance().main_window.getNodeInspector().lookupNode(node);
+    }
+
+    void NodeTree::onElementStartDrag(UiElement *uiElement)
+    {
+        const auto originalElement = dynamic_cast<NodeUiElement *>(uiElement);
+        draggedNodeUiElementCopy = dynamic_cast<NodeUiElement *>(uiElement)->copy();
+        draggedNodeUiElementCopy->forceStartDrag();
+        originalElement->switchMuteState();
+    }
+
+    void NodeTree::onElementEndDrag(UiElement *uiElement)
+    {
+        this->destroyChild(draggedNodeUiElementCopy);
+        draggedNodeUiElementCopy = nullptr;
+        const auto originalElement = dynamic_cast<NodeUiElement *>(uiElement);
+        originalElement->switchMuteState();
+        for (auto nodeElement: nodeUiElements)
+        {
+            const auto nodeBounds = nodeElement->getBounds();
+            if (Engine::IsCollisionPointRec(GetMousePosition(), nodeBounds))
+            {
+                const auto currentNode = originalElement->getNode();
+                const auto parentNode = nodeElement->getNode();
+                if (currentNode->getParent() == nullptr || currentNode == parentNode)
+                {
+                    //avoid moving root or make self-parenting
+                    return;
+                }
+
+                if (currentNode->getParent() == parentNode)
+                {
+                    parentNode->setChildFirst(currentNode);
+                    int i = 0;
+                    recalculateUiNodes(Engine::getRootNode(), i);
+                    return;
+                }
+
+                currentNode->changeParent(parentNode);
+                return;
+            }
+        }
     }
 
     void NodeTree::updateScrollView(const Rectangle lastNodeBounds)
@@ -178,7 +223,6 @@ namespace BreadEditor {
 
     void NodeTree::drawLines(Node &startNode) const
     {
-        constexpr auto lineColor = BLACK;
         constexpr float nodeHorizontalPadding = 15.0f * .5f;
 
         const auto instance = findNodeUiElementByEngineNode(&startNode);
@@ -189,6 +233,7 @@ namespace BreadEditor {
             return;
         }
 
+        const auto lineColor = instance->getState() == STATE_DISABLED ? GRAY : BLACK;
         const auto bounds = instance->getBounds();
         auto leftCenterPoint = Vector2{bounds.x, bounds.y + bounds.height * .5f};
         auto targetPoint = Vector2(leftCenterPoint);

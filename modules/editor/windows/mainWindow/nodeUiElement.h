@@ -29,10 +29,18 @@ namespace BreadEditor {
 
         void setState(GuiState nextState) override;
 
+        NodeUiElement *copy();
+
+        void switchMuteState();
+
+        [[nodiscard]] GuiState getState() const;
+
     protected:
         bool tryDeleteSelf() override;
 
     private:
+        bool isMuted = false;
+        GuiState localStateBeforeMuted = STATE_NORMAL;
         GuiState localState = STATE_NORMAL;
         Node *engineNode = nullptr;
         NodeUiElement *parentNode = nullptr;

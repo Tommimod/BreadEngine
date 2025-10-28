@@ -24,6 +24,8 @@ namespace BreadEngine
 
         void changeParent(Node *nextParent);
 
+        void setChildFirst(Node *node);
+
         void destroyChild(Node *node);
 
         void removeAllChildren();

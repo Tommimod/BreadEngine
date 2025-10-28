@@ -3,6 +3,12 @@
 #include "engine.h"
 
 namespace BreadEditor {
+    void IUiDraggable::forceStartDrag()
+    {
+        mousePositionBeforeClick = GetMousePosition();
+        isPrepared = true;
+    }
+
     void IUiDraggable::updateDraggable(UiElement *element)
     {
         const auto mousePos = GetMousePosition();

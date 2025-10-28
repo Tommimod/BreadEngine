@@ -17,14 +17,9 @@ namespace BreadEditor {
 
     void NodeUiElement::draw(const float deltaTime)
     {
-        if (parentNode != nullptr)
-        {
-            auto parentState = parentNode->state;
-            state = std::max(localState, parentState);
-        }
-
+        state = getState();
         GuiSetState(state);
-        if (GuiButton(bounds, nullptr) || (IsMouseButtonDown(MOUSE_LEFT_BUTTON) && Engine::IsCollisionPointRec(GetMousePosition(), bounds)))
+        if (GuiButton(bounds, nullptr) || (IsMouseButtonPressed(MOUSE_LEFT_BUTTON) && Engine::IsCollisionPointRec(GetMousePosition(), bounds)))
         {
             onSelected.invoke(this);
         }
@@ -59,6 +54,40 @@ namespace BreadEditor {
     {
         UiElement::setState(nextState);
         localState = nextState;
+    }
+
+    NodeUiElement *NodeUiElement::copy()
+    {
+        auto *copyElement = &UiPool::nodeUiElementPool.get().setup(id.append("_copy"), parent, engineNode);
+        copyElement->setAnchor(anchor);
+        copyElement->setBounds(localPosition, localSize);
+        return copyElement;
+    }
+
+    void NodeUiElement::switchMuteState()
+    {
+        if (isMuted)
+        {
+            isMuted = false;
+            localState = localStateBeforeMuted;
+        }
+        else
+        {
+            localStateBeforeMuted = localState;
+            localState = STATE_DISABLED;
+            isMuted = true;
+        }
+    }
+
+    GuiState NodeUiElement::getState() const
+    {
+        if (parentNode != nullptr)
+        {
+            auto parentState = parentNode->state;
+            return std::max(localState, parentState);
+        }
+
+        return state;
     }
 
     bool NodeUiElement::tryDeleteSelf()

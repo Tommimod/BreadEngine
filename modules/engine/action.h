@@ -36,7 +36,11 @@ template <typename... Args> class Action
         act.pop_back();
     }
 
-    // Legacy += для compat (void, без handle; для simple случаев)
+    void unsubscribeAll()
+    {
+        act.clear();
+    }
+
     template <typename F> void operator+=(F &&func)
     {
         subscribe(std::forward<F>(func));

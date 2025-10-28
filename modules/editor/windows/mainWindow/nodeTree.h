@@ -21,12 +21,12 @@ namespace BreadEditor {
 
     private:
         const char *title = "Node Inspector";
-        std::vector<SubscriptionHandle> subscriptionHandles;
+        std::vector<SubscriptionHandle> nodeNotificatorSubscriptions;
         std::vector<NodeUiElement *> nodeUiElements;
         Vector2 scrollPos = {0.0f, 0.0f};
         Rectangle scrollView = {0.0f, 0.0f, 0.0f, 0.0f};
         NodeUiElement *selectedNodeUiElement = nullptr;
-        std::unordered_map<NodeUiElement *, SubscriptionHandle> nodeUiElementSubscriptions;
+        NodeUiElement *draggedNodeUiElementCopy = nullptr;
 
         NodeUiElement *findNodeUiElementByEngineNode(const Node *node) const;
 
@@ -36,13 +36,17 @@ namespace BreadEditor {
 
         void onNodeCreated(Node *node);
 
-        void onNodeChangedParent();
+        void onNodeChangedParent(Node *node);
 
         void onNodeChangedActive(Node *node);
 
         void onNodeRemoved(const Node *node);
 
         void onNodeSelected(NodeUiElement *nodeUiElement);
+
+        void onElementStartDrag(UiElement *uiElement);
+
+        void onElementEndDrag(UiElement *uiElement);
 
         void updateScrollView(Rectangle lastNodeBounds);
 

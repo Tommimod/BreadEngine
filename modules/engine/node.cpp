@@ -72,6 +72,16 @@ namespace BreadEngine {
         NodeNotificator::onNodeChangedParent.invoke(this);
     }
 
+    void Node::setChildFirst(Node *node)
+    {
+        if (const auto it = std::ranges::find(childs, node); it != childs.end())
+        {
+            childs.erase(it);
+        }
+
+        childs.insert(childs.begin(), node);
+    }
+
     void Node::destroyChild(Node *node)
     {
         if (const auto it = std::ranges::find(childs, node); it != childs.end())
