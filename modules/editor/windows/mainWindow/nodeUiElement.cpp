@@ -36,6 +36,7 @@ namespace BreadEditor {
 
     void NodeUiElement::update(const float deltaTime)
     {
+        updateDraggable(this);
         UiElement::update(deltaTime);
     }
 

@@ -12,5 +12,7 @@ namespace BreadEditor {
         Vector2 prevMousePos = {0.0f, 0.0f};
 
         void updateResizable(UiElement& uiElement);
+    private:
+        bool isPrepared = false;
     };
 } // BreadEditor

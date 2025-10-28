@@ -94,6 +94,8 @@ namespace BreadEditor {
         element.setAnchor(UI_LEFT_TOP);
         element.setSize({0, elementHeight});
         element.setSizePercentPermanent({elementWidthInPercent, -1});
+        element.dragContainer = parent;
+        element.onlyProvideDragEvents = true;
 
         nodeUiElements.emplace_back(&element);
         int i = 0;

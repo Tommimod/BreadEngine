@@ -1,15 +1,16 @@
 #pragma once
 #include "action.h"
 #include "node.h"
+#include "uitoolkit/IUiDraggable.h"
 #include "uitoolkit/uiElement.h"
 using namespace BreadEngine;
 
-namespace BreadEditor
-{
-    class NodeUiElement final : public UiElement
+namespace BreadEditor {
+    class NodeUiElement final : public UiElement, public IUiDraggable
     {
     public:
-        Action<NodeUiElement*> onSelected;
+        Action<NodeUiElement *> onSelected;
+
         NodeUiElement();
 
         ~NodeUiElement() override;
@@ -32,7 +33,7 @@ namespace BreadEditor
         bool tryDeleteSelf() override;
 
     private:
-        GuiState localState;
+        GuiState localState = STATE_NORMAL;
         Node *engineNode = nullptr;
         NodeUiElement *parentNode = nullptr;
     };
