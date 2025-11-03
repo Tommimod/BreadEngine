@@ -1,5 +1,7 @@
 #include "../engine/engine.h"
 #include "editor.h"
+
+#include "cursorSystem.h"
 #include "node.h"
 
 namespace BreadEditor
@@ -42,7 +44,7 @@ namespace BreadEditor
         if (!initialized)
             return;
 
-        // Update editor logic
+        CursorSystem::draw();
     }
 
     void Editor::Render(float deltaTime)

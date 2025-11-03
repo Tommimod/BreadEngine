@@ -86,6 +86,9 @@ namespace BreadEditor {
 
         void changeParent(UiElement *newParent);
 
+        void setChildFirst(UiElement *child);
+        void setChildLast(UiElement *child);
+
         void dispose() override;
 
     protected:

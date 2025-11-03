@@ -12,6 +12,8 @@ namespace BreadEditor {
     class NodeInspector final : public UiElement, IUiResizable
     {
     public:
+        static std::string Id;
+
         explicit NodeInspector(const std::string &id);
 
         explicit NodeInspector(const std::string &id, UiElement *parentElement);

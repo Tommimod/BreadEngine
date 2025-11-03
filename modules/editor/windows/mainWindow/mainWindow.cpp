@@ -9,7 +9,7 @@ namespace BreadEditor {
 
     MainWindow::MainWindow()
         : toolbar(UiPool::toolbarPool.get().setup("mainWindowToolbar", nullptr, 20, {"File", "Edit", "Help"})),
-          nodeTree(NodeTree("mainWindowNodeTree"))
+          nodeTree(NodeTree(NodeTree::Id))
     {
         toolbar.setAnchor(UI_FIT_TOP_HORIZONTAL);
         toolbar.setPivot({0, 0});
@@ -20,7 +20,7 @@ namespace BreadEditor {
         nodeTree.setSizePercentOneTime({.3f, .5f});
         nodeTree.setPosition({0, toolbar.getSize().y - 1});
 
-        nodeInspector = new NodeInspector("mainWindowNodeInspector", &nodeTree);
+        nodeInspector = new NodeInspector(NodeInspector::Id, &nodeTree);
         nodeInspector->setPivot({1, 1});
         nodeInspector->setAnchor(UI_RIGHT_BOTTOM);
         nodeInspector->setSizePercentOneTime({1, .5f});

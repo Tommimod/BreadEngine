@@ -9,6 +9,8 @@ namespace BreadEditor {
     class NodeTree final : public UiElement, IUiResizable
     {
     public:
+        static std::string Id;
+
         explicit NodeTree(const std::string &id);
 
         explicit NodeTree(const std::string &id, UiElement *parentElement);
@@ -24,6 +26,7 @@ namespace BreadEditor {
         std::vector<SubscriptionHandle> nodeNotificatorSubscriptions;
         std::vector<NodeUiElement *> nodeUiElements;
         Vector2 scrollPos = {0.0f, 0.0f};
+        Rectangle contentView = {0.0f, 0.0f, 0.0f, 0.0f};
         Rectangle scrollView = {0.0f, 0.0f, 0.0f, 0.0f};
         NodeUiElement *selectedNodeUiElement = nullptr;
         NodeUiElement *draggedNodeUiElementCopy = nullptr;

@@ -8,7 +8,7 @@ namespace BreadEditor {
     protected:
         bool isHorizontalResized = false;
         bool isVerticalResized = false;
-        int tricknessInPixel = 4;
+        int tricknessInPixel = 6;
         Vector2 prevMousePos = {0.0f, 0.0f};
 
         void updateResizable(UiElement& uiElement);

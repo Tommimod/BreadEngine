@@ -1,5 +1,7 @@
 ﻿#include "IUiResizable.h"
 
+#include "cursorSystem.h"
+#include "raymath.h"
 #include "engine.h"
 
 namespace BreadEditor {
@@ -34,32 +36,43 @@ namespace BreadEditor {
 
             auto isHorizontalResize = prevMousePos.x >= bounds.x && prevMousePos.x <= subBounds.x;
             auto isVerticalResize = prevMousePos.y >= bounds.y && prevMousePos.y <= subBounds.y;
+            if (isHorizontalResize && isHorizontalResized)
+            {
+                CursorSystem::setCursor(MOUSE_CURSOR_RESIZE_EW);
+            }
+            else if (isVerticalResize && isVerticalResized)
+            {
+                CursorSystem::setCursor(MOUSE_CURSOR_RESIZE_NS);
+            }
+
             if (isHorizontalResize && isHorizontalResized && isPrepared)
             {
-                SetMouseCursor(MOUSE_CURSOR_RESIZE_EW);
                 if (IsMouseButtonDown(MOUSE_LEFT_BUTTON))
                 {
                     auto mouseXDelta = prevMousePos.x - mousePos.x;
                     auto size = uiElement.getSize();
                     size.x += mouseXDelta;
+                    const auto parentBounds = uiElement.getParentElement() == nullptr
+                                                  ? Rectangle{0, 0, static_cast<float>(GetScreenWidth()), static_cast<float>(GetScreenHeight())}
+                                                  : uiElement.getParentElement()->getBounds();
+                    size.x = Clamp(size.x, 50, parentBounds.width - 50);
                     uiElement.setSize(size);
                 }
             }
             else if (isVerticalResize && isVerticalResized && isPrepared)
             {
-                SetMouseCursor(MOUSE_CURSOR_RESIZE_NS);
                 if (IsMouseButtonDown(MOUSE_LEFT_BUTTON))
                 {
                     auto mouseYDelta = prevMousePos.y - mousePos.y;
                     auto size = uiElement.getSize();
                     size.y += mouseYDelta;
+                    const auto parentBounds = uiElement.getParentElement() == nullptr
+                                                  ? Rectangle{0, 0, static_cast<float>(GetScreenWidth()), static_cast<float>(GetScreenHeight())}
+                                                  : uiElement.getParentElement()->getBounds();
+                    size.y = Clamp(size.y, 50, parentBounds.height - 50);
                     uiElement.setSize(size);
                 }
             }
-        }
-        else
-        {
-            SetMouseCursor(MOUSE_CURSOR_DEFAULT);
         }
 
         prevMousePos = mousePos;

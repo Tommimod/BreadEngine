@@ -238,6 +238,30 @@ namespace BreadEditor {
         }
     }
 
+    void UiElement::setChildFirst(UiElement *child)
+    {
+        if (const auto it = std::ranges::find(childs, child); it != childs.end())
+        {
+            childs.erase(it);
+            childs.insert(childs.begin(), child);
+            return;
+        }
+
+        TraceLog(LOG_ERROR, "UiElement: Element %s not a child of %s", child->id.c_str(), id.c_str());
+    }
+
+    void UiElement::setChildLast(UiElement *child)
+    {
+        if (const auto it = std::ranges::find(childs, child); it != childs.end())
+        {
+            childs.erase(it);
+            addChild(child);
+            return;
+        }
+
+        TraceLog(LOG_ERROR, "UiElement: Element %s not a child of %s", child->id.c_str(), id.c_str());
+    }
+
     void UiElement::dispose()
     {
         if (isDisposed) return;

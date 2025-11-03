@@ -7,6 +7,9 @@
 #include "uitoolkit/uiPool.h"
 
 namespace BreadEditor {
+    std::string NodeTree::Id = "mainWindowNodeTree";
+    UiElement *nodeInspector;
+
     NodeTree::NodeTree(const std::string &id)
     {
         setup(id);
@@ -29,7 +32,7 @@ namespace BreadEditor {
     void NodeTree::draw(const float deltaTime)
     {
         GuiSetState(state);
-        GuiScrollPanel(bounds, title, scrollView, &scrollPos, &scrollView);
+        GuiScrollPanel(bounds, title, contentView, &scrollPos, &scrollView);
         drawLines(Engine::getRootNode());
         UiElement::draw(deltaTime);
         GuiSetState(STATE_NORMAL);
@@ -38,12 +41,8 @@ namespace BreadEditor {
     void NodeTree::update(const float deltaTime)
     {
         UiElement::update(deltaTime);
-        if (scrollView.width == 0 && scrollView.height == 0)
-        {
-            scrollView = bounds;
-        }
-
-        updateScrollView(nodeUiElements.back()->getBounds());
+        const auto lastNodeBounds = nodeUiElements.empty() ? Rectangle{} : nodeUiElements.back()->getBounds();
+        updateScrollView(lastNodeBounds);
         updateResizable(*this);
     }
 
@@ -104,6 +103,12 @@ namespace BreadEditor {
         element.onSelected.subscribe([this](NodeUiElement *nodeUiElement) { this->onNodeSelected(nodeUiElement); });
         element.onDragStarted.subscribe([this](UiElement *uiElement) { this->onElementStartDrag(uiElement); });
         element.onDragEnded.subscribe([this](UiElement *uiElement) { this->onElementEndDrag(uiElement); });
+
+        nodeInspector = nodeInspector == nullptr ? getChildById(NodeInspector::Id) : nodeInspector;
+        if (nodeInspector != nullptr)
+        {
+            setChildLast(nodeInspector);
+        }
     }
 
     void NodeTree::onNodeChangedParent(Node *node)
@@ -192,14 +197,19 @@ namespace BreadEditor {
 
     void NodeTree::updateScrollView(const Rectangle lastNodeBounds)
     {
-        if (scrollView.x < lastNodeBounds.x)
+        if (contentView.width == 0 && contentView.height == 0)
         {
-            scrollView.x = lastNodeBounds.x;
+            contentView = bounds;
         }
 
-        if (scrollView.y < lastNodeBounds.y)
+        contentView.x = bounds.x;
+        contentView.y = bounds.y;
+        contentView.width = bounds.width;
+
+        nodeInspector = nodeInspector == nullptr ? getChildById(NodeInspector::Id) : nodeInspector;
+        if (nodeInspector != nullptr)
         {
-            scrollView.y = lastNodeBounds.y;
+            contentView.height = bounds.height - nodeInspector->getBounds().height;
         }
     }
 
