@@ -7,13 +7,13 @@ namespace BreadEditor {
 
     UiLabelButton &UiLabelButton::setup(const std::string &id, const std::string &newText)
     {
-        this->text = newText;
+        this->_text = newText;
         return dynamic_cast<UiLabelButton &>(UiElement::setup(id));
     }
 
     UiLabelButton &UiLabelButton::setup(const std::string &id, UiElement *parentElement, const std::string &newText)
     {
-        this->text = newText;
+        this->_text = newText;
         return dynamic_cast<UiLabelButton &>(UiElement::setup(id, parentElement));
     }
 
@@ -21,10 +21,10 @@ namespace BreadEditor {
 
     void UiLabelButton::draw(const float deltaTime)
     {
-        GuiSetState(state);
-        if (GuiLabelButton(bounds, text.c_str()))
+        GuiSetState(_state);
+        if (GuiLabelButton(_bounds, _text.c_str()))
         {
-            onClick.invoke(text);
+            onClick.invoke(_text);
         }
 
         UiElement::draw(deltaTime);

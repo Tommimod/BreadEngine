@@ -5,8 +5,8 @@
 namespace BreadEditor {
     void IUiDraggable::forceStartDrag()
     {
-        mousePositionBeforeClick = GetMousePosition();
-        isPrepared = true;
+        _mousePositionBeforeClick = GetMousePosition();
+        _isPrepared = true;
     }
 
     void IUiDraggable::updateDraggable(UiElement *element)
@@ -14,8 +14,8 @@ namespace BreadEditor {
         const auto mousePos = GetMousePosition();
         if (IsMouseButtonUp(MOUSE_LEFT_BUTTON))
         {
-            mousePositionBeforeClick = Vector2Zero();
-            isPrepared = false;
+            _mousePositionBeforeClick = Vector2Zero();
+            _isPrepared = false;
             if (isDragging)
             {
                 onDragEnded.invoke(element);
@@ -25,16 +25,16 @@ namespace BreadEditor {
 
         if (IsMouseButtonPressed(MOUSE_LEFT_BUTTON) && BreadEngine::Engine::IsCollisionPointRec(mousePos, element->getBounds()))
         {
-            if (mousePositionBeforeClick.x == 0 && mousePositionBeforeClick.y == 0)
+            if (_mousePositionBeforeClick.x == 0 && _mousePositionBeforeClick.y == 0)
             {
-                mousePositionBeforeClick = mousePos;
-                isPrepared = true;
+                _mousePositionBeforeClick = mousePos;
+                _isPrepared = true;
             }
         }
 
-        if (IsMouseButtonDown(MOUSE_LEFT_BUTTON) && isPrepared)
+        if (IsMouseButtonDown(MOUSE_LEFT_BUTTON) && _isPrepared)
         {
-            const auto delta = Vector2Distance(mousePositionBeforeClick, mousePos);
+            const auto delta = Vector2Distance(_mousePositionBeforeClick, mousePos);
             if (!isDragging && delta > 10)
             {
                 isDragging = true;
@@ -48,13 +48,13 @@ namespace BreadEditor {
             }
         }
 
-        lastMousePosition = mousePos;
+        _lastMousePosition = mousePos;
     }
 
     void IUiDraggable::dragSelf(UiElement *element) const
     {
         const auto mousePos = GetMousePosition();
-        const auto delta = Vector2{lastMousePosition.x - mousePos.x, lastMousePosition.y - mousePos.y};
+        const auto delta = Vector2{_lastMousePosition.x - mousePos.x, _lastMousePosition.y - mousePos.y};
         auto position = element->getPosition();
         element->setPosition({position.x - delta.x, position.y - delta.y});
     }

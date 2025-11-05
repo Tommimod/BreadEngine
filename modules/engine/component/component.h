@@ -6,9 +6,8 @@ namespace BreadEngine
     // Forward declaration
     class Node;
 
-    class Component
+    struct Component
     {
-    public:
         explicit Component(Node *parent);
 
         virtual ~Component();
@@ -42,7 +41,7 @@ namespace BreadEngine
     protected:
         Component();
 
-        Node *parent = nullptr;
-        bool isActive = true;
+        Node *_parent = nullptr;
+        bool _isActive = true;
     };
 } // namespace BreadEngine

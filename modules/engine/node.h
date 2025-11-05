@@ -1,6 +1,6 @@
 #pragma once
 
-#include "component.h"
+#include "component/component.h"
 #include <algorithm>
 #include <vector>
 #include "transform.h"
@@ -14,6 +14,8 @@ namespace BreadEngine
     {
     public:
         Node();
+
+        explicit Node(int id);
         ~Node();
 
         Node& setupAsRoot(const std::string &newName);
@@ -72,7 +74,7 @@ namespace BreadEngine
             }
 
             T *comp = new T(this);
-            components.push_back(comp);
+            _components.emplace_back(comp);
             return comp;
         }
 
@@ -92,14 +94,14 @@ namespace BreadEngine
             }
 
             comp->setParent(this);
-            components.push_back(comp);
+            _components.emplace_back(comp);
             return comp;
         }
 
         template<typename T, std::enable_if_t<std::is_base_of_v<Component, T>, int> = 0>
         T *getComponent() const
         {
-            for (Component *comp: components)
+            for (Component *comp: _components)
             {
                 if (auto t = dynamic_cast<T *>(comp))
                 {
@@ -113,11 +115,11 @@ namespace BreadEngine
         std::vector<T *> getComponents() const
         {
             std::vector<T *> result;
-            for (Component *comp: components)
+            for (Component *comp: _components)
             {
                 if (auto t = dynamic_cast<T *>(comp))
                 {
-                    result.push_back(t);
+                    result.emplace_back(t);
                 }
             }
             return result;
@@ -126,7 +128,7 @@ namespace BreadEngine
         template<typename T, std::enable_if_t<std::is_base_of_v<Component, T>, int> = 0>
         void removeComponent()
         {
-            auto it = std::remove_if(components.begin(), components.end(),
+            auto it = std::remove_if(_components.begin(), _components.end(),
                                      [](Component *comp)
                                      {
                                          if (auto t = dynamic_cast<T *>(comp))
@@ -137,15 +139,16 @@ namespace BreadEngine
 
                                          return false;
                                      });
-            components.erase(it, components.end());
+            _components.erase(it, _components.end());
         }
 
     private:
-        bool isActive = true;
-        std::string name;
-        std::vector<Node *> childs;
-        Node *parent = nullptr;
-        std::vector<Component *> components;
-        Transform *transform;
+        bool _isActive = true;
+        int _id = INT_MIN;
+        std::string _name;
+        std::vector<Node *> _childs;
+        Node *_parent = nullptr;
+        std::vector<Component *> _components;
+        Transform *_transform;
     };
 } // namespace BreadEngine

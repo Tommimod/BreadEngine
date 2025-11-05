@@ -22,14 +22,14 @@ namespace BreadEditor {
         void update(float deltaTime) override;
 
     private:
-        const char *title = "Node Inspector";
-        std::vector<SubscriptionHandle> nodeNotificatorSubscriptions;
-        std::vector<NodeUiElement *> nodeUiElements;
-        Vector2 scrollPos = {0.0f, 0.0f};
-        Rectangle contentView = {0.0f, 0.0f, 0.0f, 0.0f};
-        Rectangle scrollView = {0.0f, 0.0f, 0.0f, 0.0f};
-        NodeUiElement *selectedNodeUiElement = nullptr;
-        NodeUiElement *draggedNodeUiElementCopy = nullptr;
+        const char *_title = "Node Inspector";
+        std::vector<SubscriptionHandle> _nodeNotificatorSubscriptions;
+        std::vector<NodeUiElement *> _nodeUiElements;
+        Vector2 _scrollPos = {0.0f, 0.0f};
+        Rectangle _contentView = {0.0f, 0.0f, 0.0f, 0.0f};
+        Rectangle _scrollView = {0.0f, 0.0f, 0.0f, 0.0f};
+        NodeUiElement *_selectedNodeUiElement = nullptr;
+        NodeUiElement *_draggedNodeUiElementCopy = nullptr;
 
         NodeUiElement *findNodeUiElementByEngineNode(const Node *node) const;
 

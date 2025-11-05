@@ -19,22 +19,22 @@ namespace BreadEngine
         void release(T &obj);
 
     private:
-        std::vector<T *> pool;
-        std::vector<T *> available;
-        std::function<T*()> factory = nullptr;
+        std::vector<T *> _pool;
+        std::vector<T *> _available;
+        std::function<T*()> _factory = nullptr;
     };
 
     template<class T, std::enable_if_t<std::is_base_of_v<IDisposable, T>, int> E0>
-    ObjectPool<T, E0>::ObjectPool(std::function<T*()> createFactory, int capacity) : factory(std::move(createFactory))
+    ObjectPool<T, E0>::ObjectPool(std::function<T*()> createFactory, int capacity) : _factory(std::move(createFactory))
     {
-        pool.reserve(capacity);
-        available.reserve(capacity);
+        _pool.reserve(capacity);
+        _available.reserve(capacity);
     }
 
     template<class T, std::enable_if_t<std::is_base_of_v<IDisposable, T>, int> E0>
     ObjectPool<T, E0>::~ObjectPool()
     {
-        for (T *p: pool)
+        for (T *p: _pool)
         {
             if (p && !p->getIsDisposed())
             {
@@ -44,23 +44,23 @@ namespace BreadEngine
             delete p;
         }
 
-        pool.clear();
-        available.clear();
-        factory = nullptr;
+        _pool.clear();
+        _available.clear();
+        _factory = nullptr;
     }
 
     template<class T, std::enable_if_t<std::is_base_of_v<IDisposable, T>, int> E0>
     T &ObjectPool<T, E0>::get()
     {
-        if (available.empty())
+        if (_available.empty())
         {
             T *obj = factory();
-            pool.emplace_back(obj);
+            _pool.emplace_back(obj);
             return *obj;
         }
 
-        T *obj = available.back();
-        available.pop_back();
+        T *obj = _available.back();
+        _available.pop_back();
         obj->resetDisposed();
         return *obj;
     }
@@ -73,6 +73,6 @@ namespace BreadEngine
             obj.dispose();
         }
 
-        available.emplace_back(&obj);
+        _available.emplace_back(&obj);
     }
 } // BreadEngine

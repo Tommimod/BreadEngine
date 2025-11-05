@@ -8,20 +8,20 @@ namespace BreadEditor {
 
     UiTextBox &UiTextBox::setup(const std::string &id, std::string defaultText, int defaultTextSize, bool defaultEditMode)
     {
-        internalText = defaultText;
-        text = internalText.data();
-        textSize = defaultTextSize;
-        editMode = defaultEditMode;
+        _internalText = defaultText;
+        _text = _internalText.data();
+        _textSize = defaultTextSize;
+        _editMode = defaultEditMode;
         UiElement::setup(id);
         return *this;
     }
 
     UiTextBox &UiTextBox::setup(const std::string &id, UiElement *parentElement, std::string defaultText, int defaultTextSize, bool defaultEditMode)
     {
-        internalText = defaultText;
-        text = internalText.data();
-        textSize = defaultTextSize;
-        editMode = defaultEditMode;
+        _internalText = defaultText;
+        _text = _internalText.data();
+        _textSize = defaultTextSize;
+        _editMode = defaultEditMode;
         UiElement::setup(id, parentElement);
         return *this;
     }
@@ -32,8 +32,8 @@ namespace BreadEditor {
 
     void UiTextBox::draw(float deltaTime)
     {
-        GuiSetState(state);
-        GuiTextBox(bounds, text, textSize, editMode);
+        GuiSetState(_state);
+        GuiTextBox(_bounds, _text, _textSize, _editMode);
         UiElement::draw(deltaTime);
         GuiSetState(STATE_NORMAL);
     }
@@ -41,31 +41,31 @@ namespace BreadEditor {
     void UiTextBox::update(float deltaTime)
     {
         UiElement::update(deltaTime);
-        if (state == STATE_DISABLED)
+        if (_state == STATE_DISABLED)
         {
             return;
         }
 
-        if (Engine::IsCollisionPointRec(GetMousePosition(), bounds) && IsMouseButtonDown(MOUSE_LEFT_BUTTON))
+        if (Engine::IsCollisionPointRec(GetMousePosition(), _bounds) && IsMouseButtonDown(MOUSE_LEFT_BUTTON))
         {
-            editMode = true;
+            _editMode = true;
         }
         else if (IsMouseButtonDown(MOUSE_LEFT_BUTTON))
         {
-            editMode = false;
-            onTextChanged.invoke(text);
+            _editMode = false;
+            onTextChanged.invoke(_text);
         }
 
-        if (editMode && IsKeyDown(KEY_ENTER))
+        if (_editMode && IsKeyDown(KEY_ENTER))
         {
-            editMode = false;
-            onTextChanged.invoke(text);
+            _editMode = false;
+            onTextChanged.invoke(_text);
         }
     }
 
     void UiTextBox::setText(std::string newText)
     {
-        internalText = newText;
+        _internalText = newText;
     }
 
     bool UiTextBox::tryDeleteSelf()

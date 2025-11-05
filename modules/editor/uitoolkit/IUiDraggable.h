@@ -14,15 +14,17 @@ namespace BreadEditor {
         UiElement *dragContainer = nullptr;
         bool isDragging = false;
         bool onlyProvideDragEvents = false;
+
         void forceStartDrag();
 
     protected:
         void updateDraggable(UiElement *element);
 
     private:
-        bool isPrepared = false;
-        Vector2 mousePositionBeforeClick{};
-        Vector2 lastMousePosition{};
+        bool _isPrepared = false;
+        Vector2 _mousePositionBeforeClick{};
+        Vector2 _lastMousePosition{};
+
         void dragSelf(UiElement *element) const;
     };
 } // BreadEditor

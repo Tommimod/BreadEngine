@@ -31,8 +31,8 @@ namespace BreadEditor {
 
     void NodeTree::draw(const float deltaTime)
     {
-        GuiSetState(state);
-        GuiScrollPanel(bounds, title, contentView, &scrollPos, &scrollView);
+        GuiSetState(_state);
+        GuiScrollPanel(_bounds, _title, _contentView, &_scrollPos, &_scrollView);
         drawLines(Engine::getRootNode());
         UiElement::draw(deltaTime);
         GuiSetState(STATE_NORMAL);
@@ -41,14 +41,14 @@ namespace BreadEditor {
     void NodeTree::update(const float deltaTime)
     {
         UiElement::update(deltaTime);
-        const auto lastNodeBounds = nodeUiElements.empty() ? Rectangle{} : nodeUiElements.back()->getBounds();
+        const auto lastNodeBounds = _nodeUiElements.empty() ? Rectangle{} : _nodeUiElements.back()->getBounds();
         updateScrollView(lastNodeBounds);
         updateResizable(*this);
     }
 
     NodeUiElement *NodeTree::findNodeUiElementByEngineNode(const Node *node) const
     {
-        for (const auto child: childs)
+        for (const auto child: _childs)
         {
             if (const auto nodeInstance = dynamic_cast<NodeUiElement *>(child); nodeInstance && nodeInstance->getNode() == node)
             {
@@ -61,23 +61,23 @@ namespace BreadEditor {
 
     void NodeTree::subscribe()
     {
-        nodeNotificatorSubscriptions.emplace_back(
+        _nodeNotificatorSubscriptions.emplace_back(
             NodeNotificator::onNodeCreated.subscribe([this](Node *node) { this->onNodeCreated(node); }));
-        nodeNotificatorSubscriptions.emplace_back(
+        _nodeNotificatorSubscriptions.emplace_back(
             NodeNotificator::onNodeChangedParent.subscribe([this](Node *node) { this->onNodeChangedParent(node); }));
-        nodeNotificatorSubscriptions.emplace_back(
+        _nodeNotificatorSubscriptions.emplace_back(
             NodeNotificator::onNodeDestroyed.subscribe([this](Node *node) { this->onNodeRemoved(node); }));
-        nodeNotificatorSubscriptions.emplace_back(
+        _nodeNotificatorSubscriptions.emplace_back(
             NodeNotificator::onNodeChangedActive.subscribe([this](Node *node) { this->onNodeChangedActive(node); }));
     }
 
     void NodeTree::unsubscribe()
     {
-        NodeNotificator::onNodeCreated.unsubscribe(nodeNotificatorSubscriptions[0]);
-        NodeNotificator::onNodeChangedParent.unsubscribe(nodeNotificatorSubscriptions[1]);
-        NodeNotificator::onNodeDestroyed.unsubscribe(nodeNotificatorSubscriptions[2]);
-        NodeNotificator::onNodeChangedActive.unsubscribe(nodeNotificatorSubscriptions[3]);
-        nodeNotificatorSubscriptions.clear();
+        NodeNotificator::onNodeCreated.unsubscribe(_nodeNotificatorSubscriptions[0]);
+        NodeNotificator::onNodeChangedParent.unsubscribe(_nodeNotificatorSubscriptions[1]);
+        NodeNotificator::onNodeDestroyed.unsubscribe(_nodeNotificatorSubscriptions[2]);
+        NodeNotificator::onNodeChangedActive.unsubscribe(_nodeNotificatorSubscriptions[3]);
+        _nodeNotificatorSubscriptions.clear();
     }
 
     void NodeTree::onNodeCreated(Node *node)
@@ -86,17 +86,17 @@ namespace BreadEditor {
         constexpr float elementHeight = 20.0f;
         constexpr float elementWidthInPercent = 0.8f;
 
-        const auto id = TextFormat(elementIdFormat, static_cast<int>(childs.size()));
+        const auto id = TextFormat(elementIdFormat, static_cast<int>(_childs.size()));
         auto &element = UiPool::nodeUiElementPool.get().setup(id, this, node);
 
         element.setParentNode(findNodeUiElementByEngineNode(node->getParent()));
         element.setAnchor(UI_LEFT_TOP);
         element.setSize({0, elementHeight});
         element.setSizePercentPermanent({elementWidthInPercent, -1});
-        element.dragContainer = parent;
+        element.dragContainer = _parent;
         element.onlyProvideDragEvents = true;
 
-        nodeUiElements.emplace_back(&element);
+        _nodeUiElements.emplace_back(&element);
         int i = 0;
         recalculateUiNodes(Engine::getRootNode(), i);
         std::vector<SubscriptionHandle> nodeSubscriptions{};
@@ -131,18 +131,18 @@ namespace BreadEditor {
         const auto instance = findNodeUiElementByEngineNode(node);
         instance->onSelected.unsubscribeAll();
         destroyChild(instance);
-        nodeUiElements.erase(ranges::find(nodeUiElements, instance));
+        _nodeUiElements.erase(ranges::find(_nodeUiElements, instance));
         int i = 0;
         recalculateUiNodes(Engine::getRootNode(), i);
     }
 
     void NodeTree::onNodeSelected(NodeUiElement *nodeUiElement)
     {
-        selectedNodeUiElement = nodeUiElement;
+        _selectedNodeUiElement = nodeUiElement;
         Node *node = nullptr;
-        if (selectedNodeUiElement != nullptr)
+        if (_selectedNodeUiElement != nullptr)
         {
-            node = selectedNodeUiElement->getNode();
+            node = _selectedNodeUiElement->getNode();
         }
 
         Editor::GetInstance().main_window.getNodeInspector().lookupNode(node);
@@ -151,18 +151,18 @@ namespace BreadEditor {
     void NodeTree::onElementStartDrag(UiElement *uiElement)
     {
         const auto originalElement = dynamic_cast<NodeUiElement *>(uiElement);
-        draggedNodeUiElementCopy = dynamic_cast<NodeUiElement *>(uiElement)->copy();
-        draggedNodeUiElementCopy->forceStartDrag();
+        _draggedNodeUiElementCopy = dynamic_cast<NodeUiElement *>(uiElement)->copy();
+        _draggedNodeUiElementCopy->forceStartDrag();
         originalElement->switchMuteState();
     }
 
     void NodeTree::onElementEndDrag(UiElement *uiElement)
     {
-        this->destroyChild(draggedNodeUiElementCopy);
-        draggedNodeUiElementCopy = nullptr;
+        this->destroyChild(_draggedNodeUiElementCopy);
+        _draggedNodeUiElementCopy = nullptr;
         const auto originalElement = dynamic_cast<NodeUiElement *>(uiElement);
         originalElement->switchMuteState();
-        for (auto nodeElement: nodeUiElements)
+        for (auto nodeElement: _nodeUiElements)
         {
             const auto nodeBounds = nodeElement->getBounds();
             if (Engine::IsCollisionPointRec(GetMousePosition(), nodeBounds))
@@ -197,19 +197,19 @@ namespace BreadEditor {
 
     void NodeTree::updateScrollView(const Rectangle lastNodeBounds)
     {
-        if (contentView.width == 0 && contentView.height == 0)
+        if (_contentView.width == 0 && _contentView.height == 0)
         {
-            contentView = bounds;
+            _contentView = _bounds;
         }
 
-        contentView.x = bounds.x;
-        contentView.y = bounds.y;
-        contentView.width = bounds.width;
+        _contentView.x = _bounds.x;
+        _contentView.y = _bounds.y;
+        _contentView.width = _bounds.width;
 
         nodeInspector = nodeInspector == nullptr ? getChildById(NodeInspector::Id) : nodeInspector;
         if (nodeInspector != nullptr)
         {
-            contentView.height = bounds.height - nodeInspector->getBounds().height;
+            _contentView.height = _bounds.height - nodeInspector->getBounds().height;
         }
     }
 
@@ -242,7 +242,7 @@ namespace BreadEditor {
         constexpr float nodeHorizontalPadding = 15.0f * .5f;
 
         const auto instance = findNodeUiElementByEngineNode(&startNode);
-        const bool isLast = nodeUiElements.back() == instance;
+        const bool isLast = _nodeUiElements.back() == instance;
         int childCount = instance->getNode()->getChildCount();
         if (isLast || childCount == 0)
         {

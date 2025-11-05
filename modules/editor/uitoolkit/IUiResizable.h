@@ -11,8 +11,9 @@ namespace BreadEditor {
         int tricknessInPixel = 6;
         Vector2 prevMousePos = {0.0f, 0.0f};
 
-        void updateResizable(UiElement& uiElement);
+        void updateResizable(UiElement &uiElement);
+
     private:
-        bool isPrepared = false;
+        bool _isPrepared = false;
     };
 } // BreadEditor

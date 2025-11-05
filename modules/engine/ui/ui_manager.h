@@ -29,10 +29,8 @@ public:
     Color clay_to_raylib_color(Clay_Color color);
 
 private:
-    bool isInitialized;
-    
-    Vector2 mousePosition;
-    bool mousePressed;
-    bool mouseReleased;
-    
+    bool _isInitialized;
+    bool _mousePressed;
+    bool _mouseReleased;
+    Vector2 _mousePosition;
 };

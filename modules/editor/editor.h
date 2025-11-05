@@ -34,15 +34,15 @@ namespace BreadEditor {
 
         void StopGame();
 
-        [[nodiscard]] bool IsProjectOpen() const { return !currentProjectPath.empty(); }
-        [[nodiscard]] const std::string &GetCurrentProjectPath() const { return currentProjectPath; }
+        [[nodiscard]] bool IsProjectOpen() const { return !_currentProjectPath.empty(); }
+        [[nodiscard]] const std::string &GetCurrentProjectPath() const { return _currentProjectPath; }
 
     private:
         Editor() = default;
 
         ~Editor() = default;
 
-        bool initialized = false;
-        std::string currentProjectPath;
+        bool _initialized = false;
+        std::string _currentProjectPath;
     };
 } // namespace BreadEditor

@@ -3,7 +3,7 @@
 #include "uiElement.h"
 
 namespace BreadEditor {
-    class UiTextBox : public UiElement
+    class UiTextBox final : public UiElement
     {
     public:
         BreadEngine::Action<char *> onTextChanged;
@@ -19,15 +19,16 @@ namespace BreadEditor {
         void draw(float deltaTime) override;
 
         void update(float deltaTime) override;
+
         void setText(std::string newText);
 
     protected:
         bool tryDeleteSelf() override;
 
     private:
-        std::string internalText;
-        char *text = nullptr;
-        int textSize;
-        bool editMode;
+        std::string _internalText;
+        char *_text = nullptr;
+        int _textSize = 0;
+        bool _editMode = false;
     };
 } // BreadEditor

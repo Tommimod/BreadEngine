@@ -19,7 +19,7 @@ namespace BreadEditor {
         void update(float deltaTime) override;
 
     protected:
-        const char *title = nullptr;
+        const char *_title = nullptr;
 
         bool tryDeleteSelf() override;
     };

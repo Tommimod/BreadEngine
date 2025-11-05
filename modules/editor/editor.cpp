@@ -14,12 +14,12 @@ namespace BreadEditor
 
     bool Editor::Initialize()
     {
-        if (initialized)
+        if (_initialized)
             return true;
 
         GuiLoadStyleDefault();
         SetTraceLogLevel(LOG_ALL);
-        initialized = true;
+        _initialized = true;
 
         const auto rootNode = &Engine::getRootNode();
         auto& testNode = Engine::nodePool.get().setup("1", *rootNode);
@@ -32,16 +32,16 @@ namespace BreadEditor
 
     void Editor::Shutdown()
     {
-        if (!initialized)
+        if (!_initialized)
             return;
 
         CloseProject();
-        initialized = false;
+        _initialized = false;
     }
 
     void Editor::Update(float deltaTime)
     {
-        if (!initialized)
+        if (!_initialized)
             return;
 
         CursorSystem::draw();
@@ -49,7 +49,7 @@ namespace BreadEditor
 
     void Editor::Render(float deltaTime)
     {
-        if (!initialized)
+        if (!_initialized)
             return;
 
         if (GuiButton((Rectangle){10, 50, 120, 30}, "New Project"))
@@ -80,24 +80,24 @@ namespace BreadEditor
     {
         // Create project directory structure
         // Generate basic game template
-        currentProjectPath = path + "/" + name;
+        _currentProjectPath = path + "/" + name;
         return true;
     }
 
     bool Editor::OpenProject(const std::string &path)
     {
-        currentProjectPath = path;
+        _currentProjectPath = path;
         return true;
     }
 
-    void Editor::CloseProject() { currentProjectPath.clear(); }
+    void Editor::CloseProject() { _currentProjectPath.clear(); }
 
     bool Editor::CompileGame()
     {
         if (!IsProjectOpen())
             return false;
 
-        std::string buildCommand = "cd " + currentProjectPath + " && make";
+        std::string buildCommand = "cd " + _currentProjectPath + " && make";
         return system(buildCommand.c_str()) == 0;
     }
 
@@ -106,7 +106,7 @@ namespace BreadEditor
         if (!CompileGame())
             return false;
 
-        std::string gamePath = currentProjectPath + "/build/libgame.dylib";
+        std::string gamePath = _currentProjectPath + "/build/libgame.dylib";
         Engine::GetInstance().LoadGameModule(gamePath.c_str());
         return true;
     }

@@ -4,20 +4,20 @@
 class CursorSystem
 {
 public:
-    static void setCursor(MouseCursor nextCursor)
+    static void setCursor(const MouseCursor nextCursor)
     {
-        if (nextCursor > cursor)
+        if (nextCursor > _cursor)
         {
-            cursor = nextCursor;
+            _cursor = nextCursor;
         }
     }
 
     static void draw()
     {
-        SetMouseCursor(cursor);
-        cursor = MOUSE_CURSOR_DEFAULT;
+        SetMouseCursor(_cursor);
+        _cursor = MOUSE_CURSOR_DEFAULT;
     }
 
 private:
-    static MouseCursor cursor;
+    static MouseCursor _cursor;
 };

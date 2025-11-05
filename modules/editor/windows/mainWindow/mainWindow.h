@@ -1,13 +1,11 @@
 #pragma once
-
 #include "nodeInspector.h"
 #include "nodeTree.h"
 #include "../../uitoolkit/uiToolbar.h"
 #include "raylib.h"
 using namespace BreadEngine;
 
-namespace BreadEditor
-{
+namespace BreadEditor {
     class MainWindow
     {
     public:
@@ -20,13 +18,14 @@ namespace BreadEditor
         [[nodiscard]] UiToolbar &getToolbar() const;
 
         [[nodiscard]] NodeTree &getNodeTree();
+
         [[nodiscard]] NodeInspector &getNodeInspector();
 
         void render(float deltaTime);
 
     private:
-        UiToolbar &toolbar;
-        NodeTree nodeTree;
-        NodeInspector *nodeInspector;
+        UiToolbar &_toolbar;
+        NodeTree _nodeTree;
+        NodeInspector *_nodeInspector;
     };
 } // namespace BreadEditor

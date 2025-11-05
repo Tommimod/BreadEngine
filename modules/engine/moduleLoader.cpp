@@ -7,7 +7,7 @@
 #include <dlfcn.h>
 #endif
 
-ModuleLoader::ModuleLoader() : moduleHandle(nullptr)
+ModuleLoader::ModuleLoader() : _moduleHandle(nullptr)
 {
 }
 
@@ -20,35 +20,35 @@ bool ModuleLoader::LoadModule(const std::string &path)
 {
     UnloadModule();
 
-    moduleHandle = LoadLibrary(path);
-    return moduleHandle != nullptr;
+    _moduleHandle = LoadLibrary(path);
+    return _moduleHandle != nullptr;
 }
 
 void ModuleLoader::UnloadModule()
 {
-    if (moduleHandle)
+    if (_moduleHandle)
     {
-        FreeLibrary(moduleHandle);
-        moduleHandle = nullptr;
+        FreeLibrary(_moduleHandle);
+        _moduleHandle = nullptr;
     }
 }
 
 void *ModuleLoader::GetFunction(const std::string &functionName)
 {
-    if (!moduleHandle)
+    if (!_moduleHandle)
     {
         SetLastError("Module not loaded");
         return nullptr;
     }
 
-    return GetProcAddress(moduleHandle, functionName);
+    return GetProcAddress(_moduleHandle, functionName);
 }
 
 // Платформо-специфичные реализации
 #ifdef _WIN32
 void *ModuleLoader::LoadLibrary(const std::string &path)
 {
-    HMODULE handle = ::LoadLibraryA(path.c_str());
+    const HMODULE handle = ::LoadLibraryA(path.c_str());
     if (!handle)
     {
         const auto error = GetLastError();
@@ -56,6 +56,7 @@ void *ModuleLoader::LoadLibrary(const std::string &path)
     }
     return handle;
 }
+
 void ModuleLoader::FreeLibrary(void *handle)
 {
     ::FreeLibrary(static_cast<HMODULE>(handle));
@@ -94,8 +95,7 @@ void ModuleLoader::FreeLibrary(void *handle)
 
 void *ModuleLoader::GetProcAddress(void *handle, const std::string &functionName)
 {
-    if (!handle)
-        return nullptr;
+    if (!handle) return nullptr;
 
     // Очищаем предыдущие ошибки
     dlerror();
@@ -133,5 +133,5 @@ void *ModuleLoader::GetProcAddress(void *handle, const std::string &functionName
 
 void ModuleLoader::SetLastError(const std::string &error)
 {
-    lastError = error;
+    _lastError = error;
 }

@@ -87,22 +87,22 @@ namespace BreadEditor {
         void changeParent(UiElement *newParent);
 
         void setChildFirst(UiElement *child);
+
         void setChildLast(UiElement *child);
 
         void dispose() override;
 
     protected:
-        GuiState state = STATE_NORMAL;
-
-        Vector2 pivot{};
-        Vector2 localPosition{0.0f, 0.0f};
-        Vector2 localSize{1.0f, 1.0f};
-        Vector2 sizeInPercents{-1, -1};
-        UiElement *parent = nullptr;
-        std::vector<UiElement *> childs{};
-        Rectangle bounds{0, 0, 1, 1};
-        Color bgColor = RAYWHITE;
-        UI_ANCHOR_TYPE anchor = UI_LEFT_TOP;
+        GuiState _state = STATE_NORMAL;
+        Vector2 _pivot{};
+        Vector2 _localPosition{0.0f, 0.0f};
+        Vector2 _localSize{1.0f, 1.0f};
+        Vector2 _sizeInPercents{-1, -1};
+        UiElement *_parent = nullptr;
+        std::vector<UiElement *> _childs{};
+        Rectangle _bounds{0, 0, 1, 1};
+        Color _bgColor = RAYWHITE;
+        UI_ANCHOR_TYPE _anchor = UI_LEFT_TOP;
 
         void computeBounds();
 

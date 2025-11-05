@@ -1,13 +1,13 @@
 #include "component.h"
 #include <typeinfo>
 
-#include "node.h"
+#include "../node.h"
 
 namespace BreadEngine
 {
     Component::Component(Node *parent)
     {
-        this->parent = parent;
+        this->_parent = parent;
     }
 
     Component::~Component() = default;
@@ -47,22 +47,22 @@ namespace BreadEngine
 
     Node *Component::getParent() const
     {
-        return parent;
+        return _parent;
     }
 
     bool Component::getIsActive() const
     {
-        return isActive && parent->getIsActive();
+        return _isActive && _parent->getIsActive();
     }
 
     void Component::setIsActive(const bool nextActive)
     {
-        this->isActive = nextActive;
+        this->_isActive = nextActive;
     }
 
     void Component::setParent(Node *nextParent)
     {
-        this->parent = nextParent;
+        this->_parent = nextParent;
     }
 
     Component::Component() = default;

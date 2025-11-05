@@ -39,10 +39,13 @@ namespace BreadEditor {
         bool tryDeleteSelf() override;
 
     private:
-        bool isMuted = false;
-        GuiState localStateBeforeMuted = STATE_NORMAL;
-        GuiState localState = STATE_NORMAL;
-        Node *engineNode = nullptr;
-        NodeUiElement *parentNode = nullptr;
+        bool _isMuted = false;
+        bool _isPreparedToClick = false;
+        GuiState _localStateBeforeMuted = STATE_NORMAL;
+        GuiState _localState = STATE_NORMAL;
+        Node *_engineNode = nullptr;
+        NodeUiElement *_parentNode = nullptr;
+
+        void prepareToClick();
     };
 } // BreadEditor

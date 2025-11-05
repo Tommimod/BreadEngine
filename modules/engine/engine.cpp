@@ -8,7 +8,7 @@ namespace BreadEngine {
         return new Node();
     };
     ObjectPool<Node> Engine::nodePool(nodeFactory, 10);
-    Node Engine::rootNode;
+    Node Engine::_rootNode;
 
     Engine::Engine() = default;
 
@@ -20,8 +20,8 @@ namespace BreadEngine {
 
     Node &Engine::getRootNode()
     {
-        if (rootNode.getName().empty()) rootNode = rootNode.setupAsRoot("Root");
-        return rootNode;
+        if (_rootNode.getName().empty()) _rootNode = _rootNode.setupAsRoot("Root");
+        return _rootNode;
     }
 
     float Engine::GetDeltaTime()
@@ -56,9 +56,9 @@ namespace BreadEngine {
         BeginDrawing();
 
         // Call game logic update if loaded
-        if (gameUpdate)
+        if (_gameUpdate)
         {
-            gameUpdate();
+            _gameUpdate();
         }
     }
 
@@ -70,55 +70,55 @@ namespace BreadEngine {
 
     void Engine::SetupDefaultCamera()
     {
-        camera.position = (Vector3){0.0f, 10.0f, 10.0f};
-        camera.target = (Vector3){0.0f, 0.0f, 0.0f};
-        camera.up = (Vector3){0.0f, 1.0f, 0.0f};
-        camera.fovy = 45.0f;
-        camera.projection = CAMERA_PERSPECTIVE;
+        _camera.position = (Vector3){0.0f, 10.0f, 10.0f};
+        _camera.target = (Vector3){0.0f, 0.0f, 0.0f};
+        _camera.up = (Vector3){0.0f, 1.0f, 0.0f};
+        _camera.fovy = 45.0f;
+        _camera.projection = CAMERA_PERSPECTIVE;
     }
 
     void Engine::LoadGameModule(const char *path)
     {
         UnloadGameModule();
 
-        gameModuleLoader = new ModuleLoader();
-        if (!gameModuleLoader->LoadModule(path))
+        _gameModuleLoader = new ModuleLoader();
+        if (!_gameModuleLoader->LoadModule(path))
         {
-            delete gameModuleLoader;
-            gameModuleLoader = nullptr;
+            delete _gameModuleLoader;
+            _gameModuleLoader = nullptr;
             TraceLog(LOG_ERROR, "Failed to load module: {0}", path);
             return;
         }
 
         // Get function pointers
-        gameInit = (GameInitFunc) gameModuleLoader->GetFunction("Game_Initialize");
-        gameUpdate = (GameUpdateFunc) gameModuleLoader->GetFunction("Game_Update");
-        gameRender2D = (GameRender2DFunc) gameModuleLoader->GetFunction("Game_Render2D");
-        gameRender3D = (GameRender3DFunc) gameModuleLoader->GetFunction("Game_Render3D");
-        gameShutdown = (GameShutdownFunc) gameModuleLoader->GetFunction("Game_Shutdown");
+        _gameInit = (GameInitFunc) _gameModuleLoader->GetFunction("Game_Initialize");
+        _gameUpdate = (GameUpdateFunc) _gameModuleLoader->GetFunction("Game_Update");
+        gameRender2D = (GameRender2DFunc) _gameModuleLoader->GetFunction("Game_Render2D");
+        _gameRender3D = (GameRender3DFunc) _gameModuleLoader->GetFunction("Game_Render3D");
+        _gameShutdown = (GameShutdownFunc) _gameModuleLoader->GetFunction("Game_Shutdown");
 
-        if (gameInit)
+        if (_gameInit)
         {
-            gameInit();
+            _gameInit();
         }
     }
 
     void Engine::UnloadGameModule()
     {
-        if (gameModuleLoader)
+        if (_gameModuleLoader)
         {
-            if (gameShutdown)
+            if (_gameShutdown)
             {
-                gameShutdown();
+                _gameShutdown();
             }
 
-            delete gameModuleLoader;
-            gameModuleLoader = nullptr;
-            gameInit = nullptr;
-            gameUpdate = nullptr;
+            delete _gameModuleLoader;
+            _gameModuleLoader = nullptr;
+            _gameInit = nullptr;
+            _gameUpdate = nullptr;
             gameRender2D = nullptr;
-            gameRender3D = nullptr;
-            gameShutdown = nullptr;
+            _gameRender3D = nullptr;
+            _gameShutdown = nullptr;
         }
     }
 
@@ -132,9 +132,9 @@ namespace BreadEngine {
 
     void Engine::CallGameRender3D() const
     {
-        if (gameRender3D)
+        if (_gameRender3D)
         {
-            gameRender3D();
+            _gameRender3D();
         }
     }
 

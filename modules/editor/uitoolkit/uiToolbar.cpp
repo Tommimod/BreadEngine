@@ -33,7 +33,7 @@ namespace BreadEditor
     {
         for (int i = static_cast<int>(subscriptions.size()) - 1; i > 0; i--)
         {
-            const auto button = dynamic_cast<UiLabelButton *>(childs[i]);
+            const auto button = dynamic_cast<UiLabelButton *>(_childs[i]);
             button->onClick.unsubscribe(subscriptions[i]);
         }
 
@@ -42,8 +42,8 @@ namespace BreadEditor
 
     void UiToolbar::draw(const float deltaTime)
     {
-        GuiSetState(state);
-        GuiPanel(bounds, nullptr);
+        GuiSetState(_state);
+        GuiPanel(_bounds, nullptr);
         UiElement::draw(deltaTime);
         GuiSetState(STATE_NORMAL);
     }

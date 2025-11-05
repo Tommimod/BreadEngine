@@ -34,7 +34,7 @@ namespace BreadEngine
 
         Camera3D &GetCamera()
         {
-            return camera;
+            return _camera;
         }
 
         void LoadGameModule(const char *path);
@@ -52,15 +52,15 @@ namespace BreadEngine
         // Check if point is inside rectangle
         static bool IsCollisionPointRec(Vector2 point, Rectangle rec);
         // Check if point is inside rectangle with hole
-        static bool IsCollisionPointRec(const Vector2 point, const Rectangle rec, const Rectangle subtraction);
+        static bool IsCollisionPointRec(Vector2 point, Rectangle rec, Rectangle subtraction);
 
     private:
         Engine();
         ~Engine() = default;
-        static Node rootNode;
+        static Node _rootNode;
 
-        Camera3D camera{};
-        ModuleLoader *gameModuleLoader = nullptr;
+        Camera3D _camera{};
+        ModuleLoader *_gameModuleLoader = nullptr;
 
         typedef void (*GameInitFunc)();
 
@@ -72,11 +72,11 @@ namespace BreadEngine
 
         typedef void (*GameShutdownFunc)();
 
-        GameInitFunc gameInit = nullptr;
-        GameUpdateFunc gameUpdate = nullptr;
-        GameRender2DFunc gameRender2D = nullptr;
-        GameRender3DFunc gameRender3D = nullptr;
-        GameShutdownFunc gameShutdown = nullptr;
+        GameInitFunc _gameInit = nullptr;
+        GameUpdateFunc _gameUpdate = nullptr;
+        GameRender2DFunc _gameRender2D = nullptr;
+        GameRender3DFunc _gameRender3D = nullptr;
+        GameShutdownFunc _gameShutdown = nullptr;
     };
 
     namespace Input

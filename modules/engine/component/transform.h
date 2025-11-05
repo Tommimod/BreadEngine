@@ -1,14 +1,13 @@
 #pragma once
 
-#include "../component.h"
+#include "component.h"
 
 #include <raylib.h>
 
 namespace BreadEngine
 {
-    class Transform final : public Component
+    struct Transform final : Component
     {
-    public:
         explicit Transform(Node *parent);
 
         ~Transform() override;
@@ -38,6 +37,6 @@ namespace BreadEngine
         void setTransformMatrix(const Matrix &nextTransformMatrix);
 
     private:
-        Matrix transformMatrix{};
+        Matrix _transformMatrix{};
     };
 } // namespace BreadEngine

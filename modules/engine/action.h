@@ -22,23 +22,23 @@ template <typename... Args> class Action
 
     template <typename F> SubscriptionHandle subscribe(F &&func)
     {
-        act.emplace_back(std::forward<F>(func));
-        return {static_cast<int>(act.size() - 1)};
+        _act.emplace_back(std::forward<F>(func));
+        return {static_cast<int>(_act.size() - 1)};
     }
 
     void unsubscribe(SubscriptionHandle handle)
     {
-        if (!handle.isValid() || handle.id >= static_cast<int>(act.size()))
+        if (!handle.isValid() || handle.id >= static_cast<int>(_act.size()))
         {
             return;
         }
-        std::swap(act[handle.id], act.back());
-        act.pop_back();
+        std::swap(_act[handle.id], _act.back());
+        _act.pop_back();
     }
 
     void unsubscribeAll()
     {
-        act.clear();
+        _act.clear();
     }
 
     template <typename F> void operator+=(F &&func)
@@ -48,15 +48,14 @@ template <typename... Args> class Action
 
     template <typename F> Action &operator=(F &&func)
     {
-        act.clear();
+        _act.clear();
         subscribe(std::forward<F>(func));
         return *this;
     }
 
     void invoke(Args... args)
     {
-        auto copy = act;
-        for (auto &f : copy)
+        for (auto copy = _act; auto &f : copy)
         {
             if (f)
             {
@@ -66,7 +65,7 @@ template <typename... Args> class Action
     }
 
   private:
-    std::vector<std::function<void(Args...)>> act;
+    std::vector<std::function<void(Args...)>> _act;
 };
 
 template <> class Action<>
@@ -77,18 +76,18 @@ template <> class Action<>
 
     template <typename F> SubscriptionHandle subscribe(F &&func)
     {
-        act.emplace_back(std::forward<F>(func));
-        return {static_cast<int>(act.size() - 1)};
+        _act.emplace_back(std::forward<F>(func));
+        return {static_cast<int>(_act.size() - 1)};
     }
 
     void unsubscribe(SubscriptionHandle handle)
     {
-        if (!handle.isValid() || handle.id >= static_cast<int>(act.size()))
+        if (!handle.isValid() || handle.id >= static_cast<int>(_act.size()))
         {
             return;
         }
-        std::swap(act[handle.id], act.back());
-        act.pop_back();
+        std::swap(_act[handle.id], _act.back());
+        _act.pop_back();
     }
 
     template <typename F> void operator+=(F &&func)
@@ -98,14 +97,14 @@ template <> class Action<>
 
     template <typename F> Action<> &operator=(F &&func)
     {
-        act.clear();
+        _act.clear();
         subscribe(std::forward<F>(func));
         return *this;
     }
 
     void invoke() const
     {
-        for (const auto copy = act; auto &f : copy)
+        for (const auto copy = _act; auto &f : copy)
         {
             if (f)
             {
@@ -115,6 +114,6 @@ template <> class Action<>
     }
 
   private:
-    std::vector<std::function<void()>> act;
+    std::vector<std::function<void()>> _act;
 };
 } // namespace BreadEngine

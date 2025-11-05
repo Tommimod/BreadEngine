@@ -5,14 +5,14 @@ namespace BreadEngine
     class IDisposable
     {
     public:
-        [[nodiscard]] bool getIsDisposed() const { return isDisposed; };
-        void resetDisposed() { isDisposed = false; };
+        [[nodiscard]] bool getIsDisposed() const { return _isDisposed; };
+        void resetDisposed() { _isDisposed = false; };
 
         virtual void dispose() = 0;
 
     protected:
         ~IDisposable() = default;
 
-        bool isDisposed = false;
+        bool _isDisposed = false;
     };
 } // BreadEngine

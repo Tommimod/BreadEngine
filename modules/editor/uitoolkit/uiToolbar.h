@@ -2,9 +2,8 @@
 #include "uiElement.h"
 using namespace std;
 
-namespace BreadEditor
-{
-    class UiToolbar : public UiElement
+namespace BreadEditor {
+    class UiToolbar final : public UiElement
     {
     public:
         UiToolbar();

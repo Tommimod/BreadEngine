@@ -29,11 +29,11 @@ namespace BreadEditor {
         void clear();
 
     private:
-        std::map<UiElement *, SubscriptionHandle> subscriptions{};
+        std::map<UiElement *, SubscriptionHandle> _subscriptions{};
 
-        Node *engineNode = nullptr;
-        UiCheckBox *activeCheckBox = nullptr;
-        UiTextBox *nameTextBox = nullptr;
+        Node *_engineNode = nullptr;
+        UiCheckBox *_activeCheckBox = nullptr;
+        UiTextBox *_nameTextBox = nullptr;
 
         void initialize();
 

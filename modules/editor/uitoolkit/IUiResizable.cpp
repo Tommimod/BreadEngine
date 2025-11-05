@@ -9,7 +9,7 @@ namespace BreadEditor {
     {
         if (IsMouseButtonUp(MOUSE_LEFT_BUTTON))
         {
-            isPrepared = false;
+            _isPrepared = false;
         }
 
         const auto bounds = uiElement.getBounds();
@@ -31,7 +31,7 @@ namespace BreadEditor {
         {
             if (IsMouseButtonPressed(MOUSE_LEFT_BUTTON))
             {
-                isPrepared = true;
+                _isPrepared = true;
             }
 
             auto isHorizontalResize = prevMousePos.x >= bounds.x && prevMousePos.x <= subBounds.x;
@@ -45,7 +45,7 @@ namespace BreadEditor {
                 CursorSystem::setCursor(MOUSE_CURSOR_RESIZE_NS);
             }
 
-            if (isHorizontalResize && isHorizontalResized && isPrepared)
+            if (isHorizontalResize && isHorizontalResized && _isPrepared)
             {
                 if (IsMouseButtonDown(MOUSE_LEFT_BUTTON))
                 {
@@ -59,7 +59,7 @@ namespace BreadEditor {
                     uiElement.setSize(size);
                 }
             }
-            else if (isVerticalResize && isVerticalResized && isPrepared)
+            else if (isVerticalResize && isVerticalResized && _isPrepared)
             {
                 if (IsMouseButtonDown(MOUSE_LEFT_BUTTON))
                 {

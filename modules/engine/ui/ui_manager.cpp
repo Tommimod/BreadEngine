@@ -73,17 +73,17 @@ static Clay_Dimensions Raylib_MeasureText(Clay_StringSlice text, Clay_TextElemen
     return textSize;
 }
 
-UIManager::UIManager() : isInitialized(false), mousePosition({0, 0}), mousePressed(false), mouseReleased(false) {
+UIManager::UIManager() : _isInitialized(false), _mousePosition({0, 0}), _mousePressed(false), _mouseReleased(false) {
 }
 
 UIManager::~UIManager() {
-    if (isInitialized) {
+    if (_isInitialized) {
         shutdown();
     }
 }
 
 void UIManager::initialize() {
-    if (isInitialized) return;
+    if (_isInitialized) return;
     
     // Initialize Clay according to the example
     uint64_t totalMemorySize = Clay_MinMemorySize();
@@ -103,17 +103,17 @@ void UIManager::initialize() {
     Font defaultFont = GetFontDefault();
     Clay_SetMeasureTextFunction(Raylib_MeasureText, &defaultFont);
     
-    isInitialized = true;
+    _isInitialized = true;
 }
 
 void UIManager::shutdown() {
-    if (!isInitialized) return;
+    if (!_isInitialized) return;
     
-    isInitialized = false;
+    _isInitialized = false;
 }
 
 void UIManager::update(float deltaTime) {
-    if (!isInitialized) return;
+    if (!_isInitialized) return;
     
     Vector2 mouseWheelDelta = GetMouseWheelMoveV();
     float mouseWheelX = mouseWheelDelta.x;
@@ -127,7 +127,7 @@ void UIManager::update(float deltaTime) {
 }
 
 void UIManager::render_ui(Clay_RenderCommandArray renderCommands, Font* font) {
-    if (!isInitialized) return;
+    if (!_isInitialized) return;
     
     Clay_Raylib_Render(renderCommands, font);
 }
@@ -151,7 +151,7 @@ void UIManager::handle_mouse_input(Vector2 mousePosition, bool mousePressed, boo
 }
 
 void UIManager::begin_layout() {
-    if (!isInitialized) return;
+    if (!_isInitialized) return;
     Clay_BeginLayout();
 }
 

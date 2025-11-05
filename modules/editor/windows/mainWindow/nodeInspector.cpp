@@ -21,17 +21,17 @@ namespace BreadEditor {
 
     NodeInspector::~NodeInspector()
     {
-        activeCheckBox->onStateChanged.unsubscribe(subscriptions[activeCheckBox]);
-        nameTextBox->onTextChanged.unsubscribe(subscriptions[nameTextBox]);
+        _activeCheckBox->onStateChanged.unsubscribe(_subscriptions[_activeCheckBox]);
+        _nameTextBox->onTextChanged.unsubscribe(_subscriptions[_nameTextBox]);
 
-        subscriptions.clear();
+        _subscriptions.clear();
     }
 
     void NodeInspector::draw(float deltaTime)
     {
-        GuiPanel(bounds, nullptr);
-        const auto isDisabled = engineNode == nullptr;
-        for (auto childElement: childs)
+        GuiPanel(_bounds, nullptr);
+        const auto isDisabled = _engineNode == nullptr;
+        for (auto childElement: _childs)
         {
             childElement->setState(isDisabled ? STATE_DISABLED : STATE_NORMAL);
         }
@@ -47,11 +47,11 @@ namespace BreadEditor {
 
     void NodeInspector::lookupNode(Node *node)
     {
-        engineNode = node;
-        if (engineNode != nullptr)
+        _engineNode = node;
+        if (_engineNode != nullptr)
         {
-            activeCheckBox->setChecked(engineNode->getIsActive());
-            nameTextBox->setText(engineNode->getName());
+            _activeCheckBox->setChecked(_engineNode->getIsActive());
+            _nameTextBox->setText(_engineNode->getName());
         }
         else
         {
@@ -61,7 +61,7 @@ namespace BreadEditor {
 
     void NodeInspector::clear()
     {
-        engineNode = nullptr;
+        _engineNode = nullptr;
     }
 
     void NodeInspector::initialize()
@@ -69,17 +69,17 @@ namespace BreadEditor {
         const int verticalOffset = 5;
         const int horizontalOffset = 5;
 
-        activeCheckBox = &UiPool::checkBoxPool.get().setup("nodeInspectorActiveCheckBox", this, false, "Active");
-        activeCheckBox->setAnchor(UI_LEFT_TOP);
-        activeCheckBox->setPosition({horizontalOffset, verticalOffset + 5});
-        activeCheckBox->setSize({10, 10});
-        subscriptions.emplace(activeCheckBox, activeCheckBox->onStateChanged.subscribe([this](bool checked) { this->onNodeActiveChanged(checked); }));
+        _activeCheckBox = &UiPool::checkBoxPool.get().setup("nodeInspectorActiveCheckBox", this, false, "Active");
+        _activeCheckBox->setAnchor(UI_LEFT_TOP);
+        _activeCheckBox->setPosition({horizontalOffset, verticalOffset + 5});
+        _activeCheckBox->setSize({10, 10});
+        _subscriptions.emplace(_activeCheckBox, _activeCheckBox->onStateChanged.subscribe([this](bool checked) { this->onNodeActiveChanged(checked); }));
 
-        nameTextBox = &UiPool::textBoxPool.get().setup("nodeInspectorNameTextBox", this, "Name");
-        nameTextBox->setAnchor(UI_LEFT_TOP);
-        nameTextBox->setPosition({activeCheckBox->getSize().x + 50, verticalOffset});
-        nameTextBox->setSize({100, 20});
-        subscriptions.emplace(nameTextBox, nameTextBox->onTextChanged.subscribe([this](char *text) { this->onNodeNameChanged(text); }));
+        _nameTextBox = &UiPool::textBoxPool.get().setup("nodeInspectorNameTextBox", this, "Name");
+        _nameTextBox->setAnchor(UI_LEFT_TOP);
+        _nameTextBox->setPosition({_activeCheckBox->getSize().x + 50, verticalOffset});
+        _nameTextBox->setSize({100, 20});
+        _subscriptions.emplace(_nameTextBox, _nameTextBox->onTextChanged.subscribe([this](char *text) { this->onNodeNameChanged(text); }));
 
         resetElementsState();
     }
@@ -87,17 +87,17 @@ namespace BreadEditor {
     void NodeInspector::resetElementsState()
     {
         const auto emptyString = "";
-        activeCheckBox->setChecked(false);
-        nameTextBox->setText(emptyString);
+        _activeCheckBox->setChecked(false);
+        _nameTextBox->setText(emptyString);
     }
 
     void NodeInspector::onNodeActiveChanged(bool isActive)
     {
-        engineNode->setIsActive(isActive);
+        _engineNode->setIsActive(isActive);
     }
 
     void NodeInspector::onNodeNameChanged(const char *name)
     {
-        engineNode->setName(name);
+        _engineNode->setName(name);
     }
 } // BreadEditor

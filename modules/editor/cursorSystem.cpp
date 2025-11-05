@@ -1,3 +1,3 @@
 ﻿#include "cursorSystem.h"
 
-MouseCursor CursorSystem::cursor = MOUSE_CURSOR_DEFAULT;
+MouseCursor CursorSystem::_cursor = MOUSE_CURSOR_DEFAULT;

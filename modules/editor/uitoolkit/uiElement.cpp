@@ -13,8 +13,8 @@ namespace BreadEditor {
         this->id = newId;
         if (parentElement)
         {
-            this->parent = parentElement;
-            parent->addChild(this);
+            this->_parent = parentElement;
+            _parent->addChild(this);
         }
 
         return *this;
@@ -27,7 +27,7 @@ namespace BreadEditor {
 
     void UiElement::draw(const float deltaTime)
     {
-        for (const auto child: childs)
+        for (const auto child: _childs)
         {
             child->draw(deltaTime);
         }
@@ -36,7 +36,7 @@ namespace BreadEditor {
     void UiElement::update(const float deltaTime)
     {
         computeBounds();
-        for (const auto child: childs)
+        for (const auto child: _childs)
         {
             child->update(deltaTime);
         }
@@ -44,32 +44,32 @@ namespace BreadEditor {
 
     Rectangle UiElement::getBounds() const
     {
-        return bounds;
+        return _bounds;
     }
 
     Vector2 UiElement::getPosition() const
     {
-        return localPosition;
+        return _localPosition;
     }
 
     Vector2 UiElement::getSize() const
     {
-        return localSize;
+        return _localSize;
     }
 
     void UiElement::setState(GuiState nextState)
     {
-        state = nextState;
+        _state = nextState;
     }
 
     void UiElement::setPosition(const Vector2 &position)
     {
-        localPosition = position;
+        _localPosition = position;
     }
 
     void UiElement::setSize(const Vector2 &size)
     {
-        localSize = size;
+        _localSize = size;
     }
 
     void UiElement::setSizePercentOneTime(const Vector2 &percent)
@@ -80,18 +80,18 @@ namespace BreadEditor {
         }
         else if (percent.x >= 0 && percent.y < 0)
         {
-            auto ySize = localSize.y;
-            localSize.x = getSizeInPixByPercentOnlyX(percent);
-            setSize({localSize.x, ySize});
+            auto ySize = _localSize.y;
+            _localSize.x = getSizeInPixByPercentOnlyX(percent);
+            setSize({_localSize.x, ySize});
         }
         else if (percent.x < 0 && percent.y >= 0)
         {
-            auto xSize = localSize.x;
-            localSize.y = getSizeInPixByPercentOnlyY(percent);
-            setSize({xSize, localSize.y});
+            auto xSize = _localSize.x;
+            _localSize.y = getSizeInPixByPercentOnlyY(percent);
+            setSize({xSize, _localSize.y});
         }
 
-        sizeInPercents = {-1, -1};
+        _sizeInPercents = {-1, -1};
     }
 
     void UiElement::setSizePercentPermanent(const Vector2 &percent)
@@ -102,24 +102,24 @@ namespace BreadEditor {
         }
         else if (percent.x >= 0 && percent.y < 0)
         {
-            auto ySize = localSize.y;
-            localSize.x = getSizeInPixByPercentOnlyX(percent);
-            setSize({localSize.x, ySize});
+            auto ySize = _localSize.y;
+            _localSize.x = getSizeInPixByPercentOnlyX(percent);
+            setSize({_localSize.x, ySize});
         }
         else if (percent.x < 0 && percent.y >= 0)
         {
-            auto xSize = localSize.x;
-            localSize.y = getSizeInPixByPercentOnlyY(percent);
-            setSize({xSize, localSize.y});
+            auto xSize = _localSize.x;
+            _localSize.y = getSizeInPixByPercentOnlyY(percent);
+            setSize({xSize, _localSize.y});
         }
 
-        sizeInPercents = percent;
+        _sizeInPercents = percent;
     }
 
     void UiElement::setBounds(const Vector2 &position, const Vector2 &size)
     {
-        localPosition = position;
-        localSize = size;
+        _localPosition = position;
+        _localSize = size;
     }
 
     float UiElement::getSizeInPixByPercentOnlyX(const Vector2 &percent) const
@@ -136,10 +136,10 @@ namespace BreadEditor {
     {
         const Vector2 clampedPercent = {std::clamp(percent.x, 0.0f, 1.0f), std::clamp(percent.y, 0.0f, 1.0f)};
         Rectangle effectiveParentBounds;
-        if (parent)
+        if (_parent)
         {
-            parent->computeBounds();
-            effectiveParentBounds = parent->getBounds();
+            _parent->computeBounds();
+            effectiveParentBounds = _parent->getBounds();
         }
         else
         {
@@ -151,27 +151,27 @@ namespace BreadEditor {
 
     const UiElement *UiElement::getRootElement() const
     {
-        if (!parent)
+        if (!_parent)
         {
             return this;
         }
 
-        return parent->getRootElement();
+        return _parent->getRootElement();
     }
 
     UiElement *UiElement::getParentElement() const
     {
-        return this->parent;
+        return this->_parent;
     }
 
     UiElement *const *UiElement::getAllChilds() const
     {
-        return childs.data();
+        return _childs.data();
     }
 
     UiElement *UiElement::getChildById(const std::string &childId) const
     {
-        for (auto &component: childs)
+        for (auto &component: _childs)
         {
             if (component->id == childId)
             {
@@ -185,16 +185,16 @@ namespace BreadEditor {
 
     void UiElement::addChild(UiElement *child)
     {
-        if (child && std::ranges::find(childs, child) == childs.end())
+        if (child && std::ranges::find(_childs, child) == _childs.end())
         {
-            child->parent = this;
-            childs.push_back(child);
+            child->_parent = this;
+            _childs.push_back(child);
         }
     }
 
     void UiElement::destroyChild(UiElement *child)
     {
-        childs.erase(std::ranges::find(childs, child));
+        _childs.erase(std::ranges::find(_childs, child));
         auto isDeleted = child->tryDeleteSelf();
         if (!isDeleted)
         {
@@ -204,7 +204,7 @@ namespace BreadEditor {
 
     void UiElement::destroyChild(const std::string &childId)
     {
-        for (const auto child: childs)
+        for (const auto child: _childs)
         {
             if (child->id == childId)
             {
@@ -215,35 +215,35 @@ namespace BreadEditor {
 
     void UiElement::setAnchor(const UI_ANCHOR_TYPE newAnchor)
     {
-        anchor = newAnchor;
+        _anchor = newAnchor;
     }
 
     void UiElement::setPivot(const Vector2 &newPivot)
     {
-        pivot = newPivot;
+        _pivot = newPivot;
     }
 
     void UiElement::changeParent(UiElement *newParent)
     {
-        if (parent)
+        if (_parent)
         {
-            parent->childs.erase(std::ranges::find(parent->childs, this));
-            parent = nullptr;
+            _parent->_childs.erase(std::ranges::find(_parent->_childs, this));
+            _parent = nullptr;
         }
 
-        parent = newParent;
-        if (parent)
+        _parent = newParent;
+        if (_parent)
         {
-            parent->childs.emplace_back(this);
+            _parent->_childs.emplace_back(this);
         }
     }
 
     void UiElement::setChildFirst(UiElement *child)
     {
-        if (const auto it = std::ranges::find(childs, child); it != childs.end())
+        if (const auto it = std::ranges::find(_childs, child); it != _childs.end())
         {
-            childs.erase(it);
-            childs.insert(childs.begin(), child);
+            _childs.erase(it);
+            _childs.insert(_childs.begin(), child);
             return;
         }
 
@@ -252,9 +252,9 @@ namespace BreadEditor {
 
     void UiElement::setChildLast(UiElement *child)
     {
-        if (const auto it = std::ranges::find(childs, child); it != childs.end())
+        if (const auto it = std::ranges::find(_childs, child); it != _childs.end())
         {
-            childs.erase(it);
+            _childs.erase(it);
             addChild(child);
             return;
         }
@@ -264,10 +264,10 @@ namespace BreadEditor {
 
     void UiElement::dispose()
     {
-        if (isDisposed) return;
+        if (_isDisposed) return;
 
-        isDisposed = true;
-        for (const auto child: childs)
+        _isDisposed = true;
+        for (const auto child: _childs)
         {
             if (child == nullptr)
             {
@@ -281,36 +281,36 @@ namespace BreadEditor {
             }
         }
 
-        childs.clear();
-        parent = nullptr;
+        _childs.clear();
+        _parent = nullptr;
     }
 
     void UiElement::computeBounds()
     {
-        if (sizeInPercents.x >= 0 || sizeInPercents.y >= 0)
+        if (_sizeInPercents.x >= 0 || _sizeInPercents.y >= 0)
         {
-            setSizePercentPermanent(sizeInPercents);
+            setSizePercentPermanent(_sizeInPercents);
         }
 
         Rectangle effectiveParentBounds;
-        if (parent)
+        if (_parent)
         {
-            effectiveParentBounds = parent->getBounds();
+            effectiveParentBounds = _parent->getBounds();
         }
         else
         {
             effectiveParentBounds = {0.0f, 0.0f, static_cast<float>(GetScreenWidth()), static_cast<float>(GetScreenHeight())};
         }
         const Vector2 anchorPoint = getAnchorPoint(effectiveParentBounds);
-        const Vector2 pivotOffset = {pivot.x * localSize.x, pivot.y * localSize.y};
-        const Vector2 prelimPosition = {anchorPoint.x + localPosition.x - pivotOffset.x, anchorPoint.y + localPosition.y - pivotOffset.y};
+        const Vector2 pivotOffset = {_pivot.x * _localSize.x, _pivot.y * _localSize.y};
+        const Vector2 prelimPosition = {anchorPoint.x + _localPosition.x - pivotOffset.x, anchorPoint.y + _localPosition.y - pivotOffset.y};
         const Vector2 computedSize = getComputedSize(effectiveParentBounds, prelimPosition);
-        bounds = {prelimPosition.x, prelimPosition.y, computedSize.x, computedSize.y};
+        _bounds = {prelimPosition.x, prelimPosition.y, computedSize.x, computedSize.y};
     }
 
     Vector2 UiElement::getAnchorPoint(const Rectangle &effectiveParentBounds) const
     {
-        switch (anchor)
+        switch (_anchor)
         {
             case UI_LEFT_TOP: return {effectiveParentBounds.x, effectiveParentBounds.y};
             case UI_CENTER_TOP: return {effectiveParentBounds.x + effectiveParentBounds.width / 2.0f, effectiveParentBounds.y};
@@ -337,10 +337,10 @@ namespace BreadEditor {
 
     Vector2 UiElement::getComputedSize(const Rectangle &effectiveParentBounds, const Vector2 &prelimPosition) const
     {
-        Vector2 size = localSize;
+        Vector2 size = _localSize;
         bool fitX = false;
         bool fitY = false;
-        switch (anchor)
+        switch (_anchor)
         {
             case UI_FIT_ALL: fitX = true;
                 fitY = true;

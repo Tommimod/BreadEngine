@@ -3,7 +3,7 @@
 #include "uiElement.h"
 
 namespace BreadEditor {
-    class UiCheckBox : public UiElement
+    class UiCheckBox final : public UiElement
     {
     public:
         BreadEngine::Action<bool> onStateChanged;
@@ -19,14 +19,15 @@ namespace BreadEditor {
         void draw(float deltaTime) override;
 
         void update(float deltaTime) override;
+
         void setChecked(bool isChecked);
 
     protected:
         bool tryDeleteSelf() override;
 
     private:
-        bool internalChecked = false;
-        bool *externalChecked = nullptr;
-        std::string text;
+        bool _internalChecked = false;
+        bool *_externalChecked = nullptr;
+        std::string _text;
     };
 } // BreadEditor
