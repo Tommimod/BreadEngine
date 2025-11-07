@@ -39,9 +39,9 @@ namespace BreadEditor {
 
         void onNodeCreated(Node *node);
 
-        void onNodeChangedParent(Node *node);
+        void onNodeChangedParent(const Node *node) const;
 
-        void onNodeChangedActive(Node *node);
+        void onNodeChangedActive(const Node *node) const;
 
         void onNodeRemoved(const Node *node);
 

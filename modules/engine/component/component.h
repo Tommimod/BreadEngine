@@ -8,11 +8,10 @@ namespace BreadEngine
 
     struct Component
     {
-        explicit Component(Node *parent);
+        Component() = default;
+        void setOwner(Node *parent);
 
         virtual ~Component();
-
-        virtual bool isAllowMultiple() { return false; }
 
         virtual void init();
 
@@ -39,8 +38,6 @@ namespace BreadEngine
         void setParent(Node *nextParent);
 
     protected:
-        Component();
-
         Node *_parent = nullptr;
         bool _isActive = true;
     };

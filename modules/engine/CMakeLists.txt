@@ -16,6 +16,12 @@ file(GLOB_RECURSE ENGINE_HEADERS
     "ui/*.h"
 )
 
+file(GLOB_RECURSE ENGINE_INLINES
+        "*.inl"
+        "component/*.inl"
+        "ui/*.inl"
+)
+
 # Add PugiXML sources
 set(PUGIXML_SOURCES
     ${CMAKE_SOURCE_DIR}/lib/pugixml/pugixml.cpp
@@ -41,6 +47,7 @@ file(GLOB RAYLIB_HEADERS
 add_library(BreadEngine STATIC
     ${ENGINE_SOURCES}
     ${ENGINE_HEADERS}
+    ${ENGINE_INLINES}
     ${PUGIXML_SOURCES}
     ${PUGIXML_HEADERS}
     ${CLAY_SOURCES}
@@ -80,7 +87,7 @@ if(CMAKE_CXX_COMPILER_ID MATCHES "Clang|GNU")
 endif()
 
 # Create source groups for CLion project tree
-source_group("Engine Core" FILES ${ENGINE_SOURCES} ${ENGINE_HEADERS})
+source_group("Engine Core" FILES ${ENGINE_SOURCES} ${ENGINE_HEADERS} ${ENGINE_INLINES})
 source_group("Engine\\Component" REGULAR_EXPRESSION "component/.*")
 source_group("Engine\\UI" REGULAR_EXPRESSION "ui/.*")
 source_group("External\\PugiXML" FILES ${PUGIXML_SOURCES} ${PUGIXML_HEADERS})
@@ -90,3 +97,4 @@ source_group("External\\Raylib" FILES ${RAYLIB_HEADERS})
 message(STATUS "BreadEngine library configured")
 message(STATUS "  Sources: ${ENGINE_SOURCES}")
 message(STATUS "  Headers: ${ENGINE_HEADERS}")
+message(STATUS "  Inlines: ${ENGINE_INLINES}")

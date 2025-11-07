@@ -1,26 +1,28 @@
 #include "node.h"
 #include <stdexcept>
 #include <utility>
-
+#include "transform.h"
 #include "engine.h"
-#include "nodeNotificator.h"
+#include "nodeProvider.h"
 
 namespace BreadEngine {
     Node::Node()
     {
+        this->_id = NodeProvider::generateId();
         _childs = std::vector<Node *>();
-        _components = std::vector<Component *>();
-        _transform = addComponent<Transform>();
+        add<Transform>(std::move(Transform(this)));
     }
 
-    Node::Node(const int id) : Node()
+    Node::Node(const unsigned int id)
     {
         this->_id = id;
+        _childs = std::vector<Node *>();
+        add<Transform>(std::move(Transform(this)));
     }
 
     Node::~Node()
     {
-        NodeNotificator::onNodeDestroyed.invoke(this);
+        NodeProvider::onNodeDestroyed.invoke(this);
         dispose();
     }
 
@@ -28,9 +30,7 @@ namespace BreadEngine {
     {
         this->_name = newName;
         _childs = std::vector<Node *>();
-        _components = std::vector<Component *>();
-        _transform = addComponent<Transform>();
-        NodeNotificator::onNodeCreated.invoke(this);
+        NodeProvider::onNodeCreated.invoke(this);
         return *this;
     }
 
@@ -38,11 +38,9 @@ namespace BreadEngine {
     {
         this->_name = newName;
         _childs = std::vector<Node *>();
-        _components = std::vector<Component *>();
-        _transform = addComponent<Transform>();
         this->_parent = &nextParent;
         this->_parent->_childs.emplace_back(this);
-        NodeNotificator::onNodeCreated.invoke(this);
+        NodeProvider::onNodeCreated.invoke(this);
         return *this;
     }
 
@@ -51,17 +49,7 @@ namespace BreadEngine {
         if (_isDisposed) return;
 
         _isDisposed = true;
-        for (const auto &component: _components)
-        {
-            if (component)
-            {
-                component->destroy();
-            }
-
-            delete component;
-        }
-
-        _components.clear();
+        ComponentsProvider::clearOwner(_id);
         removeAllChildren();
         _parent = nullptr;
     }
@@ -75,7 +63,7 @@ namespace BreadEngine {
 
         this->_parent = nextParent;
         _parent->_childs.emplace_back(this);
-        NodeNotificator::onNodeChangedParent.invoke(this);
+        NodeProvider::onNodeChangedParent.invoke(this);
     }
 
     void Node::setChildFirst(Node *node)
@@ -111,45 +99,6 @@ namespace BreadEngine {
         _childs.clear();
     }
 
-    void Node::update(const float deltaTime) const
-    {
-        for (auto &comp: _components)
-        {
-            if (!comp || !comp->getIsActive())
-            {
-                continue;
-            }
-
-            comp->update(deltaTime);
-        }
-    }
-
-    void Node::onFrameStart(const float deltaTime) const
-    {
-        for (auto &comp: _components)
-        {
-            if (!comp || !comp->getIsActive())
-            {
-                continue;
-            }
-
-            comp->onFrameStart(deltaTime);
-        }
-    }
-
-    void Node::onFrameEnd(const float deltaTime) const
-    {
-        for (auto &comp: _components)
-        {
-            if (!comp || !comp->getIsActive())
-            {
-                continue;
-            }
-
-            comp->onFrameEnd(deltaTime);
-        }
-    }
-
     bool Node::getIsActive() const
     {
         return _isActive;
@@ -158,7 +107,7 @@ namespace BreadEngine {
     void Node::setIsActive(bool nextIsActive)
     {
         _isActive = nextIsActive;
-        NodeNotificator::onNodeChangedActive.invoke(this);
+        NodeProvider::onNodeChangedActive.invoke(this);
     }
 
     int Node::getChildCount() const
@@ -204,12 +153,7 @@ namespace BreadEngine {
     void Node::setName(const std::string &nextName)
     {
         this->_name = nextName;
-        NodeNotificator::onNodeRenamed.invoke(this);
-    }
-
-    Transform &Node::getTransform() const
-    {
-        return *_transform;
+        NodeProvider::onNodeRenamed.invoke(this);
     }
 
     int Node::getDeepLevel() const

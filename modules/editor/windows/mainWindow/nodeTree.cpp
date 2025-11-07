@@ -1,8 +1,7 @@
 ﻿#include "nodeTree.h"
-
 #include "editor.h"
 #include "engine.h"
-#include "nodeNotificator.h"
+#include "nodeProvider.h"
 #include "raygui.h"
 #include "uitoolkit/uiPool.h"
 
@@ -62,21 +61,21 @@ namespace BreadEditor {
     void NodeTree::subscribe()
     {
         _nodeNotificatorSubscriptions.emplace_back(
-            NodeNotificator::onNodeCreated.subscribe([this](Node *node) { this->onNodeCreated(node); }));
+            NodeProvider::onNodeCreated.subscribe([this](Node *node) { this->onNodeCreated(node); }));
         _nodeNotificatorSubscriptions.emplace_back(
-            NodeNotificator::onNodeChangedParent.subscribe([this](Node *node) { this->onNodeChangedParent(node); }));
+            NodeProvider::onNodeChangedParent.subscribe([this](Node *node) { this->onNodeChangedParent(node); }));
         _nodeNotificatorSubscriptions.emplace_back(
-            NodeNotificator::onNodeDestroyed.subscribe([this](Node *node) { this->onNodeRemoved(node); }));
+            NodeProvider::onNodeDestroyed.subscribe([this](Node *node) { this->onNodeRemoved(node); }));
         _nodeNotificatorSubscriptions.emplace_back(
-            NodeNotificator::onNodeChangedActive.subscribe([this](Node *node) { this->onNodeChangedActive(node); }));
+            NodeProvider::onNodeChangedActive.subscribe([this](Node *node) { this->onNodeChangedActive(node); }));
     }
 
     void NodeTree::unsubscribe()
     {
-        NodeNotificator::onNodeCreated.unsubscribe(_nodeNotificatorSubscriptions[0]);
-        NodeNotificator::onNodeChangedParent.unsubscribe(_nodeNotificatorSubscriptions[1]);
-        NodeNotificator::onNodeDestroyed.unsubscribe(_nodeNotificatorSubscriptions[2]);
-        NodeNotificator::onNodeChangedActive.unsubscribe(_nodeNotificatorSubscriptions[3]);
+        NodeProvider::onNodeCreated.unsubscribe(_nodeNotificatorSubscriptions[0]);
+        NodeProvider::onNodeChangedParent.unsubscribe(_nodeNotificatorSubscriptions[1]);
+        NodeProvider::onNodeDestroyed.unsubscribe(_nodeNotificatorSubscriptions[2]);
+        NodeProvider::onNodeChangedActive.unsubscribe(_nodeNotificatorSubscriptions[3]);
         _nodeNotificatorSubscriptions.clear();
     }
 
@@ -111,7 +110,7 @@ namespace BreadEditor {
         }
     }
 
-    void NodeTree::onNodeChangedParent(Node *node)
+    void NodeTree::onNodeChangedParent(const Node *node) const
     {
         const auto instance = findNodeUiElementByEngineNode(node);
         instance->setParentNode(findNodeUiElementByEngineNode(node->getParent()));
@@ -120,7 +119,7 @@ namespace BreadEditor {
         recalculateUiNodes(Engine::getRootNode(), i);
     }
 
-    void NodeTree::onNodeChangedActive(Node *node)
+    void NodeTree::onNodeChangedActive(const Node *node) const
     {
         const auto instance = findNodeUiElementByEngineNode(node);
         instance->setState(node->getIsActive() ? STATE_NORMAL : STATE_DISABLED);

@@ -5,7 +5,7 @@
 
 namespace BreadEngine
 {
-    Component::Component(Node *parent)
+    void Component::setOwner(Node *parent)
     {
         this->_parent = parent;
     }
@@ -64,6 +64,4 @@ namespace BreadEngine
     {
         this->_parent = nextParent;
     }
-
-    Component::Component() = default;
 } // namespace BreadEngine

@@ -1,13 +1,13 @@
 #pragma once
 
 #include "component.h"
-
 #include <raylib.h>
 
-namespace BreadEngine
-{
+namespace BreadEngine {
     struct Transform final : Component
     {
+        Transform();
+
         explicit Transform(Node *parent);
 
         ~Transform() override;

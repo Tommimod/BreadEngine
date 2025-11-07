@@ -1,15 +1,21 @@
 #include "transform.h"
 #include "raymath.h"
 
-namespace BreadEngine
-{
-    Transform::Transform(Node *parent) : Component(parent)
+namespace BreadEngine {
+    Transform::Transform()
+    {
+        _isActive = true;
+        _transformMatrix = {0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 1, 1, 0, 0, 0, 0};
+    }
+
+    Transform::Transform(Node *parent)
     {
         if (!parent)
         {
             TraceLog(LOG_FATAL, "Transform: parent is null");
         }
 
+        setOwner(parent);
         _isActive = true;
         _transformMatrix = {0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 1, 1, 0, 0, 0, 0};
     }

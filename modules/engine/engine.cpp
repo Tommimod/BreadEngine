@@ -2,6 +2,8 @@
 #include "moduleLoader.h"
 #include <fstream>
 
+#include "nodeProvider.h"
+
 namespace BreadEngine {
     auto nodeFactory = []() -> Node *
     {
@@ -36,6 +38,7 @@ namespace BreadEngine {
         SetTargetFPS(60);
 
         SetupDefaultCamera();
+        NodeProvider::init();
 
         return true;
     }
@@ -93,7 +96,7 @@ namespace BreadEngine {
         // Get function pointers
         _gameInit = (GameInitFunc) _gameModuleLoader->GetFunction("Game_Initialize");
         _gameUpdate = (GameUpdateFunc) _gameModuleLoader->GetFunction("Game_Update");
-        gameRender2D = (GameRender2DFunc) _gameModuleLoader->GetFunction("Game_Render2D");
+        _gameRender2D = (GameRender2DFunc) _gameModuleLoader->GetFunction("Game_Render2D");
         _gameRender3D = (GameRender3DFunc) _gameModuleLoader->GetFunction("Game_Render3D");
         _gameShutdown = (GameShutdownFunc) _gameModuleLoader->GetFunction("Game_Shutdown");
 
@@ -116,7 +119,7 @@ namespace BreadEngine {
             _gameModuleLoader = nullptr;
             _gameInit = nullptr;
             _gameUpdate = nullptr;
-            gameRender2D = nullptr;
+            _gameRender2D = nullptr;
             _gameRender3D = nullptr;
             _gameShutdown = nullptr;
         }
@@ -124,9 +127,9 @@ namespace BreadEngine {
 
     void Engine::CallGameRender2D() const
     {
-        if (gameRender2D)
+        if (_gameRender2D)
         {
-            gameRender2D();
+            _gameRender2D();
         }
     }
 

@@ -54,7 +54,7 @@ namespace BreadEngine
     {
         if (_available.empty())
         {
-            T *obj = factory();
+            T *obj = _factory();
             _pool.emplace_back(obj);
             return *obj;
         }
