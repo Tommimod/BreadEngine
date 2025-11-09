@@ -13,9 +13,9 @@ namespace BreadEngine {
     template<typename T, std::enable_if_t<std::is_base_of_v<Component, T>, int> >
     struct ComponentChunk final : BaseComponentChunk
     {
-        ComponentChunk();
+        ComponentChunk() = default;
 
-        ~ComponentChunk() override;
+        ~ComponentChunk() override = default;
 
         T &get(unsigned int ownerId);
 
@@ -91,22 +91,6 @@ namespace BreadEngine {
 
         void tryResize();
     };
-
-    template<typename T, std::enable_if_t<std::is_base_of_v<Component, T>, int> E0>
-    ComponentChunk<T, E0>::ComponentChunk()
-    {
-        constexpr int capacity = 16;
-        _components.resize(capacity, T{});
-        _ownerIds.resize(capacity, -1);
-        _freeSlots.reserve(capacity);
-        for (int i = 0; i < capacity; i++)
-        {
-            _freeSlots.push_back(i);
-        }
-    }
-
-    template<typename T, std::enable_if_t<std::is_base_of_v<Component, T>, int> E0>
-    ComponentChunk<T, E0>::~ComponentChunk() = default;
 } // BreadEngine
 
 namespace BreadEngine {
@@ -148,6 +132,18 @@ namespace BreadEngine {
     template<typename T, std::enable_if_t<std::is_base_of_v<Component, T>, int> E0>
     void ComponentChunk<T, E0>::tryResize()
     {
+        if (_components.empty())
+        {
+            constexpr int capacity = 16;
+            _components.resize(capacity, T{});
+            _ownerIds.resize(capacity, -1);
+            _freeSlots.reserve(capacity);
+            for (int i = 0; i < capacity; i++)
+            {
+                _freeSlots.push_back(i);
+            }
+        }
+
         if (_freeSlots.empty() && _size == _components.capacity())
         {
             _components.resize(_components.capacity() * 2, T{});

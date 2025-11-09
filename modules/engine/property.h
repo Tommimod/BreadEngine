@@ -18,3 +18,10 @@ namespace BreadEngine {
         std::function<std::string(const std::variant<Component, int, float, long, bool, std::string, Vector2, Vector3, Vector4, Color>&)> toStr;
     };
 } // BreadEngine
+
+#define PROP_STRING(COMP, PROP) \
+    auto val = PROP.get(&COMP); \
+    auto display = PROP.name + ": " + PROP.toStr(val); \
+    TraceLog(LOG_DEBUG, "%s", display.c_str());    \
+
+

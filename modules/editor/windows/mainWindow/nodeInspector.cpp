@@ -79,7 +79,7 @@ namespace BreadEditor {
         _nameTextBox->setAnchor(UI_LEFT_TOP);
         _nameTextBox->setPosition({_activeCheckBox->getSize().x + 50, verticalOffset});
         _nameTextBox->setSize({100, 20});
-        _subscriptions.emplace(_nameTextBox, _nameTextBox->onTextChanged.subscribe([this](char *text) { this->onNodeNameChanged(text); }));
+        _subscriptions.emplace(_nameTextBox, _nameTextBox->onTextChanged.subscribe([this](const char *text) { this->onNodeNameChanged(text); }));
 
         resetElementsState();
     }

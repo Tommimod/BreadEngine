@@ -1,5 +1,6 @@
 #pragma once
 #include <any>
+#include <ranges>
 #include <typeindex>
 #include <unordered_map>
 #include <vector>
@@ -33,8 +34,8 @@ namespace BreadEngine {
         {
             static_assert(std::is_base_of_v<Component, T>, "T must inherit from Component");
             const auto ti = std::type_index(typeid(T));
-            const auto it = _chunks.find(ti);
-            if (it == _chunks.end())
+            const auto it = getChunks().find(ti);
+            if (it == getChunks().end())
             {
                 auto &chunk = emplaceChunk<T>();
                 return add<T>(ownerId);
@@ -50,14 +51,14 @@ namespace BreadEngine {
         {
             static_assert(std::is_base_of_v<Component, T>, "T must inherit from Component");
             const auto ti = std::type_index(typeid(T));
-            if (const auto it = _chunks.find(ti); it != _chunks.end())
+            if (const auto it = getChunks().find(ti); it != getChunks().end())
             {
                 auto &baseChunk = *it->second;
                 auto &chunk = dynamic_cast<ComponentChunk<T> &>(baseChunk);
                 chunk.remove(ownerId);
                 if (chunk.isEmpty())
                 {
-                    _chunks.erase(ti);
+                    getChunks().erase(ti);
                 }
             }
         }
@@ -67,8 +68,8 @@ namespace BreadEngine {
         {
             static_assert(std::is_base_of_v<Component, T>, "T must inherit from Component");
             const auto ti = std::type_index(typeid(T));
-            const auto it = _chunks.find(ti);
-            if (it == _chunks.end())
+            const auto it = getChunks().find(ti);
+            if (it == getChunks().end())
             {
                 return false;
             }
@@ -81,7 +82,7 @@ namespace BreadEngine {
         static std::vector<std::type_index> getAllComponentTypes(const unsigned int ownerId)
         {
             std::vector<std::type_index> types;
-            for (const auto &p: _chunks)
+            for (const auto &p: getChunks())
             {
                 if (p.second->hasOwner(ownerId))
                 {
@@ -95,7 +96,7 @@ namespace BreadEngine {
         static std::vector<Component *> getAllComponents(const unsigned int ownerId)
         {
             std::vector<Component *> components;
-            for (const auto &p: _chunks)
+            for (const auto &p: getChunks())
             {
                 if (auto *comp = p.second->getComponent(ownerId))
                 {
@@ -108,21 +109,23 @@ namespace BreadEngine {
 
         static void clearOwner(const unsigned int ownerId)
         {
-            for (auto &p: _chunks)
+            for (const auto &val: getChunks() | std::views::values)
             {
-                p.second->remove(ownerId);
+                val->remove(ownerId);
             }
         }
 
     private:
-        static std::unordered_map<std::type_index, std::unique_ptr<BaseComponentChunk> > _chunks;
+        static std::unordered_map<std::type_index, std::unique_ptr<BaseComponentChunk>>& getChunks() noexcept {
+            thread_local std::unordered_map<std::type_index, std::unique_ptr<BaseComponentChunk>> chunks;
+            return chunks;
+        }
 
         template<typename T, std::enable_if_t<std::is_base_of_v<Component, T>, int> = 0>
-        static ComponentChunk<T> &emplaceChunk()
-        {
+        static ComponentChunk<T> &emplaceChunk() {
             auto ti = std::type_index(typeid(T));
-            _chunks.emplace(ti, std::make_unique<ComponentChunk<T> >());
-            return dynamic_cast<ComponentChunk<T> &>(*_chunks.at(ti));
+            getChunks().emplace(ti, std::make_unique<ComponentChunk<T>>());
+            return dynamic_cast<ComponentChunk<T> &>(*getChunks().at(ti));
         }
 
         template<typename T, std::enable_if_t<std::is_base_of_v<Component, T>, int> = 0>

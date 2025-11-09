@@ -10,14 +10,14 @@ namespace BreadEngine {
     {
         this->_id = NodeProvider::generateId();
         _childs = std::vector<Node *>();
-        add<Transform>(std::move(Transform(this)));
+        add<Transform>(Transform(this));
     }
 
     Node::Node(const unsigned int id)
     {
         this->_id = id;
         _childs = std::vector<Node *>();
-        add<Transform>(std::move(Transform(this)));
+        add<Transform>(Transform(this));
     }
 
     Node::~Node()

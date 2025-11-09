@@ -42,6 +42,7 @@ namespace BreadEngine {
         void setParent(Node *nextParent);
 
     protected:
+        friend class NodeInspector;
         Node *_parent = nullptr;
         bool _isActive = true;
 
@@ -86,7 +87,7 @@ namespace BreadEngine {
                 constexpr auto memberPtr = MemberPtr; \
                 using RawFieldType = std::remove_cvref_t<decltype( (static_cast<LocalClass*>(nullptr)->*memberPtr) )>; \
                 using FieldType = std::conditional_t<std::is_reference_v<RawFieldType>, std::remove_reference_t<RawFieldType>, RawFieldType>; \
-                static_assert(std::is_same_v<FieldType, Component> || std::is_same_v<FieldType, int> || /* ... list all, or use variant_alternative */ \
+                static_assert(std::is_same_v<FieldType, Component> || std::is_same_v<FieldType, int> || \
                               std::is_same_v<FieldType, float> || std::is_same_v<FieldType, long> || \
                               std::is_same_v<FieldType, bool> || std::is_same_v<FieldType, std::string> || \
                               std::is_same_v<FieldType, Vector2> || std::is_same_v<FieldType, Vector3> || \
@@ -118,6 +119,22 @@ namespace BreadEngine {
                             } else { \
                                 throw std::runtime_error("Type mismatch in setter for " + std::string(#FieldName)); \
                             } \
+                        }, val); \
+                    }, \
+                    [=](const VariantT& val) -> std::string { \
+                        return std::visit([](auto&& arg) -> std::string { \
+                            using ArgType = std::decay_t<decltype(arg)>; \
+                            if constexpr (std::is_same_v<ArgType, int>) return std::to_string(arg); \
+                            else if constexpr (std::is_same_v<ArgType, float>) return std::to_string(arg); \
+                            else if constexpr (std::is_same_v<ArgType, long>) return std::to_string(arg); \
+                            else if constexpr (std::is_same_v<ArgType, bool>) return arg ? "true" : "false"; \
+                            else if constexpr (std::is_same_v<ArgType, std::string>) return arg; \
+                            else if constexpr (std::is_same_v<ArgType, Vector2>) return TextFormat("%f, %f", arg.x, arg.y); \
+                            else if constexpr (std::is_same_v<ArgType, Vector3>) return TextFormat("%f, %f, %f", arg.x, arg.y, arg.z); \
+                            else if constexpr (std::is_same_v<ArgType, Vector4>) return TextFormat("%f, %f, %f, %f", arg.x, arg.y, arg.z, arg.w); \
+                            else if constexpr (std::is_same_v<ArgType, Color>) return TextFormat("R:%d G:%d B:%d A:%d", arg.r, arg.g, arg.b, arg.a); \
+                            else if constexpr (std::is_same_v<ArgType, Component>) return arg.toString(); \
+                            else return "N/A"; \
                         }, val); \
                     } \
                 }); \
