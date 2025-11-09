@@ -3,8 +3,10 @@
 
 #include "../node.h"
 
-namespace BreadEngine
-{
+namespace BreadEngine {
+#define DEFINE_STATIC_PROPS(ClassName) \
+    std::vector<Property> ClassName::inspectorProps_;
+
     void Component::setOwner(Node *parent)
     {
         this->_parent = parent;
@@ -63,5 +65,14 @@ namespace BreadEngine
     void Component::setParent(Node *nextParent)
     {
         this->_parent = nextParent;
+    }
+
+    std::string Component::getTypeName()
+    {
+        int status;
+        auto *mangled = abi::__cxa_demangle(typeid(*this).name(), nullptr, nullptr, &status);
+        std::string result = status == 0 ? mangled : typeid(*this).name();
+        std::free(mangled);
+        return result;
     }
 } // namespace BreadEngine

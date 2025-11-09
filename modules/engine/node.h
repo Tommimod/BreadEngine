@@ -107,7 +107,7 @@ namespace BreadEngine {
     template<typename T, std::enable_if_t<std::is_base_of_v<Component, T>, int>>
     void Node::remove() const
     {
-        if (!has<T>())
+        if (!has<T>() || typeid(T) == typeid(Transform))
         {
             return;
         }

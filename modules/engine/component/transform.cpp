@@ -2,10 +2,13 @@
 #include "raymath.h"
 
 namespace BreadEngine {
+    DEFINE_STATIC_PROPS(Transform)
+
     Transform::Transform()
     {
         _isActive = true;
         _transformMatrix = {0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 1, 1, 0, 0, 0, 0};
+        updateProperties();
     }
 
     Transform::Transform(Node *parent)
@@ -18,6 +21,7 @@ namespace BreadEngine {
         setOwner(parent);
         _isActive = true;
         _transformMatrix = {0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 1, 1, 0, 0, 0, 0};
+        updateProperties();
     }
 
     Transform::~Transform() = default;
@@ -29,18 +33,16 @@ namespace BreadEngine {
 
     std::string Transform::toString() const
     {
-        const auto position = "position : x:" + std::to_string(_transformMatrix.m0) + " y:" + std::to_string(_transformMatrix.m4) + " z:" + std::to_string(_transformMatrix.m8);
-        const auto rotation = "rotation : x:" + std::to_string(_transformMatrix.m1) + " y:" + std::to_string(_transformMatrix.m5) + " z:" + std::to_string(_transformMatrix.m9) + " w:"
-                              +
-                              std::to_string(_transformMatrix.m13);
-        const auto scale = "scale x:" + std::to_string(_transformMatrix.m2) + " y:" + std::to_string(_transformMatrix.m6) + " z:" + std::to_string(_transformMatrix.m10);
+        const auto position = "position : x:" + std::to_string(_position.x) + " y:" + std::to_string(_position.y) + " z:" + std::to_string(_position.z);
+        const auto rotation = "rotation : x:" + std::to_string(_rotation.x) + " y:" + std::to_string(_rotation.y) + " z:" + std::to_string(_rotation.z) + " w:" + std::to_string(_rotation.w);
+        const auto scale = "scale x:" + std::to_string(_scale.x) + " y:" + std::to_string(_scale.y) + " z:" + std::to_string(_scale.z);
         const auto result = "\n" + position + "\n" + rotation + "\n" + scale;
         return Component::toString().append(result);
     }
 
     Vector3 Transform::getPosition() const
     {
-        return Vector3{_transformMatrix.m0, _transformMatrix.m4, _transformMatrix.m8};
+        return _position;
     }
 
     void Transform::setPosition(const Vector3 &position)
@@ -48,6 +50,7 @@ namespace BreadEngine {
         _transformMatrix.m0 = position.x;
         _transformMatrix.m4 = position.y;
         _transformMatrix.m8 = position.z;
+        updateProperties();
     }
 
     Vector3 Transform::getRotationVector() const
@@ -57,12 +60,13 @@ namespace BreadEngine {
 
     Quaternion Transform::getRotationQuaternion() const
     {
-        return Quaternion{_transformMatrix.m1, _transformMatrix.m5, _transformMatrix.m9, _transformMatrix.m13};
+        return _rotation;
     }
 
     void Transform::setRotation(const Vector3 &rotation)
     {
         setRotation(QuaternionFromEuler(rotation.z, rotation.y, rotation.x));
+        updateProperties();
     }
 
     void Transform::setRotation(const Quaternion &rotation)
@@ -71,11 +75,12 @@ namespace BreadEngine {
         _transformMatrix.m5 = rotation.y;
         _transformMatrix.m9 = rotation.z;
         _transformMatrix.m13 = rotation.w;
+        updateProperties();
     }
 
     Vector3 Transform::getScale() const
     {
-        return Vector3{_transformMatrix.m2, _transformMatrix.m6, _transformMatrix.m10};
+        return _scale;
     }
 
     void Transform::setScale(const Vector3 &scale)
@@ -83,6 +88,7 @@ namespace BreadEngine {
         _transformMatrix.m2 = scale.x;
         _transformMatrix.m6 = scale.y;
         _transformMatrix.m10 = scale.z;
+        updateProperties();
     }
 
     Matrix Transform::getTransformMatrix() const
@@ -93,5 +99,13 @@ namespace BreadEngine {
     void Transform::setTransformMatrix(const Matrix &nextTransformMatrix)
     {
         this->_transformMatrix = nextTransformMatrix;
+        updateProperties();
+    }
+
+    void Transform::updateProperties()
+    {
+        _position = Vector3{_transformMatrix.m0, _transformMatrix.m4, _transformMatrix.m8};
+        _rotation = Quaternion{_transformMatrix.m1, _transformMatrix.m5, _transformMatrix.m9, _transformMatrix.m13};
+        _scale = Vector3{_transformMatrix.m2, _transformMatrix.m6, _transformMatrix.m10};
     }
 } // namespace BreadEngine

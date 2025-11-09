@@ -38,5 +38,16 @@ namespace BreadEngine {
 
     private:
         Matrix _transformMatrix{};
+        Vector3 _position{};
+        Quaternion _rotation{};
+        Vector3 _scale{};
+
+        INSPECTOR_BEGIN(Transform)
+            INSPECT_FIELD(_position, &LocalClass::_position);
+            INSPECT_FIELD(_rotation, &LocalClass::_rotation);
+            INSPECT_FIELD(_scale, &LocalClass::_scale);
+        INSPECTOR_END()
+
+        void updateProperties();
     };
 } // namespace BreadEngine
