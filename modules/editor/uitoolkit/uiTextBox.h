@@ -7,12 +7,13 @@ namespace BreadEditor {
     {
     public:
         BreadEngine::Action<char *> onTextChanged;
+        BreadEngine::Action<char *, UiTextBox*> onTextChangedWithSender;
 
         UiTextBox();
 
-        UiTextBox &setup(const std::string &id, std::string defaultText, int defaultTextSize = 14, bool defaultEditMode = false);
+        UiTextBox &setup(const std::string &id, const std::string &defaultText, int defaultTextSize = 14, bool defaultEditMode = false);
 
-        UiTextBox &setup(const std::string &id, UiElement *parentElement, std::string defaultText, int defaultTextSize = 14, bool defaultEditMode = false);
+        UiTextBox &setup(const std::string &id, UiElement *parentElement, const std::string &defaultText, int defaultTextSize = 14, bool defaultEditMode = false);
 
         ~UiTextBox() override;
 
@@ -20,7 +21,7 @@ namespace BreadEditor {
 
         void update(float deltaTime) override;
 
-        void setText(std::string newText);
+        void setText(const std::string &newText);
 
     protected:
         bool tryDeleteSelf() override;

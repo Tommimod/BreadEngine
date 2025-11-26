@@ -35,6 +35,8 @@ namespace BreadEngine {
 
         [[nodiscard]] bool getIsActive() const;
 
+        [[nodiscard]] unsigned int getId() const;
+
         void setIsActive(bool nextIsActive);
 
         [[nodiscard]] int getChildCount() const;
@@ -69,6 +71,11 @@ namespace BreadEngine {
         template<typename T, std::enable_if_t<std::is_base_of_v<Component, T>, int> = 0>
         void remove() const;
 
+        void remove(const std::type_index type) const
+        {
+            ComponentsProvider::remove(_id, type);
+        }
+
     private:
         friend class NodeProvider;
 
@@ -81,13 +88,13 @@ namespace BreadEngine {
 } // namespace BreadEngine
 
 namespace BreadEngine {
-    template<typename T, std::enable_if_t<std::is_base_of_v<Component, T>, int>>
+    template<typename T, std::enable_if_t<std::is_base_of_v<Component, T>, int> >
     bool Node::has() const
     {
         return ComponentsProvider::has<T>(_id);
     }
 
-    template<typename T, std::enable_if_t<std::is_base_of_v<Component, T>, int>>
+    template<typename T, std::enable_if_t<std::is_base_of_v<Component, T>, int> >
     T &Node::add(T component)
     {
         if (has<T>())
@@ -98,13 +105,13 @@ namespace BreadEngine {
         return ComponentsProvider::add<T>(_id, std::move(component));
     }
 
-    template<typename T, std::enable_if_t<std::is_base_of_v<Component, T>, int>>
+    template<typename T, std::enable_if_t<std::is_base_of_v<Component, T>, int> >
     T &Node::get()
     {
         return ComponentsProvider::get<T>(_id);
     }
 
-    template<typename T, std::enable_if_t<std::is_base_of_v<Component, T>, int>>
+    template<typename T, std::enable_if_t<std::is_base_of_v<Component, T>, int> >
     void Node::remove() const
     {
         if (!has<T>() || typeid(T) == typeid(Transform))

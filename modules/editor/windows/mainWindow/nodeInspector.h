@@ -1,9 +1,9 @@
 ﻿#pragma once
 #include <map>
-
 #include "node.h"
 #include "uitoolkit/IUiResizable.h"
 #include "uitoolkit/uiCheckBox.h"
+#include "uitoolkit/uiComponent.h"
 #include "uitoolkit/uiElement.h"
 #include "uitoolkit/uiTextBox.h"
 using namespace BreadEngine;
@@ -34,6 +34,8 @@ namespace BreadEditor {
         Node *_engineNode = nullptr;
         UiCheckBox *_activeCheckBox = nullptr;
         UiTextBox *_nameTextBox = nullptr;
+        std::vector<Component *> _trackedComponents{};
+        std::vector<UiComponent *> _uiComponentElements{};
 
         void initialize();
 
@@ -42,5 +44,9 @@ namespace BreadEditor {
         void onNodeActiveChanged(bool isActive);
 
         void onNodeNameChanged(const char *name);
+
+        void setupUiComponent(UiComponent *uiComponentElement);
+
+        void onUiComponentDeleted(std::type_index type);
     };
 } // BreadEditor

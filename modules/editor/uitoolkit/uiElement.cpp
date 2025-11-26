@@ -27,6 +27,11 @@ namespace BreadEditor {
 
     void UiElement::draw(const float deltaTime)
     {
+        if (isDebugRectVisible)
+        {
+            drawDebugRect();
+        }
+
         for (const auto child: _childs)
         {
             child->draw(deltaTime);
@@ -54,6 +59,25 @@ namespace BreadEditor {
 
     Vector2 UiElement::getSize() const
     {
+        if (_sizeInPercents.x >= 0 && _sizeInPercents.y >= 0)
+        {
+            return getSizeInPixByPercent(_sizeInPercents);
+        }
+
+        if (_sizeInPercents.x >= 0 && _sizeInPercents.y < 0)
+        {
+            const auto ySize = _localSize.y;
+            const auto xSize = getSizeInPixByPercentOnlyX(_sizeInPercents);
+            return {xSize, ySize};
+        }
+
+        if (_sizeInPercents.x < 0 && _sizeInPercents.y >= 0)
+        {
+            const auto xSize = _localSize.x;
+            const auto ySize = getSizeInPixByPercentOnlyY(_sizeInPercents);
+            return {xSize, ySize};
+        }
+
         return _localSize;
     }
 
@@ -80,13 +104,13 @@ namespace BreadEditor {
         }
         else if (percent.x >= 0 && percent.y < 0)
         {
-            auto ySize = _localSize.y;
+            const auto ySize = _localSize.y;
             _localSize.x = getSizeInPixByPercentOnlyX(percent);
             setSize({_localSize.x, ySize});
         }
         else if (percent.x < 0 && percent.y >= 0)
         {
-            auto xSize = _localSize.x;
+            const auto xSize = _localSize.x;
             _localSize.y = getSizeInPixByPercentOnlyY(percent);
             setSize({xSize, _localSize.y});
         }
@@ -102,13 +126,13 @@ namespace BreadEditor {
         }
         else if (percent.x >= 0 && percent.y < 0)
         {
-            auto ySize = _localSize.y;
+            const auto ySize = _localSize.y;
             _localSize.x = getSizeInPixByPercentOnlyX(percent);
             setSize({_localSize.x, ySize});
         }
         else if (percent.x < 0 && percent.y >= 0)
         {
-            auto xSize = _localSize.x;
+            const auto xSize = _localSize.x;
             _localSize.y = getSizeInPixByPercentOnlyY(percent);
             setSize({xSize, _localSize.y});
         }
@@ -283,6 +307,11 @@ namespace BreadEditor {
 
         _childs.clear();
         _parent = nullptr;
+    }
+
+    void UiElement::drawDebugRect() const
+    {
+        GuiDummyRec(_bounds, "Debug");
     }
 
     void UiElement::computeBounds()

@@ -38,4 +38,28 @@ namespace BreadEditor {
         return new UiTextBox();
     };
     ObjectPool<UiTextBox> UiPool::textBoxPool(UiTextBoxFactory, 10);
+
+    auto UiComponentFactory = []() -> UiComponent *
+    {
+        return new UiComponent();
+    };
+    ObjectPool<UiComponent> UiPool::componentPool(UiComponentFactory, 10);
+
+    auto UiLabelFactory = []() -> UiLabel *
+    {
+        return new UiLabel();
+    };
+    ObjectPool<UiLabel> UiPool::labelPool(UiLabelFactory, 10);
+
+    auto UiVector2DFactory = []() -> UiVector2D *
+    {
+        return new UiVector2D();
+    };
+    ObjectPool<UiVector2D> UiPool::vector2DPool(UiVector2DFactory, 10);
+
+    auto UiVector3DFactory = []() -> UiVector3D *
+    {
+        return new UiVector3D();
+    };
+    ObjectPool<UiVector3D> UiPool::vector3DPool(UiVector3DFactory, 10);
 } // BreadEditor

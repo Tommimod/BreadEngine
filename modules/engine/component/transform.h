@@ -42,10 +42,13 @@ namespace BreadEngine {
         Quaternion _rotation{};
         Vector3 _scale{};
 
+        Vector2 _testField2D{};
+
         INSPECTOR_BEGIN(Transform)
-            INSPECT_FIELD(_position, &LocalClass::_position);
-            INSPECT_FIELD(_rotation, &LocalClass::_rotation);
-            INSPECT_FIELD(_scale, &LocalClass::_scale);
+            INSPECT_FIELD(_position);
+            INSPECT_FIELD(_rotation);
+            INSPECT_FIELD(_scale);
+            INSPECT_FIELD(_testField2D);
         INSPECTOR_END()
 
         void updateProperties();

@@ -104,6 +104,11 @@ namespace BreadEngine {
         return _isActive;
     }
 
+    unsigned int Node::getId() const
+    {
+        return _id;
+    }
+
     void Node::setIsActive(bool nextIsActive)
     {
         _isActive = nextIsActive;

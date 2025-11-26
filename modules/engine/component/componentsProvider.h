@@ -63,6 +63,19 @@ namespace BreadEngine {
             }
         }
 
+        static void remove(const unsigned int ownerId, const std::type_index type)
+        {
+            if (const auto it = getChunks().find(type); it != getChunks().end())
+            {
+                auto &baseChunk = *it->second;
+                baseChunk.remove(ownerId);
+                if (baseChunk.isEmpty())
+                {
+                    getChunks().erase(type);
+                }
+            }
+        }
+
         template<typename T, std::enable_if_t<std::is_base_of_v<Component, T>, int> = 0>
         static bool has(unsigned int ownerId)
         {

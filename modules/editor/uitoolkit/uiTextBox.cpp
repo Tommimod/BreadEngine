@@ -6,7 +6,7 @@
 namespace BreadEditor {
     UiTextBox::UiTextBox() = default;
 
-    UiTextBox &UiTextBox::setup(const std::string &id, std::string defaultText, int defaultTextSize, bool defaultEditMode)
+    UiTextBox &UiTextBox::setup(const std::string &id, const std::string &defaultText, const int defaultTextSize, const bool defaultEditMode)
     {
         _internalText = defaultText;
         _text = _internalText.data();
@@ -16,7 +16,7 @@ namespace BreadEditor {
         return *this;
     }
 
-    UiTextBox &UiTextBox::setup(const std::string &id, UiElement *parentElement, std::string defaultText, int defaultTextSize, bool defaultEditMode)
+    UiTextBox &UiTextBox::setup(const std::string &id, UiElement *parentElement, const std::string &defaultText, const int defaultTextSize, const bool defaultEditMode)
     {
         _internalText = defaultText;
         _text = _internalText.data();
@@ -27,10 +27,9 @@ namespace BreadEditor {
     }
 
     UiTextBox::~UiTextBox()
-    {
-    }
+    = default;
 
-    void UiTextBox::draw(float deltaTime)
+    void UiTextBox::draw(const float deltaTime)
     {
         GuiSetState(_state);
         GuiTextBox(_bounds, _text, _textSize, _editMode);
@@ -38,7 +37,7 @@ namespace BreadEditor {
         GuiSetState(STATE_NORMAL);
     }
 
-    void UiTextBox::update(float deltaTime)
+    void UiTextBox::update(const float deltaTime)
     {
         UiElement::update(deltaTime);
         if (_state == STATE_DISABLED)
@@ -54,16 +53,18 @@ namespace BreadEditor {
         {
             _editMode = false;
             onTextChanged.invoke(_text);
+            onTextChangedWithSender.invoke(_text, this);
         }
 
         if (_editMode && IsKeyDown(KEY_ENTER))
         {
             _editMode = false;
             onTextChanged.invoke(_text);
+            onTextChangedWithSender.invoke(_text, this);
         }
     }
 
-    void UiTextBox::setText(std::string newText)
+    void UiTextBox::setText(const std::string &newText)
     {
         _internalText = newText;
     }

@@ -23,15 +23,20 @@ namespace BreadEditor {
     {
         _activeCheckBox->onStateChanged.unsubscribe(_subscriptions[_activeCheckBox]);
         _nameTextBox->onTextChanged.unsubscribe(_subscriptions[_nameTextBox]);
+        for (const auto uiComponent: _uiComponentElements)
+        {
+            uiComponent->onDelete.unsubscribe(_subscriptions[uiComponent]);
+        }
 
+        _uiComponentElements.clear();
         _subscriptions.clear();
     }
 
-    void NodeInspector::draw(float deltaTime)
+    void NodeInspector::draw(const float deltaTime)
     {
         GuiPanel(_bounds, nullptr);
         const auto isDisabled = _engineNode == nullptr;
-        for (auto childElement: _childs)
+        for (const auto childElement: _childs)
         {
             childElement->setState(isDisabled ? STATE_DISABLED : STATE_NORMAL);
         }
@@ -39,7 +44,7 @@ namespace BreadEditor {
         UiElement::draw(deltaTime);
     }
 
-    void NodeInspector::update(float deltaTime)
+    void NodeInspector::update(const float deltaTime)
     {
         updateResizable(*this);
         UiElement::update(deltaTime);
@@ -52,6 +57,32 @@ namespace BreadEditor {
         {
             _activeCheckBox->setChecked(_engineNode->getIsActive());
             _nameTextBox->setText(_engineNode->getName());
+            _trackedComponents = ComponentsProvider::getAllComponents(_engineNode->getId());
+            if (const int needCreateCount = _trackedComponents.size() - _uiComponentElements.size(); needCreateCount > 0)
+            {
+                for (int i = static_cast<int>(_trackedComponents.size()) - needCreateCount; i < static_cast<int>(_trackedComponents.size()); i++)
+                {
+                    auto element = &UiPool::componentPool.get().setup("UiComponent_" + std::to_string(_uiComponentElements.size()), this);
+                    _uiComponentElements.push_back(element);
+                    setupUiComponent(element);
+                    _subscriptions.emplace(element, element->onDelete.subscribe([this](const std::type_index type) { this->onUiComponentDeleted(type); }));
+                }
+            }
+            else if (needCreateCount < 0)
+            {
+                for (int i = static_cast<int>(_uiComponentElements.size()); i != static_cast<int>(_trackedComponents.size()); i--)
+                {
+                    const auto element = _uiComponentElements.back();
+                    element->dispose();
+                    _uiComponentElements.pop_back();
+                    element->onDelete.unsubscribe(_subscriptions[element]);
+                }
+            }
+
+            for (int i = 0; i < static_cast<int>(_trackedComponents.size()); i++)
+            {
+                _uiComponentElements[i]->trackComponent(_trackedComponents[i]);
+            }
         }
         else
         {
@@ -66,14 +97,14 @@ namespace BreadEditor {
 
     void NodeInspector::initialize()
     {
-        const int verticalOffset = 5;
-        const int horizontalOffset = 5;
+        constexpr int verticalOffset = 5;
+        constexpr int horizontalOffset = 5;
 
         _activeCheckBox = &UiPool::checkBoxPool.get().setup("nodeInspectorActiveCheckBox", this, false, "Active");
         _activeCheckBox->setAnchor(UI_LEFT_TOP);
         _activeCheckBox->setPosition({horizontalOffset, verticalOffset + 5});
         _activeCheckBox->setSize({10, 10});
-        _subscriptions.emplace(_activeCheckBox, _activeCheckBox->onStateChanged.subscribe([this](bool checked) { this->onNodeActiveChanged(checked); }));
+        _subscriptions.emplace(_activeCheckBox, _activeCheckBox->onStateChanged.subscribe([this](const bool checked) { this->onNodeActiveChanged(checked); }));
 
         _nameTextBox = &UiPool::textBoxPool.get().setup("nodeInspectorNameTextBox", this, "Name");
         _nameTextBox->setAnchor(UI_LEFT_TOP);
@@ -89,6 +120,7 @@ namespace BreadEditor {
         const auto emptyString = "";
         _activeCheckBox->setChecked(false);
         _nameTextBox->setText(emptyString);
+        _trackedComponents = {};
     }
 
     void NodeInspector::onNodeActiveChanged(bool isActive)
@@ -99,5 +131,19 @@ namespace BreadEditor {
     void NodeInspector::onNodeNameChanged(const char *name)
     {
         _engineNode->setName(name);
+    }
+
+    void NodeInspector::setupUiComponent(UiComponent *uiComponentElement)
+    {
+        uiComponentElement->setAnchor(UI_LEFT_TOP);
+        uiComponentElement->setSize(Vector2{_bounds.width - 10, 50});
+        const auto yPosition = _nameTextBox->getPosition().y + _nameTextBox->getSize().y + 10;
+        uiComponentElement->setPosition(Vector2{5, yPosition});
+    }
+
+    void NodeInspector::onUiComponentDeleted(const std::type_index type)
+    {
+        _engineNode->remove(type);
+        lookupNode(_engineNode);
     }
 } // BreadEditor

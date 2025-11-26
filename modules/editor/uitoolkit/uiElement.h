@@ -35,6 +35,7 @@ namespace BreadEditor {
     {
     public:
         std::string id;
+        bool isDebugRectVisible = false;
 
         virtual ~UiElement();
 
@@ -92,6 +93,10 @@ namespace BreadEditor {
 
         void dispose() override;
 
+        void drawDebugRect() const;
+
+        void computeBounds();
+
     protected:
         GuiState _state = STATE_NORMAL;
         Vector2 _pivot{};
@@ -103,8 +108,6 @@ namespace BreadEditor {
         Rectangle _bounds{0, 0, 1, 1};
         Color _bgColor = RAYWHITE;
         UI_ANCHOR_TYPE _anchor = UI_LEFT_TOP;
-
-        void computeBounds();
 
         UiElement &setup(const std::string &newId);
 
