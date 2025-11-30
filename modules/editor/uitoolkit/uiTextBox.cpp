@@ -52,15 +52,15 @@ namespace BreadEditor {
         else if (IsMouseButtonDown(MOUSE_LEFT_BUTTON))
         {
             _editMode = false;
-            onTextChanged.invoke(_text);
-            onTextChangedWithSender.invoke(_text, this);
+            onValueChanged.invoke(_text);
+            onValueChangedWithSender.invoke(_text, this);
         }
 
         if (_editMode && IsKeyDown(KEY_ENTER))
         {
             _editMode = false;
-            onTextChanged.invoke(_text);
-            onTextChangedWithSender.invoke(_text, this);
+            onValueChanged.invoke(_text);
+            onValueChangedWithSender.invoke(_text, this);
         }
     }
 

@@ -1,6 +1,8 @@
 ﻿#include "uiElement.h"
 #include <algorithm>
 
+#include "raymath.h"
+
 namespace BreadEditor {
     UiElement &UiElement::setup(const std::string &newId)
     {
@@ -138,6 +140,11 @@ namespace BreadEditor {
         }
 
         _sizeInPercents = percent;
+    }
+
+    void UiElement::setSizeMax(const Vector2 &maxSize)
+    {
+        _maxSize = maxSize;
     }
 
     void UiElement::setBounds(const Vector2 &position, const Vector2 &size)
@@ -311,7 +318,23 @@ namespace BreadEditor {
 
     void UiElement::drawDebugRect() const
     {
-        GuiDummyRec(_bounds, "Debug");
+        auto x = std::to_string(_bounds.x);
+        x.erase(x.find_last_not_of('0') + 1, std::string::npos);
+        x.erase(x.find_last_not_of('.') + 1, std::string::npos);
+
+        auto y = std::to_string(_bounds.y);
+        y.erase(y.find_last_not_of('0') + 1, std::string::npos);
+        y.erase(y.find_last_not_of('.') + 1, std::string::npos);
+
+        auto width = std::to_string(_bounds.width);
+        width.erase(width.find_last_not_of('0') + 1, std::string::npos);
+        width.erase(width.find_last_not_of('.') + 1, std::string::npos);
+
+        auto height = std::to_string(_bounds.height);
+        height.erase(height.find_last_not_of('0') + 1, std::string::npos);
+        height.erase(height.find_last_not_of('.') + 1, std::string::npos);
+        const auto debugText = TextFormat("X:%s Y:%s W:%s H:%s", x.c_str(), y.c_str(), width.c_str(), height.c_str());
+        GuiDummyRec(_bounds, debugText);
     }
 
     void UiElement::computeBounds()
@@ -330,10 +353,21 @@ namespace BreadEditor {
         {
             effectiveParentBounds = {0.0f, 0.0f, static_cast<float>(GetScreenWidth()), static_cast<float>(GetScreenHeight())};
         }
+
         const Vector2 anchorPoint = getAnchorPoint(effectiveParentBounds);
         const Vector2 pivotOffset = {_pivot.x * _localSize.x, _pivot.y * _localSize.y};
         const Vector2 prelimPosition = {anchorPoint.x + _localPosition.x - pivotOffset.x, anchorPoint.y + _localPosition.y - pivotOffset.y};
-        const Vector2 computedSize = getComputedSize(effectiveParentBounds, prelimPosition);
+        Vector2 computedSize = getComputedSize(effectiveParentBounds, prelimPosition);
+        if (_maxSize.x > 0)
+        {
+            computedSize.x = std::min(computedSize.x, _maxSize.x);
+        }
+
+        if (_maxSize.y > 0)
+        {
+            computedSize.y = std::min(computedSize.y, _maxSize.y);
+        }
+
         _bounds = {prelimPosition.x, prelimPosition.y, computedSize.x, computedSize.y};
     }
 

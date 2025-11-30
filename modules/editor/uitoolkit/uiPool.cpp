@@ -39,6 +39,12 @@ namespace BreadEditor {
     };
     ObjectPool<UiTextBox> UiPool::textBoxPool(UiTextBoxFactory, 10);
 
+    auto UiNumberBoxFactory = []() -> UiNumberBox *
+    {
+        return new UiNumberBox();
+    };
+    ObjectPool<UiNumberBox> UiPool::numberBoxPool(UiNumberBoxFactory, 10);
+
     auto UiComponentFactory = []() -> UiComponent *
     {
         return new UiComponent();
@@ -62,4 +68,10 @@ namespace BreadEditor {
         return new UiVector3D();
     };
     ObjectPool<UiVector3D> UiPool::vector3DPool(UiVector3DFactory, 10);
+
+    auto UiVector4DFactory = []() -> UiVector4D *
+    {
+        return new UiVector4D();
+    };
+    ObjectPool<UiVector4D> UiPool::vector4DPool(UiVector4DFactory, 10);
 } // BreadEditor

@@ -6,8 +6,8 @@ namespace BreadEditor {
     class UiTextBox final : public UiElement
     {
     public:
-        BreadEngine::Action<char *> onTextChanged;
-        BreadEngine::Action<char *, UiTextBox*> onTextChangedWithSender;
+        BreadEngine::Action<char *> onValueChanged;
+        BreadEngine::Action<char *, UiTextBox*> onValueChangedWithSender;
 
         UiTextBox();
 

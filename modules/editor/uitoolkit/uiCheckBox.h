@@ -1,12 +1,13 @@
 ﻿#pragma once
 #include "action.h"
 #include "uiElement.h"
+using namespace BreadEngine;
 
 namespace BreadEditor {
     class UiCheckBox final : public UiElement
     {
     public:
-        BreadEngine::Action<bool> onStateChanged;
+        Action<bool> onValueChanged;
 
         UiCheckBox();
 

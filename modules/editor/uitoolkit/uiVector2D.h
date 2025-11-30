@@ -1,7 +1,7 @@
 ﻿#pragma once
 #include "action.h"
 #include "uiElement.h"
-#include "uiTextBox.h"
+#include "uiNumberBox.h"
 using namespace BreadEngine;
 
 namespace BreadEditor {
@@ -27,11 +27,11 @@ namespace BreadEditor {
 
     private:
         Vector2 _value{};
-        std::array<UiTextBox *, 2> _fields{};
+        std::array<UiNumberBox *, 2> _fields{};
         std::array<std::string, 2> _names{};
 
         void createFields();
 
-        void setValue(UiTextBox* textBox, float value);
+        void setValue(UiNumberBox* numberBox, float value);
     };
 } // BreadEditor

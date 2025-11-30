@@ -59,6 +59,8 @@ namespace BreadEditor {
 
         void setSizePercentPermanent(const Vector2 &percent);
 
+        void setSizeMax(const Vector2 &maxSize);
+
         void setBounds(const Vector2 &position, const Vector2 &size);
 
         [[nodiscard]] float getSizeInPixByPercentOnlyX(const Vector2 &percent) const;
@@ -103,6 +105,7 @@ namespace BreadEditor {
         Vector2 _localPosition{0.0f, 0.0f};
         Vector2 _localSize{1.0f, 1.0f};
         Vector2 _sizeInPercents{-1, -1};
+        Vector2 _maxSize{0, 0};
         UiElement *_parent = nullptr;
         std::vector<UiElement *> _childs{};
         Rectangle _bounds{0, 0, 1, 1};

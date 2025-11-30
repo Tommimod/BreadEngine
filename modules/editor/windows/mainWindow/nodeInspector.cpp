@@ -21,8 +21,8 @@ namespace BreadEditor {
 
     NodeInspector::~NodeInspector()
     {
-        _activeCheckBox->onStateChanged.unsubscribe(_subscriptions[_activeCheckBox]);
-        _nameTextBox->onTextChanged.unsubscribe(_subscriptions[_nameTextBox]);
+        _activeCheckBox->onValueChanged.unsubscribe(_subscriptions[_activeCheckBox]);
+        _nameTextBox->onValueChanged.unsubscribe(_subscriptions[_nameTextBox]);
         for (const auto uiComponent: _uiComponentElements)
         {
             uiComponent->onDelete.unsubscribe(_subscriptions[uiComponent]);
@@ -104,13 +104,13 @@ namespace BreadEditor {
         _activeCheckBox->setAnchor(UI_LEFT_TOP);
         _activeCheckBox->setPosition({horizontalOffset, verticalOffset + 5});
         _activeCheckBox->setSize({10, 10});
-        _subscriptions.emplace(_activeCheckBox, _activeCheckBox->onStateChanged.subscribe([this](const bool checked) { this->onNodeActiveChanged(checked); }));
+        _subscriptions.emplace(_activeCheckBox, _activeCheckBox->onValueChanged.subscribe([this](const bool checked) { this->onNodeActiveChanged(checked); }));
 
         _nameTextBox = &UiPool::textBoxPool.get().setup("nodeInspectorNameTextBox", this, "Name");
         _nameTextBox->setAnchor(UI_LEFT_TOP);
         _nameTextBox->setPosition({_activeCheckBox->getSize().x + 50, verticalOffset});
         _nameTextBox->setSize({100, 20});
-        _subscriptions.emplace(_nameTextBox, _nameTextBox->onTextChanged.subscribe([this](const char *text) { this->onNodeNameChanged(text); }));
+        _subscriptions.emplace(_nameTextBox, _nameTextBox->onValueChanged.subscribe([this](const char *text) { this->onNodeNameChanged(text); }));
 
         resetElementsState();
     }
@@ -137,6 +137,7 @@ namespace BreadEditor {
     {
         uiComponentElement->setAnchor(UI_LEFT_TOP);
         uiComponentElement->setSize(Vector2{_bounds.width - 10, 50});
+        uiComponentElement->setSizePercentPermanent({.97f, -1});
         const auto yPosition = _nameTextBox->getPosition().y + _nameTextBox->getSize().y + 10;
         uiComponentElement->setPosition(Vector2{5, yPosition});
     }

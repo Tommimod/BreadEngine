@@ -7,9 +7,11 @@
 #include "uiCheckBox.h"
 #include "uiComponent.h"
 #include "uiLabel.h"
+#include "uiNumberBox.h"
 #include "uiTextBox.h"
 #include "uiVector2D.h"
 #include "uiVector3D.h"
+#include "uiVector4D.h"
 using namespace BreadEngine;
 
 namespace BreadEditor {
@@ -22,9 +24,11 @@ namespace BreadEditor {
         static ObjectPool<NodeUiElement> nodeUiElementPool;
         static ObjectPool<UiCheckBox> checkBoxPool;
         static ObjectPool<UiTextBox> textBoxPool;
+        static ObjectPool<UiNumberBox> numberBoxPool;
         static ObjectPool<UiComponent> componentPool;
         static ObjectPool<UiLabel> labelPool;
         static ObjectPool<UiVector2D> vector2DPool;
         static ObjectPool<UiVector3D> vector3DPool;
+        static ObjectPool<UiVector4D> vector4DPool;
     };
 } // BreadEditor

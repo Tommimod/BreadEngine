@@ -6,7 +6,7 @@ namespace BreadEditor {
     {
         for (const auto &field: _fields)
         {
-            field->onTextChangedWithSender.unsubscribeAll();
+            field->onValueChangedWithSender.unsubscribeAll();
         }
     }
 
@@ -55,50 +55,39 @@ namespace BreadEditor {
         float lastSizeX = 0;
         for (size_t i = 0; i < _fields.size(); i++)
         {
-            std::string value;
+            float value = 0;
             if (i == 0)
             {
-                value = std::to_string(_value.x);
+                value = _value.x;
             }
             else if (i == 1)
             {
-                value = std::to_string(_value.y);
+                value = _value.y;
             }
 
-            value.erase(value.find_last_not_of('0') + 1, std::string::npos);
-            value.erase(value.find_last_not_of('.') + 1, std::string::npos);
-
-            const auto field = &UiPool::textBoxPool.get().setup(TextFormat("Vector2D%s_Field%i", id.c_str(), i), this, value);
+            const auto field = &UiPool::numberBoxPool.get().setup(TextFormat("Vector2D%s_Field%i", id.c_str(), i), this, _names[i], value);
             _fields[i] = field;
-            field->onTextChangedWithSender.subscribe([this](const char *textValue, UiTextBox *thisField)
+            field->onValueChangedWithSender.subscribe([this](const float floatValue, UiNumberBox *thisField)
             {
-                setValue(thisField, static_cast<float>(strtod(textValue, nullptr)));
+                setValue(thisField, floatValue);
             });
 
-            const auto indexOf = static_cast<float>(i);
-            if (indexOf > 0)
+            if (const auto indexOf = static_cast<float>(i); indexOf > 0)
             {
                 lastSizeX = _fields[i - 1]->getSize().x + _fields[i - 1]->getPosition().x;
             }
 
-            const auto label = UiPool::labelPool.get().setup(TextFormat("Vector2D%s_Label", id.c_str(), this), this, _names[i]);
-            label->setAnchor(UI_LEFT_TOP);
-            label->setPivot({0, 0});
-            label->setPosition({5 + lastSizeX * indexOf, 0});
-            label->setSize({10, getSize().y});
-            label->computeBounds();
-
             field->setAnchor(UI_LEFT_TOP);
             field->setPivot({0, 0});
-            field->setSizePercentPermanent({.15f, 1});
-            field->setPosition({label->getBounds().width + label->getPosition().x + 5, 0});
-            field->computeBounds();
+            field->setSizePercentPermanent({.25f, 1});
+            field->setPosition({lastSizeX + 15, 0});
+            field->setSizeMax({90, 0});
         }
     }
 
-    void UiVector2D::setValue(UiTextBox *textBox, const float value)
+    void UiVector2D::setValue(UiNumberBox *numberBox, const float value)
     {
-        const auto it = ranges::find(_fields, textBox);
+        const auto it = ranges::find(_fields, numberBox);
         if (const auto index_of_x = std::distance(std::begin(_fields), it); index_of_x == 0)
         {
             _value.x = value;

@@ -6,7 +6,7 @@
 namespace BreadEditor {
     UiCheckBox::UiCheckBox() = default;
 
-    UiCheckBox &UiCheckBox::setup(const std::string &id, bool checked, std::string checkBoxText)
+    UiCheckBox &UiCheckBox::setup(const std::string &id, const bool checked, std::string checkBoxText)
     {
         this->_text = std::move(checkBoxText);
         this->_internalChecked = checked;
@@ -15,7 +15,7 @@ namespace BreadEditor {
         return *this;
     }
 
-    UiCheckBox &UiCheckBox::setup(const std::string &id, UiElement *parentElement, bool checked, std::string checkBoxText)
+    UiCheckBox &UiCheckBox::setup(const std::string &id, UiElement *parentElement, const bool checked, std::string checkBoxText)
     {
         this->_text = std::move(checkBoxText);
         this->_internalChecked = checked;
@@ -27,26 +27,27 @@ namespace BreadEditor {
     UiCheckBox::~UiCheckBox()
     = default;
 
-    void UiCheckBox::draw(float deltaTime)
+    void UiCheckBox::draw(const float deltaTime)
     {
         GuiSetState(_state);
-        auto lastState = _internalChecked;
+        const auto lastState = _internalChecked;
         _externalChecked = &_internalChecked;
         GuiCheckBox(_bounds, _text.c_str(), &_internalChecked);
         if (_externalChecked != nullptr && lastState != *_externalChecked)
         {
-            onStateChanged.invoke(_internalChecked);
+            onValueChanged.invoke(_internalChecked);
         }
+
         UiElement::draw(deltaTime);
         GuiSetState(STATE_NORMAL);
     }
 
-    void UiCheckBox::update(float deltaTime)
+    void UiCheckBox::update(const float deltaTime)
     {
         UiElement::update(deltaTime);
     }
 
-    void UiCheckBox::setChecked(bool isChecked)
+    void UiCheckBox::setChecked(const bool isChecked)
     {
         _internalChecked = isChecked;
     }

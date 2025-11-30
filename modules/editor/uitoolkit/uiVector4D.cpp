@@ -1,8 +1,8 @@
-﻿#include "uiVector3D.h"
+﻿#include "uiVector4D.h"
 #include "uiPool.h"
 
 namespace BreadEditor {
-    UiVector3D::~UiVector3D()
+    UiVector4D::~UiVector4D()
     {
         for (const auto &field: _fields)
         {
@@ -10,44 +10,46 @@ namespace BreadEditor {
         }
     }
 
-    UiVector3D *UiVector3D::setup(const std::string &id, UiElement *parentElement, const Vector3 initialValue)
+    UiVector4D *UiVector4D::setup(const std::string &id, UiElement *parentElement, const Vector4 initialValue)
     {
         UiElement::setup(id, parentElement);
         _value = initialValue;
         _names[0] = "X";
         _names[1] = "Y";
         _names[2] = "Z";
+        _names[3] = "W";
         return this;
     }
 
-    UiVector3D *UiVector3D::setup(const std::string &id, UiElement *parentElement, const Vector3 initialValue, const std::string_view xName, const std::string_view yName, const std::string_view zName)
+    UiVector4D *UiVector4D::setup(const std::string &id, UiElement *parentElement, const Vector4 initialValue, const std::string_view xName, const std::string_view yName, const std::string_view zName, const std::string_view wName)
     {
         UiElement::setup(id, parentElement);
         _value = initialValue;
         _names[0] = xName;
         _names[1] = yName;
         _names[2] = zName;
+        _names[3] = wName;
         return this;
     }
 
-    void UiVector3D::draw(float deltaTime)
+    void UiVector4D::draw(float deltaTime)
     {
         UiElement::draw(deltaTime);
     }
 
-    void UiVector3D::update(float deltaTime)
+    void UiVector4D::update(float deltaTime)
     {
         createFields();
         UiElement::update(deltaTime);
     }
 
-    bool UiVector3D::tryDeleteSelf()
+    bool UiVector4D::tryDeleteSelf()
     {
-        UiPool::vector3DPool.release(*this);
+        UiPool::vector4DPool.release(*this);
         return true;
     }
 
-    void UiVector3D::createFields()
+    void UiVector4D::createFields()
     {
         if (_fields[0] != nullptr)
         {
@@ -70,8 +72,12 @@ namespace BreadEditor {
             {
                 value = _value.z;
             }
+            else if (i == 3)
+            {
+                value = _value.w;
+            }
 
-            const auto field = &UiPool::numberBoxPool.get().setup(TextFormat("Vector3D%s_Field%i", id.c_str(), i), this, _names[i], value);
+            const auto field = &UiPool::numberBoxPool.get().setup(TextFormat("Vector4D%s_Field%i", id.c_str(), i), this, _names[i], value);
             _fields[i] = field;
             field->onValueChangedWithSender.subscribe([this](const float floatValue, UiNumberBox *thisField)
             {
@@ -85,13 +91,13 @@ namespace BreadEditor {
 
             field->setAnchor(UI_LEFT_TOP);
             field->setPivot({0, 0});
-            field->setSizePercentPermanent({.15f, 1});
+            field->setSizePercentPermanent({.12f, 1});
             field->setPosition({lastSizeX + 15, 0});
-            field->setSizeMax({50, 0});
+            field->setSizeMax({40, 0});
         }
     }
 
-    void UiVector3D::setValue(UiNumberBox *numberBox, const float value)
+    void UiVector4D::setValue(UiNumberBox *numberBox, const float value)
     {
         const auto it = ranges::find(_fields, numberBox);
         if (const auto index_of_x = std::distance(std::begin(_fields), it); index_of_x == 0)
@@ -105,6 +111,10 @@ namespace BreadEditor {
         else if (index_of_x == 2)
         {
             _value.z = value;
+        }
+        else if (index_of_x == 3)
+        {
+            _value.w = value;
         }
 
         onChanged.invoke(_value);
