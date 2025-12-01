@@ -214,6 +214,11 @@ namespace BreadEditor {
         return nullptr;
     }
 
+    int UiElement::getChildCount() const
+    {
+        return _childs.size();
+    }
+
     void UiElement::addChild(UiElement *child)
     {
         if (child && std::ranges::find(_childs, child) == _childs.end())
@@ -241,6 +246,17 @@ namespace BreadEditor {
             {
                 destroyChild(child);
             }
+        }
+    }
+
+    void UiElement::destroyAllChilds()
+    {
+        if (_childs.empty()) return;
+
+        const auto childCount = getChildCount();
+        for (auto i = childCount - 1; i >= 0; i--)
+        {
+            destroyChild(_childs[i]);
         }
     }
 
@@ -305,8 +321,7 @@ namespace BreadEditor {
                 continue;
             }
 
-            auto isDeleted = child->tryDeleteSelf();
-            if (!isDeleted)
+            if (!child->tryDeleteSelf())
             {
                 delete child;
             }
@@ -314,6 +329,17 @@ namespace BreadEditor {
 
         _childs.clear();
         _parent = nullptr;
+        id = "";
+        isDebugRectVisible = false;
+        _state = STATE_NORMAL;
+        _pivot = {0.0f, 0.0f};
+        _localPosition = {0.0f, 0.0f};
+        _localSize = {1.0f, 1.0f};
+        _sizeInPercents = {-1, -1};
+        _maxSize = {0, 0};
+        _bgColor = RAYWHITE;
+        _anchor = UI_LEFT_TOP;
+        _bounds = {0, 0, 1, 1};
     }
 
     void UiElement::drawDebugRect() const

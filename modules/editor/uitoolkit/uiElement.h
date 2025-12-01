@@ -77,11 +77,15 @@ namespace BreadEditor {
 
         [[nodiscard]] UiElement *getChildById(const std::string &childId) const;
 
+        [[nodiscard]] int getChildCount() const;
+
         void addChild(UiElement *child);
 
         void destroyChild(UiElement *child);
 
         void destroyChild(const std::string &childId);
+
+        void destroyAllChilds();
 
         void setAnchor(UI_ANCHOR_TYPE newAnchor);
 

@@ -32,7 +32,9 @@ namespace BreadEditor {
 
     void UiVector3D::draw(float deltaTime)
     {
+        GuiSetState(_state);
         UiElement::draw(deltaTime);
+        GuiSetState(STATE_NORMAL);
     }
 
     void UiVector3D::update(float deltaTime)

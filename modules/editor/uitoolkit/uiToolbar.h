@@ -10,6 +10,11 @@ namespace BreadEditor {
 
         ~UiToolbar() override;
 
+        void dispose() override
+        {
+            UiElement::dispose();
+        }
+
         UiToolbar &setup(const string &id, UiElement *parentElement, float height, const vector<string> &buttonNames);
 
         void draw(float deltaTime) override;

@@ -5,6 +5,19 @@
 namespace BreadEditor {
     UiNumberBox::UiNumberBox() = default;
 
+    UiNumberBox::~UiNumberBox()
+    = default;
+
+    void UiNumberBox::dispose()
+    {
+        _floatValue = 0;
+        _intValue = 0;
+        _editMode = false;
+        _intMode = false;
+        _label = nullptr;
+        UiElement::dispose();
+    }
+
     UiNumberBox &UiNumberBox::setup(const std::string &id, const std::string &label, float defaultValue, const int defaultTextSize, const bool defaultEditMode)
     {
         _label = label.c_str();
@@ -33,7 +46,7 @@ namespace BreadEditor {
         _label = label.c_str();
         _intValue = defaultValue;
         _textSize = defaultTextSize;
-        snprintf(_valueText, sizeof(_valueText), "%.0f", _intValue);
+        snprintf(_valueText, sizeof(_valueText), "%i", _intValue);
         _editMode = defaultEditMode;
         UiElement::setup(id);
         return *this;
@@ -45,14 +58,11 @@ namespace BreadEditor {
         _label = label.c_str();
         _intValue = defaultValue;
         _textSize = defaultTextSize;
-        snprintf(_valueText, sizeof(_valueText), "%.0f", _intValue);
+        snprintf(_valueText, sizeof(_valueText), "%i", _intValue);
         _editMode = defaultEditMode;
         UiElement::setup(id, parentElement);
         return *this;
     }
-
-    UiNumberBox::~UiNumberBox()
-    = default;
 
     void UiNumberBox::draw(const float deltaTime)
     {
@@ -60,12 +70,7 @@ namespace BreadEditor {
 
         if (_intMode)
         {
-            if (!_editMode)
-            {
-                snprintf(_valueText, sizeof(_valueText), "%.0f", _intValue);
-            }
-
-            if (GuiValueBoxFloat(_bounds, _label, _valueText, &_intValue, _editMode))
+            if (GuiValueBox(_bounds, _label, &_intValue, INT_MIN,INT_MAX, _editMode))
             {
                 _editMode = !_editMode;
                 if (!_editMode)
@@ -87,6 +92,7 @@ namespace BreadEditor {
                 }
             }
         }
+
         UiElement::draw(deltaTime);
         GuiSetState(STATE_NORMAL);
     }
@@ -98,7 +104,7 @@ namespace BreadEditor {
 
     void UiNumberBox::setValue(const float value)
     {
-        _floatValue = std::move(value);
+        _floatValue = value;
     }
 
     bool UiNumberBox::tryDeleteSelf()

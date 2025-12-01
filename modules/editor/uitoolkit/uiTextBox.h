@@ -7,7 +7,7 @@ namespace BreadEditor {
     {
     public:
         BreadEngine::Action<char *> onValueChanged;
-        BreadEngine::Action<char *, UiTextBox*> onValueChangedWithSender;
+        BreadEngine::Action<char *, UiTextBox *> onValueChangedWithSender;
 
         UiTextBox();
 
@@ -16,6 +16,11 @@ namespace BreadEditor {
         UiTextBox &setup(const std::string &id, UiElement *parentElement, const std::string &defaultText, int defaultTextSize = 14, bool defaultEditMode = false);
 
         ~UiTextBox() override;
+
+        void dispose() override
+        {
+            UiElement::dispose();
+        }
 
         void draw(float deltaTime) override;
 

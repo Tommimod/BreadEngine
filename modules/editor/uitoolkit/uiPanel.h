@@ -14,6 +14,11 @@ namespace BreadEditor {
 
         ~UiPanel() override;
 
+        void dispose() override
+        {
+            UiElement::dispose();
+        }
+
         void draw(float deltaTime) override;
 
         void update(float deltaTime) override;

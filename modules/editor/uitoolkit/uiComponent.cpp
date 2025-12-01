@@ -22,6 +22,8 @@ namespace BreadEditor {
         _isTransform = _componentName == transformName;
         _properties = component->getInspectedProperties();
 
+        destroyAllChilds();
+
         for (int i = 0; i < static_cast<int>(_properties.size()); i++)
         {
             const auto &property = _properties[i];
@@ -132,7 +134,7 @@ namespace BreadEditor {
                 const auto propNameWidth = propName->getSize().x + propName->getPosition().x;
                 createdElement->setAnchor(UI_LEFT_TOP);
                 createdElement->setSize({getSize().x, heightSize});
-                auto sizeInPercent = isSingleField ? .3f : 1;
+                const auto sizeInPercent = isSingleField ? .3f : 1;
                 createdElement->setSizePercentPermanent({sizeInPercent, -1});
                 createdElement->setPosition({propNameWidth, verOffset});
             }
@@ -141,6 +143,7 @@ namespace BreadEditor {
 
     void UiComponent::draw(const float deltaTime)
     {
+        GuiSetState(_state);
         if (_isTransform)
         {
             GuiPanel(_bounds, _componentName.c_str());
@@ -154,6 +157,7 @@ namespace BreadEditor {
         }
 
         UiElement::draw(deltaTime);
+        GuiSetState(STATE_NORMAL);
     }
 
     void UiComponent::update(const float deltaTime)

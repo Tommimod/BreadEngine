@@ -34,6 +34,7 @@ namespace BreadEditor {
 
     void NodeInspector::draw(const float deltaTime)
     {
+        GuiSetState(_state);
         GuiPanel(_bounds, nullptr);
         const auto isDisabled = _engineNode == nullptr;
         for (const auto childElement: _childs)
@@ -42,6 +43,7 @@ namespace BreadEditor {
         }
 
         UiElement::draw(deltaTime);
+        GuiSetState(STATE_NORMAL);
     }
 
     void NodeInspector::update(const float deltaTime)

@@ -14,6 +14,11 @@ namespace BreadEditor {
 
         ~UiVector2D() override;
 
+        void dispose() override
+        {
+            UiElement::dispose();
+        }
+
         UiVector2D *setup(const std::string &id, UiElement *parentElement, Vector2 initialValue);
 
         UiVector2D *setup(const std::string &id, UiElement *parentElement, Vector2 initialValue, std::string_view xName, std::string_view yName);
@@ -32,6 +37,6 @@ namespace BreadEditor {
 
         void createFields();
 
-        void setValue(UiNumberBox* numberBox, float value);
+        void setValue(UiNumberBox *numberBox, float value);
     };
 } // BreadEditor
