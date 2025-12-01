@@ -62,8 +62,7 @@ namespace BreadEditor {
             }
             else if (property.type == PropertyType::LONG)
             {
-                float val = propValue.emplace<long>();
-                createdElement = &UiPool::numberBoxPool.get().setup(TextFormat("NumberBox %s", property.name.c_str()), this, "", val);
+                createdElement = &UiPool::numberBoxPool.get().setup(TextFormat("NumberBox %s", property.name.c_str()), this, "", static_cast<float>(propValue.emplace<long>()));
                 const auto element = dynamic_cast<UiNumberBox *>(createdElement);
                 element->onValueChanged.subscribe([component, property](const long &value)
                 {
@@ -72,12 +71,13 @@ namespace BreadEditor {
             }
             else if (property.type == PropertyType::BOOL)
             {
-                createdElement = &UiPool::checkBoxPool.get().setup(TextFormat("NumberBox %s", property.name.c_str()), propValue.emplace<bool>(), "");
+                createdElement = &UiPool::checkBoxPool.get().setup(TextFormat("NumberBox %s", property.name.c_str()), this, "", propValue.emplace<bool>());
                 const auto element = dynamic_cast<UiCheckBox *>(createdElement);
                 element->onValueChanged.subscribe([component, property](const bool &value)
                 {
                     property.set(component, value);
                 });
+                element->setSizeMax({heightSize, heightSize});
             }
             else if (property.type == PropertyType::STRING)
             {

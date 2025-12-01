@@ -335,6 +335,14 @@ namespace BreadEditor {
         height.erase(height.find_last_not_of('.') + 1, std::string::npos);
         const auto debugText = TextFormat("X:%s Y:%s W:%s H:%s", x.c_str(), y.c_str(), width.c_str(), height.c_str());
         GuiDummyRec(_bounds, debugText);
+
+        if (_parent != nullptr)
+        {
+            DrawLine(_bounds.x, _bounds.y, _parent->getBounds().x, _parent->getBounds().y, RED);
+            DrawLine(_bounds.x + _bounds.width, _bounds.y, _parent->getBounds().x + _parent->getBounds().width, _parent->getBounds().y, RED);
+            DrawLine(_bounds.x, _bounds.y + _bounds.height, _parent->getBounds().x, _parent->getBounds().y + _parent->getBounds().height, RED);
+            DrawLine(_bounds.x + _bounds.width, _bounds.y + _bounds.height, _parent->getBounds().x + _parent->getBounds().width, _parent->getBounds().y + _parent->getBounds().height, RED);
+        }
     }
 
     void UiElement::computeBounds()

@@ -100,7 +100,7 @@ namespace BreadEditor {
         constexpr int verticalOffset = 5;
         constexpr int horizontalOffset = 5;
 
-        _activeCheckBox = &UiPool::checkBoxPool.get().setup("nodeInspectorActiveCheckBox", this, false, "Active");
+        _activeCheckBox = &UiPool::checkBoxPool.get().setup("nodeInspectorActiveCheckBox", this, "Active", false);
         _activeCheckBox->setAnchor(UI_LEFT_TOP);
         _activeCheckBox->setPosition({horizontalOffset, verticalOffset + 5});
         _activeCheckBox->setSize({10, 10});
