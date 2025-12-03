@@ -1,12 +1,13 @@
 #pragma once
 #include "action.h"
 #include "uiElement.h"
+using namespace BreadEngine;
 
 namespace BreadEditor {
     class UiLabelButton final : public UiElement
     {
     public:
-        BreadEngine::Action<std::string> onClick;
+        Action<std::string> onClick;
 
         UiLabelButton();
 
@@ -16,10 +17,7 @@ namespace BreadEditor {
 
         ~UiLabelButton() override;
 
-        void dispose() override
-        {
-            UiElement::dispose();
-        }
+        void dispose() override;
 
         void draw(float deltaTime) override;
 

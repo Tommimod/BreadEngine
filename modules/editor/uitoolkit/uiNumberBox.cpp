@@ -15,26 +15,46 @@ namespace BreadEditor {
         _editMode = false;
         _intMode = false;
         _label = nullptr;
+        _floatLabel.clear();
+        onValueChanged.unsubscribeAll();
+        onValueChangedWithSender.unsubscribeAll();
+
         UiElement::dispose();
     }
 
-    UiNumberBox &UiNumberBox::setup(const std::string &id, const std::string &label, float defaultValue, const int defaultTextSize, const bool defaultEditMode)
+    UiNumberBox &UiNumberBox::setup(const std::string &id, const std::string &label, const float defaultValue, const int defaultTextSize, const bool defaultEditMode)
     {
-        _label = label.c_str();
+        _floatLabel = label;
         _floatValue = defaultValue;
         _textSize = defaultTextSize;
-        snprintf(_valueText, sizeof(_valueText), "%.4f", _floatValue);
+        if (defaultValue == 0.0000f)
+        {
+            snprintf(_valueText, sizeof(_valueText), "%.0f", _floatValue);
+        }
+        else
+        {
+            snprintf(_valueText, sizeof(_valueText), "%.1f", _floatValue);
+        }
+
         _editMode = defaultEditMode;
         UiElement::setup(id);
         return *this;
     }
 
-    UiNumberBox &UiNumberBox::setup(const std::string &id, UiElement *parentElement, const std::string &label, float defaultValue, const int defaultTextSize, const bool defaultEditMode)
+    UiNumberBox &UiNumberBox::setup(const std::string &id, UiElement *parentElement, const std::string &label, const float defaultValue, const int defaultTextSize, const bool defaultEditMode)
     {
-        _label = label.c_str();
+        _floatLabel = label;
         _floatValue = defaultValue;
         _textSize = defaultTextSize;
-        snprintf(_valueText, sizeof(_valueText), "%.4f", _floatValue);
+        if (defaultValue == 0.0000f)
+        {
+            snprintf(_valueText, sizeof(_valueText), "%.0f", _floatValue);
+        }
+        else
+        {
+            snprintf(_valueText, sizeof(_valueText), "%.1f", _floatValue);
+        }
+
         _editMode = defaultEditMode;
         UiElement::setup(id, parentElement);
         return *this;
@@ -82,7 +102,7 @@ namespace BreadEditor {
         }
         else
         {
-            if (GuiValueBoxFloat(_bounds, _label, _valueText, &_floatValue, _editMode))
+            if (GuiValueBoxFloat(_bounds, _floatLabel.c_str(), _valueText, &_floatValue, _editMode))
             {
                 _editMode = !_editMode;
                 if (!_editMode)

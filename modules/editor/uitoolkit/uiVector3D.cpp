@@ -2,12 +2,16 @@
 #include "uiPool.h"
 
 namespace BreadEditor {
-    UiVector3D::~UiVector3D()
+    void UiVector3D::dispose()
     {
-        for (const auto &field: _fields)
+        for (auto &_field: _fields)
         {
-            field->onValueChangedWithSender.unsubscribeAll();
+            _field->onValueChangedWithSender.unsubscribeAll();
+            _field = nullptr;
         }
+
+        onChanged.unsubscribeAll();
+        UiElement::dispose();
     }
 
     UiVector3D *UiVector3D::setup(const std::string &id, UiElement *parentElement, const Vector3 initialValue)
@@ -82,14 +86,18 @@ namespace BreadEditor {
 
             if (const auto indexOf = static_cast<float>(i); indexOf > 0)
             {
-                lastSizeX = _fields[i - 1]->getSize().x + _fields[i - 1]->getPosition().x;
+                lastSizeX = _fields[i - 1]->getSize().x + _fields[i - 1]->getPosition().x + 25;
+            }
+            else
+            {
+                lastSizeX = 15;
             }
 
             field->setAnchor(UI_LEFT_TOP);
             field->setPivot({0, 0});
-            field->setSizePercentPermanent({.15f, 1});
-            field->setPosition({lastSizeX + 15, 0});
-            field->setSizeMax({50, 0});
+            field->setSizePercentPermanent({.12f, 1});
+            field->setPosition({lastSizeX, 0});
+            field->setSizeMax({100, 0});
         }
     }
 

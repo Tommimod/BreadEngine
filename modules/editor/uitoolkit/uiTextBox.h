@@ -17,10 +17,7 @@ namespace BreadEditor {
 
         ~UiTextBox() override;
 
-        void dispose() override
-        {
-            UiElement::dispose();
-        }
+        void dispose() override;
 
         void draw(float deltaTime) override;
 

@@ -42,23 +42,10 @@ namespace BreadEngine {
         Quaternion _rotation{};
         Vector3 _scale{};
 
-        Vector2 _testField2D{};
-        int _testInt;
-        float _testFloat;
-        long _testLong;
-        bool _testBool;
-        std::string _testString;
-
         INSPECTOR_BEGIN(Transform)
             INSPECT_FIELD(_position);
             INSPECT_FIELD(_rotation);
             INSPECT_FIELD(_scale);
-            INSPECT_FIELD(_testField2D);
-            INSPECT_FIELD(_testInt);
-            INSPECT_FIELD(_testFloat);
-            INSPECT_FIELD(_testLong);
-            INSPECT_FIELD(_testBool);
-            INSPECT_FIELD(_testString);
         INSPECTOR_END()
 
         void updateProperties();

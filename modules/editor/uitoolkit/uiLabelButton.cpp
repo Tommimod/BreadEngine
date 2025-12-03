@@ -19,6 +19,12 @@ namespace BreadEditor {
 
     UiLabelButton::~UiLabelButton() = default;
 
+    void UiLabelButton::dispose()
+    {
+        onClick.unsubscribeAll();
+        UiElement::dispose();
+    }
+
     void UiLabelButton::draw(const float deltaTime)
     {
         GuiSetState(_state);

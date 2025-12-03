@@ -5,7 +5,7 @@
 
 namespace BreadEditor
 {
-    vector<BreadEngine::SubscriptionHandle> subscriptions{};
+    vector<SubscriptionHandle> subscriptions{};
 
     UiToolbar::UiToolbar() = default;
 

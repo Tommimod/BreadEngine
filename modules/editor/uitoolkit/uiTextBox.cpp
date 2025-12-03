@@ -29,6 +29,14 @@ namespace BreadEditor {
     UiTextBox::~UiTextBox()
     = default;
 
+    void UiTextBox::dispose()
+    {
+        onValueChanged.unsubscribeAll();
+        onValueChangedWithSender.unsubscribeAll();
+        _text = nullptr;
+        UiElement::dispose();
+    }
+
     void UiTextBox::draw(const float deltaTime)
     {
         GuiSetState(_state);
@@ -49,7 +57,7 @@ namespace BreadEditor {
         {
             _editMode = true;
         }
-        else if (IsMouseButtonDown(MOUSE_LEFT_BUTTON))
+        else if (_editMode && IsMouseButtonDown(MOUSE_LEFT_BUTTON))
         {
             _editMode = false;
             onValueChanged.invoke(_text);

@@ -19,10 +19,7 @@ namespace BreadEditor {
 
         ~UiComponent() override;
 
-        void dispose() override
-        {
-            UiElement::dispose();
-        }
+        void dispose() override;
 
         void trackComponent(Component *component);
 
@@ -30,7 +27,7 @@ namespace BreadEditor {
 
         void update(float deltaTime) override;
 
-        Component *getTrackedComponent() const;
+        [[nodiscard]] Component *getTrackedComponent() const;
 
     protected:
         bool tryDeleteSelf() override;
@@ -40,5 +37,7 @@ namespace BreadEditor {
         std::string _componentName;
         std::vector<Property> _properties{};
         Component *_component = nullptr;
+
+        void cleanUp();
     };
 } // BreadEditor

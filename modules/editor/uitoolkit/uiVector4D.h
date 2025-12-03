@@ -12,12 +12,9 @@ namespace BreadEditor {
 
         UiVector4D() = default;
 
-        ~UiVector4D() override;
+        ~UiVector4D() override = default;
 
-        void dispose() override
-        {
-            UiElement::dispose();
-        }
+        void dispose() override;
 
         UiVector4D *setup(const std::string &id, UiElement *parentElement, Vector4 initialValue);
 

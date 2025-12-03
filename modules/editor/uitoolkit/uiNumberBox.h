@@ -41,5 +41,6 @@ namespace BreadEditor {
         int _textSize = 0;
         const char *_label = nullptr;
         char _valueText[32] = {};
+        std::string _floatLabel;
     };
 } // BreadEditor

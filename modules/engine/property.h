@@ -16,7 +16,7 @@ namespace BreadEngine {
         PropertyType type;
         std::function<VariantT(const Component *)> get;
         std::function<void(Component *, const VariantT &)> set;
-        std::function<std::string(const VariantT&)> toStr;
+        std::function<std::string(const VariantT &)> toStr;
     };
 } // BreadEngine
 
@@ -24,5 +24,3 @@ namespace BreadEngine {
     auto val = PROP.get(&COMP); \
     auto display = PROP.name + ": " + PROP.toStr(val); \
     TraceLog(LOG_DEBUG, "%s", display.c_str());    \
-
-

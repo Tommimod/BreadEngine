@@ -27,6 +27,15 @@ namespace BreadEditor {
     UiCheckBox::~UiCheckBox()
     = default;
 
+    void UiCheckBox::dispose()
+    {
+        _internalChecked = false;
+        _externalChecked = nullptr;
+        _text.clear();
+        onValueChanged.unsubscribeAll();
+        UiElement::dispose();
+    }
+
     void UiCheckBox::draw(const float deltaTime)
     {
         GuiSetState(_state);
