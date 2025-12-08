@@ -20,7 +20,7 @@ add_executable(ExampleGame
 set_target_properties(ExampleGame PROPERTIES
     OUTPUT_NAME "ExampleGame"
     RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/bin
-    CXX_STANDARD 20
+    CXX_STANDARD 23
     CXX_STANDARD_REQUIRED ON
 )
 
@@ -50,6 +50,15 @@ source_group("Game" FILES ${GAME_SOURCES} ${GAME_HEADERS})
 # Set working directory for CLion run configurations
 set_target_properties(ExampleGame PROPERTIES
     VS_DEBUGGER_WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}
+)
+
+add_custom_command(TARGET ExampleGame POST_BUILD
+        COMMAND ${CMAKE_COMMAND} -E copy_if_different
+        "${CMAKE_SOURCE_DIR}/lib/engine/r3d.dll"
+        $<TARGET_FILE_DIR:ExampleGame>
+        COMMAND ${CMAKE_COMMAND} -E copy_if_different  # Копируем engine DLL
+        "$<TARGET_FILE:BreadEngine>"  # ИСПРАВЛЕНО: Target name "BreadEngine", не "libBreadEngine"
+        $<TARGET_FILE_DIR:ExampleGame>
 )
 
 message(STATUS "ExampleGame executable configured")

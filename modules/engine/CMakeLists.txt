@@ -40,6 +40,7 @@ set(CLAY_SOURCES
 # Add external library headers for CLion IntelliSense
 file(GLOB RAYLIB_HEADERS
     ${CMAKE_SOURCE_DIR}/lib/engine/*.h
+    ${CMAKE_SOURCE_DIR}/lib/engine/assimp/*.h
     ${CMAKE_SOURCE_DIR}/lib/*.h
 )
 
@@ -51,30 +52,37 @@ add_library(BreadEngine STATIC
     ${PUGIXML_SOURCES}
     ${PUGIXML_HEADERS}
     ${CLAY_SOURCES}
-    ${RAYLIB_HEADERS}  # For CLion to index them
+    ${RAYLIB_HEADERS}
 )
 
 # Set target properties
 set_target_properties(BreadEngine PROPERTIES
     OUTPUT_NAME "BreadEngine"
     ARCHIVE_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/lib
-    CXX_STANDARD 20
+    CXX_STANDARD 23
     CXX_STANDARD_REQUIRED ON
 )
 
 # Include directories for this target
 target_include_directories(BreadEngine PUBLIC
     ${CMAKE_CURRENT_SOURCE_DIR}
+    ${CMAKE_SOURCE_DIR}/lib/
     ${CMAKE_SOURCE_DIR}/lib/engine
+    ${CMAKE_SOURCE_DIR}/lib/engine/assimp
     ${CMAKE_SOURCE_DIR}/lib/pugixml
     ${CMAKE_SOURCE_DIR}/modules/engine/component
     ${CMAKE_SOURCE_DIR}/modules/engine/ui
 )
 
 # Link libraries
-target_link_libraries(BreadEngine
+target_link_libraries(BreadEngine PUBLIC
     ${RAYLIB_LIBRARY}
     ${PLATFORM_LIBS}
+    ${R3D_DLL}
+    ${R3D_LIB}
+    ${RAYLIB_DLL}
+    ${ASSIMP_DLL}
+    ${ASSIMP_LIB}
 )
 
 # Compiler-specific options

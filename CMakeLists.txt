@@ -2,7 +2,7 @@ cmake_minimum_required(VERSION 3.20)
 project(BreadEngine VERSION 1.0.0 LANGUAGES C CXX)
 
 # Set C++ standard
-set(CMAKE_CXX_STANDARD 20)
+set(CMAKE_CXX_STANDARD 23)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_CXX_EXTENSIONS OFF)
 
@@ -17,6 +17,9 @@ set(CMAKE_ARCHIVE_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/lib)
 # CLion-specific optimizations
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)  # For better IntelliSense
 set(CMAKE_VERBOSE_MAKEFILE ON)         # For detailed build output
+
+set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -stdlib=libc++ -lc++abi")
+
 
 # Platform detection and configuration
 if(APPLE)
@@ -43,6 +46,7 @@ endif()
 # Global include directories
 include_directories(
     ${CMAKE_SOURCE_DIR}/lib/engine
+    ${CMAKE_SOURCE_DIR}/lib/engine/assimp
     ${CMAKE_SOURCE_DIR}/lib/editor
     ${CMAKE_SOURCE_DIR}/lib/pugixml
     ${CMAKE_SOURCE_DIR}/modules/engine
@@ -62,6 +66,36 @@ if(WIN32)
         PATHS ${CMAKE_SOURCE_DIR}/lib/engine
         NO_DEFAULT_PATH
         REQUIRED
+    )
+    find_file(RAYLIB_DLL
+        NAMES raylib.dll
+        PATHS ${CMAKE_SOURCE_DIR}/lib/engine
+        NO_DEFAULT_PATH
+        REQUIRED
+    )
+    find_file(ASSIMP_DLL
+            NAMES assimp-vc143-mt.dll
+            PATHS ${CMAKE_SOURCE_DIR}/lib/engine/assimp
+            NO_DEFAULT_PATH
+            REQUIRED
+    )
+    find_library(ASSIMP_LIB
+            NAMES assimp-vc143-mt.lib
+            PATHS ${CMAKE_SOURCE_DIR}/lib/engine/assimp
+            NO_DEFAULT_PATH
+            REQUIRED
+    )
+    find_file(R3D_DLL
+        NAMES r3d.dll
+        PATHS ${CMAKE_SOURCE_DIR}/lib/engine
+        NO_DEFAULT_PATH
+        REQUIRED
+    )
+    find_library(R3D_LIB
+            NAMES r3d.lib
+            PATHS ${CMAKE_SOURCE_DIR}/lib/engine
+            NO_DEFAULT_PATH
+            REQUIRED
     )
 else()
     # On Unix-like systems, use libraylib.a

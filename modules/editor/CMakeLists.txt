@@ -30,7 +30,7 @@ add_executable(BreadEditor
 set_target_properties(BreadEditor PROPERTIES
     OUTPUT_NAME "BreadEditor"
     RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/bin
-    CXX_STANDARD 20
+    CXX_STANDARD 23
     CXX_STANDARD_REQUIRED ON
 )
 
@@ -38,16 +38,16 @@ set_target_properties(BreadEditor PROPERTIES
 target_include_directories(BreadEditor PRIVATE
     ${CMAKE_CURRENT_SOURCE_DIR}
     ${CMAKE_SOURCE_DIR}/lib/editor
+    ${CMAKE_SOURCE_DIR}/lib/engine
+    ${CMAKE_SOURCE_DIR}/lib/engine/assimp
     ${CMAKE_SOURCE_DIR}/modules/engine
 )
 
-# Link with BreadEngine and system libraries
-target_link_libraries(BreadEditor
-    BreadEngine
-    ${PLATFORM_LIBS}
+target_link_libraries(BreadEditor PUBLIC
+        BreadEngine
+        ${PLATFORM_LIBS}
 )
 
-# Compiler-specific options
 if(CMAKE_CXX_COMPILER_ID MATCHES "Clang|GNU")
     target_compile_options(BreadEditor PRIVATE
         -Wall -Wextra
@@ -64,5 +64,21 @@ set_target_properties(BreadEditor PROPERTIES
     VS_DEBUGGER_WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}
 )
 
+add_custom_command(TARGET BreadEditor POST_BUILD
+        COMMAND ${CMAKE_COMMAND} -E copy_if_different
+        "${CMAKE_SOURCE_DIR}/lib/engine/r3d.dll"
+        "${CMAKE_BINARY_DIR}/bin"
+        COMMAND ${CMAKE_COMMAND} -E copy_if_different
+        "${CMAKE_SOURCE_DIR}/lib/engine/raylib.dll"
+        "${CMAKE_BINARY_DIR}/bin"
+        COMMAND ${CMAKE_COMMAND} -E copy_if_different
+        "${CMAKE_SOURCE_DIR}/lib/engine/assimp/assimp-vc143-mt.dll"
+        "${CMAKE_BINARY_DIR}/bin"
+        COMMAND ${CMAKE_COMMAND} -E copy_if_different
+        "${CMAKE_SOURCE_DIR}/lib/libc++.dll"
+        "${CMAKE_BINARY_DIR}/bin"
+)
+
 message(STATUS "BreadEditor executable configured")
+message(STATUS "${CMAKE_BINARY_DIR}/bin")
 message(STATUS "  Working directory will be: ${CMAKE_SOURCE_DIR}")
