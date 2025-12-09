@@ -3,6 +3,7 @@ project(BreadEditor_App)
 
 file(GLOB_RECURSE EDITOR_SOURCES
         "*.cpp"
+        ${CMAKE_SOURCE_DIR}/lib/editor/*.c
 )
 
 file(GLOB_RECURSE EDITOR_HEADERS

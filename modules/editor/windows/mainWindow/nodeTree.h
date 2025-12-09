@@ -21,6 +21,8 @@ namespace BreadEditor {
 
         void update(float deltaTime) override;
 
+        NodeUiElement *getSelectedNodeUiElement() const;
+
     private:
         const char *_title = "Node Inspector";
         std::vector<SubscriptionHandle> _nodeNotificatorSubscriptions;

@@ -45,6 +45,11 @@ namespace BreadEditor {
         updateResizable(*this);
     }
 
+    NodeUiElement * NodeTree::getSelectedNodeUiElement() const
+    {
+        return _selectedNodeUiElement;
+    }
+
     NodeUiElement *NodeTree::findNodeUiElementByEngineNode(const Node *node) const
     {
         for (const auto child: _childs)

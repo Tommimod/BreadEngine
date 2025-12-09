@@ -8,7 +8,8 @@ namespace BreadEditor {
     }
 
     MainWindow::MainWindow()
-        : _toolbar(UiPool::toolbarPool.get().setup("mainWindowToolbar", nullptr, 20, {"File", "Edit", "Help"})),
+        : _gizmoSystem(),
+          _toolbar(UiPool::toolbarPool.get().setup("mainWindowToolbar", nullptr, 20, {"File", "Edit", "Help"})),
           _nodeTree(NodeTree(NodeTree::Id))
     {
         _toolbar.setAnchor(UI_FIT_TOP_HORIZONTAL);
@@ -43,9 +44,14 @@ namespace BreadEditor {
         return _nodeTree;
     }
 
-    NodeInspector & MainWindow::getNodeInspector()
+    NodeInspector &MainWindow::getNodeInspector() const
     {
         return *_nodeInspector;
+    }
+
+    GizmoSystem &MainWindow::getGizmoSystem()
+    {
+        return _gizmoSystem;
     }
 
     void MainWindow::render(const float deltaTime)
@@ -55,5 +61,10 @@ namespace BreadEditor {
 
         _nodeTree.update(deltaTime);
         _nodeTree.draw(deltaTime);
+
+        if (const auto selectedNodeUiElement = _nodeTree.getSelectedNodeUiElement(); selectedNodeUiElement != nullptr)
+        {
+            _gizmoSystem.Draw(selectedNodeUiElement->getNode()->get<BreadEngine::Transform>());
+        }
     }
 } // namespace BreadEditor

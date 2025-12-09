@@ -1,4 +1,5 @@
 #pragma once
+#include "gizmoSystem.h"
 #include "nodeInspector.h"
 #include "nodeTree.h"
 #include "../../uitoolkit/uiToolbar.h"
@@ -19,11 +20,14 @@ namespace BreadEditor {
 
         [[nodiscard]] NodeTree &getNodeTree();
 
-        [[nodiscard]] NodeInspector &getNodeInspector();
+        [[nodiscard]] NodeInspector &getNodeInspector() const;
+
+        [[nodiscard]] GizmoSystem &getGizmoSystem();
 
         void render(float deltaTime);
 
     private:
+        GizmoSystem _gizmoSystem;
         UiToolbar &_toolbar;
         NodeTree _nodeTree;
         NodeInspector *_nodeInspector;
