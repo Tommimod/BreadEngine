@@ -47,6 +47,9 @@ endif()
 include_directories(
     ${CMAKE_SOURCE_DIR}/lib/engine
     ${CMAKE_SOURCE_DIR}/lib/engine/assimp
+    ${CMAKE_SOURCE_DIR}/lib/engine/r3d
+    ${CMAKE_SOURCE_DIR}/lib/engine/r3d/assets
+    ${CMAKE_SOURCE_DIR}/lib/engine/r3d/shaders
     ${CMAKE_SOURCE_DIR}/lib/editor
     ${CMAKE_SOURCE_DIR}/lib/pugixml
     ${CMAKE_SOURCE_DIR}/modules/engine
@@ -62,7 +65,7 @@ if(WIN32)
     endif()
     # On Windows, use MinGW-compiled raylib
     find_library(RAYLIB_LIBRARY
-        NAMES libraylib-win64.a raylib
+        NAMES raylib
         PATHS ${CMAKE_SOURCE_DIR}/lib/engine
         NO_DEFAULT_PATH
         REQUIRED
@@ -80,7 +83,7 @@ if(WIN32)
             REQUIRED
     )
     find_library(ASSIMP_LIB
-            NAMES assimp-vc143-mt.lib
+            NAMES assimp-vc143-mt
             PATHS ${CMAKE_SOURCE_DIR}/lib/engine/assimp
             NO_DEFAULT_PATH
             REQUIRED
@@ -92,7 +95,7 @@ if(WIN32)
         REQUIRED
     )
     find_library(R3D_LIB
-            NAMES r3d.lib
+            NAMES r3d
             PATHS ${CMAKE_SOURCE_DIR}/lib/engine
             NO_DEFAULT_PATH
             REQUIRED

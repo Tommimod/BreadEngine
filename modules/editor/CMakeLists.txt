@@ -1,22 +1,13 @@
 # BreadEditor - Game Editor Application
 project(BreadEditor_App)
 
-# Collect editor source files
 file(GLOB_RECURSE EDITOR_SOURCES
         "*.cpp"
-        "*/*.cpp"
-        "*/*/*.cpp"
 )
 
 file(GLOB_RECURSE EDITOR_HEADERS
         "*.h"
-        "*/*.h"
-        "*/*/*.h"
-)
-
-# Add RayGUI header for CLion IntelliSense
-set(RAYGUI_HEADERS
-    ${CMAKE_SOURCE_DIR}/lib/editor/raygui.h
+        "*.hpp"
 )
 
 # Create executable

@@ -1,19 +1,16 @@
 # BreadEngine - Core Engine Library
 project(BreadEngine_Core)
 
-# Collect all engine source files
+# For engine sources
 file(GLOB_RECURSE ENGINE_SOURCES
-    "*.cpp"
-    "*.c"
-    "component/*.cpp"
-    "ui/*.cpp"
+        "*.c"
+        "*.cpp"
 )
 
+# For headers
 file(GLOB_RECURSE ENGINE_HEADERS
-    "*.h"
-    "*.hpp"
-    "component/*.h"
-    "ui/*.h"
+        "*.h"
+        "*.hpp"
 )
 
 file(GLOB_RECURSE ENGINE_INLINES
@@ -41,7 +38,13 @@ set(CLAY_SOURCES
 file(GLOB RAYLIB_HEADERS
     ${CMAKE_SOURCE_DIR}/lib/engine/*.h
     ${CMAKE_SOURCE_DIR}/lib/engine/assimp/*.h
+    ${CMAKE_SOURCE_DIR}/lib/engine/assimp/*/*.h
+    ${CMAKE_SOURCE_DIR}/lib/engine/assimp/*/*/*.h
+    ${CMAKE_SOURCE_DIR}/lib/engine/assimp/*.hpp
+    ${CMAKE_SOURCE_DIR}/lib/engine/assimp/*/*.hpp
     ${CMAKE_SOURCE_DIR}/lib/*.h
+    ${CMAKE_SOURCE_DIR}/lib/engine/r3d/*.h
+    ${CMAKE_SOURCE_DIR}/lib/engine/r3d/*/*.h
 )
 
 # Create the static library
@@ -69,6 +72,9 @@ target_include_directories(BreadEngine PUBLIC
     ${CMAKE_SOURCE_DIR}/lib/
     ${CMAKE_SOURCE_DIR}/lib/engine
     ${CMAKE_SOURCE_DIR}/lib/engine/assimp
+    ${CMAKE_SOURCE_DIR}/lib/engine/r3d
+    ${CMAKE_SOURCE_DIR}/lib/engine/r3d/assets
+    ${CMAKE_SOURCE_DIR}/lib/engine/r3d/shaders
     ${CMAKE_SOURCE_DIR}/lib/pugixml
     ${CMAKE_SOURCE_DIR}/modules/engine/component
     ${CMAKE_SOURCE_DIR}/modules/engine/ui
@@ -84,6 +90,9 @@ target_link_libraries(BreadEngine PUBLIC
     ${ASSIMP_DLL}
     ${ASSIMP_LIB}
 )
+
+message(STATUS "R3D_INCLUDE_DIRS: ${R3D_DLL}")
+message(STATUS "R3D_LIBRARIES: ${R3D_LIB}")
 
 # Compiler-specific options
 if(CMAKE_CXX_COMPILER_ID MATCHES "Clang|GNU")

@@ -37,7 +37,6 @@ namespace BreadEngine {
         InitWindow(width, height, title);
         R3D_Init(width, height, R3D_FLAG_FXAA);
         SetTargetFPS(60);
-
         SetupDefaultCamera();
         NodeProvider::init();
 
@@ -164,7 +163,7 @@ namespace BreadEngine {
     bool Engine::IsCollisionPointRec(const Vector2 point, const Rectangle rec)
     {
         return point.x >= rec.x && point.x <= rec.x + rec.width &&
-            point.y >= rec.y && point.y <= rec.y + rec.height;
+               point.y >= rec.y && point.y <= rec.y + rec.height;
     }
 
     bool Engine::IsCollisionPointRec(const Vector2 point, const Rectangle rec, const Rectangle subtraction)
