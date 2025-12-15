@@ -27,7 +27,7 @@ namespace BreadEditor {
         }
 
         const auto mousePos = GetMousePosition();
-        if (BreadEngine::Engine::IsCollisionPointRec(prevMousePos, bounds, subBounds))
+        if (BreadEngine::Engine::isCollisionPointRec(prevMousePos, bounds, subBounds))
         {
             if (IsMouseButtonPressed(MOUSE_LEFT_BUTTON))
             {

@@ -6,13 +6,18 @@
 
 namespace BreadEditor
 {
-    Editor &Editor::GetInstance()
+    Editor &Editor::getInstance()
     {
         static Editor instance;
         return instance;
     }
 
-    bool Editor::Initialize()
+    void Editor::setEngine(Engine &engine)
+    {
+        _engine = &engine;
+    }
+
+    bool Editor::initialize()
     {
         if (_initialized)
             return true;
@@ -30,16 +35,16 @@ namespace BreadEditor
         return true;
     }
 
-    void Editor::Shutdown()
+    void Editor::shutdown()
     {
         if (!_initialized)
             return;
 
-        CloseProject();
+        closeProject();
         _initialized = false;
     }
 
-    void Editor::Update(float deltaTime)
+    void Editor::update(float deltaTime)
     {
         if (!_initialized)
             return;
@@ -47,7 +52,7 @@ namespace BreadEditor
         CursorSystem::draw();
     }
 
-    void Editor::Render(float deltaTime)
+    void Editor::render2D(float deltaTime)
     {
         if (!_initialized)
             return;
@@ -60,23 +65,31 @@ namespace BreadEditor
         {
         }
 
-        if (IsProjectOpen())
+        if (isProjectOpen())
         {
             if (GuiButton((Rectangle){10, 130, 120, 30}, "Compile Game"))
             {
-                CompileGame();
+                compileGame();
             }
 
             if (GuiButton((Rectangle){10, 170, 120, 30}, "Run Game"))
             {
-                RunGame();
+                runGame();
             }
         }
 
-        main_window.render(deltaTime);
+        main_window.render2D(deltaTime);
     }
 
-    bool Editor::CreateProject(const std::string &name, const std::string &path)
+    void Editor::render3D(const float deltaTime)
+    {
+        if (!_initialized)
+            return;
+
+        main_window.render3D(deltaTime);
+    }
+
+    bool Editor::createProject(const std::string &name, const std::string &path)
     {
         // Create project directory structure
         // Generate basic game template
@@ -84,35 +97,35 @@ namespace BreadEditor
         return true;
     }
 
-    bool Editor::OpenProject(const std::string &path)
+    bool Editor::openProject(const std::string &path)
     {
         _currentProjectPath = path;
         return true;
     }
 
-    void Editor::CloseProject() { _currentProjectPath.clear(); }
+    void Editor::closeProject() { _currentProjectPath.clear(); }
 
-    bool Editor::CompileGame()
+    bool Editor::compileGame()
     {
-        if (!IsProjectOpen())
+        if (!isProjectOpen())
             return false;
 
         std::string buildCommand = "cd " + _currentProjectPath + " && make";
         return system(buildCommand.c_str()) == 0;
     }
 
-    bool Editor::RunGame()
+    bool Editor::runGame()
     {
-        if (!CompileGame())
+        if (!compileGame())
             return false;
 
         std::string gamePath = _currentProjectPath + "/build/libgame.dylib";
-        Engine::GetInstance().LoadGameModule(gamePath.c_str());
+        Engine::getInstance().loadGameModule(gamePath.c_str());
         return true;
     }
 
-    void Editor::StopGame()
+    void Editor::stopGame()
     {
-        Engine::GetInstance().UnloadGameModule();
+        Engine::getInstance().unloadGameModule();
     }
 } // namespace BreadEditor

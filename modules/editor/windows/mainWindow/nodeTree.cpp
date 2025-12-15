@@ -68,11 +68,11 @@ namespace BreadEditor {
         _nodeNotificatorSubscriptions.emplace_back(
             NodeProvider::onNodeCreated.subscribe([this](Node *node) { this->onNodeCreated(node); }));
         _nodeNotificatorSubscriptions.emplace_back(
-            NodeProvider::onNodeChangedParent.subscribe([this](Node *node) { this->onNodeChangedParent(node); }));
+            NodeProvider::onNodeChangedParent.subscribe([this](const Node *node) { this->onNodeChangedParent(node); }));
         _nodeNotificatorSubscriptions.emplace_back(
-            NodeProvider::onNodeDestroyed.subscribe([this](Node *node) { this->onNodeRemoved(node); }));
+            NodeProvider::onNodeDestroyed.subscribe([this](const Node *node) { this->onNodeRemoved(node); }));
         _nodeNotificatorSubscriptions.emplace_back(
-            NodeProvider::onNodeChangedActive.subscribe([this](Node *node) { this->onNodeChangedActive(node); }));
+            NodeProvider::onNodeChangedActive.subscribe([this](const Node *node) { this->onNodeChangedActive(node); }));
     }
 
     void NodeTree::unsubscribe()
@@ -147,9 +147,10 @@ namespace BreadEditor {
         if (_selectedNodeUiElement != nullptr)
         {
             node = _selectedNodeUiElement->getNode();
+            Editor::getInstance().main_window.getGizmoSystem().recalculateGizmo(node->get<BreadEngine::Transform>());
         }
 
-        Editor::GetInstance().main_window.getNodeInspector().lookupNode(node);
+        Editor::getInstance().main_window.getNodeInspector().lookupNode(node);
     }
 
     void NodeTree::onElementStartDrag(UiElement *uiElement)
@@ -169,7 +170,7 @@ namespace BreadEditor {
         for (auto nodeElement: _nodeUiElements)
         {
             const auto nodeBounds = nodeElement->getBounds();
-            if (Engine::IsCollisionPointRec(GetMousePosition(), nodeBounds))
+            if (Engine::isCollisionPointRec(GetMousePosition(), nodeBounds))
             {
                 const auto currentNode = originalElement->getNode();
                 const auto parentNode = nodeElement->getNode();

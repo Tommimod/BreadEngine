@@ -21,7 +21,7 @@ namespace BreadEditor {
         GuiSetState(_state);
         prepareToClick();
         GuiButton(_bounds, nullptr);
-        if (_isPreparedToClick && IsMouseButtonPressed(MOUSE_LEFT_BUTTON) && Engine::IsCollisionPointRec(GetMousePosition(), _bounds))
+        if (_isPreparedToClick && IsMouseButtonPressed(MOUSE_LEFT_BUTTON) && Engine::isCollisionPointRec(GetMousePosition(), _bounds))
         {
             onSelected.invoke(this);
         }
@@ -102,7 +102,7 @@ namespace BreadEditor {
     {
         if (IsMouseButtonDown(MOUSE_LEFT_BUTTON))
         {
-            _isPreparedToClick = Engine::IsCollisionPointRec(GetMousePosition(), _bounds);
+            _isPreparedToClick = Engine::isCollisionPointRec(GetMousePosition(), _bounds);
         }
     }
 } // BreadEditor

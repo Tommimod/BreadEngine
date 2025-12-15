@@ -10,10 +10,14 @@ namespace BreadEditor {
 
         ~GizmoSystem() = default;
 
-        void Draw(const BreadEngine::Transform &nodeTransform);
+        void setMode(const GizmoFlags mode) { _mode = mode; }
+
+        void recalculateGizmo(const BreadEngine::Transform &nodeTransform);
+
+        void render();
 
     private:
         GizmoFlags _mode = GIZMO_TRANSLATE;
-        ::Transform _transform;
+        ::Transform _transform {};
     };
 } // BreadEditor

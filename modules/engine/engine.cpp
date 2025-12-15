@@ -14,7 +14,7 @@ namespace BreadEngine {
 
     Engine::Engine() = default;
 
-    Engine &Engine::GetInstance()
+    Engine &Engine::getInstance()
     {
         static Engine instance;
         return instance;
@@ -26,36 +26,36 @@ namespace BreadEngine {
         return _rootNode;
     }
 
-    float Engine::GetDeltaTime()
+    float Engine::getDeltaTime()
     {
         return GetFrameTime();
     }
 
-    bool Engine::Initialize(const int width, const int height, const char *title)
+    bool Engine::initialize(const int width, const int height, const char *title)
     {
         SetConfigFlags(FLAG_WINDOW_RESIZABLE | FLAG_WINDOW_ALWAYS_RUN | FLAG_WINDOW_HIGHDPI);
         InitWindow(width, height, title);
         R3D_Init(width, height, R3D_FLAG_FXAA);
         SetTargetFPS(60);
-        SetupDefaultCamera();
+        setupDefaultCamera();
         NodeProvider::init();
 
         return true;
     }
 
-    void Engine::Shutdown()
+    void Engine::shutdown()
     {
-        UnloadGameModule();
+        unloadGameModule();
         R3D_Close();
         CloseWindow();
     }
 
-    bool Engine::ShouldClose()
+    bool Engine::shouldClose()
     {
         return WindowShouldClose();
     }
 
-    void Engine::BeginFrame() const
+    void Engine::beginFrame() const
     {
         BeginDrawing();
 
@@ -67,12 +67,12 @@ namespace BreadEngine {
     }
 
     // ReSharper disable once CppMemberFunctionMayBeStatic
-    void Engine::EndFrame()
+    void Engine::endFrame()
     {
         EndDrawing();
     }
 
-    void Engine::SetupDefaultCamera()
+    void Engine::setupDefaultCamera()
     {
         _camera.position = (Vector3){0.0f, 10.0f, 10.0f};
         _camera.target = (Vector3){0.0f, 0.0f, 0.0f};
@@ -81,9 +81,9 @@ namespace BreadEngine {
         _camera.projection = CAMERA_PERSPECTIVE;
     }
 
-    void Engine::LoadGameModule(const char *path)
+    void Engine::loadGameModule(const char *path)
     {
-        UnloadGameModule();
+        unloadGameModule();
 
         _gameModuleLoader = new ModuleLoader();
         if (!_gameModuleLoader->LoadModule(path))
@@ -107,7 +107,7 @@ namespace BreadEngine {
         }
     }
 
-    void Engine::UnloadGameModule()
+    void Engine::unloadGameModule()
     {
         if (_gameModuleLoader)
         {
@@ -126,7 +126,7 @@ namespace BreadEngine {
         }
     }
 
-    void Engine::CallGameRender2D() const
+    void Engine::callGameRender2D() const
     {
         if (_gameRender2D)
         {
@@ -134,7 +134,7 @@ namespace BreadEngine {
         }
     }
 
-    void Engine::CallGameRender3D() const
+    void Engine::callGameRender3D() const
     {
         if (_gameRender3D)
         {
@@ -142,7 +142,7 @@ namespace BreadEngine {
         }
     }
 
-    std::string Engine::GetAssetPath(const std::string &relativePath, const std::string &module)
+    std::string Engine::getAssetPath(const std::string &relativePath, const std::string &module)
     {
         std::string basePath = "assets/";
 
@@ -154,83 +154,83 @@ namespace BreadEngine {
         return basePath + relativePath;
     }
 
-    bool Engine::FileExists(const std::string &path)
+    bool Engine::isFileExists(const std::string &path)
     {
         const std::ifstream file(path);
         return file.good();
     }
 
-    bool Engine::IsCollisionPointRec(const Vector2 point, const Rectangle rec)
+    bool Engine::isCollisionPointRec(const Vector2 point, const Rectangle rec)
     {
         return point.x >= rec.x && point.x <= rec.x + rec.width &&
                point.y >= rec.y && point.y <= rec.y + rec.height;
     }
 
-    bool Engine::IsCollisionPointRec(const Vector2 point, const Rectangle rec, const Rectangle subtraction)
+    bool Engine::isCollisionPointRec(const Vector2 point, const Rectangle rec, const Rectangle subtraction)
     {
-        const auto inMainRect = IsCollisionPointRec(point, rec);
-        const auto inSubRect = IsCollisionPointRec(point, subtraction);
+        const auto inMainRect = isCollisionPointRec(point, rec);
+        const auto inSubRect = isCollisionPointRec(point, subtraction);
 
         return inMainRect && !inSubRect;
     }
 
     // Реализация утилит движка
     namespace Input {
-        bool IsKeyPressed(const int key)
+        bool isKeyPressed(const int key)
         {
             return ::IsKeyPressed(key);
         }
 
-        bool IsKeyDown(const int key)
+        bool isKeyDown(const int key)
         {
             return ::IsKeyDown(key);
         }
 
-        bool IsMouseButtonPressed(const int button)
+        bool isMouseButtonPressed(const int button)
         {
             return ::IsMouseButtonPressed(button);
         }
 
-        Vector2 GetMousePosition()
+        Vector2 getMousePosition()
         {
             return ::GetMousePosition();
         }
     } // namespace Input
 
     namespace Rendering {
-        void DrawGrid(const int slices, const float spacing)
+        void drawGrid(const int slices, const float spacing)
         {
             ::DrawGrid(slices, spacing);
         }
 
-        void DrawFPS(const int posX, const int posY)
+        void drawFPS(const int posX, const int posY)
         {
             ::DrawFPS(posX, posY);
         }
 
-        void ClearBackground(const Color color)
+        void clearBackground(const Color color)
         {
             ::ClearBackground(color);
         }
     } // namespace Rendering
 
     namespace Time {
-        float GetTime()
+        float getTime()
         {
             return ::GetTime();
         }
 
-        float GetFrameTime()
+        float getFrameTime()
         {
             return ::GetFrameTime();
         }
 
-        int GetFPS()
+        int getFPS()
         {
             return ::GetFPS();
         }
 
-        void SetTargetFPS(const int fps)
+        void setTargetFPS(const int fps)
         {
             ::SetTargetFPS(fps);
         }

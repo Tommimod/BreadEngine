@@ -23,7 +23,7 @@ namespace BreadEditor {
             }
         }
 
-        if (IsMouseButtonPressed(MOUSE_LEFT_BUTTON) && BreadEngine::Engine::IsCollisionPointRec(mousePos, element->getBounds()))
+        if (IsMouseButtonPressed(MOUSE_LEFT_BUTTON) && BreadEngine::Engine::isCollisionPointRec(mousePos, element->getBounds()))
         {
             if (_mousePositionBeforeClick.x == 0 && _mousePositionBeforeClick.y == 0)
             {

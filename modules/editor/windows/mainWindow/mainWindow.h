@@ -24,7 +24,9 @@ namespace BreadEditor {
 
         [[nodiscard]] GizmoSystem &getGizmoSystem();
 
-        void render(float deltaTime);
+        void render2D(float deltaTime);
+
+        void render3D(float deltaTime);
 
     private:
         GizmoSystem _gizmoSystem;

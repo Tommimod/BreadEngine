@@ -53,7 +53,7 @@ namespace BreadEditor {
             return;
         }
 
-        if (Engine::IsCollisionPointRec(GetMousePosition(), _bounds) && IsMouseButtonDown(MOUSE_LEFT_BUTTON))
+        if (Engine::isCollisionPointRec(GetMousePosition(), _bounds) && IsMouseButtonDown(MOUSE_LEFT_BUTTON))
         {
             _editMode = true;
         }

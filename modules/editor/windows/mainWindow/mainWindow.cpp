@@ -54,17 +54,20 @@ namespace BreadEditor {
         return _gizmoSystem;
     }
 
-    void MainWindow::render(const float deltaTime)
+    void MainWindow::render2D(const float deltaTime)
     {
         _toolbar.update(deltaTime);
         _toolbar.draw(deltaTime);
 
         _nodeTree.update(deltaTime);
         _nodeTree.draw(deltaTime);
+    }
 
+    void MainWindow::render3D(float deltaTime)
+    {
         if (const auto selectedNodeUiElement = _nodeTree.getSelectedNodeUiElement(); selectedNodeUiElement != nullptr)
         {
-            _gizmoSystem.Draw(selectedNodeUiElement->getNode()->get<BreadEngine::Transform>());
+            _gizmoSystem.render();
         }
     }
 } // namespace BreadEditor

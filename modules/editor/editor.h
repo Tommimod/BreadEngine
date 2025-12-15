@@ -1,6 +1,7 @@
 #pragma once
 #include "windows/mainWindow/mainWindow.h"
 #include <string>
+#include "engine.h"
 
 using namespace BreadEngine;
 
@@ -10,32 +11,36 @@ namespace BreadEditor {
     public:
         MainWindow main_window;
 
-        static Editor &GetInstance();
+        static Editor &getInstance();
 
-        bool Initialize();
+        void setEngine(Engine &engine);
 
-        void Shutdown();
+        bool initialize();
 
-        void Update(float deltaTime);
+        void shutdown();
 
-        void Render(float deltaTime);
+        void update(float deltaTime);
+
+        void render2D(float deltaTime);
+
+        void render3D(float deltaTime);
 
         // Project management
-        bool CreateProject(const std::string &name, const std::string &path);
+        bool createProject(const std::string &name, const std::string &path);
 
-        bool OpenProject(const std::string &path);
+        bool openProject(const std::string &path);
 
-        void CloseProject();
+        void closeProject();
 
         // Game compilation and running
-        bool CompileGame();
+        bool compileGame();
 
-        bool RunGame();
+        bool runGame();
 
-        void StopGame();
+        void stopGame();
 
-        [[nodiscard]] bool IsProjectOpen() const { return !_currentProjectPath.empty(); }
-        [[nodiscard]] const std::string &GetCurrentProjectPath() const { return _currentProjectPath; }
+        [[nodiscard]] bool isProjectOpen() const { return !_currentProjectPath.empty(); }
+        [[nodiscard]] const std::string &getCurrentProjectPath() const { return _currentProjectPath; }
 
     private:
         Editor() = default;
@@ -44,5 +49,6 @@ namespace BreadEditor {
 
         bool _initialized = false;
         std::string _currentProjectPath;
+        Engine *_engine = nullptr;
     };
 } // namespace BreadEditor

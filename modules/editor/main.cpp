@@ -4,40 +4,40 @@
 
 int main()
 {
-    Engine &engine = Engine::GetInstance();
+    Engine &engine = Engine::getInstance();
 
-    if (!engine.Initialize(1200, 800, "Bread Engine - Editor"))
+    if (!engine.initialize(1200, 800, "Bread Engine - Editor"))
     {
         return -1;
     }
 
-    BreadEditor::Editor &editor = BreadEditor::Editor::GetInstance();
-    if (!editor.Initialize())
+    BreadEditor::Editor &editor = BreadEditor::Editor::getInstance();
+    if (!editor.initialize())
     {
-        engine.Shutdown();
+        engine.shutdown();
         return -1;
     }
 
-    while (!Engine::ShouldClose())
+    while (!Engine::shouldClose())
     {
-        const auto deltaTime = Engine::GetDeltaTime();
-        engine.BeginFrame();
-        editor.Update(deltaTime);
+        const auto deltaTime = Engine::getDeltaTime();
+        engine.beginFrame();
+        editor.update(deltaTime);
 
         ClearBackground(RAYWHITE);
 
-        BeginMode3D(engine.GetCamera());
+        BeginMode3D(engine.getCamera());
         DrawGrid(1000, 1.0f);
-        engine.CallGameRender3D();
+        engine.callGameRender3D();
+        editor.render3D(deltaTime);
         EndMode3D();
 
-        engine.CallGameRender2D();
-        editor.Render(deltaTime);
-
-        engine.EndFrame();
+        engine.callGameRender2D();
+        editor.render2D(deltaTime);
+        engine.endFrame();
     }
 
-    editor.Shutdown();
-    engine.Shutdown();
+    editor.shutdown();
+    engine.shutdown();
     return 0;
 }

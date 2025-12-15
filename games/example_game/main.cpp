@@ -5,9 +5,9 @@
 int main()
 {
     // Инициализируем движок
-    BreadEngine::Engine& engine = BreadEngine::Engine::GetInstance();
+    BreadEngine::Engine& engine = BreadEngine::Engine::getInstance();
     
-    if (!engine.Initialize(800, 600, "Example Game"))
+    if (!engine.initialize(800, 600, "Example Game"))
     {
         return -1;
     }
@@ -15,9 +15,9 @@ int main()
     // Инициализируем игру
     Game_Initialize();
     
-    while (!engine.ShouldClose())
+    while (!engine.shouldClose())
     {
-        engine.BeginFrame();
+        engine.beginFrame();
         
         // Обновляем логику игры
         Game_Update();
@@ -30,15 +30,15 @@ int main()
         DrawFPS(10, 10);
         
         // 3D rendering
-        BeginMode3D(engine.GetCamera());
+        BeginMode3D(engine.getCamera());
         DrawGrid(10, 1.0f);
         Game_Render3D();
         EndMode3D();
         
-        engine.EndFrame();
+        engine.endFrame();
     }
     
     Game_Shutdown();
-    engine.Shutdown();
+    engine.shutdown();
     return 0;
 }

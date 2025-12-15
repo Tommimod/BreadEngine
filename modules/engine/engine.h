@@ -6,56 +6,58 @@
 #include "node.h"
 #include "objectPool.h"
 
-namespace BreadEngine
-{
+namespace BreadEngine {
     class Engine
     {
     public:
-        static Engine &GetInstance();
-
         static ObjectPool<Node> nodePool;
 
-        static Node& getRootNode();
+        static Engine &getInstance();
 
-        static float GetDeltaTime();
+        static Node &getRootNode();
 
-        bool Initialize(int width, int height, const char *title);
+        static float getDeltaTime();
 
-        void Shutdown();
+        bool initialize(int width, int height, const char *title);
 
-        static bool ShouldClose();
+        void shutdown();
 
-        void BeginFrame() const;
+        static bool shouldClose();
 
-        void EndFrame();
+        void beginFrame() const;
 
-        void SetupDefaultCamera();
+        void endFrame();
 
-        Camera3D &GetCamera()
+        void setupDefaultCamera();
+
+        Camera3D &getCamera()
         {
             return _camera;
         }
 
-        void LoadGameModule(const char *path);
+        void loadGameModule(const char *path);
 
-        void UnloadGameModule();
+        void unloadGameModule();
 
-        void CallGameRender2D() const;
+        void callGameRender2D() const;
 
-        void CallGameRender3D() const;
+        void callGameRender3D() const;
 
-        static std::string GetAssetPath(const std::string &relativePath, const std::string &module = "");
+        static std::string getAssetPath(const std::string &relativePath, const std::string &module = "");
 
-        static bool FileExists(const std::string &path);
+        static bool isFileExists(const std::string &path);
 
         // Check if point is inside rectangle
-        static bool IsCollisionPointRec(Vector2 point, Rectangle rec);
+        static bool isCollisionPointRec(Vector2 point, Rectangle rec);
+
         // Check if point is inside rectangle with hole
-        static bool IsCollisionPointRec(Vector2 point, Rectangle rec, Rectangle subtraction);
+        static bool isCollisionPointRec(Vector2 point, Rectangle rec, Rectangle subtraction);
 
     private:
         Engine();
+
         ~Engine() = default;
+
         static Node _rootNode;
 
         Camera3D _camera{};
@@ -78,34 +80,31 @@ namespace BreadEngine
         GameShutdownFunc _gameShutdown = nullptr;
     };
 
-    namespace Input
-    {
-        bool IsKeyPressed(int key);
+    namespace Input {
+        bool isKeyPressed(int key);
 
-        bool IsKeyDown(int key);
+        bool isKeyDown(int key);
 
-        bool IsMouseButtonPressed(int button);
+        bool isMouseButtonPressed(int button);
 
-        Vector2 GetMousePosition();
+        Vector2 getMousePosition();
     } // namespace Input
 
-    namespace Rendering
-    {
-        void DrawGrid(int slices, float spacing);
+    namespace Rendering {
+        void drawGrid(int slices, float spacing);
 
-        void DrawFPS(int posX, int posY);
+        void drawFPS(int posX, int posY);
 
-        void ClearBackground(Color color);
+        void clearBackground(Color color);
     } // namespace Rendering
 
-    namespace Time
-    {
-        float GetTime();
+    namespace Time {
+        float getTime();
 
-        float GetFrameTime();
+        float getFrameTime();
 
-        int GetFPS();
+        int getFPS();
 
-        void SetTargetFPS(int fps);
+        void setTargetFPS(int fps);
     } // namespace Time
 } // namespace BreadEngine
