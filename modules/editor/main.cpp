@@ -6,7 +6,7 @@ int main()
 {
     Engine &engine = Engine::getInstance();
 
-    if (!engine.initialize(1200, 800, "Bread Engine - Editor"))
+    if (!engine.initialize(1920, 1080, "Bread Engine - Editor"))
     {
         return -1;
     }

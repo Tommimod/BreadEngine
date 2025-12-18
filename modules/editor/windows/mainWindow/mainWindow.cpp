@@ -18,7 +18,7 @@ namespace BreadEditor {
 
         _nodeTree.setPivot({1, 0});
         _nodeTree.setAnchor(UI_FIT_RIGHT_VERTICAL);
-        _nodeTree.setSizePercentOneTime({.3f, .5f});
+        _nodeTree.setSizePercentOneTime({.15f, .5f});
         _nodeTree.setPosition({0, _toolbar.getSize().y - 1});
 
         _nodeInspector = new NodeInspector(NodeInspector::Id, &_nodeTree);
