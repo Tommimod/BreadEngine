@@ -11,6 +11,12 @@ namespace BreadEditor {
     class UiComponent final : public UiElement
     {
     public:
+        struct PropWithComponent
+        {
+            std::unique_ptr<Property> property;
+            Component* component;
+        };
+
         Action<std::type_index> onDelete;
 
         UiComponent();

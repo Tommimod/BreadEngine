@@ -126,6 +126,32 @@ extern "C" {
 	RLAPI void SetGizmoGlobalAxis(Vector3 right, Vector3 up, Vector3 forward);
 
 
+    /**
+     * Check if any gizmo is currently transforming.
+     * @return true if a gizmo is active and transforming; false otherwise.
+     */
+    RLAPI bool IsGizmoTransforming(void);
+
+
+    /**
+     * Check if the active transformation is of scaling type.
+     * @return true if a gizmo is actively scaling; false otherwise.
+     */
+    RLAPI bool IsGizmoScaling(void);
+
+    /**
+     * Check if the active transformation is of translation type.
+     * @return true if a gizmo is actively translating; false otherwise.
+     */
+    RLAPI bool IsGizmoTranslating(void);
+
+    /**
+     * Check if the active transformation is of rotation type.
+     * @return true if a gizmo is actively rotating; false otherwise.
+     */
+    RLAPI bool IsGizmoRotating(void);
+
+
 //--------------------------------------------------------------------------------------------------
 
 #if defined(__cplusplus)

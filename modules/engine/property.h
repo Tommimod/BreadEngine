@@ -23,4 +23,4 @@ namespace BreadEngine {
 #define PROP_STRING(COMP, PROP) \
     auto val = PROP.get(&COMP); \
     auto display = PROP.name + ": " + PROP.toStr(val); \
-    TraceLog(LOG_DEBUG, "%s", display.c_str());    \
+    TraceLog(LOG_DEBUG, "%s", display.c_str());

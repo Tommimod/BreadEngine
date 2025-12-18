@@ -12,12 +12,13 @@ namespace BreadEditor {
 
         void setMode(const GizmoFlags mode) { _mode = mode; }
 
-        void recalculateGizmo(const BreadEngine::Transform &nodeTransform);
+        void recalculateGizmo(BreadEngine::Transform &nodeTransform);
 
         void render();
 
     private:
         GizmoFlags _mode = GIZMO_TRANSLATE;
-        ::Transform _transform {};
+        ::Transform _transform{};
+        BreadEngine::Transform *_nodeTransform{};
     };
 } // BreadEditor

@@ -183,35 +183,11 @@ static bool IsGizmoAxisActive(int axis);
 static bool CheckGizmoType(const GizmoData* data, int type);
 
 /**
- * Check if any gizmo is currently transforming.
- * @return true if a gizmo is active and transforming; false otherwise.
- */
-static bool IsGizmoTransforming(void);
-
-/**
  * Check if the current gizmo is the one actively transforming.
  * @param data Pointer to the data associated with the current gizmo.
  * @return true if this gizmo is the one actively transforming; false otherwise.
  */
 static bool IsThisGizmoTransforming(const GizmoData* data);
-
-/**
- * Check if the active transformation is of scaling type.
- * @return true if a gizmo is actively scaling; false otherwise.
- */
-static bool IsGizmoScaling(void);
-
-/**
- * Check if the active transformation is of translation type.
- * @return true if a gizmo is actively translating; false otherwise.
- */
-static bool IsGizmoTranslating(void);
-
-/**
- * Check if the active transformation is of rotation type.
- * @return true if a gizmo is actively rotating; false otherwise.
- */
-static bool IsGizmoRotating(void);
 
 /**
  * Convert a screen-space vector to world space.
@@ -530,7 +506,7 @@ static bool CheckGizmoType(const GizmoData* data, int type)
 	return (data->flags & type) == type;
 }
 
-static bool IsGizmoTransforming(void)
+bool IsGizmoTransforming(void)
 {
 	return GIZMO.curAction != GZ_ACTION_NONE;
 }
@@ -540,17 +516,17 @@ static bool IsThisGizmoTransforming(const GizmoData* data)
 	return IsGizmoTransforming() && data->curTransform == GIZMO.activeTransform;
 }
 
-static bool IsGizmoScaling(void)
+bool IsGizmoScaling(void)
 {
 	return GIZMO.curAction == GZ_ACTION_SCALE;
 }
 
-static bool IsGizmoTranslating(void)
+bool IsGizmoTranslating(void)
 {
 	return GIZMO.curAction == GZ_ACTION_TRANSLATE;
 }
 
-static bool IsGizmoRotating(void)
+bool IsGizmoRotating(void)
 {
 	return GIZMO.curAction == GZ_ACTION_ROTATE;
 }

@@ -25,10 +25,34 @@ namespace BreadEditor {
         return this;
     }
 
+    UiVector4D * UiVector4D::setup(const std::string &id, UiElement *parentElement, UiComponent::PropWithComponent dynamicValue)
+    {
+        UiElement::setup(id, parentElement);
+        _dynamicValue = std::move(dynamicValue);
+        _value = get<Vector4>(_dynamicValue.property->get(_dynamicValue.component));
+        _names[0] = "X";
+        _names[1] = "Y";
+        _names[2] = "Z";
+        _names[3] = "W";
+        return this;
+    }
+
     UiVector4D *UiVector4D::setup(const std::string &id, UiElement *parentElement, const Vector4 initialValue, const std::string_view xName, const std::string_view yName, const std::string_view zName, const std::string_view wName)
     {
         UiElement::setup(id, parentElement);
         _value = initialValue;
+        _names[0] = xName;
+        _names[1] = yName;
+        _names[2] = zName;
+        _names[3] = wName;
+        return this;
+    }
+
+    UiVector4D * UiVector4D::setup(const std::string &id, UiElement *parentElement, UiComponent::PropWithComponent dynamicValue, const std::string_view xName, const std::string_view yName, const std::string_view zName, const std::string_view wName)
+    {
+        UiElement::setup(id, parentElement);
+        _dynamicValue = std::move(dynamicValue);
+        _value = get<Vector4>(_dynamicValue.property->get(_dynamicValue.component));
         _names[0] = xName;
         _names[1] = yName;
         _names[2] = zName;
@@ -59,6 +83,15 @@ namespace BreadEditor {
     {
         if (_fields[0] != nullptr)
         {
+            if (_dynamicValue.component != nullptr)
+            {
+                _value = get<Vector4>(_dynamicValue.property->get(_dynamicValue.component));
+                _fields[0]->setValue(_value.x);
+                _fields[1]->setValue(_value.y);
+                _fields[2]->setValue(_value.z);
+                _fields[3]->setValue(_value.w);
+            }
+
             return;
         }
 

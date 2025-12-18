@@ -2,6 +2,7 @@
 #include "action.h"
 #include "uiElement.h"
 #include "uiNumberBox.h"
+#include "uiComponent.h"
 using namespace BreadEngine;
 
 namespace BreadEditor {
@@ -18,7 +19,11 @@ namespace BreadEditor {
 
         UiVector4D *setup(const std::string &id, UiElement *parentElement, Vector4 initialValue);
 
+        UiVector4D *setup(const std::string &id, UiElement *parentElement, UiComponent::PropWithComponent dynamicValue);
+
         UiVector4D *setup(const std::string &id, UiElement *parentElement, Vector4 initialValue, std::string_view xName, std::string_view yName, std::string_view zName, std::string_view wName);
+
+        UiVector4D *setup(const std::string &id, UiElement *parentElement, UiComponent::PropWithComponent dynamicValue, std::string_view xName, std::string_view yName, std::string_view zName, std::string_view wName);
 
         void draw(float deltaTime) override;
 
@@ -31,6 +36,7 @@ namespace BreadEditor {
         Vector4 _value{};
         std::array<UiNumberBox *, 4> _fields{};
         std::array<std::string, 4> _names{};
+        UiComponent::PropWithComponent _dynamicValue{};
 
         void createFields();
 

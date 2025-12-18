@@ -1,5 +1,6 @@
 #pragma once
 #include "action.h"
+#include "uiComponent.h"
 #include "uiElement.h"
 using namespace BreadEngine;
 
@@ -24,9 +25,13 @@ namespace BreadEditor {
 
         UiNumberBox &setup(const std::string &id, UiElement *parentElement, const std::string &label, int defaultValue, int defaultTextSize = 14, bool defaultEditMode = false);
 
+        UiNumberBox &setup(const std::string &id, UiElement *parentElement, const std::string &label, UiComponent::PropWithComponent dynamicValue, int defaultTextSize = 14, bool defaultEditMode = false);
+
         void draw(float deltaTime) override;
 
         void update(float deltaTime) override;
+
+        void setValue(int value);
 
         void setValue(float value);
 
@@ -42,5 +47,6 @@ namespace BreadEditor {
         const char *_label = nullptr;
         char _valueText[32] = {};
         std::string _floatLabel;
+        UiComponent::PropWithComponent _dynamicValue{};
     };
 } // BreadEditor

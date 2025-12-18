@@ -23,10 +23,30 @@ namespace BreadEditor {
         return this;
     }
 
+    UiVector2D *UiVector2D::setup(const std::string &id, UiElement *parentElement, UiComponent::PropWithComponent dynamicValue)
+    {
+        UiElement::setup(id, parentElement);
+        _dynamicValue = std::move(dynamicValue);
+        _value = get<Vector2>(_dynamicValue.property->get(_dynamicValue.component));
+        _names[0] = "X";
+        _names[1] = "Y";
+        return this;
+    }
+
     UiVector2D *UiVector2D::setup(const std::string &id, UiElement *parentElement, const Vector2 initialValue, const std::string_view xName, const std::string_view yName)
     {
         UiElement::setup(id, parentElement);
         _value = initialValue;
+        _names[0] = xName;
+        _names[1] = yName;
+        return this;
+    }
+
+    UiVector2D *UiVector2D::setup(const std::string &id, UiElement *parentElement, UiComponent::PropWithComponent dynamicValue, const std::string_view xName, const std::string_view yName)
+    {
+        UiElement::setup(id, parentElement);
+        _dynamicValue = std::move(dynamicValue);
+        _value = get<Vector2>(_dynamicValue.property->get(_dynamicValue.component));
         _names[0] = xName;
         _names[1] = yName;
         return this;
@@ -55,6 +75,13 @@ namespace BreadEditor {
     {
         if (_fields[0] != nullptr)
         {
+            if (_dynamicValue.component != nullptr)
+            {
+                _value = get<Vector2>(_dynamicValue.property->get(_dynamicValue.component));
+                _fields[0]->setValue(_value.x);
+                _fields[1]->setValue(_value.y);
+            }
+
             return;
         }
 
@@ -71,7 +98,7 @@ namespace BreadEditor {
                 value = _value.y;
             }
 
-            const auto field = &UiPool::numberBoxPool.get().setup(TextFormat("Vector2D%s_Field%i", id.c_str(), i), this, _names[i], value);
+            UiNumberBox *field = &UiPool::numberBoxPool.get().setup(TextFormat("Vector2D%s_Field%i", id.c_str(), i), this, _names[i], value);
             _fields[i] = field;
             field->onValueChangedWithSender.subscribe([this](const float floatValue, UiNumberBox *thisField)
             {

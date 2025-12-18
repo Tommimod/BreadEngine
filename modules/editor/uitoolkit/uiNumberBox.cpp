@@ -84,6 +84,18 @@ namespace BreadEditor {
         return *this;
     }
 
+    UiNumberBox &UiNumberBox::setup(const std::string &id, UiElement *parentElement, const std::string &label, UiComponent::PropWithComponent dynamicValue, int defaultTextSize, bool defaultEditMode)
+    {
+        _intMode = true;
+        _label = label.c_str();
+        _dynamicValue = std::move(dynamicValue);
+        _textSize = defaultTextSize;
+        snprintf(_valueText, sizeof(_valueText), "%i", _intValue);
+        _editMode = defaultEditMode;
+        UiElement::setup(id, parentElement);
+        return *this;
+    }
+
     void UiNumberBox::draw(const float deltaTime)
     {
         GuiSetState(_state);
@@ -120,11 +132,46 @@ namespace BreadEditor {
     void UiNumberBox::update(const float deltaTime)
     {
         UiElement::update(deltaTime);
+        if (!_editMode && _dynamicValue.component != nullptr)
+        {
+            if (_intMode)
+            {
+                _intValue = get<int>(_dynamicValue.property->get(_dynamicValue.component));
+            }
+            else
+            {
+                _floatValue = get<float>(_dynamicValue.property->get(_dynamicValue.component));
+            }
+        }
+    }
+
+    void UiNumberBox::setValue(const int value)
+    {
+        if (_editMode)
+        {
+            return;
+        }
+
+        _intValue = value;
+        snprintf(_valueText, sizeof(_valueText), "%i", _intValue);
     }
 
     void UiNumberBox::setValue(const float value)
     {
+        if (_editMode)
+        {
+            return;
+        }
+
         _floatValue = value;
+        if (_floatValue == 0.0000f)
+        {
+            snprintf(_valueText, sizeof(_valueText), "%.0f", _floatValue);
+        }
+        else
+        {
+            snprintf(_valueText, sizeof(_valueText), "%.1f", _floatValue);
+        }
     }
 
     bool UiNumberBox::tryDeleteSelf()
