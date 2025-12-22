@@ -265,6 +265,11 @@ namespace BreadEditor {
         _anchor = newAnchor;
     }
 
+    UI_ANCHOR_TYPE UiElement::getAnchor() const
+    {
+        return _anchor;
+    }
+
     void UiElement::setPivot(const Vector2 &newPivot)
     {
         _pivot = newPivot;

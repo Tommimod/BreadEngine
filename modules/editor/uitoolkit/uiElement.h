@@ -89,6 +89,8 @@ namespace BreadEditor {
 
         void setAnchor(UI_ANCHOR_TYPE newAnchor);
 
+        [[nodiscard]] UI_ANCHOR_TYPE getAnchor() const;
+
         void setPivot(const Vector2 &newPivot);
 
         void changeParent(UiElement *newParent);

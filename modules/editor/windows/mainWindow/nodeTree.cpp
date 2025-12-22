@@ -7,7 +7,6 @@
 
 namespace BreadEditor {
     std::string NodeTree::Id = "mainWindowNodeTree";
-    UiElement *nodeInspector;
 
     NodeTree::NodeTree(const std::string &id)
     {
@@ -108,11 +107,8 @@ namespace BreadEditor {
         element.onDragStarted.subscribe([this](UiElement *uiElement) { this->onElementStartDrag(uiElement); });
         element.onDragEnded.subscribe([this](UiElement *uiElement) { this->onElementEndDrag(uiElement); });
 
-        nodeInspector = nodeInspector == nullptr ? getChildById(NodeInspector::Id) : nodeInspector;
-        if (nodeInspector != nullptr)
-        {
-            setChildLast(nodeInspector);
-        }
+        auto nodeInspector = Editor::getInstance().mainWindow.getNodeInspector();
+        setChildLast(&nodeInspector);
     }
 
     void NodeTree::onNodeChangedParent(const Node *node) const
@@ -147,10 +143,10 @@ namespace BreadEditor {
         if (_selectedNodeUiElement != nullptr)
         {
             node = _selectedNodeUiElement->getNode();
-            Editor::getInstance().main_window.getGizmoSystem().recalculateGizmo(node->get<BreadEngine::Transform>());
+            Editor::getInstance().mainWindow.getGizmoSystem().recalculateGizmo(node->get<BreadEngine::Transform>());
         }
 
-        Editor::getInstance().main_window.getNodeInspector().lookupNode(node);
+        Editor::getInstance().mainWindow.getNodeInspector().lookupNode(node);
     }
 
     void NodeTree::onElementStartDrag(UiElement *uiElement)
@@ -211,11 +207,8 @@ namespace BreadEditor {
         _contentView.y = _bounds.y;
         _contentView.width = _bounds.width;
 
-        nodeInspector = nodeInspector == nullptr ? getChildById(NodeInspector::Id) : nodeInspector;
-        if (nodeInspector != nullptr)
-        {
-            _contentView.height = _bounds.height - nodeInspector->getBounds().height;
-        }
+        const auto nodeInspector = Editor::getInstance().mainWindow.getNodeInspector();
+        _contentView.height = _bounds.height - nodeInspector.getBounds().height;
     }
 
     void NodeTree::recalculateUiNodes(Node &startNode, int &nodeOrder) const

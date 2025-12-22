@@ -1,5 +1,4 @@
 ﻿#include "IUiResizable.h"
-
 #include "cursorSystem.h"
 #include "raymath.h"
 #include "engine.h"
@@ -14,16 +13,31 @@ namespace BreadEditor {
 
         const auto bounds = uiElement.getBounds();
         auto subBounds = bounds;
+        const auto anchor = uiElement.getAnchor();
         if (isHorizontalResized)
         {
             subBounds.width -= static_cast<float>(tricknessInPixel);
-            subBounds.x += static_cast<float>(tricknessInPixel);
+            if (anchor == UI_FIT_RIGHT_VERTICAL)
+            {
+                subBounds.x += static_cast<float>(tricknessInPixel);
+            }
+            else
+            {
+                subBounds.x -= static_cast<float>(tricknessInPixel);
+            }
         }
 
         if (isVerticalResized)
         {
             subBounds.height -= static_cast<float>(tricknessInPixel);
-            subBounds.y += static_cast<float>(tricknessInPixel);
+            if (anchor == UI_FIT_BOTTOM_HORIZONTAL || anchor == UI_RIGHT_BOTTOM || anchor == UI_LEFT_BOTTOM)
+            {
+                subBounds.y += static_cast<float>(tricknessInPixel);
+            }
+            else
+            {
+                subBounds.y -= static_cast<float>(tricknessInPixel);
+            }
         }
 
         const auto mousePos = GetMousePosition();
@@ -34,8 +48,26 @@ namespace BreadEditor {
                 _isPrepared = true;
             }
 
-            auto isHorizontalResize = prevMousePos.x >= bounds.x && prevMousePos.x <= subBounds.x;
-            auto isVerticalResize = prevMousePos.y >= bounds.y && prevMousePos.y <= subBounds.y;
+            auto isHorizontalResize = false;
+            auto isVerticalResize = false;
+            if (anchor == UI_FIT_RIGHT_VERTICAL)
+            {
+                isHorizontalResize = prevMousePos.x >= bounds.x && prevMousePos.x <= subBounds.x;
+            }
+            else
+            {
+                isHorizontalResize = prevMousePos.x <= bounds.x + bounds.width && prevMousePos.x >= subBounds.x + subBounds.width;
+            }
+
+            if (anchor == UI_FIT_BOTTOM_HORIZONTAL || anchor == UI_RIGHT_BOTTOM || anchor == UI_LEFT_BOTTOM)
+            {
+                isVerticalResize = prevMousePos.y >= bounds.y && prevMousePos.y <= subBounds.y;
+            }
+            else
+            {
+                isVerticalResize = prevMousePos.y <= bounds.y + bounds.height && prevMousePos.y >= subBounds.y + subBounds.height;
+            }
+
             if (isHorizontalResize && isHorizontalResized)
             {
                 CursorSystem::setCursor(MOUSE_CURSOR_RESIZE_EW);
@@ -49,9 +81,17 @@ namespace BreadEditor {
             {
                 if (IsMouseButtonDown(MOUSE_LEFT_BUTTON))
                 {
-                    auto mouseXDelta = prevMousePos.x - mousePos.x;
+                    const auto mouseXDelta = prevMousePos.x - mousePos.x;
                     auto size = uiElement.getSize();
-                    size.x += mouseXDelta;
+                    if (anchor == UI_FIT_RIGHT_VERTICAL)
+                    {
+                        size.x += mouseXDelta;
+                    }
+                    else
+                    {
+                        size.x -= mouseXDelta;
+                    }
+
                     const auto parentBounds = uiElement.getParentElement() == nullptr
                                                   ? Rectangle{0, 0, static_cast<float>(GetScreenWidth()), static_cast<float>(GetScreenHeight())}
                                                   : uiElement.getParentElement()->getBounds();
@@ -63,9 +103,17 @@ namespace BreadEditor {
             {
                 if (IsMouseButtonDown(MOUSE_LEFT_BUTTON))
                 {
-                    auto mouseYDelta = prevMousePos.y - mousePos.y;
+                    const auto mouseYDelta = prevMousePos.y - mousePos.y;
                     auto size = uiElement.getSize();
-                    size.y += mouseYDelta;
+                    if (anchor == UI_FIT_BOTTOM_HORIZONTAL || anchor == UI_RIGHT_BOTTOM || anchor == UI_LEFT_BOTTOM)
+                    {
+                        size.y += mouseYDelta;
+                    }
+                    else
+                    {
+                        size.y -= mouseYDelta;
+                    }
+
                     const auto parentBounds = uiElement.getParentElement() == nullptr
                                                   ? Rectangle{0, 0, static_cast<float>(GetScreenWidth()), static_cast<float>(GetScreenHeight())}
                                                   : uiElement.getParentElement()->getBounds();

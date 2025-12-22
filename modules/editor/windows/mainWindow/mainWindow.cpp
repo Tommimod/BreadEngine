@@ -8,9 +8,9 @@ namespace BreadEditor {
     }
 
     MainWindow::MainWindow()
-        : _gizmoSystem(),
-          _toolbar(UiPool::toolbarPool.get().setup("mainWindowToolbar", nullptr, 20, {"File", "Edit", "Help"})),
-          _nodeTree(NodeTree(NodeTree::Id))
+        : _toolbar(UiPool::toolbarPool.get().setup("mainWindowToolbar", nullptr, 20, {"File", "Edit", "Help"})),
+          _nodeTree(NodeTree(NodeTree::Id)),
+          _assetsWindow(AssetsWindow(AssetsWindow::Id))
     {
         _toolbar.setAnchor(UI_FIT_TOP_HORIZONTAL);
         _toolbar.setPivot({0, 0});
@@ -27,6 +27,11 @@ namespace BreadEditor {
         _nodeInspector->setSizePercentOneTime({1, .5f});
         _nodeInspector->setSizePercentPermanent({1, -1});
         _nodeInspector->setPosition({0, _toolbar.getSize().y - 1});
+
+        _assetsWindow.setPivot({0, 0});
+        _assetsWindow.setAnchor(UI_FIT_LEFT_VERTICAL);
+        _assetsWindow.setSizePercentOneTime({.15f, .5f});
+        _assetsWindow.setPosition({0, _toolbar.getSize().y - 1});
     }
 
     MainWindow::~MainWindow()
@@ -54,6 +59,11 @@ namespace BreadEditor {
         return _gizmoSystem;
     }
 
+    AssetsWindow & MainWindow::getAssetsWindowSystem()
+    {
+        return _assetsWindow;
+    }
+
     void MainWindow::render2D(const float deltaTime)
     {
         _toolbar.update(deltaTime);
@@ -61,6 +71,9 @@ namespace BreadEditor {
 
         _nodeTree.update(deltaTime);
         _nodeTree.draw(deltaTime);
+
+        _assetsWindow.update(deltaTime);
+        _assetsWindow.draw(deltaTime);
     }
 
     void MainWindow::render3D(float deltaTime)
