@@ -1,5 +1,6 @@
 #pragma once
 #include "assetsWindow.h"
+#include "consoleWindow.h"
 #include "gizmoSystem.h"
 #include "nodeInspector.h"
 #include "nodeTree.h"
@@ -24,7 +25,10 @@ namespace BreadEditor {
         [[nodiscard]] NodeInspector &getNodeInspector() const;
 
         [[nodiscard]] GizmoSystem &getGizmoSystem();
-        [[nodiscard]] AssetsWindow &getAssetsWindowSystem();
+
+        [[nodiscard]] AssetsWindow &getAssetsWindow();
+
+        [[nodiscard]] ConsoleWindow &getConsoleWindow();
 
         void render2D(float deltaTime);
 
@@ -36,5 +40,6 @@ namespace BreadEditor {
         NodeTree _nodeTree;
         NodeInspector *_nodeInspector;
         AssetsWindow _assetsWindow;
+        ConsoleWindow _consoleWindow;
     };
 } // namespace BreadEditor

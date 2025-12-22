@@ -1,28 +1,28 @@
-﻿#include "assetsWindow.h"
+﻿#include "ConsoleWindow.h"
 
 namespace BreadEditor {
-    std::string AssetsWindow::Id = "mainWindowAssetsWindow";
+    std::string ConsoleWindow::Id = "mainWindowConsoleWindow";
 
-    AssetsWindow::AssetsWindow(const std::string &id)
+    ConsoleWindow::ConsoleWindow(const std::string &id)
     {
         setup(id);
-        isHorizontalResized = true;
+        isVerticalResized = true;
         subscribe();
     }
 
-    AssetsWindow::AssetsWindow(const std::string &id, UiElement *parentElement)
+    ConsoleWindow::ConsoleWindow(const std::string &id, UiElement *parentElement)
     {
         setup(id, parentElement);
-        isHorizontalResized = true;
+        isVerticalResized = true;
         subscribe();
     }
 
-    AssetsWindow::~AssetsWindow()
+    ConsoleWindow::~ConsoleWindow()
     {
         unsubscribe();
     }
 
-    void AssetsWindow::draw(float deltaTime)
+    void ConsoleWindow::draw(float deltaTime)
     {
         GuiSetState(_state);
         GuiScrollPanel(_bounds, _title, _contentView, &_scrollPos, &_scrollView);
@@ -30,27 +30,27 @@ namespace BreadEditor {
         GuiSetState(STATE_NORMAL);
     }
 
-    void AssetsWindow::update(float deltaTime)
+    void ConsoleWindow::update(float deltaTime)
     {
         UiElement::update(deltaTime);
         updateResizable(*this);
     }
 
-    void AssetsWindow::dispose()
+    void ConsoleWindow::dispose()
     {
         UiElement::dispose();
     }
 
-    bool AssetsWindow::tryDeleteSelf()
+    bool ConsoleWindow::tryDeleteSelf()
     {
         return UiElement::tryDeleteSelf();
     }
 
-    void AssetsWindow::subscribe()
+    void ConsoleWindow::subscribe()
     {
     }
 
-    void AssetsWindow::unsubscribe()
+    void ConsoleWindow::unsubscribe()
     {
     }
 } // BreadEditor
