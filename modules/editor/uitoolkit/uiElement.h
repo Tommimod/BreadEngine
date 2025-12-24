@@ -6,6 +6,13 @@
 #include "iDisposable.h"
 
 namespace BreadEditor {
+    typedef enum LAYOUT_TYPE
+    {
+        LAYOUT_NONE,
+        LAYOUT_HORIZONTAL,
+        LAYOUT_VERTICAL
+    } LAYOUT_TYPE;
+
     // Anchor by parent (UI_X_Y)
     typedef enum UI_ANCHOR_TYPE
     {
@@ -79,6 +86,16 @@ namespace BreadEditor {
 
         [[nodiscard]] int getChildCount() const;
 
+        [[nodiscard]] UI_ANCHOR_TYPE getAnchor() const;
+
+        [[nodiscard]] LAYOUT_TYPE getLayoutType() const;
+
+        [[nodiscard]] UiElement *getNextSibling() const;
+
+        [[nodiscard]] UiElement *getPrevSibling() const;
+
+        void setLayoutType(LAYOUT_TYPE layout);
+
         void addChild(UiElement *child);
 
         void destroyChild(UiElement *child);
@@ -88,8 +105,6 @@ namespace BreadEditor {
         void destroyAllChilds();
 
         void setAnchor(UI_ANCHOR_TYPE newAnchor);
-
-        [[nodiscard]] UI_ANCHOR_TYPE getAnchor() const;
 
         void setPivot(const Vector2 &newPivot);
 
@@ -117,6 +132,7 @@ namespace BreadEditor {
         Rectangle _bounds{0, 0, 1, 1};
         Color _bgColor = RAYWHITE;
         UI_ANCHOR_TYPE _anchor = UI_LEFT_TOP;
+        LAYOUT_TYPE _layoutType = LAYOUT_NONE;
 
         UiElement &setup(const std::string &newId);
 

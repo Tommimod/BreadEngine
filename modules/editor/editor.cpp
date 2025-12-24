@@ -45,6 +45,7 @@ namespace BreadEditor {
     {
         if (!_initialized) return;
 
+        mainWindow.update(deltaTime);
         CursorSystem::draw();
     }
 
@@ -52,7 +53,7 @@ namespace BreadEditor {
     {
         if (!_initialized) return;
 
-        mainWindow.render2D(deltaTime);
+        mainWindow.draw(deltaTime);
     }
 
     void Editor::render3D(const float deltaTime)

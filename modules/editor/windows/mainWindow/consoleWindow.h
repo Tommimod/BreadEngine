@@ -3,7 +3,7 @@
 #include "uitoolkit/uiElement.h"
 
 namespace BreadEditor {
-    class ConsoleWindow final : public UiElement, IUiResizable
+    class ConsoleWindow final : public UiElement, public IUiResizable
     {
     public:
         static std::string Id;

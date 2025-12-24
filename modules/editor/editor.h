@@ -9,7 +9,7 @@ namespace BreadEditor {
     class Editor
     {
     public:
-        MainWindow mainWindow;
+        MainWindow mainWindow {};
 
         static Editor &getInstance();
 

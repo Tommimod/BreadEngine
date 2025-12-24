@@ -11,21 +11,17 @@ namespace BreadEditor {
     NodeTree::NodeTree(const std::string &id)
     {
         setup(id);
-        isHorizontalResized = true;
         subscribe();
     }
 
     NodeTree::NodeTree(const std::string &id, UiElement *parentElement)
     {
         setup(id, parentElement);
-        isHorizontalResized = true;
         subscribe();
     }
 
     NodeTree::~NodeTree()
-    {
-        unsubscribe();
-    }
+    = default;
 
     void NodeTree::draw(const float deltaTime)
     {
@@ -44,9 +40,20 @@ namespace BreadEditor {
         updateResizable(*this);
     }
 
-    NodeUiElement * NodeTree::getSelectedNodeUiElement() const
+    void NodeTree::dispose()
+    {
+        unsubscribe();
+        UiElement::dispose();
+    }
+
+    NodeUiElement *NodeTree::getSelectedNodeUiElement() const
     {
         return _selectedNodeUiElement;
+    }
+
+    bool NodeTree::tryDeleteSelf()
+    {
+        return UiElement::tryDeleteSelf();
     }
 
     NodeUiElement *NodeTree::findNodeUiElementByEngineNode(const Node *node) const
@@ -106,9 +113,6 @@ namespace BreadEditor {
         element.onSelected.subscribe([this](NodeUiElement *nodeUiElement) { this->onNodeSelected(nodeUiElement); });
         element.onDragStarted.subscribe([this](UiElement *uiElement) { this->onElementStartDrag(uiElement); });
         element.onDragEnded.subscribe([this](UiElement *uiElement) { this->onElementEndDrag(uiElement); });
-
-        auto nodeInspector = Editor::getInstance().mainWindow.getNodeInspector();
-        setChildLast(&nodeInspector);
     }
 
     void NodeTree::onNodeChangedParent(const Node *node) const
@@ -146,7 +150,8 @@ namespace BreadEditor {
             Editor::getInstance().mainWindow.getGizmoSystem().recalculateGizmo(node->get<BreadEngine::Transform>());
         }
 
-        Editor::getInstance().mainWindow.getNodeInspector().lookupNode(node);
+        NodeInspector &nodeInspector = Editor::getInstance().mainWindow.getNodeInspector();
+        nodeInspector.lookupNode(node);
     }
 
     void NodeTree::onElementStartDrag(UiElement *uiElement)
@@ -207,7 +212,7 @@ namespace BreadEditor {
         _contentView.y = _bounds.y;
         _contentView.width = _bounds.width;
 
-        const auto nodeInspector = Editor::getInstance().mainWindow.getNodeInspector();
+        const NodeInspector &nodeInspector = Editor::getInstance().mainWindow.getNodeInspector();
         _contentView.height = _bounds.height - nodeInspector.getBounds().height;
     }
 

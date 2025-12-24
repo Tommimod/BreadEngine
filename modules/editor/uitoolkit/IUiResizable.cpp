@@ -122,7 +122,6 @@ namespace BreadEditor {
                 }
             }
         }
-
         prevMousePos = mousePos;
     }
 } // BreadEditor

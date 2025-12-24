@@ -169,7 +169,6 @@ namespace BreadEditor {
         Rectangle effectiveParentBounds;
         if (_parent)
         {
-            _parent->computeBounds();
             effectiveParentBounds = _parent->getBounds();
         }
         else
@@ -210,13 +209,12 @@ namespace BreadEditor {
             }
         }
 
-        TraceLog(LOG_ERROR, "Could not find child with id '%s'", childId.c_str());
         return nullptr;
     }
 
     int UiElement::getChildCount() const
     {
-        return _childs.size();
+        return static_cast<int>(_childs.size());
     }
 
     void UiElement::addChild(UiElement *child)
@@ -231,7 +229,7 @@ namespace BreadEditor {
     void UiElement::destroyChild(UiElement *child)
     {
         _childs.erase(std::ranges::find(_childs, child));
-        auto isDeleted = child->tryDeleteSelf();
+        const auto isDeleted = child->tryDeleteSelf();
         if (!isDeleted)
         {
             delete child;
@@ -268,6 +266,32 @@ namespace BreadEditor {
     UI_ANCHOR_TYPE UiElement::getAnchor() const
     {
         return _anchor;
+    }
+
+    LAYOUT_TYPE UiElement::getLayoutType() const
+    {
+        return _layoutType;
+    }
+
+    UiElement *UiElement::getNextSibling() const
+    {
+        if (!_parent) return nullptr;
+        const auto it = std::ranges::find(_parent->_childs, this);
+        if (it == _parent->_childs.end() || it + 1 == _parent->_childs.end()) return nullptr;
+        return *(it + 1);
+    }
+
+    UiElement *UiElement::getPrevSibling() const
+    {
+        if (!_parent) return nullptr;
+        const auto it = std::ranges::find(_parent->_childs, this);
+        if (it == _parent->_childs.begin() || it == _parent->_childs.end()) return nullptr;
+        return *(it - 1);
+    }
+
+    void UiElement::setLayoutType(const LAYOUT_TYPE layout)
+    {
+        _layoutType = layout;
     }
 
     void UiElement::setPivot(const Vector2 &newPivot)
@@ -344,6 +368,7 @@ namespace BreadEditor {
         _maxSize = {0, 0};
         _bgColor = RAYWHITE;
         _anchor = UI_LEFT_TOP;
+        _layoutType = LAYOUT_NONE;
         _bounds = {0, 0, 1, 1};
     }
 
@@ -408,6 +433,28 @@ namespace BreadEditor {
         }
 
         _bounds = {prelimPosition.x, prelimPosition.y, computedSize.x, computedSize.y};
+        if (_layoutType != LAYOUT_NONE)
+        {
+            const auto parentBounds = _parent ? _parent->getBounds() : Rectangle{0, 0, static_cast<float>(GetScreenWidth()), static_cast<float>(GetScreenHeight())};
+            Vector2 currPos = {parentBounds.x, parentBounds.y};
+
+            float totalProp = 0.0f;
+            for (const auto child: _childs)
+            {
+                totalProp += (_layoutType == LAYOUT_HORIZONTAL ? child->_sizeInPercents.x : child->_sizeInPercents.y);
+            }
+            if (totalProp == 0.0f) totalProp = 1.0f; // Avoid div0
+
+            for (const auto child: _childs)
+            {
+                const auto prop = (_layoutType == LAYOUT_HORIZONTAL ? child->_sizeInPercents.x : child->_sizeInPercents.y) / totalProp;
+                const auto childSize = (_layoutType == LAYOUT_HORIZONTAL ? Vector2{parentBounds.width * prop, parentBounds.height} : Vector2{parentBounds.width, parentBounds.height * prop});
+
+                child->_bounds = {currPos.x, currPos.y, childSize.x, childSize.y};
+                if (_layoutType == LAYOUT_HORIZONTAL) currPos.x += childSize.x;
+                else currPos.y += childSize.y;
+            }
+        }
     }
 
     Vector2 UiElement::getAnchorPoint(const Rectangle &effectiveParentBounds) const

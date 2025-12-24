@@ -9,7 +9,7 @@
 using namespace BreadEngine;
 
 namespace BreadEditor {
-    class NodeInspector final : public UiElement, IUiResizable
+    class NodeInspector final : public UiElement, public IUiResizable
     {
     public:
         static std::string Id;
@@ -24,9 +24,17 @@ namespace BreadEditor {
 
         void update(float deltaTime) override;
 
+        void dispose() override
+        {
+            UiElement::dispose();
+        }
+
         void lookupNode(Node *node);
 
         void clear();
+
+    protected:
+        bool tryDeleteSelf() override;
 
     private:
         std::map<UiElement *, SubscriptionHandle> _subscriptions{};
@@ -41,11 +49,11 @@ namespace BreadEditor {
 
         void resetElementsState();
 
-        void onNodeActiveChanged(bool isActive);
+        void onNodeActiveChanged(bool isActive) const;
 
-        void onNodeNameChanged(const char *name);
+        void onNodeNameChanged(const char *name) const;
 
-        void setupUiComponent(UiComponent *uiComponentElement);
+        void setupUiComponent(UiComponent *uiComponentElement) const;
 
         void onUiComponentDeleted(std::type_index type);
     };

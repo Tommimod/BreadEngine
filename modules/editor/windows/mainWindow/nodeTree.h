@@ -6,7 +6,7 @@
 using namespace BreadEngine;
 
 namespace BreadEditor {
-    class NodeTree final : public UiElement, IUiResizable
+    class NodeTree final : public UiElement, public IUiResizable
     {
     public:
         static std::string Id;
@@ -21,7 +21,12 @@ namespace BreadEditor {
 
         void update(float deltaTime) override;
 
-        NodeUiElement *getSelectedNodeUiElement() const;
+        void dispose() override;
+
+        [[nodiscard]] NodeUiElement *getSelectedNodeUiElement() const;
+
+    protected:
+        bool tryDeleteSelf() override;
 
     private:
         const char *_title = "Node Inspector";

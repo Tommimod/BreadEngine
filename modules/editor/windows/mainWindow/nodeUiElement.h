@@ -21,6 +21,8 @@ namespace BreadEditor {
 
         void update(float deltaTime) override;
 
+        void dispose() override;
+
         [[nodiscard]] Node *getNode() const;
 
         void setParentNode(NodeUiElement *nextParentNode);

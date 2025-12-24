@@ -6,6 +6,8 @@ namespace BreadEditor {
     {
         for (auto &_field: _fields)
         {
+            if (_field == nullptr) continue;
+
             _field->onValueChangedWithSender.unsubscribeAll();
             _field = nullptr;
         }
@@ -85,6 +87,7 @@ namespace BreadEditor {
             return;
         }
 
+        computeBounds();
         float lastSizeX = 0;
         for (size_t i = 0; i < _fields.size(); i++)
         {

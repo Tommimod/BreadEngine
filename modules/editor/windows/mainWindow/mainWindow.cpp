@@ -8,61 +8,101 @@ namespace BreadEditor {
     }
 
     MainWindow::MainWindow()
-        : _toolbar(UiPool::toolbarPool.get().setup("mainWindowToolbar", nullptr, 20, {"File", "Edit", "Help"})),
-          _nodeTree(NodeTree(NodeTree::Id)),
-          _assetsWindow(AssetsWindow(AssetsWindow::Id)),
-          _consoleWindow(ConsoleWindow(ConsoleWindow::Id))
     {
-        _toolbar.setAnchor(UI_FIT_TOP_HORIZONTAL);
-        _toolbar.setPivot({0, 0});
-        _toolbar.setSize({0, 20});
+        setup("UiRoot", nullptr);
+        setAnchor(UI_LEFT_TOP);
+        setSizePercentPermanent({1, 1});
+        update(0);
 
-        _nodeTree.setPivot({1, 0});
-        _nodeTree.setAnchor(UI_FIT_RIGHT_VERTICAL);
-        _nodeTree.setSizePercentOneTime({.15f, .5f});
-        _nodeTree.setPosition({0, _toolbar.getSize().y - 1});
+        const auto toolbar = &UiPool::toolbarPool.get().setup("mainWindowToolbar", this, 20, {"File", "Edit", "Help"});
+        addChild(toolbar);
+        toolbar->setAnchor(UI_FIT_TOP_HORIZONTAL);
+        toolbar->setPivot({0, 0});
+        toolbar->setSize({0, 20});
+        toolbar->update(0);
 
-        _nodeInspector = new NodeInspector(NodeInspector::Id, &_nodeTree);
-        _nodeInspector->setPivot({1, 1});
-        _nodeInspector->setAnchor(UI_RIGHT_BOTTOM);
-        _nodeInspector->setSizePercentOneTime({1, .5f});
-        _nodeInspector->setSizePercentPermanent({1, -1});
-        _nodeInspector->setPosition({0, _toolbar.getSize().y - 1});
+        _rightContainer = std::make_unique<UiEmpty>();
+        _rightContainer->setup("rightContainer", this);
+        _rightContainer->setLayoutType(LAYOUT_VERTICAL);
+        _rightContainer->setPivot({1, 0});
+        _rightContainer->setAnchor(UI_FIT_RIGHT_VERTICAL);
+        _rightContainer->setSizePercentOneTime({.15f, .5f});
+        _rightContainer->setPosition({0, toolbar->getSize().y - 1});
+        _rightContainer->setHorizontalResized(true);
+        _rightContainer->update(0);
 
-        _assetsWindow.setPivot({0, 0});
-        _assetsWindow.setAnchor(UI_FIT_LEFT_VERTICAL);
-        _assetsWindow.setSizePercentOneTime({.15f, .5f});
-        _assetsWindow.setPosition({0, _toolbar.getSize().y - 1});
-        _assetsWindow.update(0);
+        const auto nodeTree = new NodeTree(NodeTree::Id);
+        _rightContainer->addChild(nodeTree);
+        nodeTree->setSizePercentOneTime({1, .5f});
+        nodeTree->setSizePercentPermanent({1, -1});
+        nodeTree->setPosition({0, 0});
 
-        _consoleWindow.setPivot({0, 1.0f});
-        _consoleWindow.setAnchor(UI_LEFT_BOTTOM);
-        auto size = getWindowSize();
-        size.x -= _assetsWindow.getSize().x;
-        size.x -= _nodeTree.getSize().x;
-        size.y *= .3f;
-        _consoleWindow.setSize(size);
-        _consoleWindow.setPosition({_assetsWindow.getBounds().width, 100});
+        const auto nodeInspector = new NodeInspector(NodeInspector::Id);
+        _rightContainer->addChild(nodeInspector);
+        nodeInspector->setSizePercentOneTime({1, .5f});
+        nodeInspector->setSizePercentPermanent({1, -1});
+        nodeInspector->setPosition({0, nodeTree->getSize().y});
+        nodeInspector->setVerticalResized(true);
+
+        _leftContainer = std::make_unique<UiEmpty>();
+        _leftContainer->setup("leftContainer", this);
+        _leftContainer->setLayoutType(LAYOUT_VERTICAL);
+        _leftContainer->setPivot({0, 0});
+        _leftContainer->setAnchor(UI_FIT_LEFT_VERTICAL);
+        _leftContainer->setSizePercentOneTime({.15f, .5f});
+        _leftContainer->setPosition({0, toolbar->getSize().y - 1});
+        _leftContainer->setHorizontalResized(true);
+        _leftContainer->update(0);
+
+        const auto assetWindow = new AssetsWindow(AssetsWindow::Id);
+        _leftContainer->addChild(assetWindow);
+        assetWindow->setSizePercentOneTime({1, 1});
+        assetWindow->setSizePercentPermanent({1, -1});
+        assetWindow->setPosition({0, 0});
+        assetWindow->update(0);
+
+        _bottomContainer = std::make_unique<UiEmpty>();
+        _bottomContainer->setup("bottomContainer", this);
+        _bottomContainer->setLayoutType(LAYOUT_HORIZONTAL);
+        _bottomContainer->setPivot({.5f, 1});
+        _bottomContainer->setAnchor(UI_CENTER_BOTTOM);
+        _bottomContainer->setSizePercentOneTime({.7f, .35f});
+        _bottomContainer->setPosition({0, 0});
+        _bottomContainer->setHorizontalResized(true);
+        _bottomContainer->setVerticalResized(true);
+        _bottomContainer->update(0);
+        _bottomContainer->isDebugRectVisible = true;
+
+        _centerContainer = std::make_unique<UiEmpty>();
+        _centerContainer->setup("centerContainer", this);
+        _centerContainer->setLayoutType(LAYOUT_VERTICAL);
+        _centerContainer->setPivot({.5f, 0});
+        _centerContainer->setAnchor(UI_CENTER_TOP);
+        _centerContainer->setSizePercentOneTime({.7f, .65f});
+        _centerContainer->setPosition({0, 0});
+        _centerContainer->setHorizontalResized(true);
+        _centerContainer->setVerticalResized(true);
+        _centerContainer->update(0);
     }
 
     MainWindow::~MainWindow()
     {
-        UiPool::toolbarPool.release(_toolbar);
+        dispose();
     }
 
     UiToolbar &MainWindow::getToolbar() const
     {
-        return _toolbar;
+        return dynamic_cast<UiToolbar &>(*findUiElementById("mainWindowToolbar"));
     }
 
-    NodeTree &MainWindow::getNodeTree()
+    NodeTree &MainWindow::getNodeTree() const
     {
-        return _nodeTree;
+        return dynamic_cast<NodeTree &>(*findUiElementById(NodeTree::Id));
     }
 
     NodeInspector &MainWindow::getNodeInspector() const
     {
-        return *_nodeInspector;
+        return dynamic_cast<NodeInspector &>(*findUiElementById(NodeInspector::Id));
     }
 
     GizmoSystem &MainWindow::getGizmoSystem()
@@ -70,36 +110,58 @@ namespace BreadEditor {
         return _gizmoSystem;
     }
 
-    AssetsWindow &MainWindow::getAssetsWindow()
+    AssetsWindow &MainWindow::getAssetsWindow() const
     {
-        return _assetsWindow;
+        return dynamic_cast<AssetsWindow &>(*findUiElementById(AssetsWindow::Id));
     }
 
-    ConsoleWindow &MainWindow::getConsoleWindow()
+    ConsoleWindow &MainWindow::getConsoleWindow() const
     {
-        return _consoleWindow;
-    }
-
-    void MainWindow::render2D(const float deltaTime)
-    {
-        _toolbar.update(deltaTime);
-        _toolbar.draw(deltaTime);
-
-        _nodeTree.update(deltaTime);
-        _nodeTree.draw(deltaTime);
-
-        _assetsWindow.update(deltaTime);
-        _assetsWindow.draw(deltaTime);
-
-        _consoleWindow.update(deltaTime);
-        _consoleWindow.draw(deltaTime);
+        return dynamic_cast<ConsoleWindow &>(*findUiElementById(ConsoleWindow::Id));
     }
 
     void MainWindow::render3D(float deltaTime)
     {
-        if (const auto selectedNodeUiElement = _nodeTree.getSelectedNodeUiElement(); selectedNodeUiElement != nullptr)
+        if (const auto selectedNodeUiElement = getNodeTree().getSelectedNodeUiElement(); selectedNodeUiElement != nullptr)
         {
             _gizmoSystem.render();
         }
+    }
+
+    void MainWindow::draw(float deltaTime)
+    {
+        UiElement::draw(deltaTime);
+    }
+
+    void MainWindow::update(float deltaTime)
+    {
+        UiElement::update(deltaTime);
+    }
+
+    void MainWindow::dispose()
+    {
+        UiElement::dispose();
+    }
+
+    bool MainWindow::tryDeleteSelf()
+    {
+        return UiElement::tryDeleteSelf();
+    }
+
+    UiElement *MainWindow::findUiElementById(const std::string &id) const
+    {
+        UiElement *element = _leftContainer->getChildById(id);
+        if (element != nullptr) return element;
+
+        element = _rightContainer->getChildById(id);
+        if (element != nullptr) return element;
+
+        element = _bottomContainer->getChildById(id);
+        if (element != nullptr) return element;
+
+        element = _centerContainer->getChildById(id);
+        if (element != nullptr) return element;
+
+        return element;
     }
 } // namespace BreadEditor

@@ -6,6 +6,8 @@ namespace BreadEditor {
     {
         for (auto &_field: _fields)
         {
+            if (_field == nullptr) continue;
+
             _field->onValueChangedWithSender.unsubscribeAll();
             _field = nullptr;
         }
@@ -25,7 +27,7 @@ namespace BreadEditor {
         return this;
     }
 
-    UiVector4D * UiVector4D::setup(const std::string &id, UiElement *parentElement, UiComponent::PropWithComponent dynamicValue)
+    UiVector4D *UiVector4D::setup(const std::string &id, UiElement *parentElement, UiComponent::PropWithComponent dynamicValue)
     {
         UiElement::setup(id, parentElement);
         _dynamicValue = std::move(dynamicValue);
@@ -48,7 +50,7 @@ namespace BreadEditor {
         return this;
     }
 
-    UiVector4D * UiVector4D::setup(const std::string &id, UiElement *parentElement, UiComponent::PropWithComponent dynamicValue, const std::string_view xName, const std::string_view yName, const std::string_view zName, const std::string_view wName)
+    UiVector4D *UiVector4D::setup(const std::string &id, UiElement *parentElement, UiComponent::PropWithComponent dynamicValue, const std::string_view xName, const std::string_view yName, const std::string_view zName, const std::string_view wName)
     {
         UiElement::setup(id, parentElement);
         _dynamicValue = std::move(dynamicValue);
@@ -95,6 +97,7 @@ namespace BreadEditor {
             return;
         }
 
+        computeBounds();
         float lastSizeX = 0;
         for (size_t i = 0; i < _fields.size(); i++)
         {

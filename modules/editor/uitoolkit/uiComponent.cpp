@@ -39,7 +39,7 @@ namespace BreadEditor {
             constexpr float horOffset = 5;
             constexpr float heightSize = 17;
             const auto verOffset = horOffset * static_cast<float>(i) + 30 + heightSize * static_cast<float>(i);
-            setSize({0, verOffset + heightSize + horOffset});
+            setSize({_localSize.x, verOffset + heightSize + horOffset});
 
             const auto propName = UiPool::labelPool.get().setup(TextFormat("PropName %s", property.name.c_str()), this, property.name);
             propName->setAnchor(UI_LEFT_TOP);

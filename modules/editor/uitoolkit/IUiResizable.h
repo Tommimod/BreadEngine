@@ -5,6 +5,11 @@
 namespace BreadEditor {
     class IUiResizable
     {
+    public:
+        void setHorizontalResized(const bool resized) { isHorizontalResized = resized; }
+
+        void setVerticalResized(const bool resized) { isHorizontalResized = resized; }
+
     protected:
         bool isHorizontalResized = false;
         bool isVerticalResized = false;

@@ -37,6 +37,11 @@ namespace BreadEditor {
         UiElement::update(deltaTime);
     }
 
+    void NodeUiElement::dispose()
+    {
+        UiElement::dispose();
+    }
+
     Node *NodeUiElement::getNode() const
     {
         return _engineNode;

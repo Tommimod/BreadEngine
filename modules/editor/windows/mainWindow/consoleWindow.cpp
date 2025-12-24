@@ -6,14 +6,12 @@ namespace BreadEditor {
     ConsoleWindow::ConsoleWindow(const std::string &id)
     {
         setup(id);
-        isVerticalResized = true;
         subscribe();
     }
 
     ConsoleWindow::ConsoleWindow(const std::string &id, UiElement *parentElement)
     {
         setup(id, parentElement);
-        isVerticalResized = true;
         subscribe();
     }
 

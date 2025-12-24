@@ -6,14 +6,12 @@ namespace BreadEditor {
     AssetsWindow::AssetsWindow(const std::string &id)
     {
         setup(id);
-        isHorizontalResized = true;
         subscribe();
     }
 
     AssetsWindow::AssetsWindow(const std::string &id, UiElement *parentElement)
     {
         setup(id, parentElement);
-        isHorizontalResized = true;
         subscribe();
     }
 

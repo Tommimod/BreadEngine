@@ -8,14 +8,12 @@ namespace BreadEditor {
     NodeInspector::NodeInspector(const std::string &id)
     {
         setup(id);
-        isVerticalResized = true;
         initialize();
     }
 
     NodeInspector::NodeInspector(const std::string &id, UiElement *parentElement)
     {
         setup(id, parentElement);
-        isVerticalResized = true;
         initialize();
     }
 
@@ -97,6 +95,11 @@ namespace BreadEditor {
         _engineNode = nullptr;
     }
 
+    bool NodeInspector::tryDeleteSelf()
+    {
+        return UiElement::tryDeleteSelf();
+    }
+
     void NodeInspector::initialize()
     {
         constexpr int verticalOffset = 5;
@@ -125,17 +128,17 @@ namespace BreadEditor {
         _trackedComponents = {};
     }
 
-    void NodeInspector::onNodeActiveChanged(bool isActive)
+    void NodeInspector::onNodeActiveChanged(const bool isActive) const
     {
         _engineNode->setIsActive(isActive);
     }
 
-    void NodeInspector::onNodeNameChanged(const char *name)
+    void NodeInspector::onNodeNameChanged(const char *name) const
     {
         _engineNode->setName(name);
     }
 
-    void NodeInspector::setupUiComponent(UiComponent *uiComponentElement)
+    void NodeInspector::setupUiComponent(UiComponent *uiComponentElement) const
     {
         uiComponentElement->setAnchor(UI_LEFT_TOP);
         uiComponentElement->setSize(Vector2{_bounds.width - 10, 50});

@@ -6,40 +6,50 @@
 #include "nodeTree.h"
 #include "../../uitoolkit/uiToolbar.h"
 #include "raylib.h"
+#include "uitoolkit/UiEmpty.h"
 using namespace BreadEngine;
 
 namespace BreadEditor {
-    class MainWindow
+    class MainWindow final : UiElement
     {
     public:
         static Vector2 getWindowSize();
 
         MainWindow();
 
-        ~MainWindow();
+        ~MainWindow() override;
 
         [[nodiscard]] UiToolbar &getToolbar() const;
 
-        [[nodiscard]] NodeTree &getNodeTree();
+        [[nodiscard]] NodeTree &getNodeTree() const;
 
         [[nodiscard]] NodeInspector &getNodeInspector() const;
 
         [[nodiscard]] GizmoSystem &getGizmoSystem();
 
-        [[nodiscard]] AssetsWindow &getAssetsWindow();
+        [[nodiscard]] AssetsWindow &getAssetsWindow() const;
 
-        [[nodiscard]] ConsoleWindow &getConsoleWindow();
-
-        void render2D(float deltaTime);
+        [[nodiscard]] ConsoleWindow &getConsoleWindow() const;
 
         void render3D(float deltaTime);
 
+        void draw(float deltaTime) override;
+
+        void update(float deltaTime) override;
+
+        void dispose() override;
+
+    protected:
+        bool tryDeleteSelf() override;
+
     private:
+        unique_ptr<UiEmpty> _leftContainer;
+        unique_ptr<UiEmpty> _rightContainer;
+        unique_ptr<UiEmpty> _bottomContainer;
+        unique_ptr<UiEmpty> _centerContainer;
+
         GizmoSystem _gizmoSystem;
-        UiToolbar &_toolbar;
-        NodeTree _nodeTree;
-        NodeInspector *_nodeInspector;
-        AssetsWindow _assetsWindow;
-        ConsoleWindow _consoleWindow;
+
+        [[nodiscard]] UiElement *findUiElementById(const std::string &id) const;
     };
 } // namespace BreadEditor
