@@ -212,7 +212,7 @@ namespace BreadEditor {
         _contentView.y = _bounds.y;
         _contentView.width = _bounds.width;
 
-        const NodeInspector &nodeInspector = Editor::getInstance().mainWindow.getNodeInspector();
+        NodeInspector &nodeInspector = Editor::getInstance().mainWindow.getNodeInspector();
         _contentView.height = _bounds.height - nodeInspector.getBounds().height;
     }
 

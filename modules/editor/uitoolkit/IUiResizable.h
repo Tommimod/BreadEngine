@@ -6,9 +6,11 @@ namespace BreadEditor {
     class IUiResizable
     {
     public:
+        bool isDebugResizableRectVisible = false;
+
         void setHorizontalResized(const bool resized) { isHorizontalResized = resized; }
 
-        void setVerticalResized(const bool resized) { isHorizontalResized = resized; }
+        void setVerticalResized(const bool resized) { isVerticalResized = resized; }
 
     protected:
         bool isHorizontalResized = false;
@@ -20,5 +22,7 @@ namespace BreadEditor {
 
     private:
         bool _isPrepared = false;
+
+        void drawDebugRect(const Rectangle &subBounds) const;
     };
 } // BreadEditor

@@ -13,33 +13,39 @@ namespace BreadEditor {
 
         const auto bounds = uiElement.getBounds();
         auto subBounds = bounds;
-        const auto anchor = uiElement.getAnchor();
+        const auto pivot = uiElement.getPivot();
+        const bool isRightSidePivot = pivot.x > .5f;
+        const bool isBottomSidePivot = pivot.y > .5f;
+        const bool isLeftSidePivot = pivot.x < .5f;
+        const bool isTopSidePivot = pivot.y < .5f;
+
         if (isHorizontalResized)
         {
-            subBounds.width -= static_cast<float>(tricknessInPixel);
-            if (anchor == UI_FIT_RIGHT_VERTICAL)
+            subBounds.width -= static_cast<float>(tricknessInPixel * 2);
+            if (pivot.x == .5f)
             {
-                subBounds.x += static_cast<float>(tricknessInPixel);
+                subBounds.x += static_cast<float>(tricknessInPixel) * (uiElement.getPivot().x + .5f);
             }
             else
             {
-                subBounds.x -= static_cast<float>(tricknessInPixel);
+                subBounds.x += static_cast<float>(tricknessInPixel * 2) * (uiElement.getPivot().x + .5f);
             }
         }
 
         if (isVerticalResized)
         {
-            subBounds.height -= static_cast<float>(tricknessInPixel);
-            if (anchor == UI_FIT_BOTTOM_HORIZONTAL || anchor == UI_RIGHT_BOTTOM || anchor == UI_LEFT_BOTTOM)
+            subBounds.height -= static_cast<float>(tricknessInPixel * 2);
+            if (pivot.y == .5f)
             {
-                subBounds.y += static_cast<float>(tricknessInPixel);
+                subBounds.y += static_cast<float>(tricknessInPixel) * (uiElement.getPivot().x + .5f);
             }
             else
             {
-                subBounds.y -= static_cast<float>(tricknessInPixel);
+                subBounds.y += static_cast<float>(tricknessInPixel * 2) * (uiElement.getPivot().x + .5f);
             }
         }
 
+        drawDebugRect(subBounds);
         const auto mousePos = GetMousePosition();
         if (BreadEngine::Engine::isCollisionPointRec(prevMousePos, bounds, subBounds))
         {
@@ -50,78 +56,162 @@ namespace BreadEditor {
 
             auto isHorizontalResize = false;
             auto isVerticalResize = false;
-            if (anchor == UI_FIT_RIGHT_VERTICAL)
+            auto isDragUpperSide = false;
+            auto isDragDownSide = false;
+            auto isDragLeftSide = false;
+            auto isDragRightSide = false;
+            if (isHorizontalResized)
             {
-                isHorizontalResize = prevMousePos.x >= bounds.x && prevMousePos.x <= subBounds.x;
-            }
-            else
-            {
-                isHorizontalResize = prevMousePos.x <= bounds.x + bounds.width && prevMousePos.x >= subBounds.x + subBounds.width;
-            }
-
-            if (anchor == UI_FIT_BOTTOM_HORIZONTAL || anchor == UI_RIGHT_BOTTOM || anchor == UI_LEFT_BOTTOM)
-            {
-                isVerticalResize = prevMousePos.y >= bounds.y && prevMousePos.y <= subBounds.y;
-            }
-            else
-            {
-                isVerticalResize = prevMousePos.y <= bounds.y + bounds.height && prevMousePos.y >= subBounds.y + subBounds.height;
+                isDragLeftSide = prevMousePos.x >= bounds.x && prevMousePos.x <= subBounds.x;
+                isDragRightSide = prevMousePos.x <= bounds.x + bounds.width && prevMousePos.x >= subBounds.x + subBounds.width;
+                isHorizontalResize = isDragRightSide || isDragLeftSide;
             }
 
-            if (isHorizontalResize && isHorizontalResized)
+            if (isVerticalResized)
+            {
+                isDragUpperSide = prevMousePos.y >= bounds.y && prevMousePos.y <= subBounds.y;
+                isDragDownSide = prevMousePos.y <= bounds.y + bounds.height && prevMousePos.y >= subBounds.y + subBounds.height;
+                isVerticalResize = isDragUpperSide || isDragDownSide;
+            }
+
+            if (isHorizontalResize)
             {
                 CursorSystem::setCursor(MOUSE_CURSOR_RESIZE_EW);
             }
-            else if (isVerticalResize && isVerticalResized)
+            else if (isVerticalResize)
             {
                 CursorSystem::setCursor(MOUSE_CURSOR_RESIZE_NS);
             }
 
-            if (isHorizontalResize && isHorizontalResized && _isPrepared)
+            if (isHorizontalResize && _isPrepared)
             {
                 if (IsMouseButtonDown(MOUSE_LEFT_BUTTON))
                 {
-                    const auto mouseXDelta = prevMousePos.x - mousePos.x;
+                    auto mouseXDelta = prevMousePos.x - mousePos.x;
                     auto size = uiElement.getSize();
-                    if (anchor == UI_FIT_RIGHT_VERTICAL)
+                    if (isDragRightSide)
                     {
-                        size.x += mouseXDelta;
+                        const auto currentPos = uiElement.getPosition();
+                        if (isLeftSidePivot)
+                        {
+                            size.x -= mouseXDelta;
+                        }
+                        else if (!isRightSidePivot)
+                        {
+                            size.x -= mouseXDelta;
+                            uiElement.setPosition({currentPos.x - mouseXDelta * .5f, currentPos.y});
+                        }
+                        else
+                        {
+                            size.x -= mouseXDelta;
+                            uiElement.setPosition({currentPos.x - mouseXDelta, currentPos.y});
+                        }
                     }
-                    else
+                    else if (isDragLeftSide)
                     {
-                        size.x -= mouseXDelta;
+                        const auto currentPos = uiElement.getPosition();
+                        if (isLeftSidePivot)
+                        {
+                            size.x += mouseXDelta;
+                            uiElement.setPosition({currentPos.x - mouseXDelta, currentPos.y});
+                        }
+                        else if (!isRightSidePivot)
+                        {
+                            size.x += mouseXDelta;
+                            uiElement.setPosition({currentPos.x - mouseXDelta * .5f, currentPos.y});
+                        }
+                        else
+                        {
+                            size.x += mouseXDelta;
+                        }
                     }
 
                     const auto parentBounds = uiElement.getParentElement() == nullptr
                                                   ? Rectangle{0, 0, static_cast<float>(GetScreenWidth()), static_cast<float>(GetScreenHeight())}
                                                   : uiElement.getParentElement()->getBounds();
-                    size.x = Clamp(size.x, 50, parentBounds.width - 50);
+                    size.x = Clamp(size.x, 50, parentBounds.width);
                     uiElement.setSize(size);
                 }
             }
-            else if (isVerticalResize && isVerticalResized && _isPrepared)
+            else if (isVerticalResize && _isPrepared)
             {
                 if (IsMouseButtonDown(MOUSE_LEFT_BUTTON))
                 {
-                    const auto mouseYDelta = prevMousePos.y - mousePos.y;
+                    auto mouseYDelta = prevMousePos.y - mousePos.y;
                     auto size = uiElement.getSize();
-                    if (anchor == UI_FIT_BOTTOM_HORIZONTAL || anchor == UI_RIGHT_BOTTOM || anchor == UI_LEFT_BOTTOM)
+                    if (isDragUpperSide)
                     {
-                        size.y += mouseYDelta;
+                        const auto currentPos = uiElement.getPosition();
+                        if (isBottomSidePivot)
+                        {
+                            size.y += mouseYDelta;
+                        }
+                        else if (!isTopSidePivot)
+                        {
+                            size.y += mouseYDelta;
+                            uiElement.setPosition({currentPos.x, currentPos.y - mouseYDelta * .5f});
+                        }
+                        else
+                        {
+                            size.y += mouseYDelta;
+                            uiElement.setPosition({currentPos.x, currentPos.y - mouseYDelta});
+                        }
                     }
-                    else
+                    else if (isDragDownSide)
                     {
                         size.y -= mouseYDelta;
+                        const auto currentPos = uiElement.getPosition();
+                        if (isBottomSidePivot)
+                        {
+                            size.y -= mouseYDelta;
+                            uiElement.setPosition({currentPos.x, currentPos.y - mouseYDelta});
+                        }
+                        else if (!isTopSidePivot)
+                        {
+                            size.y -= mouseYDelta;
+                            uiElement.setPosition({currentPos.x, currentPos.y - mouseYDelta * .5f});
+                        }
+                        else
+                        {
+                            size.y -= mouseYDelta;
+                        }
                     }
 
                     const auto parentBounds = uiElement.getParentElement() == nullptr
                                                   ? Rectangle{0, 0, static_cast<float>(GetScreenWidth()), static_cast<float>(GetScreenHeight())}
                                                   : uiElement.getParentElement()->getBounds();
-                    size.y = Clamp(size.y, 50, parentBounds.height - 50);
+                    size.y = Clamp(size.y, 100, parentBounds.height);
                     uiElement.setSize(size);
                 }
             }
         }
+
         prevMousePos = mousePos;
+    }
+
+    void IUiResizable::drawDebugRect(const Rectangle &subBounds) const
+    {
+        if (!isDebugResizableRectVisible)
+        {
+            return;
+        }
+
+        auto x = std::to_string(subBounds.x);
+        x.erase(x.find_last_not_of('0') + 1, std::string::npos);
+        x.erase(x.find_last_not_of('.') + 1, std::string::npos);
+
+        auto y = std::to_string(subBounds.y);
+        y.erase(y.find_last_not_of('0') + 1, std::string::npos);
+        y.erase(y.find_last_not_of('.') + 1, std::string::npos);
+
+        auto width = std::to_string(subBounds.width);
+        width.erase(width.find_last_not_of('0') + 1, std::string::npos);
+        width.erase(width.find_last_not_of('.') + 1, std::string::npos);
+
+        auto height = std::to_string(subBounds.height);
+        height.erase(height.find_last_not_of('0') + 1, std::string::npos);
+        height.erase(height.find_last_not_of('.') + 1, std::string::npos);
+        const auto debugText = TextFormat("X:%s Y:%s W:%s H:%s", x.c_str(), y.c_str(), width.c_str(), height.c_str());
+        GuiDummyRec(subBounds, debugText);
     }
 } // BreadEditor

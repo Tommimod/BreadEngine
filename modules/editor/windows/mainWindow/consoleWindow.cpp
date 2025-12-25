@@ -30,8 +30,8 @@ namespace BreadEditor {
 
     void ConsoleWindow::update(float deltaTime)
     {
-        UiElement::update(deltaTime);
         updateResizable(*this);
+        UiElement::update(deltaTime);
     }
 
     void ConsoleWindow::dispose()

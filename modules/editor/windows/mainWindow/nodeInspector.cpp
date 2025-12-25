@@ -42,11 +42,11 @@ namespace BreadEditor {
 
         UiElement::draw(deltaTime);
         GuiSetState(STATE_NORMAL);
+        updateResizable(*this);
     }
 
     void NodeInspector::update(const float deltaTime)
     {
-        updateResizable(*this);
         UiElement::update(deltaTime);
     }
 

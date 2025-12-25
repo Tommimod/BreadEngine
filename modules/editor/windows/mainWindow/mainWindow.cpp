@@ -43,6 +43,7 @@ namespace BreadEditor {
         nodeInspector->setSizePercentPermanent({1, -1});
         nodeInspector->setPosition({0, nodeTree->getSize().y});
         nodeInspector->setVerticalResized(true);
+        nodeInspector->isDebugResizableRectVisible = true;
 
         _leftContainer = std::make_unique<UiEmpty>();
         _leftContainer->setup("leftContainer", this);
@@ -71,7 +72,14 @@ namespace BreadEditor {
         _bottomContainer->setHorizontalResized(true);
         _bottomContainer->setVerticalResized(true);
         _bottomContainer->update(0);
-        _bottomContainer->isDebugRectVisible = true;
+        _bottomContainer->isDebugResizableRectVisible = true;
+
+        // const auto consoleWindow = new ConsoleWindow(ConsoleWindow::Id);
+        // _bottomContainer->addChild(consoleWindow);
+        // consoleWindow->setSizePercentOneTime({1, 1});
+        // consoleWindow->setSizePercentPermanent({-1, 1});
+        // consoleWindow->setPosition({0, 0});
+        // consoleWindow->update(0);
 
         _centerContainer = std::make_unique<UiEmpty>();
         _centerContainer->setup("centerContainer", this);

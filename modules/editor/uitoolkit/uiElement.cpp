@@ -49,12 +49,12 @@ namespace BreadEditor {
         }
     }
 
-    Rectangle UiElement::getBounds() const
+    Rectangle& UiElement::getBounds()
     {
         return _bounds;
     }
 
-    Vector2 UiElement::getPosition() const
+    Vector2& UiElement::getPosition()
     {
         return _localPosition;
     }
@@ -151,6 +151,11 @@ namespace BreadEditor {
     {
         _localPosition = position;
         _localSize = size;
+    }
+
+    Vector2 & UiElement::getPivot()
+    {
+        return _pivot;
     }
 
     float UiElement::getSizeInPixByPercentOnlyX(const Vector2 &percent) const
@@ -287,6 +292,12 @@ namespace BreadEditor {
         const auto it = std::ranges::find(_parent->_childs, this);
         if (it == _parent->_childs.begin() || it == _parent->_childs.end()) return nullptr;
         return *(it - 1);
+    }
+
+    int UiElement::getIndex() const
+    {
+        if (!_parent) return -1;
+        return std::ranges::find(_parent->_childs, this) - _parent->_childs.begin();
     }
 
     void UiElement::setLayoutType(const LAYOUT_TYPE layout)

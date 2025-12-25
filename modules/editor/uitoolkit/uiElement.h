@@ -50,9 +50,9 @@ namespace BreadEditor {
 
         virtual void update(float deltaTime);
 
-        [[nodiscard]] Rectangle getBounds() const;
+        [[nodiscard]] Rectangle& getBounds();
 
-        [[nodiscard]] Vector2 getPosition() const;
+        [[nodiscard]] Vector2 &getPosition();
 
         [[nodiscard]] Vector2 getSize() const;
 
@@ -69,6 +69,8 @@ namespace BreadEditor {
         void setSizeMax(const Vector2 &maxSize);
 
         void setBounds(const Vector2 &position, const Vector2 &size);
+
+        [[nodiscard]] Vector2 &getPivot();
 
         [[nodiscard]] float getSizeInPixByPercentOnlyX(const Vector2 &percent) const;
 
@@ -93,6 +95,7 @@ namespace BreadEditor {
         [[nodiscard]] UiElement *getNextSibling() const;
 
         [[nodiscard]] UiElement *getPrevSibling() const;
+        [[nodiscard]] int getIndex() const;
 
         void setLayoutType(LAYOUT_TYPE layout);
 
