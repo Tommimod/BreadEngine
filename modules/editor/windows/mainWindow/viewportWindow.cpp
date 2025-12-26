@@ -3,13 +3,13 @@
 namespace BreadEditor {
     std::string ViewportWindow::Id = "mainWindowViewportWindow";
 
-    ViewportWindow::ViewportWindow(const std::string &id)
+    ViewportWindow::ViewportWindow(const std::string &id) : UiWindow(id)
     {
         setup(id);
         subscribe();
     }
 
-    ViewportWindow::ViewportWindow(const std::string &id, UiElement *parentElement)
+    ViewportWindow::ViewportWindow(const std::string &id, UiElement *parentElement) : UiWindow(id, parentElement)
     {
         setup(id, parentElement);
         subscribe();
@@ -17,38 +17,33 @@ namespace BreadEditor {
 
     ViewportWindow::~ViewportWindow()
     {
-        unsubscribe();
     }
 
     void ViewportWindow::draw(float deltaTime)
     {
         GuiSetState(_state);
         GuiScrollPanel(_bounds, _title, _contentView, &_scrollPos, &_scrollView);
-        UiElement::draw(deltaTime);
+        UiWindow::draw(deltaTime);
         GuiSetState(STATE_NORMAL);
     }
 
     void ViewportWindow::update(float deltaTime)
     {
-        updateResizable(*this);
-        UiElement::update(deltaTime);
+        UiWindow::update(deltaTime);
     }
 
     void ViewportWindow::dispose()
     {
-        UiElement::dispose();
-    }
-
-    bool ViewportWindow::tryDeleteSelf()
-    {
-        return UiElement::tryDeleteSelf();
+        UiWindow::dispose();
     }
 
     void ViewportWindow::subscribe()
     {
+        UiWindow::subscribe();
     }
 
     void ViewportWindow::unsubscribe()
     {
+        UiWindow::unsubscribe();
     }
 } // BreadEditor

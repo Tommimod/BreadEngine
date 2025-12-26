@@ -27,6 +27,8 @@ namespace BreadEditor {
 
     void UiLabelButton::draw(const float deltaTime)
     {
+        if (!isActive) return;
+
         GuiSetState(_state);
         if (GuiLabelButton(_bounds, _text.c_str()))
         {

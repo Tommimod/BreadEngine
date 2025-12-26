@@ -69,6 +69,8 @@ namespace BreadEditor {
 
     void UiElement::draw(const float deltaTime)
     {
+        if (!isActive) return;
+
         if (isDebugRectVisible)
         {
             drawDebugRect();
@@ -82,6 +84,8 @@ namespace BreadEditor {
 
     void UiElement::update(const float deltaTime)
     {
+        if (!isActive) return;
+
         computeBounds();
         for (const auto child: _childs)
         {
@@ -272,15 +276,14 @@ namespace BreadEditor {
         if (child && std::ranges::find(_childs, child) == _childs.end())
         {
             child->_parent = this;
-            _childs.push_back(child);
+            _childs.push_back(std::move(child));
         }
     }
 
     void UiElement::destroyChild(UiElement *child)
     {
         _childs.erase(std::ranges::find(_childs, child));
-        const auto isDeleted = child->tryDeleteSelf();
-        if (!isDeleted)
+        if (const auto isDeleted = child->tryDeleteSelf(); !isDeleted)
         {
             delete child;
         }
@@ -629,6 +632,7 @@ namespace BreadEditor {
         {
             totalProp += (_layoutType == LAYOUT_HORIZONTAL ? child->_sizeInPercents.x : child->_sizeInPercents.y);
         }
+
         if (totalProp == 0.0f) totalProp = 1.0f; // Avoid div0
 
         for (const auto child: _childs)

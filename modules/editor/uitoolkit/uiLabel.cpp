@@ -13,6 +13,8 @@ namespace BreadEditor {
 
     void UiLabel::draw(const float deltaTime)
     {
+        if (!isActive) return;
+
         GuiLabel(_bounds, _text.c_str());
         UiElement::draw(deltaTime);
     }

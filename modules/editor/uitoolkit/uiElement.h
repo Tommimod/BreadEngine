@@ -42,6 +42,7 @@ namespace BreadEditor {
     {
     public:
         std::string id;
+        bool isActive = true;
         bool isStatic = false;
         bool isDebugRectVisible = false;
 
@@ -109,9 +110,9 @@ namespace BreadEditor {
 
         void setLayoutType(LAYOUT_TYPE layout);
 
-        void addChild(UiElement *child);
+        virtual void addChild(UiElement *child);
 
-        void destroyChild(UiElement *child);
+        virtual void destroyChild(UiElement *child);
 
         void destroyChild(const std::string &childId);
 

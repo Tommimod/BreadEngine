@@ -48,6 +48,7 @@ namespace BreadEditor {
 
     void UiCheckBox::draw(const float deltaTime)
     {
+        if (!isActive) return;
         GuiSetState(_state);
         const auto lastState = _internalChecked;
         _externalChecked = &_internalChecked;
@@ -63,6 +64,8 @@ namespace BreadEditor {
 
     void UiCheckBox::update(const float deltaTime)
     {
+        if (!isActive) return;
+
         UiElement::update(deltaTime);
         if (_dynamicValue.component == nullptr)
         {

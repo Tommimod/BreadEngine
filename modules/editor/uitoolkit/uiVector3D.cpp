@@ -60,6 +60,8 @@ namespace BreadEditor {
 
     void UiVector3D::draw(float deltaTime)
     {
+        if (!isActive) return;
+
         GuiSetState(_state);
         UiElement::draw(deltaTime);
         GuiSetState(STATE_NORMAL);

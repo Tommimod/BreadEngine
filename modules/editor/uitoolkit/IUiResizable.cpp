@@ -7,6 +7,8 @@
 namespace BreadEditor {
     void IUiResizable::updateResizable(UiElement &uiElement)
     {
+        if (!isVerticalResized && !isHorizontalResized) return;
+
         if (IsMouseButtonUp(MOUSE_LEFT_BUTTON))
         {
             _isPrepared = false;
@@ -146,7 +148,7 @@ namespace BreadEditor {
                                                   : uiElement.getPrevSiblingsByEqualVertical();
                         for (const auto sibling: siblings)
                         {
-                            changeVerticalSize(*sibling, !isDragUpperSide, !isDragDownSide, mouseYDelta * .5f);
+                            changeVerticalSize(*sibling, !isDragUpperSide, !isDragDownSide, mouseYDelta * .51f);
                         }
                     }
                 }

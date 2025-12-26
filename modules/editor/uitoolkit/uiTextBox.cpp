@@ -50,6 +50,8 @@ namespace BreadEditor {
 
     void UiTextBox::draw(const float deltaTime)
     {
+        if (!isActive) return;
+
         GuiSetState(_state);
         GuiTextBox(_bounds, _text, _textSize, _editMode);
         UiElement::draw(deltaTime);
@@ -58,6 +60,8 @@ namespace BreadEditor {
 
     void UiTextBox::update(const float deltaTime)
     {
+        if (!isActive) return;
+
         UiElement::update(deltaTime);
         if (_state == STATE_DISABLED)
         {

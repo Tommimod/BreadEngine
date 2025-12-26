@@ -1,4 +1,4 @@
-﻿#include "nodeTree.h"
+﻿#include "nodeTreeWindow.h"
 #include "editor.h"
 #include "engine.h"
 #include "nodeProvider.h"
@@ -6,57 +6,46 @@
 #include "uitoolkit/uiPool.h"
 
 namespace BreadEditor {
-    std::string NodeTree::Id = "mainWindowNodeTree";
+    std::string NodeTreeWindow::Id = "mainWindowNodeTree";
 
-    NodeTree::NodeTree(const std::string &id)
+    NodeTreeWindow::NodeTreeWindow(const std::string &id) : UiWindow(id)
     {
         setup(id);
         subscribe();
     }
 
-    NodeTree::NodeTree(const std::string &id, UiElement *parentElement)
+    NodeTreeWindow::NodeTreeWindow(const std::string &id, UiElement *parentElement) : UiWindow(id, parentElement)
     {
         setup(id, parentElement);
         subscribe();
     }
 
-    NodeTree::~NodeTree()
+    NodeTreeWindow::~NodeTreeWindow()
     = default;
 
-    void NodeTree::draw(const float deltaTime)
+    void NodeTreeWindow::draw(const float deltaTime)
     {
         GuiSetState(_state);
         GuiScrollPanel(_bounds, _title, _contentView, &_scrollPos, &_scrollView);
         drawLines(Engine::getRootNode());
-        UiElement::draw(deltaTime);
+        UiWindow::draw(deltaTime);
         GuiSetState(STATE_NORMAL);
     }
 
-    void NodeTree::update(const float deltaTime)
+    void NodeTreeWindow::update(const float deltaTime)
     {
-        UiElement::update(deltaTime);
+        UiWindow::update(deltaTime);
         const auto lastNodeBounds = _nodeUiElements.empty() ? Rectangle{} : _nodeUiElements.back()->getBounds();
         updateScrollView(lastNodeBounds);
         updateResizable(*this);
     }
 
-    void NodeTree::dispose()
+    void NodeTreeWindow::dispose()
     {
-        unsubscribe();
-        UiElement::dispose();
+        UiWindow::dispose();
     }
 
-    NodeUiElement *NodeTree::getSelectedNodeUiElement() const
-    {
-        return _selectedNodeUiElement;
-    }
-
-    bool NodeTree::tryDeleteSelf()
-    {
-        return UiElement::tryDeleteSelf();
-    }
-
-    NodeUiElement *NodeTree::findNodeUiElementByEngineNode(const Node *node) const
+    NodeUiElement *NodeTreeWindow::findNodeUiElementByEngineNode(const Node *node) const
     {
         for (const auto child: _childs)
         {
@@ -69,7 +58,7 @@ namespace BreadEditor {
         return nullptr;
     }
 
-    void NodeTree::subscribe()
+    void NodeTreeWindow::subscribe()
     {
         _nodeNotificatorSubscriptions.emplace_back(
             NodeProvider::onNodeCreated.subscribe([this](Node *node) { this->onNodeCreated(node); }));
@@ -79,18 +68,22 @@ namespace BreadEditor {
             NodeProvider::onNodeDestroyed.subscribe([this](const Node *node) { this->onNodeRemoved(node); }));
         _nodeNotificatorSubscriptions.emplace_back(
             NodeProvider::onNodeChangedActive.subscribe([this](const Node *node) { this->onNodeChangedActive(node); }));
+
+        UiWindow::subscribe();
     }
 
-    void NodeTree::unsubscribe()
+    void NodeTreeWindow::unsubscribe()
     {
         NodeProvider::onNodeCreated.unsubscribe(_nodeNotificatorSubscriptions[0]);
         NodeProvider::onNodeChangedParent.unsubscribe(_nodeNotificatorSubscriptions[1]);
         NodeProvider::onNodeDestroyed.unsubscribe(_nodeNotificatorSubscriptions[2]);
         NodeProvider::onNodeChangedActive.unsubscribe(_nodeNotificatorSubscriptions[3]);
         _nodeNotificatorSubscriptions.clear();
+
+        UiWindow::unsubscribe();
     }
 
-    void NodeTree::onNodeCreated(Node *node)
+    void NodeTreeWindow::onNodeCreated(Node *node)
     {
         constexpr auto elementIdFormat = "NinsT_%d";
         constexpr float elementHeight = 20.0f;
@@ -115,7 +108,7 @@ namespace BreadEditor {
         element.onDragEnded.subscribe([this](UiElement *uiElement) { this->onElementEndDrag(uiElement); });
     }
 
-    void NodeTree::onNodeChangedParent(const Node *node) const
+    void NodeTreeWindow::onNodeChangedParent(const Node *node) const
     {
         const auto instance = findNodeUiElementByEngineNode(node);
         instance->setParentNode(findNodeUiElementByEngineNode(node->getParent()));
@@ -124,13 +117,13 @@ namespace BreadEditor {
         recalculateUiNodes(Engine::getRootNode(), i);
     }
 
-    void NodeTree::onNodeChangedActive(const Node *node) const
+    void NodeTreeWindow::onNodeChangedActive(const Node *node) const
     {
         const auto instance = findNodeUiElementByEngineNode(node);
         instance->setState(node->getIsActive() ? STATE_NORMAL : STATE_DISABLED);
     }
 
-    void NodeTree::onNodeRemoved(const Node *node)
+    void NodeTreeWindow::onNodeRemoved(const Node *node)
     {
         const auto instance = findNodeUiElementByEngineNode(node);
         instance->onSelected.unsubscribeAll();
@@ -140,21 +133,22 @@ namespace BreadEditor {
         recalculateUiNodes(Engine::getRootNode(), i);
     }
 
-    void NodeTree::onNodeSelected(NodeUiElement *nodeUiElement)
+    void NodeTreeWindow::onNodeSelected(NodeUiElement *nodeUiElement)
     {
-        _selectedNodeUiElement = nodeUiElement;
+        auto& model = Editor::getInstance().getEditorModel();
+        model.setSelectedNodeUiElement(nodeUiElement);
         Node *node = nullptr;
-        if (_selectedNodeUiElement != nullptr)
+        if (nodeUiElement != nullptr)
         {
-            node = _selectedNodeUiElement->getNode();
+            node = nodeUiElement->getNode();
             Editor::getInstance().mainWindow.getGizmoSystem().recalculateGizmo(node->get<BreadEngine::Transform>());
         }
 
-        NodeInspector &nodeInspector = Editor::getInstance().mainWindow.getNodeInspector();
+        NodeInspectorWindow &nodeInspector = Editor::getInstance().mainWindow.getNodeInspector();
         nodeInspector.lookupNode(node);
     }
 
-    void NodeTree::onElementStartDrag(UiElement *uiElement)
+    void NodeTreeWindow::onElementStartDrag(UiElement *uiElement)
     {
         const auto originalElement = dynamic_cast<NodeUiElement *>(uiElement);
         _draggedNodeUiElementCopy = dynamic_cast<NodeUiElement *>(uiElement)->copy();
@@ -162,7 +156,7 @@ namespace BreadEditor {
         originalElement->switchMuteState();
     }
 
-    void NodeTree::onElementEndDrag(UiElement *uiElement)
+    void NodeTreeWindow::onElementEndDrag(UiElement *uiElement)
     {
         this->destroyChild(_draggedNodeUiElementCopy);
         _draggedNodeUiElementCopy = nullptr;
@@ -201,7 +195,7 @@ namespace BreadEditor {
         }
     }
 
-    void NodeTree::updateScrollView(const Rectangle lastNodeBounds)
+    void NodeTreeWindow::updateScrollView(const Rectangle lastNodeBounds)
     {
         if (_contentView.width == 0 && _contentView.height == 0)
         {
@@ -211,23 +205,21 @@ namespace BreadEditor {
         _contentView.x = _bounds.x;
         _contentView.y = _bounds.y;
         _contentView.width = _bounds.width;
-
-        NodeInspector &nodeInspector = Editor::getInstance().mainWindow.getNodeInspector();
-        _contentView.height = _bounds.height - nodeInspector.getBounds().height;
     }
 
-    void NodeTree::recalculateUiNodes(Node &startNode, int &nodeOrder) const
+    void NodeTreeWindow::recalculateUiNodes(Node &startNode, int &nodeOrder) const
     {
         const auto element = findNodeUiElementByEngineNode(&startNode);
         constexpr float nodeHorizontalPadding = 15.0f;
         constexpr float nodeVerticalPadding = 5.0f;
+        constexpr float startYPosition = 30.0f;
 
         const auto nodeHeight = element->getSize().y;
         const auto deepLevel = static_cast<float>(startNode.getDeepLevel());
 
         const auto horizontalOffset = nodeHorizontalPadding * deepLevel;
         const auto verticalPadding = (nodeVerticalPadding + nodeHeight) * static_cast<float>(nodeOrder);
-        element->setPosition({nodeHorizontalPadding + horizontalOffset, 25 + verticalPadding});
+        element->setPosition({nodeHorizontalPadding + horizontalOffset, startYPosition + verticalPadding});
         nodeOrder++;
         if (startNode.getChildCount() == 0)
         {
@@ -240,7 +232,7 @@ namespace BreadEditor {
         }
     }
 
-    void NodeTree::drawLines(Node &startNode) const
+    void NodeTreeWindow::drawLines(Node &startNode) const
     {
         constexpr float nodeHorizontalPadding = 15.0f * .5f;
 

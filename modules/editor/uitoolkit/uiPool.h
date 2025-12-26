@@ -4,6 +4,7 @@
 #include "uiLabelButton.h"
 #include "windows/mainWindow/nodeUiElement.h"
 #include "objectPool.h"
+#include "uiButton.h"
 #include "uiCheckBox.h"
 #include "uiComponent.h"
 #include "uiLabel.h"
@@ -19,6 +20,7 @@ namespace BreadEditor {
     {
     public:
         static ObjectPool<UiLabelButton> labelButtonPool;
+        static ObjectPool<UiButton> buttonPool;
         static ObjectPool<UiPanel> panelPool;
         static ObjectPool<UiToolbar> toolbarPool;
         static ObjectPool<NodeUiElement> nodeUiElementPool;

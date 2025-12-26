@@ -1,13 +1,14 @@
 ﻿#pragma once
 #include "IUiResizable.h"
 #include "uiElement.h"
-#include "windows/mainWindow/nodeTree.h"
+#include "uiToolbar.h"
+#include "windows/mainWindow/nodeTreeWindow.h"
 
 namespace BreadEditor {
     class UiContainer final : public UiElement, public IUiResizable
     {
     public:
-        UiContainer(LAYOUT_TYPE layoutType);
+        explicit UiContainer(LAYOUT_TYPE layoutType);
 
         ~UiContainer() override;
 
@@ -24,7 +25,18 @@ namespace BreadEditor {
 
         void update(float deltaTime) override;
 
+        void addChild(UiElement *child) override;
+
+        void destroyChild(UiElement *child) override;
+
     protected:
         bool tryDeleteSelf() override;
+
+    private:
+        UiToolbar &_toolbar;
+        vector<std::string> _windowsOptions{};
+        float _toolbarHeightInPercent = 0;
+
+        void recalculateChilds();
     };
 } // BreadEditor

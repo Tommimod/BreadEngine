@@ -9,6 +9,12 @@ namespace BreadEditor {
     };
     ObjectPool<UiLabelButton> UiPool::labelButtonPool(UiLabelButtonFactory, 10);
 
+    auto UiButtonFactory = []() -> UiButton *
+    {
+        return new UiButton();
+    };
+    ObjectPool<UiButton> UiPool::buttonPool(UiButtonFactory, 10);
+
     auto UiPanelFactory = []() -> UiPanel *
     {
         return new UiPanel();

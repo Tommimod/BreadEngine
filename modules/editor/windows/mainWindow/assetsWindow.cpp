@@ -3,13 +3,13 @@
 namespace BreadEditor {
     std::string AssetsWindow::Id = "mainWindowAssetsWindow";
 
-    AssetsWindow::AssetsWindow(const std::string &id)
+    AssetsWindow::AssetsWindow(const std::string &id) : UiWindow(id)
     {
         setup(id);
         subscribe();
     }
 
-    AssetsWindow::AssetsWindow(const std::string &id, UiElement *parentElement)
+    AssetsWindow::AssetsWindow(const std::string &id, UiElement *parentElement) : UiWindow(id, parentElement)
     {
         setup(id, parentElement);
         subscribe();
@@ -17,38 +17,33 @@ namespace BreadEditor {
 
     AssetsWindow::~AssetsWindow()
     {
-        unsubscribe();
     }
 
     void AssetsWindow::draw(float deltaTime)
     {
         GuiSetState(_state);
         GuiScrollPanel(_bounds, _title, _contentView, &_scrollPos, &_scrollView);
-        UiElement::draw(deltaTime);
+        UiWindow::draw(deltaTime);
         GuiSetState(STATE_NORMAL);
     }
 
     void AssetsWindow::update(float deltaTime)
     {
-        UiElement::update(deltaTime);
-        updateResizable(*this);
+        UiWindow::update(deltaTime);
     }
 
     void AssetsWindow::dispose()
     {
-        UiElement::dispose();
-    }
-
-    bool AssetsWindow::tryDeleteSelf()
-    {
-        return UiElement::tryDeleteSelf();
+        UiWindow::dispose();
     }
 
     void AssetsWindow::subscribe()
     {
+        UiWindow::subscribe();
     }
 
     void AssetsWindow::unsubscribe()
     {
+        UiWindow::unsubscribe();
     }
 } // BreadEditor

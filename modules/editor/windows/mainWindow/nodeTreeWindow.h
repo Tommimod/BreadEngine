@@ -3,19 +3,20 @@
 #include "node.h"
 #include "nodeUiElement.h"
 #include "uitoolkit/IUiResizable.h"
+#include "uitoolkit/uiWindow.h"
 using namespace BreadEngine;
 
 namespace BreadEditor {
-    class NodeTree final : public UiElement, public IUiResizable
+    class NodeTreeWindow final : public UiWindow
     {
     public:
         static std::string Id;
 
-        explicit NodeTree(const std::string &id);
+        explicit NodeTreeWindow(const std::string &id);
 
-        explicit NodeTree(const std::string &id, UiElement *parentElement);
+        explicit NodeTreeWindow(const std::string &id, UiElement *parentElement);
 
-        ~NodeTree() override;
+        ~NodeTreeWindow() override;
 
         void draw(float deltaTime) override;
 
@@ -23,26 +24,18 @@ namespace BreadEditor {
 
         void dispose() override;
 
-        [[nodiscard]] NodeUiElement *getSelectedNodeUiElement() const;
-
     protected:
-        bool tryDeleteSelf() override;
+        void subscribe() override;
+
+        void unsubscribe() override;
 
     private:
-        const char *_title = "Node Inspector";
-        std::vector<SubscriptionHandle> _nodeNotificatorSubscriptions;
-        std::vector<NodeUiElement *> _nodeUiElements;
-        Vector2 _scrollPos = {0.0f, 0.0f};
-        Rectangle _contentView = {0.0f, 0.0f, 0.0f, 0.0f};
-        Rectangle _scrollView = {0.0f, 0.0f, 0.0f, 0.0f};
-        NodeUiElement *_selectedNodeUiElement = nullptr;
+        const char *_title = "Node Tree";
+        std::vector<SubscriptionHandle> _nodeNotificatorSubscriptions {};
+        std::vector<NodeUiElement *> _nodeUiElements {};
         NodeUiElement *_draggedNodeUiElementCopy = nullptr;
 
         NodeUiElement *findNodeUiElementByEngineNode(const Node *node) const;
-
-        void subscribe();
-
-        void unsubscribe();
 
         void onNodeCreated(Node *node);
 

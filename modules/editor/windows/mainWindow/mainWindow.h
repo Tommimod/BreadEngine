@@ -2,8 +2,8 @@
 #include "assetsWindow.h"
 #include "consoleWindow.h"
 #include "gizmoSystem.h"
-#include "nodeInspector.h"
-#include "nodeTree.h"
+#include "nodeInspectorWindow.h"
+#include "nodeTreeWindow.h"
 #include "../../uitoolkit/uiToolbar.h"
 #include "raylib.h"
 #include "viewportWindow.h"
@@ -20,11 +20,13 @@ namespace BreadEditor {
 
         ~MainWindow() override;
 
+        [[nodiscard]] vector<std::string> &getWindowsOptions();
+
         [[nodiscard]] UiToolbar &getToolbar() const;
 
-        [[nodiscard]] NodeTree &getNodeTree() const;
+        [[nodiscard]] NodeTreeWindow &getNodeTree() const;
 
-        [[nodiscard]] NodeInspector &getNodeInspector() const;
+        [[nodiscard]] NodeInspectorWindow &getNodeInspector() const;
 
         [[nodiscard]] GizmoSystem &getGizmoSystem();
 
@@ -52,6 +54,7 @@ namespace BreadEditor {
         unique_ptr<UiContainer> _centerContainer;
 
         GizmoSystem _gizmoSystem;
+        vector<std::string> _windowsOptions {};
 
         [[nodiscard]] UiElement *findUiElementById(const std::string &id) const;
     };

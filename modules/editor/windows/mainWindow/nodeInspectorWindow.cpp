@@ -1,23 +1,25 @@
-﻿#include "nodeInspector.h"
+﻿#include "nodeInspectorWindow.h"
 #include "raygui.h"
 #include "uitoolkit/uiPool.h"
 
 namespace BreadEditor {
-    std::string NodeInspector::Id = "mainWindowNodeInspector";
+    std::string NodeInspectorWindow::Id = "mainWindowNodeInspector";
 
-    NodeInspector::NodeInspector(const std::string &id)
+    NodeInspectorWindow::NodeInspectorWindow(const std::string &id) : UiWindow(id)
     {
         setup(id);
         initialize();
+        subscribe();
     }
 
-    NodeInspector::NodeInspector(const std::string &id, UiElement *parentElement)
+    NodeInspectorWindow::NodeInspectorWindow(const std::string &id, UiElement *parentElement) : UiWindow(id, parentElement)
     {
         setup(id, parentElement);
         initialize();
+        subscribe();
     }
 
-    NodeInspector::~NodeInspector()
+    NodeInspectorWindow::~NodeInspectorWindow()
     {
         _activeCheckBox->onValueChanged.unsubscribe(_subscriptions[_activeCheckBox]);
         _nameTextBox->onValueChanged.unsubscribe(_subscriptions[_nameTextBox]);
@@ -30,7 +32,7 @@ namespace BreadEditor {
         _subscriptions.clear();
     }
 
-    void NodeInspector::draw(const float deltaTime)
+    void NodeInspectorWindow::draw(const float deltaTime)
     {
         GuiSetState(_state);
         GuiPanel(_bounds, nullptr);
@@ -40,17 +42,21 @@ namespace BreadEditor {
             childElement->setState(isDisabled ? STATE_DISABLED : STATE_NORMAL);
         }
 
-        UiElement::draw(deltaTime);
+        UiWindow::draw(deltaTime);
         GuiSetState(STATE_NORMAL);
-        updateResizable(*this);
     }
 
-    void NodeInspector::update(const float deltaTime)
+    void NodeInspectorWindow::update(const float deltaTime)
     {
-        UiElement::update(deltaTime);
+        UiWindow::update(deltaTime);
     }
 
-    void NodeInspector::lookupNode(Node *node)
+    void NodeInspectorWindow::dispose()
+    {
+        UiWindow::dispose();
+    }
+
+    void NodeInspectorWindow::lookupNode(Node *node)
     {
         _engineNode = node;
         if (_engineNode != nullptr)
@@ -90,17 +96,22 @@ namespace BreadEditor {
         }
     }
 
-    void NodeInspector::clear()
+    void NodeInspectorWindow::clear()
     {
         _engineNode = nullptr;
     }
 
-    bool NodeInspector::tryDeleteSelf()
+    void NodeInspectorWindow::subscribe()
     {
-        return UiElement::tryDeleteSelf();
+        UiWindow::subscribe();
     }
 
-    void NodeInspector::initialize()
+    void NodeInspectorWindow::unsubscribe()
+    {
+        UiWindow::unsubscribe();
+    }
+
+    void NodeInspectorWindow::initialize()
     {
         constexpr int verticalOffset = 5;
         constexpr int horizontalOffset = 5;
@@ -120,7 +131,7 @@ namespace BreadEditor {
         resetElementsState();
     }
 
-    void NodeInspector::resetElementsState()
+    void NodeInspectorWindow::resetElementsState()
     {
         const auto emptyString = "";
         _activeCheckBox->setChecked(false);
@@ -128,17 +139,17 @@ namespace BreadEditor {
         _trackedComponents = {};
     }
 
-    void NodeInspector::onNodeActiveChanged(const bool isActive) const
+    void NodeInspectorWindow::onNodeActiveChanged(const bool isActive) const
     {
         _engineNode->setIsActive(isActive);
     }
 
-    void NodeInspector::onNodeNameChanged(const char *name) const
+    void NodeInspectorWindow::onNodeNameChanged(const char *name) const
     {
         _engineNode->setName(name);
     }
 
-    void NodeInspector::setupUiComponent(UiComponent *uiComponentElement) const
+    void NodeInspectorWindow::setupUiComponent(UiComponent *uiComponentElement) const
     {
         uiComponentElement->setAnchor(UI_LEFT_TOP);
         uiComponentElement->setSize(Vector2{_bounds.width - 10, 50});
@@ -147,7 +158,7 @@ namespace BreadEditor {
         uiComponentElement->setPosition(Vector2{5, yPosition});
     }
 
-    void NodeInspector::onUiComponentDeleted(const std::type_index type)
+    void NodeInspectorWindow::onUiComponentDeleted(const std::type_index type)
     {
         _engineNode->remove(type);
         lookupNode(_engineNode);

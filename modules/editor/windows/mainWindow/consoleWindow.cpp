@@ -3,13 +3,13 @@
 namespace BreadEditor {
     std::string ConsoleWindow::Id = "mainWindowConsoleWindow";
 
-    ConsoleWindow::ConsoleWindow(const std::string &id)
+    ConsoleWindow::ConsoleWindow(const std::string &id) : UiWindow(id)
     {
         setup(id);
         subscribe();
     }
 
-    ConsoleWindow::ConsoleWindow(const std::string &id, UiElement *parentElement)
+    ConsoleWindow::ConsoleWindow(const std::string &id, UiElement *parentElement) : UiWindow(id, parentElement)
     {
         setup(id, parentElement);
         subscribe();
@@ -17,38 +17,33 @@ namespace BreadEditor {
 
     ConsoleWindow::~ConsoleWindow()
     {
-        unsubscribe();
     }
 
     void ConsoleWindow::draw(float deltaTime)
     {
         GuiSetState(_state);
         GuiScrollPanel(_bounds, _title, _contentView, &_scrollPos, &_scrollView);
-        UiElement::draw(deltaTime);
+        UiWindow::draw(deltaTime);
         GuiSetState(STATE_NORMAL);
     }
 
     void ConsoleWindow::update(float deltaTime)
     {
-        updateResizable(*this);
-        UiElement::update(deltaTime);
+        UiWindow::update(deltaTime);
     }
 
     void ConsoleWindow::dispose()
     {
-        UiElement::dispose();
-    }
-
-    bool ConsoleWindow::tryDeleteSelf()
-    {
-        return UiElement::tryDeleteSelf();
+        UiWindow::dispose();
     }
 
     void ConsoleWindow::subscribe()
     {
+        UiWindow::subscribe();
     }
 
     void ConsoleWindow::unsubscribe()
     {
+        UiWindow::unsubscribe();
     }
 } // BreadEditor

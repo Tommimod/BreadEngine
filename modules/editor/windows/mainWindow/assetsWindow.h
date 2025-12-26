@@ -1,9 +1,9 @@
 ﻿#pragma once
-#include "uitoolkit/IUiResizable.h"
 #include "uitoolkit/uiElement.h"
+#include "uitoolkit/uiWindow.h"
 
 namespace BreadEditor {
-    class AssetsWindow final : public UiElement, public IUiResizable
+    class AssetsWindow final : public UiWindow
     {
     public:
         static std::string Id;
@@ -21,16 +21,11 @@ namespace BreadEditor {
         void dispose() override;
 
     protected:
-        bool tryDeleteSelf() override;
+        void subscribe() override;
+
+        void unsubscribe() override;
 
     private:
         const char *_title = "Assets Window";
-        Vector2 _scrollPos = {0.0f, 0.0f};
-        Rectangle _contentView = {0.0f, 0.0f, 0.0f, 0.0f};
-        Rectangle _scrollView = {0.0f, 0.0f, 0.0f, 0.0f};
-
-        void subscribe();
-
-        void unsubscribe();
     };
 } // BreadEditor

@@ -151,6 +151,8 @@ namespace BreadEditor {
 
     void UiComponent::draw(const float deltaTime)
     {
+        if (!isActive) return;
+
         GuiSetState(_state);
         if (_isTransform)
         {

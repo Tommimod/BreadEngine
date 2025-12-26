@@ -19,6 +19,8 @@ namespace BreadEditor {
 
     void UiPanel::draw(const float deltaTime)
     {
+        if (!isActive) return;
+
         GuiSetState(_state);
         GuiPanel(_bounds, _title);
         UiElement::draw(deltaTime);

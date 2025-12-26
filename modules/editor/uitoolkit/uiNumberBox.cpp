@@ -98,6 +98,8 @@ namespace BreadEditor {
 
     void UiNumberBox::draw(const float deltaTime)
     {
+        if (!isActive) return;
+
         GuiSetState(_state);
 
         if (_intMode)
@@ -131,6 +133,8 @@ namespace BreadEditor {
 
     void UiNumberBox::update(const float deltaTime)
     {
+        if (!isActive) return;
+
         UiElement::update(deltaTime);
         if (!_editMode && _dynamicValue.component != nullptr)
         {

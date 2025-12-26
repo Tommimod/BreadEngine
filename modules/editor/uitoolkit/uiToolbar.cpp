@@ -9,7 +9,7 @@ namespace BreadEditor
 
     UiToolbar::UiToolbar() = default;
 
-    UiToolbar &UiToolbar::setup(const string &id, UiElement *parentElement, float height, const vector<string> &buttonNames)
+    UiToolbar &UiToolbar::setup(const string &id, UiElement *parentElement, const float height, const vector<string> &buttonNames)
     {
         float lastX = 0;
         for (const auto &buttonName: buttonNames)
@@ -42,6 +42,8 @@ namespace BreadEditor
 
     void UiToolbar::draw(const float deltaTime)
     {
+        if (!isActive) return;
+
         GuiSetState(_state);
         GuiPanel(_bounds, nullptr);
         UiElement::draw(deltaTime);
