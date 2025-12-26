@@ -42,6 +42,7 @@ namespace BreadEditor {
     {
     public:
         std::string id;
+        bool isStatic = false;
         bool isDebugRectVisible = false;
 
         virtual ~UiElement();
@@ -50,7 +51,7 @@ namespace BreadEditor {
 
         virtual void update(float deltaTime);
 
-        [[nodiscard]] Rectangle& getBounds();
+        [[nodiscard]] Rectangle &getBounds();
 
         [[nodiscard]] Vector2 &getPosition();
 
@@ -82,7 +83,7 @@ namespace BreadEditor {
 
         [[nodiscard]] UiElement *getParentElement() const;
 
-        [[nodiscard]] UiElement *const *getAllChilds() const;
+        [[nodiscard]] std::vector<UiElement *> &getAllChilds();
 
         [[nodiscard]] UiElement *getChildById(const std::string &childId) const;
 
@@ -95,6 +96,15 @@ namespace BreadEditor {
         [[nodiscard]] UiElement *getNextSibling() const;
 
         [[nodiscard]] UiElement *getPrevSibling() const;
+
+        [[nodiscard]] std::vector<UiElement *> getNextSiblingsByEqualHorizontal() const;
+
+        [[nodiscard]] std::vector<UiElement *> getPrevSiblingsByEqualHorizontal() const;
+
+        [[nodiscard]] std::vector<UiElement *> getNextSiblingsByEqualVertical() const;
+
+        [[nodiscard]] std::vector<UiElement *> getPrevSiblingsByEqualVertical() const;
+
         [[nodiscard]] int getIndex() const;
 
         void setLayoutType(LAYOUT_TYPE layout);
@@ -140,6 +150,10 @@ namespace BreadEditor {
         UiElement &setup(const std::string &newId);
 
         UiElement &setup(const std::string &newId, UiElement *parentElement);
+
+        [[nodiscard]] std::vector<UiElement *> getChildsSorterByHorizontal(bool reverse) const;
+
+        [[nodiscard]] std::vector<UiElement *> getChildsSorterByVertical(bool reverse) const;
 
         [[nodiscard]] virtual Vector2 getAnchorPoint(const Rectangle &parentBounds) const;
 

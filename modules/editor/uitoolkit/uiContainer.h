@@ -4,21 +4,21 @@
 #include "windows/mainWindow/nodeTree.h"
 
 namespace BreadEditor {
-    class UiEmpty final : public UiElement, public IUiResizable
+    class UiContainer final : public UiElement, public IUiResizable
     {
     public:
-        UiEmpty() = default;
+        UiContainer(LAYOUT_TYPE layoutType);
 
-        ~UiEmpty() override;
+        ~UiContainer() override;
 
         void dispose() override
         {
             UiElement::dispose();
         }
 
-        UiEmpty *setup(const std::string &id);
+        UiContainer *setup(const std::string &id);
 
-        UiEmpty *setup(const std::string &id, UiElement *parentElement);
+        UiContainer *setup(const std::string &id, UiElement *parentElement);
 
         void draw(float deltaTime) override;
 

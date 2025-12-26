@@ -6,7 +6,8 @@
 #include "nodeTree.h"
 #include "../../uitoolkit/uiToolbar.h"
 #include "raylib.h"
-#include "uitoolkit/UiEmpty.h"
+#include "viewportWindow.h"
+#include "uitoolkit/uiContainer.h"
 using namespace BreadEngine;
 
 namespace BreadEditor {
@@ -31,6 +32,8 @@ namespace BreadEditor {
 
         [[nodiscard]] ConsoleWindow &getConsoleWindow() const;
 
+        [[nodiscard]] ViewportWindow &getViewportWindow() const;
+
         void render3D(float deltaTime);
 
         void draw(float deltaTime) override;
@@ -43,10 +46,10 @@ namespace BreadEditor {
         bool tryDeleteSelf() override;
 
     private:
-        unique_ptr<UiEmpty> _leftContainer;
-        unique_ptr<UiEmpty> _rightContainer;
-        unique_ptr<UiEmpty> _bottomContainer;
-        unique_ptr<UiEmpty> _centerContainer;
+        unique_ptr<UiContainer> _leftContainer;
+        unique_ptr<UiContainer> _rightContainer;
+        unique_ptr<UiContainer> _bottomContainer;
+        unique_ptr<UiContainer> _centerContainer;
 
         GizmoSystem _gizmoSystem;
 

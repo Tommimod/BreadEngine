@@ -22,6 +22,46 @@ namespace BreadEditor {
         return *this;
     }
 
+    std::vector<UiElement *> UiElement::getChildsSorterByHorizontal(const bool reverse) const
+    {
+        std::vector<UiElement *> sortedChilds = _childs;
+        if (!reverse)
+        {
+            std::ranges::sort(sortedChilds, [](UiElement *a, UiElement *b)
+            {
+                return a->getBounds().x <= b->getBounds().x;
+            });
+        }
+        else
+        {
+            std::ranges::sort(sortedChilds, [](UiElement *a, UiElement *b)
+            {
+                return a->getBounds().x >= b->getBounds().x;
+            });
+        }
+        return sortedChilds;
+    }
+
+    std::vector<UiElement *> UiElement::getChildsSorterByVertical(const bool reverse) const
+    {
+        std::vector<UiElement *> sortedChilds = _childs;
+        if (!reverse)
+        {
+            std::ranges::sort(sortedChilds, [](UiElement *a, UiElement *b)
+            {
+                return a->getBounds().y <= b->getBounds().y;
+            });
+        }
+        else
+        {
+            std::ranges::sort(sortedChilds, [](UiElement *a, UiElement *b)
+            {
+                return a->getBounds().y >= b->getBounds().y;
+            });
+        }
+        return sortedChilds;
+    }
+
     UiElement::~UiElement()
     {
         UiElement::dispose();
@@ -49,12 +89,12 @@ namespace BreadEditor {
         }
     }
 
-    Rectangle& UiElement::getBounds()
+    Rectangle &UiElement::getBounds()
     {
         return _bounds;
     }
 
-    Vector2& UiElement::getPosition()
+    Vector2 &UiElement::getPosition()
     {
         return _localPosition;
     }
@@ -90,16 +130,19 @@ namespace BreadEditor {
 
     void UiElement::setPosition(const Vector2 &position)
     {
+        if (isStatic) return;
         _localPosition = position;
     }
 
     void UiElement::setSize(const Vector2 &size)
     {
+        if (isStatic) return;
         _localSize = size;
     }
 
     void UiElement::setSizePercentOneTime(const Vector2 &percent)
     {
+        if (isStatic) return;
         if (percent.x >= 0 && percent.y >= 0)
         {
             setSize(getSizeInPixByPercent(percent));
@@ -122,6 +165,7 @@ namespace BreadEditor {
 
     void UiElement::setSizePercentPermanent(const Vector2 &percent)
     {
+        if (isStatic) return;
         if (percent.x >= 0 && percent.y >= 0)
         {
             setSize(getSizeInPixByPercent(percent));
@@ -149,11 +193,12 @@ namespace BreadEditor {
 
     void UiElement::setBounds(const Vector2 &position, const Vector2 &size)
     {
+        if (isStatic) return;
         _localPosition = position;
         _localSize = size;
     }
 
-    Vector2 & UiElement::getPivot()
+    Vector2 &UiElement::getPivot()
     {
         return _pivot;
     }
@@ -199,9 +244,9 @@ namespace BreadEditor {
         return this->_parent;
     }
 
-    UiElement *const *UiElement::getAllChilds() const
+    std::vector<UiElement *> &UiElement::getAllChilds()
     {
-        return _childs.data();
+        return _childs;
     }
 
     UiElement *UiElement::getChildById(const std::string &childId) const
@@ -265,6 +310,7 @@ namespace BreadEditor {
 
     void UiElement::setAnchor(const UI_ANCHOR_TYPE newAnchor)
     {
+        if (isStatic) return;
         _anchor = newAnchor;
     }
 
@@ -280,7 +326,7 @@ namespace BreadEditor {
 
     UiElement *UiElement::getNextSibling() const
     {
-        if (!_parent) return nullptr;
+        if (_parent == nullptr) return nullptr;
         const auto it = std::ranges::find(_parent->_childs, this);
         if (it == _parent->_childs.end() || it + 1 == _parent->_childs.end()) return nullptr;
         return *(it + 1);
@@ -288,38 +334,164 @@ namespace BreadEditor {
 
     UiElement *UiElement::getPrevSibling() const
     {
-        if (!_parent) return nullptr;
+        if (_parent == nullptr) return nullptr;
         const auto it = std::ranges::find(_parent->_childs, this);
         if (it == _parent->_childs.begin() || it == _parent->_childs.end()) return nullptr;
         return *(it - 1);
     }
 
+    std::vector<UiElement *> UiElement::getNextSiblingsByEqualHorizontal() const
+    {
+        std::vector<UiElement *> siblings{};
+        if (_parent == nullptr) return siblings;
+        const auto currentX = _bounds.x;
+        const auto fromY = _bounds.y;
+        const auto toY = _bounds.y + _bounds.height;
+        bool isFoundOne = false;
+        auto foundedX = 0.0f;
+        for (const auto childs = _parent->getChildsSorterByHorizontal(false); auto child: childs)
+        {
+            if (child->isStatic) continue;
+            const auto childBounds = child->getBounds();
+            const auto childLastPoint = childBounds.y + childBounds.height;
+            if ((childBounds.y < fromY && childLastPoint < fromY) || (childBounds.y > toY && childLastPoint > toY)) continue;
+
+            if (const auto childX = childBounds.x; !isFoundOne && childX > currentX)
+            {
+                isFoundOne = true;
+                foundedX = childX;
+                siblings.emplace_back(child);
+            }
+            else if (isFoundOne && childX == foundedX)
+            {
+                siblings.emplace_back(child);
+            }
+        }
+
+        return siblings;
+    }
+
+    std::vector<UiElement *> UiElement::getPrevSiblingsByEqualHorizontal() const
+    {
+        std::vector<UiElement *> siblings{};
+        if (_parent == nullptr) return siblings;
+        const auto currentX = _bounds.x;
+        const auto fromY = _bounds.y;
+        const auto toY = _bounds.y + _bounds.height;
+        bool isFoundOne = false;
+        auto foundedX = 0.0f;
+        for (const auto childs = _parent->getChildsSorterByHorizontal(true); auto child: childs)
+        {
+            if (child->isStatic) continue;
+            const auto childBounds = child->getBounds();
+            const auto childLastPoint = childBounds.y + childBounds.height;
+            if ((childBounds.y < fromY && childLastPoint < fromY) || (childBounds.y > toY && childLastPoint > toY)) continue;
+
+            if (const auto childX = childBounds.x; !isFoundOne && childX < currentX)
+            {
+                isFoundOne = true;
+                foundedX = childX;
+                siblings.emplace_back(child);
+            }
+            else if (isFoundOne && childX == foundedX)
+            {
+                siblings.emplace_back(child);
+            }
+        }
+
+        return siblings;
+    }
+
+    std::vector<UiElement *> UiElement::getNextSiblingsByEqualVertical() const
+    {
+        std::vector<UiElement *> siblings{};
+        if (_parent == nullptr) return siblings;
+        const auto currentY = _bounds.y;
+        const auto fromX = _bounds.x;
+        const auto toX = _bounds.x + _bounds.width;
+        bool isFoundOne = false;
+        auto foundedY = 0.0f;
+        for (const auto childs = _parent->getChildsSorterByVertical(false); auto child: childs)
+        {
+            if (child->isStatic) continue;
+            const auto childBounds = child->getBounds();
+            const auto childLastPoint = childBounds.x + childBounds.width;
+            if ((childBounds.x < fromX && childLastPoint < fromX) || (childBounds.x > toX && childLastPoint > toX)) continue;
+
+            if (const auto childY = childBounds.y; !isFoundOne && childY > currentY)
+            {
+                isFoundOne = true;
+                foundedY = childY;
+                siblings.emplace_back(child);
+            }
+            else if (isFoundOne && childY == foundedY)
+            {
+                siblings.emplace_back(child);
+            }
+        }
+
+        return siblings;
+    }
+
+    std::vector<UiElement *> UiElement::getPrevSiblingsByEqualVertical() const
+    {
+        std::vector<UiElement *> siblings{};
+        if (_parent == nullptr) return siblings;
+        const auto currentY = _bounds.y;
+        const auto fromX = _bounds.x;
+        const auto toX = _bounds.x + _bounds.width;
+        bool isFoundOne = false;
+        auto foundedY = 0.0f;
+        for (const auto childs = _parent->getChildsSorterByVertical(true); auto child: childs)
+        {
+            if (child->isStatic) continue;
+            const auto childBounds = child->getBounds();
+            const auto childLastPoint = childBounds.x + childBounds.width;
+            if ((childBounds.x < fromX && childLastPoint < fromX) || (childBounds.x > toX && childLastPoint > toX)) continue;
+
+            if (const auto childY = childBounds.y; !isFoundOne && childY < currentY)
+            {
+                isFoundOne = true;
+                foundedY = childY;
+                siblings.emplace_back(child);
+            }
+            else if (isFoundOne && childY == foundedY)
+            {
+                siblings.emplace_back(child);
+            }
+        }
+
+        return siblings;
+    }
+
     int UiElement::getIndex() const
     {
-        if (!_parent) return -1;
+        if (_parent == nullptr) return -1;
         return std::ranges::find(_parent->_childs, this) - _parent->_childs.begin();
     }
 
     void UiElement::setLayoutType(const LAYOUT_TYPE layout)
     {
+        if (isStatic) return;
         _layoutType = layout;
     }
 
     void UiElement::setPivot(const Vector2 &newPivot)
     {
+        if (isStatic) return;
         _pivot = newPivot;
     }
 
     void UiElement::changeParent(UiElement *newParent)
     {
-        if (_parent)
+        if (_parent != nullptr)
         {
             _parent->_childs.erase(std::ranges::find(_parent->_childs, this));
             _parent = nullptr;
         }
 
         _parent = newParent;
-        if (_parent)
+        if (_parent != nullptr)
         {
             _parent->_childs.emplace_back(this);
         }
@@ -444,27 +616,29 @@ namespace BreadEditor {
         }
 
         _bounds = {prelimPosition.x, prelimPosition.y, computedSize.x, computedSize.y};
-        if (_layoutType != LAYOUT_NONE)
+        if (_layoutType == LAYOUT_NONE)
         {
-            const auto parentBounds = _parent ? _parent->getBounds() : Rectangle{0, 0, static_cast<float>(GetScreenWidth()), static_cast<float>(GetScreenHeight())};
-            Vector2 currPos = {parentBounds.x, parentBounds.y};
+            return;
+        }
 
-            float totalProp = 0.0f;
-            for (const auto child: _childs)
-            {
-                totalProp += (_layoutType == LAYOUT_HORIZONTAL ? child->_sizeInPercents.x : child->_sizeInPercents.y);
-            }
-            if (totalProp == 0.0f) totalProp = 1.0f; // Avoid div0
+        const auto parentBounds = _parent ? _parent->getBounds() : Rectangle{0, 0, static_cast<float>(GetScreenWidth()), static_cast<float>(GetScreenHeight())};
+        Vector2 currPos = {parentBounds.x, parentBounds.y};
 
-            for (const auto child: _childs)
-            {
-                const auto prop = (_layoutType == LAYOUT_HORIZONTAL ? child->_sizeInPercents.x : child->_sizeInPercents.y) / totalProp;
-                const auto childSize = (_layoutType == LAYOUT_HORIZONTAL ? Vector2{parentBounds.width * prop, parentBounds.height} : Vector2{parentBounds.width, parentBounds.height * prop});
+        auto totalProp = 0.0f;
+        for (const auto child: _childs)
+        {
+            totalProp += (_layoutType == LAYOUT_HORIZONTAL ? child->_sizeInPercents.x : child->_sizeInPercents.y);
+        }
+        if (totalProp == 0.0f) totalProp = 1.0f; // Avoid div0
 
-                child->_bounds = {currPos.x, currPos.y, childSize.x, childSize.y};
-                if (_layoutType == LAYOUT_HORIZONTAL) currPos.x += childSize.x;
-                else currPos.y += childSize.y;
-            }
+        for (const auto child: _childs)
+        {
+            const auto prop = (_layoutType == LAYOUT_HORIZONTAL ? child->_sizeInPercents.x : child->_sizeInPercents.y) / totalProp;
+            const auto childSize = (_layoutType == LAYOUT_HORIZONTAL ? Vector2{parentBounds.width * prop, parentBounds.height} : Vector2{parentBounds.width, parentBounds.height * prop});
+
+            child->_bounds = {currPos.x, currPos.y, childSize.x, childSize.y};
+            if (_layoutType == LAYOUT_HORIZONTAL) currPos.x += childSize.x;
+            else currPos.y += childSize.y;
         }
     }
 

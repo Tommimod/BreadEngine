@@ -20,10 +20,57 @@ namespace BreadEditor {
         toolbar->setPivot({0, 0});
         toolbar->setSize({0, 20});
         toolbar->update(0);
+        toolbar->isStatic = true;
 
-        _rightContainer = std::make_unique<UiEmpty>();
+        _leftContainer = std::make_unique<UiContainer>(LAYOUT_VERTICAL);
+        _leftContainer->setup("leftContainer", this);
+        _leftContainer->setPivot({0, 0});
+        _leftContainer->setAnchor(UI_FIT_LEFT_VERTICAL);
+        _leftContainer->setSizePercentOneTime({.15f, .5f});
+        _leftContainer->setPosition({0, toolbar->getSize().y - 1});
+        _leftContainer->setHorizontalResized(true);
+        _leftContainer->update(0);
+
+        const auto assetWindow = new AssetsWindow(AssetsWindow::Id);
+        _leftContainer->addChild(assetWindow);
+        assetWindow->setSizePercentOneTime({1, 1});
+        assetWindow->setSizePercentPermanent({1, -1});
+        assetWindow->setPosition({0, 0});
+        assetWindow->update(0);
+
+        _bottomContainer = std::make_unique<UiContainer>(LAYOUT_HORIZONTAL);
+        _bottomContainer->setup("bottomContainer", this);
+        _bottomContainer->setPivot({.5f, 1});
+        _bottomContainer->setAnchor(UI_CENTER_BOTTOM);
+        _bottomContainer->setSizePercentOneTime({.7f, .35f});
+        _bottomContainer->setPosition({0, toolbar->getSize().y - 1});
+        _bottomContainer->setVerticalResized(true);
+        _bottomContainer->update(0);
+
+        const auto consoleWindow = new ConsoleWindow(ConsoleWindow::Id);
+        _bottomContainer->addChild(consoleWindow);
+        consoleWindow->setSizePercentOneTime({1, 1});
+        consoleWindow->setSizePercentPermanent({1, 1});
+        consoleWindow->setPosition({0, 0});
+        consoleWindow->update(0);
+
+        _centerContainer = std::make_unique<UiContainer>(LAYOUT_VERTICAL);
+        _centerContainer->setup("centerContainer", this);
+        _centerContainer->setPivot({.5f, 0});
+        _centerContainer->setAnchor(UI_CENTER_TOP);
+        _centerContainer->setSizePercentOneTime({.7f, .65f});
+        _centerContainer->setPosition({0, toolbar->getSize().y - 1});
+        _centerContainer->update(0);
+
+        const auto viewportWindow = new ViewportWindow(ViewportWindow::Id);
+        _centerContainer->addChild(viewportWindow);
+        viewportWindow->setSizePercentOneTime({1, 1});
+        viewportWindow->setSizePercentPermanent({1, 1});
+        viewportWindow->setPosition({0, 0});
+        viewportWindow->update(0);
+
+        _rightContainer = std::make_unique<UiContainer>(LAYOUT_VERTICAL);
         _rightContainer->setup("rightContainer", this);
-        _rightContainer->setLayoutType(LAYOUT_VERTICAL);
         _rightContainer->setPivot({1, 0});
         _rightContainer->setAnchor(UI_FIT_RIGHT_VERTICAL);
         _rightContainer->setSizePercentOneTime({.15f, .5f});
@@ -43,54 +90,6 @@ namespace BreadEditor {
         nodeInspector->setSizePercentPermanent({1, -1});
         nodeInspector->setPosition({0, nodeTree->getSize().y});
         nodeInspector->setVerticalResized(true);
-        nodeInspector->isDebugResizableRectVisible = true;
-
-        _leftContainer = std::make_unique<UiEmpty>();
-        _leftContainer->setup("leftContainer", this);
-        _leftContainer->setLayoutType(LAYOUT_VERTICAL);
-        _leftContainer->setPivot({0, 0});
-        _leftContainer->setAnchor(UI_FIT_LEFT_VERTICAL);
-        _leftContainer->setSizePercentOneTime({.15f, .5f});
-        _leftContainer->setPosition({0, toolbar->getSize().y - 1});
-        _leftContainer->setHorizontalResized(true);
-        _leftContainer->update(0);
-
-        const auto assetWindow = new AssetsWindow(AssetsWindow::Id);
-        _leftContainer->addChild(assetWindow);
-        assetWindow->setSizePercentOneTime({1, 1});
-        assetWindow->setSizePercentPermanent({1, -1});
-        assetWindow->setPosition({0, 0});
-        assetWindow->update(0);
-
-        _bottomContainer = std::make_unique<UiEmpty>();
-        _bottomContainer->setup("bottomContainer", this);
-        _bottomContainer->setLayoutType(LAYOUT_HORIZONTAL);
-        _bottomContainer->setPivot({.5f, 1});
-        _bottomContainer->setAnchor(UI_CENTER_BOTTOM);
-        _bottomContainer->setSizePercentOneTime({.7f, .35f});
-        _bottomContainer->setPosition({0, 0});
-        _bottomContainer->setHorizontalResized(true);
-        _bottomContainer->setVerticalResized(true);
-        _bottomContainer->update(0);
-        _bottomContainer->isDebugResizableRectVisible = true;
-
-        // const auto consoleWindow = new ConsoleWindow(ConsoleWindow::Id);
-        // _bottomContainer->addChild(consoleWindow);
-        // consoleWindow->setSizePercentOneTime({1, 1});
-        // consoleWindow->setSizePercentPermanent({-1, 1});
-        // consoleWindow->setPosition({0, 0});
-        // consoleWindow->update(0);
-
-        _centerContainer = std::make_unique<UiEmpty>();
-        _centerContainer->setup("centerContainer", this);
-        _centerContainer->setLayoutType(LAYOUT_VERTICAL);
-        _centerContainer->setPivot({.5f, 0});
-        _centerContainer->setAnchor(UI_CENTER_TOP);
-        _centerContainer->setSizePercentOneTime({.7f, .65f});
-        _centerContainer->setPosition({0, 0});
-        _centerContainer->setHorizontalResized(true);
-        _centerContainer->setVerticalResized(true);
-        _centerContainer->update(0);
     }
 
     MainWindow::~MainWindow()
@@ -126,6 +125,11 @@ namespace BreadEditor {
     ConsoleWindow &MainWindow::getConsoleWindow() const
     {
         return dynamic_cast<ConsoleWindow &>(*findUiElementById(ConsoleWindow::Id));
+    }
+
+    ViewportWindow & MainWindow::getViewportWindow() const
+    {
+        return dynamic_cast<ViewportWindow &>(*findUiElementById(ViewportWindow::Id));
     }
 
     void MainWindow::render3D(float deltaTime)

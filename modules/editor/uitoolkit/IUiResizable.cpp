@@ -2,6 +2,7 @@
 #include "cursorSystem.h"
 #include "raymath.h"
 #include "engine.h"
+#include "uiToolbar.h"
 
 namespace BreadEditor {
     void IUiResizable::updateResizable(UiElement &uiElement)
@@ -14,10 +15,6 @@ namespace BreadEditor {
         const auto bounds = uiElement.getBounds();
         auto subBounds = bounds;
         const auto pivot = uiElement.getPivot();
-        const bool isRightSidePivot = pivot.x > .5f;
-        const bool isBottomSidePivot = pivot.y > .5f;
-        const bool isLeftSidePivot = pivot.x < .5f;
-        const bool isTopSidePivot = pivot.y < .5f;
 
         if (isHorizontalResized)
         {
@@ -83,110 +80,181 @@ namespace BreadEditor {
                 CursorSystem::setCursor(MOUSE_CURSOR_RESIZE_NS);
             }
 
+            const auto parentElement = uiElement.getParentElement();
+            const auto isChildOfContainer = parentElement != nullptr && parentElement->getLayoutType() != LAYOUT_NONE;
+            const auto isContainer = uiElement.getLayoutType() != LAYOUT_NONE;
+            const auto indexOf = uiElement.getIndex();
+            const auto childsCountInParent = parentElement != nullptr ? parentElement->getChildCount() : 0;
+
             if (isHorizontalResize && _isPrepared)
             {
                 if (IsMouseButtonDown(MOUSE_LEFT_BUTTON))
                 {
-                    auto mouseXDelta = prevMousePos.x - mousePos.x;
-                    auto size = uiElement.getSize();
-                    if (isDragRightSide)
+                    const auto mouseXDelta = prevMousePos.x - mousePos.x;
+                    changeHorizontalSize(uiElement, isDragLeftSide, isDragRightSide, mouseXDelta);
+                    if (isChildOfContainer && childsCountInParent > 1)
                     {
-                        const auto currentPos = uiElement.getPosition();
-                        if (isLeftSidePivot)
+                        const auto isNeedChangeNext = isDragRightSide && indexOf + 1 != childsCountInParent;
+                        const auto isNeedChangePrev = isDragLeftSide && indexOf != 0;
+                        if (isNeedChangeNext || isNeedChangePrev)
                         {
-                            size.x -= mouseXDelta;
-                        }
-                        else if (!isRightSidePivot)
-                        {
-                            size.x -= mouseXDelta;
-                            uiElement.setPosition({currentPos.x - mouseXDelta * .5f, currentPos.y});
-                        }
-                        else
-                        {
-                            size.x -= mouseXDelta;
-                            uiElement.setPosition({currentPos.x - mouseXDelta, currentPos.y});
+                            auto changeElement = isNeedChangeNext ? uiElement.getNextSibling() : nullptr;
+                            changeElement = isNeedChangePrev ? uiElement.getPrevSibling() : changeElement;
+                            if (changeElement != nullptr)
+                            {
+                                changeHorizontalSize(*changeElement, isNeedChangeNext, isNeedChangePrev, mouseXDelta);
+                            }
                         }
                     }
-                    else if (isDragLeftSide)
+                    else if (isContainer && childsCountInParent > 1)
                     {
-                        const auto currentPos = uiElement.getPosition();
-                        if (isLeftSidePivot)
+                        const auto siblings = isDragRightSide
+                                                  ? uiElement.getNextSiblingsByEqualHorizontal()
+                                                  : uiElement.getPrevSiblingsByEqualHorizontal();
+                        for (const auto sibling: siblings)
                         {
-                            size.x += mouseXDelta;
-                            uiElement.setPosition({currentPos.x - mouseXDelta, currentPos.y});
-                        }
-                        else if (!isRightSidePivot)
-                        {
-                            size.x += mouseXDelta;
-                            uiElement.setPosition({currentPos.x - mouseXDelta * .5f, currentPos.y});
-                        }
-                        else
-                        {
-                            size.x += mouseXDelta;
+                            changeHorizontalSize(*sibling, !isDragLeftSide, !isDragRightSide, mouseXDelta);
                         }
                     }
-
-                    const auto parentBounds = uiElement.getParentElement() == nullptr
-                                                  ? Rectangle{0, 0, static_cast<float>(GetScreenWidth()), static_cast<float>(GetScreenHeight())}
-                                                  : uiElement.getParentElement()->getBounds();
-                    size.x = Clamp(size.x, 50, parentBounds.width);
-                    uiElement.setSize(size);
                 }
             }
             else if (isVerticalResize && _isPrepared)
             {
                 if (IsMouseButtonDown(MOUSE_LEFT_BUTTON))
                 {
-                    auto mouseYDelta = prevMousePos.y - mousePos.y;
-                    auto size = uiElement.getSize();
-                    if (isDragUpperSide)
-                    {
-                        const auto currentPos = uiElement.getPosition();
-                        if (isBottomSidePivot)
-                        {
-                            size.y += mouseYDelta;
-                        }
-                        else if (!isTopSidePivot)
-                        {
-                            size.y += mouseYDelta;
-                            uiElement.setPosition({currentPos.x, currentPos.y - mouseYDelta * .5f});
-                        }
-                        else
-                        {
-                            size.y += mouseYDelta;
-                            uiElement.setPosition({currentPos.x, currentPos.y - mouseYDelta});
-                        }
-                    }
-                    else if (isDragDownSide)
-                    {
-                        size.y -= mouseYDelta;
-                        const auto currentPos = uiElement.getPosition();
-                        if (isBottomSidePivot)
-                        {
-                            size.y -= mouseYDelta;
-                            uiElement.setPosition({currentPos.x, currentPos.y - mouseYDelta});
-                        }
-                        else if (!isTopSidePivot)
-                        {
-                            size.y -= mouseYDelta;
-                            uiElement.setPosition({currentPos.x, currentPos.y - mouseYDelta * .5f});
-                        }
-                        else
-                        {
-                            size.y -= mouseYDelta;
-                        }
-                    }
+                    const auto mouseYDelta = prevMousePos.y - mousePos.y;
+                    changeVerticalSize(uiElement, isDragUpperSide, isDragDownSide, mouseYDelta);
 
-                    const auto parentBounds = uiElement.getParentElement() == nullptr
-                                                  ? Rectangle{0, 0, static_cast<float>(GetScreenWidth()), static_cast<float>(GetScreenHeight())}
-                                                  : uiElement.getParentElement()->getBounds();
-                    size.y = Clamp(size.y, 100, parentBounds.height);
-                    uiElement.setSize(size);
+                    if (isChildOfContainer && childsCountInParent > 1)
+                    {
+                        const auto isNeedChangeNext = isDragDownSide && indexOf + 1 != childsCountInParent;
+                        const auto isNeedChangePrev = isDragUpperSide && indexOf != 0;
+                        if (isNeedChangeNext || isNeedChangePrev)
+                        {
+                            auto changeElement = isNeedChangeNext ? uiElement.getNextSibling() : nullptr;
+                            changeElement = isNeedChangePrev ? uiElement.getPrevSibling() : changeElement;
+                            if (changeElement != nullptr)
+                            {
+                                changeVerticalSize(*changeElement, isNeedChangeNext, isNeedChangePrev, mouseYDelta * .5f);
+                            }
+                        }
+                    }
+                    else if (isContainer && childsCountInParent > 1)
+                    {
+                        const auto siblings = isDragUpperSide && pivot.y <= .5f
+                                                  ? uiElement.getNextSiblingsByEqualVertical()
+                                                  : uiElement.getPrevSiblingsByEqualVertical();
+                        for (const auto sibling: siblings)
+                        {
+                            changeVerticalSize(*sibling, !isDragUpperSide, !isDragDownSide, mouseYDelta * .5f);
+                        }
+                    }
                 }
             }
         }
 
         prevMousePos = mousePos;
+    }
+
+    void IUiResizable::changeVerticalSize(UiElement &uiElement, const bool isDragUpperSide, const bool isDragDownSide, const float mouseYDelta)
+    {
+        const auto pivot = uiElement.getPivot();
+        const bool isBottomSidePivot = pivot.y > .5f;
+        const bool isTopSidePivot = pivot.y < .5f;
+        auto size = uiElement.getSize();
+        if (isDragUpperSide)
+        {
+            const auto currentPos = uiElement.getPosition();
+            if (isBottomSidePivot)
+            {
+                size.y += mouseYDelta;
+            }
+            else if (!isTopSidePivot)
+            {
+                size.y += mouseYDelta;
+                uiElement.setPosition({currentPos.x, currentPos.y - mouseYDelta * .5f});
+            }
+            else
+            {
+                size.y += mouseYDelta;
+                uiElement.setPosition({currentPos.x, currentPos.y - mouseYDelta});
+            }
+        }
+        else if (isDragDownSide)
+        {
+            size.y -= mouseYDelta;
+            const auto currentPos = uiElement.getPosition();
+            if (isBottomSidePivot)
+            {
+                size.y -= mouseYDelta;
+                uiElement.setPosition({currentPos.x, currentPos.y - mouseYDelta});
+            }
+            else if (!isTopSidePivot)
+            {
+                size.y -= mouseYDelta;
+                uiElement.setPosition({currentPos.x, currentPos.y - mouseYDelta * .5f});
+            }
+            else
+            {
+                size.y -= mouseYDelta;
+            }
+        }
+
+        const auto parentBounds = uiElement.getParentElement() == nullptr
+                                      ? Rectangle{0, 0, static_cast<float>(GetScreenWidth()), static_cast<float>(GetScreenHeight())}
+                                      : uiElement.getParentElement()->getBounds();
+        size.y = Clamp(size.y, 100, parentBounds.height);
+        uiElement.setSize(size);
+    }
+
+    void IUiResizable::changeHorizontalSize(UiElement &uiElement, const bool isDragLeftSide, const bool isDragRightSide, const float mouseXDelta)
+    {
+        const auto pivot = uiElement.getPivot();
+        const bool isRightSidePivot = pivot.x > .5f;
+        const bool isLeftSidePivot = pivot.x < .5f;
+        auto size = uiElement.getSize();
+        if (isDragRightSide)
+        {
+            const auto currentPos = uiElement.getPosition();
+            if (isLeftSidePivot)
+            {
+                size.x -= mouseXDelta;
+            }
+            else if (!isRightSidePivot)
+            {
+                size.x -= mouseXDelta;
+                uiElement.setPosition({currentPos.x - mouseXDelta * .5f, currentPos.y});
+            }
+            else
+            {
+                size.x -= mouseXDelta;
+                uiElement.setPosition({currentPos.x - mouseXDelta, currentPos.y});
+            }
+        }
+        else if (isDragLeftSide)
+        {
+            const auto currentPos = uiElement.getPosition();
+            if (isLeftSidePivot)
+            {
+                size.x += mouseXDelta;
+                uiElement.setPosition({currentPos.x - mouseXDelta, currentPos.y});
+            }
+            else if (!isRightSidePivot)
+            {
+                size.x += mouseXDelta;
+                uiElement.setPosition({currentPos.x - mouseXDelta * .5f, currentPos.y});
+            }
+            else
+            {
+                size.x += mouseXDelta;
+            }
+        }
+
+        const auto parentBounds = uiElement.getParentElement() == nullptr
+                                      ? Rectangle{0, 0, static_cast<float>(GetScreenWidth()), static_cast<float>(GetScreenHeight())}
+                                      : uiElement.getParentElement()->getBounds();
+        size.x = Clamp(size.x, 50, parentBounds.width);
+        uiElement.setSize(size);
     }
 
     void IUiResizable::drawDebugRect(const Rectangle &subBounds) const

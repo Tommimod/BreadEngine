@@ -23,6 +23,10 @@ namespace BreadEditor {
     private:
         bool _isPrepared = false;
 
+        void changeVerticalSize(UiElement &uiElement, bool isDragUpperSide, bool isDragDownSide, float mouseYDelta);
+
+        void changeHorizontalSize(UiElement &uiElement, bool isDragLeftSide, bool isDragRightSide, float mouseXDelta);
+
         void drawDebugRect(const Rectangle &subBounds) const;
     };
 } // BreadEditor

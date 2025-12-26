@@ -1,26 +1,26 @@
-﻿#include "consoleWindow.h"
+﻿#include "viewportWindow.h"
 
 namespace BreadEditor {
-    std::string ConsoleWindow::Id = "mainWindowConsoleWindow";
+    std::string ViewportWindow::Id = "mainWindowViewportWindow";
 
-    ConsoleWindow::ConsoleWindow(const std::string &id)
+    ViewportWindow::ViewportWindow(const std::string &id)
     {
         setup(id);
         subscribe();
     }
 
-    ConsoleWindow::ConsoleWindow(const std::string &id, UiElement *parentElement)
+    ViewportWindow::ViewportWindow(const std::string &id, UiElement *parentElement)
     {
         setup(id, parentElement);
         subscribe();
     }
 
-    ConsoleWindow::~ConsoleWindow()
+    ViewportWindow::~ViewportWindow()
     {
         unsubscribe();
     }
 
-    void ConsoleWindow::draw(float deltaTime)
+    void ViewportWindow::draw(float deltaTime)
     {
         GuiSetState(_state);
         GuiScrollPanel(_bounds, _title, _contentView, &_scrollPos, &_scrollView);
@@ -28,27 +28,27 @@ namespace BreadEditor {
         GuiSetState(STATE_NORMAL);
     }
 
-    void ConsoleWindow::update(float deltaTime)
+    void ViewportWindow::update(float deltaTime)
     {
         updateResizable(*this);
         UiElement::update(deltaTime);
     }
 
-    void ConsoleWindow::dispose()
+    void ViewportWindow::dispose()
     {
         UiElement::dispose();
     }
 
-    bool ConsoleWindow::tryDeleteSelf()
+    bool ViewportWindow::tryDeleteSelf()
     {
         return UiElement::tryDeleteSelf();
     }
 
-    void ConsoleWindow::subscribe()
+    void ViewportWindow::subscribe()
     {
     }
 
-    void ConsoleWindow::unsubscribe()
+    void ViewportWindow::unsubscribe()
     {
     }
 } // BreadEditor
