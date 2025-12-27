@@ -15,6 +15,8 @@ namespace BreadEditor {
     {
         if (!isActive) return;
 
+        GuiSetStyle(DEFAULT, TEXT_SIZE, _textSize);
+        GuiSetStyle(LABEL, TEXT_ALIGNMENT, _textAlignment);
         GuiLabel(_bounds, _text.c_str());
         UiElement::draw(deltaTime);
     }

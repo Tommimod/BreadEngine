@@ -1,4 +1,6 @@
 #include "uiLabelButton.h"
+
+#include "engine.h"
 #include "raygui.h"
 #include "uiPool.h"
 
@@ -17,7 +19,9 @@ namespace BreadEditor {
         return dynamic_cast<UiLabelButton &>(UiElement::setup(id, parentElement));
     }
 
-    UiLabelButton::~UiLabelButton() = default;
+    UiLabelButton::~UiLabelButton()
+    {
+    }
 
     void UiLabelButton::dispose()
     {
@@ -30,9 +34,30 @@ namespace BreadEditor {
         if (!isActive) return;
 
         GuiSetState(_state);
+        GuiSetStyle(DEFAULT, TEXT_SIZE, _textSize);
+        GuiSetStyle(LABEL, TEXT_ALIGNMENT, _textAlignment);
         if (GuiLabelButton(_bounds, _text.c_str()))
         {
-            onClick.invoke(_text);
+            if (const auto childsCount = getChildCount(); childsCount > 0)
+            {
+                auto isNeedIgnore = false;
+                for (const auto child : _childs)
+                {
+                    if (Engine::isCollisionPointRec(GetMousePosition(), child->getBounds()))
+                    {
+                        isNeedIgnore = true;
+                    }
+                }
+
+                if (!isNeedIgnore)
+                {
+                    onClick.invoke(this);
+                }
+            }
+            else
+            {
+                onClick.invoke(this);
+            }
         }
 
         UiElement::draw(deltaTime);

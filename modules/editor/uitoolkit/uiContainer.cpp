@@ -7,6 +7,8 @@ namespace BreadEditor {
     UiContainer::UiContainer(const LAYOUT_TYPE layoutType) : _toolbar(UiPool::toolbarPool.get())
     {
         _layoutType = layoutType;
+        _toolbar.onButtonPressed.subscribe([this](const int index) { this->onTabChanged(index); });
+        addTab();
     }
 
     UiContainer::~UiContainer()
@@ -15,7 +17,7 @@ namespace BreadEditor {
     UiContainer *UiContainer::setup(const std::string &id)
     {
         UiElement::setup(id);
-        _toolbar.setup(id + "toolbar", this, 20, _windowsOptions);
+        _toolbar.setup(id + "toolbar", this, _tabs);
         _toolbar.setAnchor(UI_FIT_TOP_HORIZONTAL);
         _toolbar.setPivot({0, 0});
         _toolbar.setSize({0, 20});
@@ -27,7 +29,7 @@ namespace BreadEditor {
     UiContainer *UiContainer::setup(const std::string &id, UiElement *parentElement)
     {
         UiElement::setup(id, parentElement);
-        _toolbar.setup(id + "toolbar", this, 20, _windowsOptions);
+        _toolbar.setup(id + "toolbar", this, _tabs);
         _toolbar.setAnchor(UI_FIT_TOP_HORIZONTAL);
         _toolbar.setPivot({0, 0});
         _toolbar.setSize({0, 20});
@@ -51,18 +53,42 @@ namespace BreadEditor {
 
     void UiContainer::addChild(UiElement *child)
     {
-        UiElement::addChild(std::move(child));
+        UiElement::addChild(child);
         if (getChildCount() == 1) return;
+        _tabToWindowIds[_activeTab].emplace_back(child->id);
 
         recalculateChilds();
     }
 
     void UiContainer::destroyChild(UiElement *child)
     {
+        _tabToWindowIds[_activeTab].erase(ranges::remove(_tabToWindowIds[_activeTab], child->id).begin());
         UiElement::destroyChild(child);
         if (getChildCount() == 1) return;
 
         recalculateChilds();
+    }
+
+    void UiContainer::onTabChanged(const int index)
+    {
+        if (index == _activeTab) return;
+
+        for (const auto previousTabWindows = &_tabToWindowIds[_activeTab]; const auto &windowId: *previousTabWindows)
+        {
+            if (const auto child = getChildById(windowId); child != nullptr)
+            {
+                child->isActive = false;
+            }
+        }
+        _activeTab = index;
+
+        for (const auto currentTabWindows = &_tabToWindowIds[_activeTab]; const auto &windowId: *currentTabWindows)
+        {
+            if (const auto child = getChildById(windowId); child != nullptr)
+            {
+                child->isActive = true;
+            }
+        }
     }
 
     bool UiContainer::tryDeleteSelf()
@@ -76,6 +102,8 @@ namespace BreadEditor {
         const auto isSingleChild = getChildCount() == 2; //1. toolbar + 2. child
         int i = 0;
         float lastPosition = _toolbar.getSize().y;
+        _tabToWindowIds[_activeTab].clear();
+
         for (const auto &childElement: _childs)
         {
             if (childElement->isStatic) continue;
@@ -90,7 +118,7 @@ namespace BreadEditor {
                 {
                     const auto childCount = getChildCount() - 1;
                     childElement->setSizePercentPermanent({-1, -1});
-                    childElement->setSizePercentOneTime({1.0f / childCount, 1.0f});
+                    childElement->setSizePercentOneTime({1.0f / static_cast<float>(childCount), 1.0f});
                 }
 
                 if (const auto resizableElement = dynamic_cast<IUiResizable *>(childElement); resizableElement != nullptr)
@@ -108,7 +136,7 @@ namespace BreadEditor {
                 {
                     const auto childCount = getChildCount() - 1;
                     childElement->setSizePercentPermanent({-1, -1});
-                    childElement->setSizePercentOneTime({1.0f, 1.0f / childCount});
+                    childElement->setSizePercentOneTime({1.0f, 1.0f / static_cast<float>(childCount)});
                 }
 
                 if (const auto resizableElement = dynamic_cast<IUiResizable *>(childElement); resizableElement != nullptr)
@@ -125,6 +153,14 @@ namespace BreadEditor {
             {
                 window->setIsCloseable(!isSingleChild);
             }
+
+            _tabToWindowIds[_activeTab].emplace_back(childElement->id);
         }
+    }
+
+    void UiContainer::addTab()
+    {
+        constexpr std::string tabName = "Tab %i";
+        _tabs.emplace_back(TextFormat(tabName.c_str(), _tabs.size() + 1));
     }
 } // BreadEditor

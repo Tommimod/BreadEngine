@@ -21,6 +21,8 @@ namespace BreadEditor {
 
         void setIsCloseable(const bool value) const { _closeButton.isActive = value; }
 
+        virtual const char *getTitle() = 0;
+
     protected:
         Vector2 _scrollPos = {0.0f, 0.0f};
         Rectangle _contentView = {0.0f, 0.0f, 0.0f, 0.0f};

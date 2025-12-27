@@ -20,6 +20,8 @@ namespace BreadEditor {
 
         void dispose() override;
 
+        const char *getTitle() override { return _title; }
+
     protected:
         void subscribe() override;
 

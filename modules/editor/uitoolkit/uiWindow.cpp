@@ -14,9 +14,7 @@ namespace BreadEditor {
         UiWindow::initialize();
     }
 
-    UiWindow::~UiWindow()
-    {
-    }
+    UiWindow::~UiWindow() = default;
 
     void UiWindow::draw(const float deltaTime)
     {

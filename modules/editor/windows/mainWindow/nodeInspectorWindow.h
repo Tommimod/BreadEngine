@@ -30,6 +30,8 @@ namespace BreadEditor {
 
         void clear();
 
+        const char *getTitle() override { return _title; }
+
     protected:
         void subscribe() override;
 
@@ -38,6 +40,7 @@ namespace BreadEditor {
     private:
         std::map<UiElement *, SubscriptionHandle> _subscriptions{};
 
+        const char *_title = "Inspector";
         Node *_engineNode = nullptr;
         UiCheckBox *_activeCheckBox = nullptr;
         UiTextBox *_nameTextBox = nullptr;

@@ -1,9 +1,14 @@
-﻿#include "UiButton.h"
+﻿#include "engine.h"
+#include "UiButton.h"
 #include "raygui.h"
 #include "uiPool.h"
 
 namespace BreadEditor {
     UiButton::UiButton() = default;
+
+    UiButton::~UiButton()
+    {
+    }
 
     UiButton &UiButton::setup(const std::string &id, const std::string &newText)
     {
@@ -17,8 +22,6 @@ namespace BreadEditor {
         return dynamic_cast<UiButton &>(UiElement::setup(id, parentElement));
     }
 
-    UiButton::~UiButton() = default;
-
     void UiButton::dispose()
     {
         onClick.unsubscribeAll();
@@ -30,9 +33,30 @@ namespace BreadEditor {
         if (!isActive) return;
 
         GuiSetState(_state);
+        GuiSetStyle(DEFAULT, TEXT_SIZE, _textSize);
+        GuiSetStyle(BUTTON, TEXT_ALIGNMENT, _textAlignment);
         if (GuiButton(_bounds, _text.c_str()))
         {
-            onClick.invoke(this);
+            if (const auto childsCount = getChildCount(); childsCount > 0)
+            {
+                auto isNeedIgnore = false;
+                for (const auto child : _childs)
+                {
+                    if (Engine::isCollisionPointRec(GetMousePosition(), child->getBounds()))
+                    {
+                        isNeedIgnore = true;
+                    }
+                }
+
+                if (!isNeedIgnore)
+                {
+                    onClick.invoke(this);
+                }
+            }
+            else
+            {
+                onClick.invoke(this);
+            }
         }
 
         UiElement::draw(deltaTime);

@@ -2,43 +2,19 @@
 #include "../windows/mainWindow/mainWindow.h"
 #include "raygui.h"
 #include "uiPool.h"
+#include "raymath.h"
 
-namespace BreadEditor
-{
-    vector<SubscriptionHandle> subscriptions{};
-
+namespace BreadEditor {
     UiToolbar::UiToolbar() = default;
 
-    UiToolbar &UiToolbar::setup(const string &id, UiElement *parentElement, const float height, const vector<string> &buttonNames)
+    UiToolbar &UiToolbar::setup(const string &id, UiElement *parentElement, const vector<string> &buttonNames, const bool isVisualAsLabel)
     {
-        float lastX = 0;
-        for (const auto &buttonName: buttonNames)
-        {
-            constexpr float offset = 5;
-            auto tag = id + buttonName;
-            auto &button = UiPool::labelButtonPool.get().setup("toolbar" + tag, this, buttonName);
-            auto position = Vector2{lastX + offset, 0};
-            auto size = Vector2{50, height - offset};
-            button.setBounds(position, size);
-            button.setAnchor(UI_LEFT_TOP);
-
-            lastX += offset + size.x;
-            subscriptions.emplace_back(button.onClick.subscribe([this](const string &a) { this->onButtonClicked(a); }));
-        }
-
+        _isVisualAsLabel = isVisualAsLabel;
+        replaceButtons(buttonNames);
         return dynamic_cast<UiToolbar &>(UiElement::setup(id, parentElement));
     }
 
-    UiToolbar::~UiToolbar()
-    {
-        for (int i = static_cast<int>(subscriptions.size()) - 1; i > 0; i--)
-        {
-            const auto button = dynamic_cast<UiLabelButton *>(_childs[i]);
-            button->onClick.unsubscribe(subscriptions[i]);
-        }
-
-        subscriptions.clear();
-    }
+    UiToolbar::~UiToolbar() = default;
 
     void UiToolbar::draw(const float deltaTime)
     {
@@ -55,9 +31,63 @@ namespace BreadEditor
         UiElement::update(deltaTime);
     }
 
-    void UiToolbar::onButtonClicked(const string &buttonName)
+    void UiToolbar::replaceButtons(const vector<string> &buttonNames)
     {
-        TraceLog(LOG_INFO, "Button clicked: %s", buttonName.c_str());
+        destroyAllChilds();
+
+        float lastX = 0;
+        for (const auto &buttonName: buttonNames)
+        {
+            constexpr float offset = 5;
+            auto tag = id + buttonName;
+            const auto textWidth = fmax(50, GuiGetTextWidth(buttonName.c_str()) * 1.2f);
+            auto size = Vector2{static_cast<float>(textWidth), .0f};
+            if (_isVisualAsLabel)
+            {
+                auto &button = UiPool::labelButtonPool.get().setup(id + tag, this, buttonName);
+                auto position = Vector2{lastX + offset, 0};
+                button.setSizePercentPermanent({-1, 1});
+                button.setBounds(position, size);
+                button.setTextAlignment(TEXT_ALIGN_CENTER);
+                lastX += offset + size.x;
+                button.onClick.subscribe([this](const UiLabelButton *a) { this->invokeButtonClicked(a); });
+            }
+            else
+            {
+                auto &button = UiPool::buttonPool.get().setup(id + tag, this, buttonName);
+                auto position = Vector2{lastX + offset, 0};
+                button.setSizePercentPermanent({-1, 1});
+                button.setBounds(position, size);
+                button.setTextAlignment(TEXT_ALIGN_LEFT);
+                lastX += offset + size.x;
+                button.onClick.subscribe([this](const UiButton *a) { this->invokeButtonClicked(a); });
+
+                auto &closeButton = UiPool::buttonPool.get().setup(id + tag, &button, "X");
+                closeButton.setAnchor(UI_RIGHT_CENTER);
+                closeButton.setPivot({1,.5f});
+                closeButton.setSize({10,10});
+                closeButton.setPosition({-5, 0});
+                closeButton.setTextSize(6);
+                closeButton.onClick.subscribe([this](const UiButton *a) { this->invokeButtonRequestedToRemove(a); });
+            }
+        }
+    }
+
+    void UiToolbar::invokeButtonClicked(const UiButton *button)
+    {
+        TraceLog(LOG_INFO, "Button clicked: %s", button->id.c_str());
+        onButtonPressed.invoke(button->getIndex());
+    }
+
+    void UiToolbar::invokeButtonClicked(const UiLabelButton *button)
+    {
+        TraceLog(LOG_INFO, "Button clicked: %s", button->id.c_str());
+        onButtonPressed.invoke(button->getIndex());
+    }
+
+    void UiToolbar::invokeButtonRequestedToRemove(const UiButton *button)
+    {
+        onButtonRequestedToRemove.invoke(button->getParentElement()->getIndex());
     }
 
     bool UiToolbar::tryDeleteSelf()

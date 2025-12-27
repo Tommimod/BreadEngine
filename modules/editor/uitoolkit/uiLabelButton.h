@@ -7,7 +7,7 @@ namespace BreadEditor {
     class UiLabelButton final : public UiElement
     {
     public:
-        Action<std::string> onClick;
+        Action<UiLabelButton *> onClick;
 
         UiLabelButton();
 
@@ -23,10 +23,16 @@ namespace BreadEditor {
 
         void update(float deltaTime) override;
 
+        void setTextAlignment(const GuiTextAlignment alignment) { _textAlignment = alignment; }
+
+        void setTextSize(const int textSize) { _textSize = textSize; }
+
     protected:
         bool tryDeleteSelf() override;
 
     private:
         std::string _text;
+        GuiTextAlignment _textAlignment = TEXT_ALIGN_LEFT;
+        int _textSize = 10;
     };
 } // namespace BreadEditor

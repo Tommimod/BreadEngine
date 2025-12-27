@@ -71,6 +71,8 @@ namespace BreadEditor {
     {
         if (!isActive) return;
 
+        GuiSetStyle(LABEL, TEXT_ALIGNMENT, 0);
+        GuiSetStyle(DEFAULT, TEXT_SIZE, 10);
         if (isDebugRectVisible)
         {
             drawDebugRect();
@@ -276,7 +278,7 @@ namespace BreadEditor {
         if (child && std::ranges::find(_childs, child) == _childs.end())
         {
             child->_parent = this;
-            _childs.push_back(std::move(child));
+            _childs.push_back(child);
         }
     }
 

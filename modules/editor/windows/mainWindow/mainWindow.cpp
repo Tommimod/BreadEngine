@@ -15,7 +15,7 @@ namespace BreadEditor {
         setSizePercentPermanent({1, 1});
         update(0);
 
-        const auto toolbar = &UiPool::toolbarPool.get().setup("mainWindowToolbar", this, 20, {"File", "Edit", "Help"});
+        const auto toolbar = &UiPool::toolbarPool.get().setup("mainWindowToolbar", this, {"File", "Edit", "Help"}, true);
         toolbar->setAnchor(UI_FIT_TOP_HORIZONTAL);
         toolbar->setPivot({0, 0});
         toolbar->setSize({0, 20});
@@ -31,7 +31,7 @@ namespace BreadEditor {
         _leftContainer->update(0);
         _leftContainer->setup("leftContainer", this);
 
-        _leftContainer->addChild(std::move(new AssetsWindow(AssetsWindow::Id)));
+        _leftContainer->addChild(new AssetsWindow(AssetsWindow::Id));
 
         _bottomContainer = std::make_unique<UiContainer>(LAYOUT_HORIZONTAL);
         _bottomContainer->setPivot({.5f, 1});
@@ -42,7 +42,7 @@ namespace BreadEditor {
         _bottomContainer->update(0);
         _bottomContainer->setup("bottomContainer", this);
 
-        _bottomContainer->addChild(std::move(new ConsoleWindow(ConsoleWindow::Id)));
+        _bottomContainer->addChild(new ConsoleWindow(ConsoleWindow::Id));
 
         _centerContainer = std::make_unique<UiContainer>(LAYOUT_VERTICAL);
         _centerContainer->setPivot({.5f, 0});
@@ -52,7 +52,7 @@ namespace BreadEditor {
         _centerContainer->update(0);
         _centerContainer->setup("centerContainer", this);
 
-        _centerContainer->addChild(std::move(new ViewportWindow(ViewportWindow::Id)));
+        _centerContainer->addChild(new ViewportWindow(ViewportWindow::Id));
 
         _rightContainer = std::make_unique<UiContainer>(LAYOUT_VERTICAL);
         _rightContainer->setPivot({1, 0});
@@ -63,8 +63,8 @@ namespace BreadEditor {
         _rightContainer->update(0);
         _rightContainer->setup("rightContainer", this);
 
-        _rightContainer->addChild(std::move(new NodeTreeWindow(NodeTreeWindow::Id)));
-        _rightContainer->addChild(std::move(new NodeInspectorWindow(NodeInspectorWindow::Id)));
+        _rightContainer->addChild(new NodeTreeWindow(NodeTreeWindow::Id));
+        _rightContainer->addChild(new NodeInspectorWindow(NodeInspectorWindow::Id));
     }
 
     MainWindow::~MainWindow()

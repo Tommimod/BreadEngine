@@ -46,7 +46,7 @@ namespace BreadEditor {
 
         drawDebugRect(subBounds);
         const auto mousePos = GetMousePosition();
-        if (BreadEngine::Engine::isCollisionPointRec(prevMousePos, bounds, subBounds))
+        if (Engine::isCollisionPointRec(prevMousePos, bounds, subBounds))
         {
             if (IsMouseButtonPressed(MOUSE_LEFT_BUTTON))
             {
