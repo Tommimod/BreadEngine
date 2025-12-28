@@ -117,7 +117,7 @@ namespace BreadEditor {
                 else
                 {
                     const auto childCount = getChildCount() - 1;
-                    childElement->setSizePercentPermanent({-1, -1});
+                    childElement->setSizePercentPermanent({-1, 1});
                     childElement->setSizePercentOneTime({1.0f / static_cast<float>(childCount), 1.0f});
                 }
 
@@ -135,7 +135,7 @@ namespace BreadEditor {
                 else
                 {
                     const auto childCount = getChildCount() - 1;
-                    childElement->setSizePercentPermanent({-1, -1});
+                    childElement->setSizePercentPermanent({1, -1});
                     childElement->setSizePercentOneTime({1.0f, 1.0f / static_cast<float>(childCount)});
                 }
 

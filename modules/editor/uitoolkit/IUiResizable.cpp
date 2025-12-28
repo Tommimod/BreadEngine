@@ -14,9 +14,9 @@ namespace BreadEditor {
             _isPrepared = false;
         }
 
-        const auto bounds = uiElement.getBounds();
+        const auto &bounds = uiElement.getBounds();
         auto subBounds = bounds;
-        const auto pivot = uiElement.getPivot();
+        const auto &pivot = uiElement.getPivot();
 
         if (isHorizontalResized)
         {
@@ -108,7 +108,7 @@ namespace BreadEditor {
                             }
                         }
                     }
-                    else if (isContainer && childsCountInParent > 1)
+                    else if (isContainer)
                     {
                         const auto siblings = isDragRightSide
                                                   ? uiElement.getNextSiblingsByEqualHorizontal()
@@ -141,7 +141,7 @@ namespace BreadEditor {
                             }
                         }
                     }
-                    else if (isContainer && childsCountInParent > 1)
+                    else if (isContainer)
                     {
                         const auto siblings = isDragUpperSide && pivot.y <= .5f
                                                   ? uiElement.getNextSiblingsByEqualVertical()
@@ -160,13 +160,13 @@ namespace BreadEditor {
 
     void IUiResizable::changeVerticalSize(UiElement &uiElement, const bool isDragUpperSide, const bool isDragDownSide, const float mouseYDelta)
     {
-        const auto pivot = uiElement.getPivot();
+        const auto &pivot = uiElement.getPivot();
         const bool isBottomSidePivot = pivot.y > .5f;
         const bool isTopSidePivot = pivot.y < .5f;
         auto size = uiElement.getSize();
         if (isDragUpperSide)
         {
-            const auto currentPos = uiElement.getPosition();
+            const auto &currentPos = uiElement.getPosition();
             if (isBottomSidePivot)
             {
                 size.y += mouseYDelta;
@@ -211,13 +211,13 @@ namespace BreadEditor {
 
     void IUiResizable::changeHorizontalSize(UiElement &uiElement, const bool isDragLeftSide, const bool isDragRightSide, const float mouseXDelta)
     {
-        const auto pivot = uiElement.getPivot();
+        const auto &pivot = uiElement.getPivot();
         const bool isRightSidePivot = pivot.x > .5f;
         const bool isLeftSidePivot = pivot.x < .5f;
         auto size = uiElement.getSize();
         if (isDragRightSide)
         {
-            const auto currentPos = uiElement.getPosition();
+            const auto &currentPos = uiElement.getPosition();
             if (isLeftSidePivot)
             {
                 size.x -= mouseXDelta;
@@ -252,9 +252,9 @@ namespace BreadEditor {
             }
         }
 
-        const auto parentBounds = uiElement.getParentElement() == nullptr
-                                      ? Rectangle{0, 0, static_cast<float>(GetScreenWidth()), static_cast<float>(GetScreenHeight())}
-                                      : uiElement.getParentElement()->getBounds();
+        const auto &parentBounds = uiElement.getParentElement() == nullptr
+                                       ? Rectangle{0, 0, static_cast<float>(GetScreenWidth()), static_cast<float>(GetScreenHeight())}
+                                       : uiElement.getParentElement()->getBounds();
         size.x = Clamp(size.x, 50, parentBounds.width);
         uiElement.setSize(size);
     }

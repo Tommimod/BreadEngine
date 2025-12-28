@@ -165,8 +165,6 @@ namespace BreadEditor {
             _localSize.y = getSizeInPixByPercentOnlyY(percent);
             setSize({xSize, _localSize.y});
         }
-
-        _sizeInPercents = {-1, -1};
     }
 
     void UiElement::setSizePercentPermanent(const Vector2 &percent)
