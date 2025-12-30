@@ -8,7 +8,14 @@ namespace BreadEditor {
         return Vector2(static_cast<float>(GetScreenWidth()), static_cast<float>(GetScreenHeight()));
     }
 
-    MainWindow::MainWindow()
+    MainWindow::MainWindow() = default;
+
+    MainWindow::~MainWindow()
+    {
+        dispose();
+    }
+
+    void MainWindow::initialize()
     {
         setup("UiRoot", nullptr);
         setAnchor(UI_LEFT_TOP);
@@ -67,11 +74,6 @@ namespace BreadEditor {
         _rightContainer->addChild(new NodeInspectorWindow(NodeInspectorWindow::Id));
     }
 
-    MainWindow::~MainWindow()
-    {
-        dispose();
-    }
-
     vector<std::string> &MainWindow::getWindowsOptions()
     {
         return _windowsOptions;
@@ -114,7 +116,7 @@ namespace BreadEditor {
 
     void MainWindow::render3D(float deltaTime)
     {
-        if (const auto& model = Editor::getInstance().getEditorModel(); model.getSelectedNodeUiElement() != nullptr)
+        if (const auto &model = Editor::getInstance().getEditorModel(); model.getSelectedNodeUiElement() != nullptr)
         {
             _gizmoSystem.render();
         }

@@ -53,7 +53,7 @@ namespace BreadEditor {
 
     bool UiWindow::tryDeleteSelf()
     {
-        return true;
+        return false;
     }
 
     void UiWindow::initialize()
@@ -64,9 +64,6 @@ namespace BreadEditor {
         _closeButton.setPivot({1, 1});
         _closeButton.setPosition({-5, 20});
 
-        auto& editorInstance = Editor::getInstance();
-        auto& model = editorInstance.getEditorModel();
-        const auto windowsModel = model.getWindowsModel();
-        windowsModel->removeWindowFromAllowList(id);
+        Editor::getInstance().getEditorModel().getWindowsModel()->removeWindowFromAllowList(id);
     }
 } // BreadEditor

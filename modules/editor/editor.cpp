@@ -20,6 +20,7 @@ namespace BreadEditor {
     {
         if (_initialized) return true;
 
+        mainWindow.initialize();
         GuiLoadStyleDefault();
         SetTraceLogLevel(LOG_ALL);
         _initialized = true;

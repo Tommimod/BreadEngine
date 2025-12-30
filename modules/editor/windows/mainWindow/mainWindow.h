@@ -20,6 +20,8 @@ namespace BreadEditor {
 
         ~MainWindow() override;
 
+        void initialize();
+
         [[nodiscard]] vector<std::string> &getWindowsOptions();
 
         [[nodiscard]] UiToolbar &getToolbar() const;

@@ -30,6 +30,13 @@ namespace BreadEditor {
     {
         if (!isActive) return;
 
+        if (_elementsCount == 0)
+        {
+            changeParent(nullptr);
+            tryDeleteSelf();
+            return;
+        }
+
         GuiSetState(_state);
         GuiSetStyle(DROPDOWNBOX, TEXT_ALIGNMENT, _textAlignment);
         if (GuiDropdownBox(_bounds, _optionsForGui, &_selectedOption, _isEditMode))
