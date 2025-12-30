@@ -41,6 +41,7 @@ namespace BreadEditor {
         int _activeTab = 0;
         std::unordered_map<int, std::vector<std::string>> _tabToWindowIds {};
 
+        void initialize();
         void recalculateChilds();
         void addTab();
     };

@@ -1,7 +1,7 @@
 ﻿#include "assetsWindow.h"
 
 namespace BreadEditor {
-    std::string AssetsWindow::Id = "mainWindowAssetsWindow";
+    std::string AssetsWindow::Id = "Assets";
 
     AssetsWindow::AssetsWindow(const std::string &id) : UiWindow(id)
     {

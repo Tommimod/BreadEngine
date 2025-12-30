@@ -38,6 +38,6 @@ namespace BreadEditor {
 
         void invokeButtonClicked(const UiLabelButton *button);
 
-        void invokeButtonRequestedToRemove(const UiButton *button);
+        void invokeButtonRequestedToRemove(const UiLabelButton *button);
     };
 } // namespace BreadEditor

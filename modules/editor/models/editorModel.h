@@ -1,4 +1,5 @@
 ﻿#pragma once
+#include "windowsModel.h"
 #include "../windows/mainWindow/nodeTreeWindow.h"
 
 namespace BreadEditor {
@@ -7,21 +8,27 @@ namespace BreadEditor {
     public:
         Action<NodeUiElement *> onNodeSelected;
 
-        EditorModel() = default;
+        EditorModel()
+        {
+            _windowsModel = std::make_unique<WindowsModel>();
+        }
 
         ~EditorModel()
         {
             onNodeSelected.unsubscribeAll();
         };
 
-        NodeUiElement *getSelectedNodeUiElement() const { return _selectedNodeUiElement; }
+        [[nodiscard]] NodeUiElement *getSelectedNodeUiElement() const { return _selectedNodeUiElement; }
         void setSelectedNodeUiElement(NodeUiElement *nodeUiElement)
         {
             _selectedNodeUiElement = nodeUiElement;
             onNodeSelected.invoke(_selectedNodeUiElement);
         }
 
+        [[nodiscard]] WindowsModel *getWindowsModel() const { return _windowsModel.get(); }
+
     private:
         NodeUiElement *_selectedNodeUiElement = nullptr;
+        std::unique_ptr<WindowsModel> _windowsModel;
     };
 } // BreadEditor

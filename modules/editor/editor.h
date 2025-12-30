@@ -3,7 +3,6 @@
 #include <string>
 #include "engine.h"
 #include "models/editorModel.h"
-
 using namespace BreadEngine;
 
 namespace BreadEditor {
@@ -26,15 +25,13 @@ namespace BreadEditor {
 
         void render3D(float deltaTime);
 
-        // Project management
         bool createProject(const std::string &name, const std::string &path);
 
         bool openProject(const std::string &path);
 
         void closeProject();
 
-        // Game compilation and running
-        bool compileGame();
+        [[nodiscard]] bool compileGame() const;
 
         bool runGame();
 
@@ -47,7 +44,7 @@ namespace BreadEditor {
         [[nodiscard]] EditorModel &getEditorModel() { return _editorModel; }
 
     private:
-        Editor() = default;
+        Editor();
 
         ~Editor() = default;
 

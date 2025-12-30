@@ -35,7 +35,9 @@ namespace BreadEditor {
     }
 
     UiCheckBox::~UiCheckBox()
-    = default;
+    {
+        delete _externalChecked;
+    }
 
     void UiCheckBox::dispose()
     {

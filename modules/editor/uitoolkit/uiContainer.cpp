@@ -17,24 +17,14 @@ namespace BreadEditor {
     UiContainer *UiContainer::setup(const std::string &id)
     {
         UiElement::setup(id);
-        _toolbar.setup(id + "toolbar", this, _tabs);
-        _toolbar.setAnchor(UI_FIT_TOP_HORIZONTAL);
-        _toolbar.setPivot({0, 0});
-        _toolbar.setSize({0, 20});
-        _toolbar.update(0);
-        _toolbar.isStatic = true;
+        initialize();
         return this;
     }
 
     UiContainer *UiContainer::setup(const std::string &id, UiElement *parentElement)
     {
         UiElement::setup(id, parentElement);
-        _toolbar.setup(id + "toolbar", this, _tabs);
-        _toolbar.setAnchor(UI_FIT_TOP_HORIZONTAL);
-        _toolbar.setPivot({0, 0});
-        _toolbar.setSize({0, 20});
-        _toolbar.update(0);
-        _toolbar.isStatic = true;
+        initialize();
         return this;
     }
 
@@ -94,6 +84,44 @@ namespace BreadEditor {
     bool UiContainer::tryDeleteSelf()
     {
         return true;
+    }
+
+    void UiContainer::initialize()
+    {
+        _toolbar.setup(id + "toolbar", this, _tabs);
+        _toolbar.setAnchor(UI_FIT_TOP_HORIZONTAL);
+        _toolbar.setPivot({0, 0});
+        _toolbar.setSize({0, 20});
+        _toolbar.update(0);
+        _toolbar.isStatic = true;
+
+        auto &toolbarOptButton = UiPool::labelButtonPool.get().setup(id + "toolbarOptButton", &_toolbar, GuiIconText(ICON_BURGER_MENU, nullptr));
+        toolbarOptButton.setTextAlignment(TEXT_ALIGN_CENTER);
+        toolbarOptButton.setAnchor(UI_RIGHT_CENTER);
+        toolbarOptButton.setPivot({1, .5f});
+        toolbarOptButton.setSize({20, 20});
+        toolbarOptButton.setPosition({-5, 0});
+        toolbarOptButton.onClick.subscribe([this](UiLabelButton *)
+        {
+            auto model = Editor::getInstance().getEditorModel().getWindowsModel();
+            auto windowsNames = model->getNotOpenedWindowsNames();
+            auto &dropdown = UiPool::dropdownPool.get().setup(id + "toolbarDropdown", &_toolbar, windowsNames, false);
+            dropdown.setAnchor(UI_RIGHT_CENTER);
+            dropdown.setPivot({1, 0});
+            dropdown.setSize({80, 15});
+            dropdown.setPosition({-5, 0});
+            dropdown.setTextAlignment(TEXT_ALIGN_LEFT);
+            dropdown.onValueChanged.subscribe([this, &dropdown, model, windowsNames](const int value)
+            {
+                _toolbar.destroyChild(&dropdown);
+                if (value >= 0)
+                {
+                    auto factory = model->getWindowFactory(windowsNames[value]);
+                    const auto window = std::invoke(factory);
+                    addChild(window);
+                }
+            });
+        });
     }
 
     void UiContainer::recalculateChilds()
@@ -156,6 +184,8 @@ namespace BreadEditor {
 
             _tabToWindowIds[_activeTab].emplace_back(childElement->id);
         }
+
+        setChildLast(&_toolbar);
     }
 
     void UiContainer::addTab()

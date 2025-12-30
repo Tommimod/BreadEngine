@@ -79,7 +79,7 @@ namespace BreadEditor {
 
     void Editor::closeProject() { _currentProjectPath.clear(); }
 
-    bool Editor::compileGame()
+    bool Editor::compileGame() const
     {
         if (!isProjectOpen()) return false;
 
@@ -100,4 +100,6 @@ namespace BreadEditor {
     {
         Engine::getInstance().unloadGameModule();
     }
+
+    Editor::Editor() = default;
 } // namespace BreadEditor

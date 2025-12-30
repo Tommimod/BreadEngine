@@ -80,4 +80,10 @@ namespace BreadEditor {
         return new UiVector4D();
     };
     ObjectPool<UiVector4D> UiPool::vector4DPool(UiVector4DFactory, 10);
+
+    auto UiDropdownFactory = []() -> UiDropdown *
+    {
+        return new UiDropdown();
+    };
+    ObjectPool<UiDropdown> UiPool::dropdownPool(UiDropdownFactory, 10);
 } // BreadEditor

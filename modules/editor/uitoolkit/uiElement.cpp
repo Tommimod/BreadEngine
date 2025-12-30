@@ -72,6 +72,8 @@ namespace BreadEditor {
         if (!isActive) return;
 
         GuiSetStyle(LABEL, TEXT_ALIGNMENT, 0);
+        GuiSetStyle(DROPDOWNBOX, TEXT_ALIGNMENT, 1);
+        GuiSetStyle(BUTTON, TEXT_ALIGNMENT, 0);
         GuiSetStyle(DEFAULT, TEXT_SIZE, 10);
         if (isDebugRectVisible)
         {
@@ -517,7 +519,7 @@ namespace BreadEditor {
         if (const auto it = std::ranges::find(_childs, child); it != _childs.end())
         {
             _childs.erase(it);
-            addChild(child);
+            _childs.push_back(child);
             return;
         }
 

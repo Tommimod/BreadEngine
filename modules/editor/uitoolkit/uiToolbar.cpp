@@ -62,13 +62,13 @@ namespace BreadEditor {
                 lastX += offset + size.x;
                 button.onClick.subscribe([this](const UiButton *a) { this->invokeButtonClicked(a); });
 
-                auto &closeButton = UiPool::buttonPool.get().setup(id + tag, &button, "X");
+                auto &closeButton = UiPool::labelButtonPool.get().setup(id + tag, &button, "X");
                 closeButton.setAnchor(UI_RIGHT_CENTER);
                 closeButton.setPivot({1,.5f});
                 closeButton.setSize({10,10});
                 closeButton.setPosition({-5, 0});
-                closeButton.setTextSize(6);
-                closeButton.onClick.subscribe([this](const UiButton *a) { this->invokeButtonRequestedToRemove(a); });
+                closeButton.setTextSize(10);
+                closeButton.onClick.subscribe([this](const UiLabelButton *a) { this->invokeButtonRequestedToRemove(a); });
             }
         }
     }
@@ -85,7 +85,7 @@ namespace BreadEditor {
         onButtonPressed.invoke(button->getIndex());
     }
 
-    void UiToolbar::invokeButtonRequestedToRemove(const UiButton *button)
+    void UiToolbar::invokeButtonRequestedToRemove(const UiLabelButton *button)
     {
         onButtonRequestedToRemove.invoke(button->getParentElement()->getIndex());
     }

@@ -1,7 +1,7 @@
 ﻿#include "consoleWindow.h"
 
 namespace BreadEditor {
-    std::string ConsoleWindow::Id = "mainWindowConsoleWindow";
+    std::string ConsoleWindow::Id = "Console";
 
     ConsoleWindow::ConsoleWindow(const std::string &id) : UiWindow(id)
     {

@@ -32,7 +32,7 @@ namespace BreadEditor {
         void unsubscribe() override;
 
     private:
-        const char *_title = "Node Tree";
+        const char *_title = Id.c_str();
         std::vector<SubscriptionHandle> _nodeNotificatorSubscriptions {};
         std::vector<NodeUiElement *> _nodeUiElements {};
         NodeUiElement *_draggedNodeUiElementCopy = nullptr;

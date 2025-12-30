@@ -6,7 +6,7 @@
 #include "uitoolkit/uiPool.h"
 
 namespace BreadEditor {
-    std::string NodeTreeWindow::Id = "mainWindowNodeTree";
+    std::string NodeTreeWindow::Id = "Node Tree";
 
     NodeTreeWindow::NodeTreeWindow(const std::string &id) : UiWindow(id)
     {

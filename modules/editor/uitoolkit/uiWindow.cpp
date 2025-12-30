@@ -1,4 +1,6 @@
 ﻿#include "uiWindow.h"
+
+#include "editor.h"
 #include "uiPool.h"
 
 namespace BreadEditor {
@@ -32,6 +34,7 @@ namespace BreadEditor {
     void UiWindow::dispose()
     {
         UiWindow::unsubscribe();
+        Editor::getInstance().getEditorModel().getWindowsModel()->addWindowToAllowList(id);
         UiElement::dispose();
     }
 
@@ -60,5 +63,10 @@ namespace BreadEditor {
         _closeButton.setAnchor(UI_RIGHT_TOP);
         _closeButton.setPivot({1, 1});
         _closeButton.setPosition({-5, 20});
+
+        auto& editorInstance = Editor::getInstance();
+        auto& model = editorInstance.getEditorModel();
+        const auto windowsModel = model.getWindowsModel();
+        windowsModel->removeWindowFromAllowList(id);
     }
 } // BreadEditor

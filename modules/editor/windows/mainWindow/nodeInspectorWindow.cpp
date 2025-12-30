@@ -3,7 +3,7 @@
 #include "uitoolkit/uiPool.h"
 
 namespace BreadEditor {
-    std::string NodeInspectorWindow::Id = "mainWindowNodeInspector";
+    std::string NodeInspectorWindow::Id = "Inspector";
 
     NodeInspectorWindow::NodeInspectorWindow(const std::string &id) : UiWindow(id)
     {

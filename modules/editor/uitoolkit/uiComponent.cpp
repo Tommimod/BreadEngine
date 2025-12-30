@@ -11,7 +11,10 @@ namespace BreadEditor {
         return *this;
     }
 
-    UiComponent::~UiComponent() = default;
+    UiComponent::~UiComponent()
+    {
+        delete _component;
+    }
 
     void UiComponent::dispose()
     {

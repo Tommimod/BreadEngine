@@ -28,6 +28,6 @@ namespace BreadEditor {
         void unsubscribe() override;
 
     private:
-        const char *_title = "Console Window";
+        const char *_title = Id.c_str();
     };
 } // BreadEditor

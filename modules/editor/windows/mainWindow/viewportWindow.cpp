@@ -1,7 +1,7 @@
 ﻿#include "viewportWindow.h"
 
 namespace BreadEditor {
-    std::string ViewportWindow::Id = "mainWindowViewportWindow";
+    std::string ViewportWindow::Id = "Viewport";
 
     ViewportWindow::ViewportWindow(const std::string &id) : UiWindow(id)
     {
