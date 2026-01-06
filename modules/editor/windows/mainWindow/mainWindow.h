@@ -11,7 +11,7 @@
 using namespace BreadEngine;
 
 namespace BreadEditor {
-    class MainWindow final : UiElement
+    class MainWindow final : public UiElement
     {
     public:
         static Vector2 getWindowSize();
@@ -38,11 +38,11 @@ namespace BreadEditor {
 
         [[nodiscard]] ViewportWindow &getViewportWindow() const;
 
-        void render3D(float deltaTime);
-
         void draw(float deltaTime) override;
 
         void update(float deltaTime) override;
+
+        void render3D(float deltaTime);
 
         void dispose() override;
 
@@ -56,7 +56,7 @@ namespace BreadEditor {
         unique_ptr<UiContainer> _centerContainer;
 
         GizmoSystem _gizmoSystem;
-        vector<std::string> _windowsOptions {};
+        vector<std::string> _windowsOptions{};
 
         [[nodiscard]] UiElement *findUiElementById(const std::string &id) const;
     };

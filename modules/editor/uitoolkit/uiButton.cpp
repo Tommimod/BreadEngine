@@ -6,9 +6,7 @@
 namespace BreadEditor {
     UiButton::UiButton() = default;
 
-    UiButton::~UiButton()
-    {
-    }
+    UiButton::~UiButton() = default;
 
     UiButton &UiButton::setup(const std::string &id, const std::string &newText)
     {
@@ -30,9 +28,6 @@ namespace BreadEditor {
 
     void UiButton::draw(const float deltaTime)
     {
-        if (!isActive) return;
-
-        GuiSetState(_state);
         GuiSetStyle(DEFAULT, TEXT_SIZE, _textSize);
         GuiSetStyle(BUTTON, TEXT_ALIGNMENT, _textAlignment);
         if (GuiButton(_bounds, _text.c_str()))
@@ -58,14 +53,10 @@ namespace BreadEditor {
                 onClick.invoke(this);
             }
         }
-
-        UiElement::draw(deltaTime);
-        GuiSetState(STATE_NORMAL);
     }
 
     void UiButton::update(const float deltaTime)
     {
-        UiElement::update(deltaTime);
     }
 
     bool UiButton::tryDeleteSelf()

@@ -20,13 +20,13 @@ namespace BreadEditor {
         setup("UiRoot", nullptr);
         setAnchor(UI_LEFT_TOP);
         setSizePercentPermanent({1, 1});
-        update(0);
+        computeBounds();
 
         const auto toolbar = &UiPool::toolbarPool.get().setup("mainWindowToolbar", this, {"File", "Edit", "Help"}, true);
         toolbar->setAnchor(UI_FIT_TOP_HORIZONTAL);
         toolbar->setPivot({0, 0});
         toolbar->setSize({0, 20});
-        toolbar->update(0);
+        toolbar->computeBounds();
         toolbar->isStatic = true;
 
         _leftContainer = std::make_unique<UiContainer>(LAYOUT_VERTICAL);
@@ -35,7 +35,7 @@ namespace BreadEditor {
         _leftContainer->setSizePercentOneTime({.15f, .5f});
         _leftContainer->setPosition({0, toolbar->getSize().y - 1});
         _leftContainer->setHorizontalResized(true);
-        _leftContainer->update(0);
+        _leftContainer->computeBounds();
         _leftContainer->setup("leftContainer", this);
 
         _leftContainer->addChild(new AssetsWindow(AssetsWindow::Id));
@@ -46,7 +46,7 @@ namespace BreadEditor {
         _bottomContainer->setSizePercentOneTime({.7f, .35f});
         _bottomContainer->setPosition({0, toolbar->getSize().y - 1});
         _bottomContainer->setVerticalResized(true);
-        _bottomContainer->update(0);
+        _bottomContainer->computeBounds();
         _bottomContainer->setup("bottomContainer", this);
 
         _bottomContainer->addChild(new ConsoleWindow(ConsoleWindow::Id));
@@ -56,7 +56,7 @@ namespace BreadEditor {
         _centerContainer->setAnchor(UI_CENTER_TOP);
         _centerContainer->setSizePercentOneTime({.7f, .65f});
         _centerContainer->setPosition({0, toolbar->getSize().y - 1});
-        _centerContainer->update(0);
+        _centerContainer->computeBounds();
         _centerContainer->setup("centerContainer", this);
 
         _centerContainer->addChild(new ViewportWindow(ViewportWindow::Id));
@@ -67,7 +67,7 @@ namespace BreadEditor {
         _rightContainer->setSizePercentOneTime({.15f, .5f});
         _rightContainer->setPosition({0, toolbar->getSize().y - 1});
         _rightContainer->setHorizontalResized(true);
-        _rightContainer->update(0);
+        _rightContainer->computeBounds();
         _rightContainer->setup("rightContainer", this);
 
         _rightContainer->addChild(new NodeTreeWindow(NodeTreeWindow::Id));
@@ -114,7 +114,7 @@ namespace BreadEditor {
         return dynamic_cast<ViewportWindow &>(*findUiElementById(ViewportWindow::Id));
     }
 
-    void MainWindow::render3D(float deltaTime)
+    void MainWindow::render3D(const float deltaTime)
     {
         if (const auto &model = Editor::getInstance().getEditorModel(); model.getSelectedNodeUiElement() != nullptr)
         {
@@ -122,14 +122,12 @@ namespace BreadEditor {
         }
     }
 
-    void MainWindow::draw(float deltaTime)
+    void MainWindow::draw(const float deltaTime)
     {
-        UiElement::draw(deltaTime);
     }
 
-    void MainWindow::update(float deltaTime)
+    void MainWindow::update(const float deltaTime)
     {
-        UiElement::update(deltaTime);
     }
 
     void MainWindow::dispose()

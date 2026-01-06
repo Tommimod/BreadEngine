@@ -6,7 +6,9 @@ namespace BreadEditor {
     UiNumberBox::UiNumberBox() = default;
 
     UiNumberBox::~UiNumberBox()
-    = default;
+    {
+        delete _label;
+    }
 
     void UiNumberBox::dispose()
     {
@@ -98,10 +100,6 @@ namespace BreadEditor {
 
     void UiNumberBox::draw(const float deltaTime)
     {
-        if (!isActive) return;
-
-        GuiSetState(_state);
-
         if (_intMode)
         {
             if (GuiValueBox(_bounds, _label, &_intValue, INT_MIN,INT_MAX, _editMode))
@@ -109,8 +107,8 @@ namespace BreadEditor {
                 _editMode = !_editMode;
                 if (!_editMode)
                 {
-                    onValueChanged.invoke(_intValue);
-                    onValueChangedWithSender.invoke(_intValue, this);
+                    onValueChanged.invoke(static_cast<float>(_intValue));
+                    onValueChangedWithSender.invoke(static_cast<float>(_intValue), this);
                 }
             }
         }
@@ -126,16 +124,10 @@ namespace BreadEditor {
                 }
             }
         }
-
-        UiElement::draw(deltaTime);
-        GuiSetState(STATE_NORMAL);
     }
 
     void UiNumberBox::update(const float deltaTime)
     {
-        if (!isActive) return;
-
-        UiElement::update(deltaTime);
         if (!_editMode && _dynamicValue.component != nullptr)
         {
             if (_intMode)

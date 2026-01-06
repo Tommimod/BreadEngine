@@ -1,5 +1,4 @@
 #include "nodeUiElement.h"
-
 #include "engine.h"
 #include "raygui.h"
 #include "uitoolkit/uiPool.h"
@@ -17,8 +16,6 @@ namespace BreadEditor {
 
     void NodeUiElement::draw(const float deltaTime)
     {
-        _state = getState();
-        GuiSetState(_state);
         prepareToClick();
         GuiButton(_bounds, nullptr);
         if (_isPreparedToClick && IsMouseButtonPressed(MOUSE_LEFT_BUTTON) && Engine::isCollisionPointRec(GetMousePosition(), _bounds))
@@ -28,13 +25,11 @@ namespace BreadEditor {
 
         const auto buttonText = GuiIconText(ICON_CPU, _engineNode->getName().c_str());
         GuiLabel(_bounds, buttonText);
-        UiElement::draw(deltaTime);
     }
 
     void NodeUiElement::update(const float deltaTime)
     {
         updateDraggable(this);
-        UiElement::update(deltaTime);
     }
 
     void NodeUiElement::dispose()

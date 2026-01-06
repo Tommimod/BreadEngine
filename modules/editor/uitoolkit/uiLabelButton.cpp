@@ -1,11 +1,12 @@
 #include "uiLabelButton.h"
-
 #include "engine.h"
 #include "raygui.h"
 #include "uiPool.h"
 
 namespace BreadEditor {
     UiLabelButton::UiLabelButton() = default;
+
+    UiLabelButton::~UiLabelButton() = default;
 
     UiLabelButton &UiLabelButton::setup(const std::string &id, const std::string &newText)
     {
@@ -19,10 +20,6 @@ namespace BreadEditor {
         return dynamic_cast<UiLabelButton &>(UiElement::setup(id, parentElement));
     }
 
-    UiLabelButton::~UiLabelButton()
-    {
-    }
-
     void UiLabelButton::dispose()
     {
         onClick.unsubscribeAll();
@@ -31,9 +28,6 @@ namespace BreadEditor {
 
     void UiLabelButton::draw(const float deltaTime)
     {
-        if (!isActive) return;
-
-        GuiSetState(_state);
         GuiSetStyle(DEFAULT, TEXT_SIZE, _textSize);
         GuiSetStyle(LABEL, TEXT_ALIGNMENT, _textAlignment);
         if (GuiLabelButton(_bounds, _text.c_str()))
@@ -41,7 +35,7 @@ namespace BreadEditor {
             if (const auto childsCount = getChildCount(); childsCount > 0)
             {
                 auto isNeedIgnore = false;
-                for (const auto child : _childs)
+                for (const auto child: _childs)
                 {
                     if (Engine::isCollisionPointRec(GetMousePosition(), child->getBounds()))
                     {
@@ -59,14 +53,10 @@ namespace BreadEditor {
                 onClick.invoke(this);
             }
         }
-
-        UiElement::draw(deltaTime);
-        GuiSetState(STATE_NORMAL);
     }
 
     void UiLabelButton::update(const float deltaTime)
     {
-        UiElement::update(deltaTime);
     }
 
     bool UiLabelButton::tryDeleteSelf()

@@ -1,5 +1,4 @@
 ﻿#include "uiWindow.h"
-
 #include "editor.h"
 #include "uiPool.h"
 
@@ -20,15 +19,11 @@ namespace BreadEditor {
 
     void UiWindow::draw(const float deltaTime)
     {
-        if (!isActive) return;
-
-        UiElement::draw(deltaTime);
-        updateResizable(*this);
     }
 
     void UiWindow::update(const float deltaTime)
     {
-        UiElement::update(deltaTime);
+        updateResizable(*this);
     }
 
     void UiWindow::dispose()
@@ -36,6 +31,8 @@ namespace BreadEditor {
         UiWindow::unsubscribe();
         Editor::getInstance().getEditorModel().getWindowsModel()->addWindowToAllowList(id);
         UiElement::dispose();
+        setVerticalResized(false);
+        setHorizontalResized(false);
     }
 
     void UiWindow::subscribe()

@@ -30,15 +30,11 @@ namespace BreadEditor {
 
     void UiContainer::draw(const float deltaTime)
     {
-        if (!isActive) return;
-
-        UiElement::draw(deltaTime);
     }
 
     void UiContainer::update(const float deltaTime)
     {
         updateResizable(*this);
-        UiElement::update(deltaTime);
     }
 
     void UiContainer::addChild(UiElement *child)
@@ -92,7 +88,7 @@ namespace BreadEditor {
         _toolbar.setAnchor(UI_FIT_TOP_HORIZONTAL);
         _toolbar.setPivot({0, 0});
         _toolbar.setSize({0, 20});
-        _toolbar.update(0);
+        _toolbar.computeBounds();
         _toolbar.isStatic = true;
 
         auto &toolbarOptButton = UiPool::labelButtonPool.get().setup(id + "toolbarOptButton", &_toolbar, GuiIconText(ICON_BURGER_MENU, nullptr));

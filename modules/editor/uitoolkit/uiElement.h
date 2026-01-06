@@ -48,15 +48,15 @@ namespace BreadEditor {
 
         virtual ~UiElement();
 
-        virtual void draw(float deltaTime);
-
-        virtual void update(float deltaTime);
-
         [[nodiscard]] Rectangle &getBounds();
 
         [[nodiscard]] Vector2 &getPosition();
 
         [[nodiscard]] Vector2 getSize() const;
+
+        virtual void draw(float deltaTime);
+
+        virtual void update(float deltaTime);
 
         virtual void setState(GuiState nextState);
 
@@ -161,5 +161,12 @@ namespace BreadEditor {
         [[nodiscard]] virtual Vector2 getComputedSize(const Rectangle &effectiveParentBounds, const Vector2 &prelimPosition) const;
 
         virtual bool tryDeleteSelf();
+
+    private:
+        friend class Editor;
+
+        void drawInternal(float deltaTime);
+
+        void updateInternal(float deltaTime);
     };
 } // namespace BreadEditor

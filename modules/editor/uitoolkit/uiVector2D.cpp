@@ -56,17 +56,11 @@ namespace BreadEditor {
 
     void UiVector2D::draw(float deltaTime)
     {
-        if (!isActive) return;
-
-        GuiSetState(_state);
-        UiElement::draw(deltaTime);
-        GuiSetState(STATE_NORMAL);
     }
 
     void UiVector2D::update(float deltaTime)
     {
         createFields();
-        UiElement::update(deltaTime);
     }
 
     bool UiVector2D::tryDeleteSelf()

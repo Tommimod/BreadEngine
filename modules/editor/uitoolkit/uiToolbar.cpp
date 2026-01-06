@@ -18,17 +18,11 @@ namespace BreadEditor {
 
     void UiToolbar::draw(const float deltaTime)
     {
-        if (!isActive) return;
-
-        GuiSetState(_state);
         GuiPanel(_bounds, nullptr);
-        UiElement::draw(deltaTime);
-        GuiSetState(STATE_NORMAL);
     }
 
     void UiToolbar::update(const float deltaTime)
     {
-        UiElement::update(deltaTime);
     }
 
     void UiToolbar::replaceButtons(const vector<string> &buttonNames)
@@ -40,7 +34,7 @@ namespace BreadEditor {
         {
             constexpr float offset = 5;
             auto tag = id + buttonName;
-            const auto textWidth = fmax(50, GuiGetTextWidth(buttonName.c_str()) * 1.2f);
+            const auto textWidth = fmax(50.0f, static_cast<float>(GuiGetTextWidth(buttonName.c_str())) * 1.2f);
             auto size = Vector2{static_cast<float>(textWidth), .0f};
             if (_isVisualAsLabel)
             {

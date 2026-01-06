@@ -17,17 +17,16 @@ namespace BreadEditor {
 
     ConsoleWindow::~ConsoleWindow()
     {
+        delete _title;
     }
 
-    void ConsoleWindow::draw(float deltaTime)
+    void ConsoleWindow::draw(const float deltaTime)
     {
-        GuiSetState(_state);
         GuiScrollPanel(_bounds, _title, _contentView, &_scrollPos, &_scrollView);
         UiWindow::draw(deltaTime);
-        GuiSetState(STATE_NORMAL);
     }
 
-    void ConsoleWindow::update(float deltaTime)
+    void ConsoleWindow::update(const float deltaTime)
     {
         UiWindow::update(deltaTime);
     }

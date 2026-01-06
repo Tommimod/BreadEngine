@@ -18,7 +18,7 @@ namespace BreadEditor {
 
     bool Editor::initialize()
     {
-        if (_initialized) return true;
+        if (_initialized) return false;
 
         mainWindow.initialize();
         GuiLoadStyleDefault();
@@ -42,19 +42,19 @@ namespace BreadEditor {
         _initialized = false;
     }
 
-    void Editor::update(float deltaTime)
+    void Editor::update(const float deltaTime)
     {
         if (!_initialized) return;
 
-        mainWindow.update(deltaTime);
+        mainWindow.updateInternal(deltaTime);
         CursorSystem::draw();
     }
 
-    void Editor::render2D(float deltaTime)
+    void Editor::render2D(const float deltaTime)
     {
         if (!_initialized) return;
 
-        mainWindow.draw(deltaTime);
+        mainWindow.drawInternal(deltaTime);
     }
 
     void Editor::render3D(const float deltaTime)
@@ -102,5 +102,7 @@ namespace BreadEditor {
         Engine::getInstance().unloadGameModule();
     }
 
-    Editor::Editor() = default;
+    Editor::Editor() : _uiRoot(mainWindow)
+    {
+    }
 } // namespace BreadEditor

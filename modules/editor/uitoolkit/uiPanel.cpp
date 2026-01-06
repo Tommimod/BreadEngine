@@ -15,21 +15,18 @@ namespace BreadEditor {
         return dynamic_cast<UiPanel &>(UiElement::setup(id, parentElement));
     }
 
-    UiPanel::~UiPanel() = default;
+    UiPanel::~UiPanel()
+    {
+        delete _title;
+    }
 
     void UiPanel::draw(const float deltaTime)
     {
-        if (!isActive) return;
-
-        GuiSetState(_state);
         GuiPanel(_bounds, _title);
-        UiElement::draw(deltaTime);
-        GuiSetState(STATE_NORMAL);
     }
 
     void UiPanel::update(const float deltaTime)
     {
-        UiElement::update(deltaTime);
     }
 
     bool UiPanel::tryDeleteSelf()

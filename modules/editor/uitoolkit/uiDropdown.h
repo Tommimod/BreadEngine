@@ -38,6 +38,6 @@ namespace BreadEditor {
         int _elementsCount = 0;
         bool _isEditMode = true;
 
-        bool isCollisionPointRec(Vector2 point) const;
+        [[nodiscard]] bool isCollisionPointRec(Vector2 point) const;
     };
 } // BreadEditor

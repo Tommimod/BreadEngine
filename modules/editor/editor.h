@@ -52,5 +52,6 @@ namespace BreadEditor {
         std::string _currentProjectPath;
         Engine *_engine = nullptr;
         EditorModel _editorModel;
+        UiElement& _uiRoot;
     };
 } // namespace BreadEditor

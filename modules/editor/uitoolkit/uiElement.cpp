@@ -69,32 +69,10 @@ namespace BreadEditor {
 
     void UiElement::draw(const float deltaTime)
     {
-        if (!isActive) return;
-
-        GuiSetStyle(LABEL, TEXT_ALIGNMENT, 0);
-        GuiSetStyle(DROPDOWNBOX, TEXT_ALIGNMENT, 1);
-        GuiSetStyle(BUTTON, TEXT_ALIGNMENT, 0);
-        GuiSetStyle(DEFAULT, TEXT_SIZE, 10);
-        if (isDebugRectVisible)
-        {
-            drawDebugRect();
-        }
-
-        for (const auto child: _childs)
-        {
-            child->draw(deltaTime);
-        }
     }
 
     void UiElement::update(const float deltaTime)
     {
-        if (!isActive) return;
-
-        computeBounds();
-        for (const auto child: _childs)
-        {
-            child->update(deltaTime);
-        }
     }
 
     Rectangle &UiElement::getBounds()
@@ -713,5 +691,46 @@ namespace BreadEditor {
     bool UiElement::tryDeleteSelf()
     {
         return false;
+    }
+
+    void UiElement::drawInternal(const float deltaTime)
+    {
+        if (!isActive)
+        {
+            return;
+        }
+
+        GuiSetState(_state);
+        draw(deltaTime);
+        GuiSetState(STATE_NORMAL);
+
+        GuiSetStyle(LABEL, TEXT_ALIGNMENT, 0);
+        GuiSetStyle(DROPDOWNBOX, TEXT_ALIGNMENT, 1);
+        GuiSetStyle(BUTTON, TEXT_ALIGNMENT, 0);
+        GuiSetStyle(DEFAULT, TEXT_SIZE, 10);
+        if (isDebugRectVisible)
+        {
+            drawDebugRect();
+        }
+
+        for (const auto child: _childs)
+        {
+            child->drawInternal(deltaTime);
+        }
+    }
+
+    void UiElement::updateInternal(const float deltaTime)
+    {
+        if (!isActive)
+        {
+            return;
+        }
+
+        computeBounds();
+        update(deltaTime);
+        for (const auto child: _childs)
+        {
+            child->updateInternal(deltaTime);
+        }
     }
 } // namespace BreadEditor

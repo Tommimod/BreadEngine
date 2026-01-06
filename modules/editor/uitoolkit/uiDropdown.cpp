@@ -28,8 +28,6 @@ namespace BreadEditor {
 
     void UiDropdown::draw(const float deltaTime)
     {
-        if (!isActive) return;
-
         if (_elementsCount == 0)
         {
             changeParent(nullptr);
@@ -37,7 +35,6 @@ namespace BreadEditor {
             return;
         }
 
-        GuiSetState(_state);
         GuiSetStyle(DROPDOWNBOX, TEXT_ALIGNMENT, _textAlignment);
         if (GuiDropdownBox(_bounds, _optionsForGui, &_selectedOption, _isEditMode))
         {
@@ -48,16 +45,10 @@ namespace BreadEditor {
 
             onValueChanged.invoke(_selectedOption);
         }
-
-        UiElement::draw(deltaTime);
-        GuiSetState(STATE_NORMAL);
     }
 
     void UiDropdown::update(const float deltaTime)
     {
-        if (!isActive) return;
-
-        UiElement::update(deltaTime);
     }
 
     void UiDropdown::dispose()

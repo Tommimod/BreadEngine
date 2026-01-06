@@ -21,23 +21,23 @@ namespace BreadEditor {
     }
 
     NodeTreeWindow::~NodeTreeWindow()
-    = default;
+    {
+        delete _title;
+    }
 
     void NodeTreeWindow::draw(const float deltaTime)
     {
-        GuiSetState(_state);
         GuiScrollPanel(_bounds, _title, _contentView, &_scrollPos, &_scrollView);
         drawLines(Engine::getRootNode());
         UiWindow::draw(deltaTime);
-        GuiSetState(STATE_NORMAL);
     }
 
     void NodeTreeWindow::update(const float deltaTime)
     {
-        UiWindow::update(deltaTime);
         const auto lastNodeBounds = _nodeUiElements.empty() ? Rectangle{} : _nodeUiElements.back()->getBounds();
         updateScrollView(lastNodeBounds);
         updateResizable(*this);
+        UiWindow::update(deltaTime);
     }
 
     void NodeTreeWindow::dispose()

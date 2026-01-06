@@ -5,15 +5,12 @@ using namespace BreadEngine;
 namespace BreadEditor {
     UiComponent::UiComponent() = default;
 
+    UiComponent::~UiComponent() = default;
+
     UiComponent &UiComponent::setup(const std::string &id, UiElement *parentElement)
     {
         UiElement::setup(id, parentElement);
         return *this;
-    }
-
-    UiComponent::~UiComponent()
-    {
-        delete _component;
     }
 
     void UiComponent::dispose()
@@ -154,9 +151,6 @@ namespace BreadEditor {
 
     void UiComponent::draw(const float deltaTime)
     {
-        if (!isActive) return;
-
-        GuiSetState(_state);
         if (_isTransform)
         {
             GuiPanel(_bounds, _componentName.c_str());
@@ -181,14 +175,10 @@ namespace BreadEditor {
             DrawLine(child->getBounds().x + 5, height, getBounds().x + getBounds().width - 5, height, LIGHTGRAY);
             i++;
         }
-
-        UiElement::draw(deltaTime);
-        GuiSetState(STATE_NORMAL);
     }
 
     void UiComponent::update(const float deltaTime)
     {
-        UiElement::update(deltaTime);
     }
 
     Component *UiComponent::getTrackedComponent() const

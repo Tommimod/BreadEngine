@@ -16,14 +16,14 @@ namespace BreadEditor {
     }
 
     AssetsWindow::~AssetsWindow()
-    = default;
+    {
+        delete _title;
+    }
 
     void AssetsWindow::draw(const float deltaTime)
     {
-        GuiSetState(_state);
         GuiScrollPanel(_bounds, _title, _contentView, &_scrollPos, &_scrollView);
         UiWindow::draw(deltaTime);
-        GuiSetState(STATE_NORMAL);
     }
 
     void AssetsWindow::update(const float deltaTime)
