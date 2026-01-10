@@ -1,5 +1,9 @@
 ﻿#include "uiElement.h"
 #include <algorithm>
+#include <ranges>
+#include <ranges>
+#include <ranges>
+#include <ranges>
 
 #include "raymath.h"
 
@@ -228,18 +232,21 @@ namespace BreadEditor {
         return this->_parent;
     }
 
-    std::vector<UiElement *> &UiElement::getAllChilds()
+    std::vector<UiElement*> UiElement::getAllChilds() const
     {
-        return _childs;
+        std::vector<UiElement*> result;
+        std::ranges::copy_if(_childs, std::back_inserter(result),
+                             [](const UiElement* child) { return !child->_isDeleted; });
+        return result;
     }
 
     UiElement *UiElement::getChildById(const std::string &childId) const
     {
-        for (auto &component: _childs)
+        for (const auto child: _childs)
         {
-            if (component->id == childId)
+            if (child->id == childId && !child->_isDeleted)
             {
-                return component;
+                return child;
             }
         }
 
@@ -248,7 +255,14 @@ namespace BreadEditor {
 
     int UiElement::getChildCount() const
     {
-        return static_cast<int>(_childs.size());
+        int i = 0;
+        for (const auto child: _childs)
+        {
+            if (child->_isDeleted) continue;
+            i++;
+        }
+
+        return i;
     }
 
     void UiElement::addChild(UiElement *child)
@@ -262,12 +276,7 @@ namespace BreadEditor {
 
     void UiElement::destroyChild(UiElement *child)
     {
-        _childs.erase(std::ranges::find(_childs, child));
-        if (!child->tryDeleteSelf())
-        {
-            child->dispose();
-            delete child;
-        }
+        child->_isDeleted = true;
     }
 
     void UiElement::destroyChild(const std::string &childId)
@@ -538,6 +547,7 @@ namespace BreadEditor {
         _anchor = UI_LEFT_TOP;
         _layoutType = LAYOUT_NONE;
         _bounds = {0, 0, 1, 1};
+        _isDeleted = false;
     }
 
     void UiElement::drawDebugRect() const
@@ -728,9 +738,34 @@ namespace BreadEditor {
 
         computeBounds();
         update(deltaTime);
+        destroyChildsInternal();
         for (const auto child: _childs)
         {
             child->updateInternal(deltaTime);
         }
     }
+
+    void UiElement::destroyChildsInternal()
+    {
+        std::vector<UiElement *> toDelete;
+        for (auto child: _childs)
+        {
+            if (!child->_isDeleted) continue;
+            toDelete.push_back(child);
+        }
+
+        for (auto child: toDelete)
+        {
+            _childs.erase(std::ranges::find(_childs, child));
+            if (!child->tryDeleteSelf())
+            {
+                child->dispose();
+                delete child;
+            }
+        }
+
+        toDelete.clear();
+    }
+
+    //TODO обновлять баундсы когда дёрти. Сделать флаг и метод для помечания что объект дёрти
 } // namespace BreadEditor

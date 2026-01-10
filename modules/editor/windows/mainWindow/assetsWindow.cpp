@@ -15,10 +15,7 @@ namespace BreadEditor {
         subscribe();
     }
 
-    AssetsWindow::~AssetsWindow()
-    {
-        delete _title;
-    }
+    AssetsWindow::~AssetsWindow() = default;
 
     void AssetsWindow::draw(const float deltaTime)
     {

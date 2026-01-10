@@ -163,10 +163,10 @@ namespace BreadEditor {
             }
         }
 
-        size_t i = 1;
-        for (const auto &child: _childs)
+        int i = 1;
+        for (const auto &child: getAllChilds())
         {
-            if (i == _childs.size() - 1)
+            if (i == getChildCount() - 1)
             {
                 break;
             }

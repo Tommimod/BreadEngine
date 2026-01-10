@@ -15,10 +15,7 @@ namespace BreadEditor {
         subscribe();
     }
 
-    ViewportWindow::~ViewportWindow()
-    {
-        delete _title;
-    }
+    ViewportWindow::~ViewportWindow() = default;
 
     void ViewportWindow::draw(const float deltaTime)
     {

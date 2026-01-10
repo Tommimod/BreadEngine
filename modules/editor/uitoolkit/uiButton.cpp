@@ -35,7 +35,7 @@ namespace BreadEditor {
             if (const auto childsCount = getChildCount(); childsCount > 0)
             {
                 auto isNeedIgnore = false;
-                for (const auto child : _childs)
+                for (const auto child : getAllChilds())
                 {
                     if (Engine::isCollisionPointRec(GetMousePosition(), child->getBounds()))
                     {

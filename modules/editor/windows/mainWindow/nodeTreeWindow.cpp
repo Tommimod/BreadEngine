@@ -12,18 +12,17 @@ namespace BreadEditor {
     {
         setup(id);
         subscribe();
+        rebuild();
     }
 
     NodeTreeWindow::NodeTreeWindow(const std::string &id, UiElement *parentElement) : UiWindow(id, parentElement)
     {
         setup(id, parentElement);
         subscribe();
+        rebuild();
     }
 
-    NodeTreeWindow::~NodeTreeWindow()
-    {
-        delete _title;
-    }
+    NodeTreeWindow::~NodeTreeWindow() = default;
 
     void NodeTreeWindow::draw(const float deltaTime)
     {
@@ -47,7 +46,7 @@ namespace BreadEditor {
 
     NodeUiElement *NodeTreeWindow::findNodeUiElementByEngineNode(const Node *node) const
     {
-        for (const auto child: _childs)
+        for (const auto child: getAllChilds())
         {
             if (const auto nodeInstance = dynamic_cast<NodeUiElement *>(child); nodeInstance && nodeInstance->getNode() == node)
             {
@@ -56,6 +55,28 @@ namespace BreadEditor {
         }
 
         return nullptr;
+    }
+
+    void NodeTreeWindow::rebuild()
+    {
+        const auto rootNode = &Engine::getRootNode();
+        if (const auto instance = findNodeUiElementByEngineNode(rootNode); !instance)
+        {
+            rebuildByNode(rootNode);
+        }
+    }
+
+    void NodeTreeWindow::rebuildByNode(Node *node)
+    {
+        if (const auto instance = findNodeUiElementByEngineNode(node); !instance)
+        {
+            onNodeCreated(node);
+        }
+
+        for (const auto child : node->getAllChilds())
+        {
+            rebuildByNode(child);
+        }
     }
 
     void NodeTreeWindow::subscribe()
@@ -89,7 +110,7 @@ namespace BreadEditor {
         constexpr float elementHeight = 20.0f;
         constexpr float elementWidthInPercent = 0.8f;
 
-        const auto id = TextFormat(elementIdFormat, static_cast<int>(_childs.size()));
+        const auto id = TextFormat(elementIdFormat, getChildCount());
         auto &element = UiPool::nodeUiElementPool.get().setup(id, this, node);
 
         element.setParentNode(findNodeUiElementByEngineNode(node->getParent()));
@@ -135,7 +156,7 @@ namespace BreadEditor {
 
     void NodeTreeWindow::onNodeSelected(NodeUiElement *nodeUiElement)
     {
-        auto& model = Editor::getInstance().getEditorModel();
+        auto &model = Editor::getInstance().getEditorModel();
         model.setSelectedNodeUiElement(nodeUiElement);
         Node *node = nullptr;
         if (nodeUiElement != nullptr)
@@ -210,6 +231,8 @@ namespace BreadEditor {
     void NodeTreeWindow::recalculateUiNodes(Node &startNode, int &nodeOrder) const
     {
         const auto element = findNodeUiElementByEngineNode(&startNode);
+        if (!element) return;
+
         constexpr float nodeHorizontalPadding = 15.0f;
         constexpr float nodeVerticalPadding = 5.0f;
         constexpr float startYPosition = 30.0f;
@@ -234,11 +257,15 @@ namespace BreadEditor {
 
     void NodeTreeWindow::drawLines(Node &startNode) const
     {
+        if (_nodeUiElements.empty()) return;
+
         constexpr float nodeHorizontalPadding = 15.0f * .5f;
 
         const auto instance = findNodeUiElementByEngineNode(&startNode);
+        if (!instance) return;
+
         const bool isLast = _nodeUiElements.back() == instance;
-        int childCount = instance->getNode()->getChildCount();
+        const int childCount = instance->getNode()->getChildCount();
         if (isLast || childCount == 0)
         {
             return;

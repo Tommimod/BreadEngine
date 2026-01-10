@@ -110,9 +110,9 @@ namespace BreadEditor {
             dropdown.onValueChanged.subscribe([this, &dropdown, model, windowsNames](const int value)
             {
                 _toolbar.destroyChild(&dropdown);
-                if (value >= 0)
+                if (value >= 1)
                 {
-                    auto factory = model->getWindowFactory(windowsNames[value]);
+                    auto factory = model->getWindowFactory(windowsNames[value - 1]);
                     const auto window = std::invoke(factory);
                     addChild(window);
                 }
@@ -128,7 +128,7 @@ namespace BreadEditor {
         float lastPosition = _toolbar.getSize().y;
         _tabToWindowIds[_activeTab].clear();
 
-        for (const auto &childElement: _childs)
+        for (const auto &childElement: getAllChilds())
         {
             if (childElement->isStatic) continue;
 

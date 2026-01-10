@@ -28,7 +28,7 @@ namespace BreadEditor {
 
     void UiDropdown::draw(const float deltaTime)
     {
-        if (_elementsCount == 0)
+        if (_elementsCount <= 1) // None option
         {
             changeParent(nullptr);
             tryDeleteSelf();
@@ -38,7 +38,7 @@ namespace BreadEditor {
         GuiSetStyle(DROPDOWNBOX, TEXT_ALIGNMENT, _textAlignment);
         if (GuiDropdownBox(_bounds, _optionsForGui, &_selectedOption, _isEditMode))
         {
-            if (!isCollisionPointRec(GetMousePosition()))
+            if (!isCollisionPointRec(GetMousePosition()) || _selectedOption == 0)
             {
                 _selectedOption = -1;
             }
@@ -63,7 +63,13 @@ namespace BreadEditor {
 
     void UiDropdown::changeOptions(const std::vector<std::string> &options)
     {
+        _elementsCount = 0;
         _options.clear();
+        if (!options.empty())
+        {
+            _options = "None;";
+        }
+
         const int size = static_cast<int>(options.size());
         for (const auto &option: options)
         {
@@ -78,6 +84,7 @@ namespace BreadEditor {
             }
         }
 
+        _elementsCount++;
         _optionsForGui = _options.c_str();
     }
 

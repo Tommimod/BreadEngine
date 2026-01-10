@@ -84,7 +84,7 @@ namespace BreadEditor {
 
         [[nodiscard]] UiElement *getParentElement() const;
 
-        [[nodiscard]] std::vector<UiElement *> &getAllChilds();
+        [[nodiscard]] std::vector<UiElement *> getAllChilds() const;
 
         [[nodiscard]] UiElement *getChildById(const std::string &childId) const;
 
@@ -135,6 +135,7 @@ namespace BreadEditor {
         void computeBounds();
 
     protected:
+        bool _isDeleted = false;
         GuiState _state = STATE_NORMAL;
         Vector2 _pivot{};
         Vector2 _localPosition{0.0f, 0.0f};
@@ -142,7 +143,6 @@ namespace BreadEditor {
         Vector2 _sizeInPercents{-1, -1};
         Vector2 _maxSize{0, 0};
         UiElement *_parent = nullptr;
-        std::vector<UiElement *> _childs{};
         Rectangle _bounds{0, 0, 1, 1};
         Color _bgColor = RAYWHITE;
         UI_ANCHOR_TYPE _anchor = UI_LEFT_TOP;
@@ -164,9 +164,12 @@ namespace BreadEditor {
 
     private:
         friend class Editor;
+        std::vector<UiElement *> _childs{};
 
         void drawInternal(float deltaTime);
 
         void updateInternal(float deltaTime);
+
+        void destroyChildsInternal();
     };
 } // namespace BreadEditor

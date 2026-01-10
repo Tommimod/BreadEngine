@@ -46,7 +46,7 @@ namespace BreadEditor {
 
     std::function<UiWindow *()> WindowsModel::getWindowFactory(const std::string &id)
     {
-        const auto index = std::ranges::find(_allWindows, id);
-        return _act[index - _allWindows.begin()];
+        const int index = std::ranges::find(_allWindows, id) - _allWindows.begin();
+        return _act[index];
     }
 } // BreadEditor

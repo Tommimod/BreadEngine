@@ -51,6 +51,8 @@ namespace BreadEditor {
 
         void resetElementsState();
 
+        void rebuild();
+
         void onNodeActiveChanged(bool isActive) const;
 
         void onNodeNameChanged(const char *name) const;

@@ -15,10 +15,7 @@ namespace BreadEditor {
         subscribe();
     }
 
-    ConsoleWindow::~ConsoleWindow()
-    {
-        delete _title;
-    }
+    ConsoleWindow::~ConsoleWindow() = default;
 
     void ConsoleWindow::draw(const float deltaTime)
     {

@@ -1,4 +1,6 @@
 ﻿#include "nodeInspectorWindow.h"
+
+#include "editor.h"
 #include "raygui.h"
 #include "uitoolkit/uiPool.h"
 
@@ -10,6 +12,7 @@ namespace BreadEditor {
         setup(id);
         initialize();
         subscribe();
+        rebuild();
     }
 
     NodeInspectorWindow::NodeInspectorWindow(const std::string &id, UiElement *parentElement) : UiWindow(id, parentElement)
@@ -17,6 +20,7 @@ namespace BreadEditor {
         setup(id, parentElement);
         initialize();
         subscribe();
+        rebuild();
     }
 
     NodeInspectorWindow::~NodeInspectorWindow()
@@ -30,14 +34,13 @@ namespace BreadEditor {
 
         _uiComponentElements.clear();
         _subscriptions.clear();
-        delete _title;
     }
 
     void NodeInspectorWindow::draw(const float deltaTime)
     {
         GuiPanel(_bounds, nullptr);
         const auto isDisabled = _engineNode == nullptr;
-        for (const auto childElement: _childs)
+        for (const auto childElement: getAllChilds())
         {
             childElement->setState(isDisabled ? STATE_DISABLED : STATE_NORMAL);
         }
@@ -136,6 +139,13 @@ namespace BreadEditor {
         _activeCheckBox->setChecked(false);
         _nameTextBox->setText(emptyString);
         _trackedComponents = {};
+    }
+
+    void NodeInspectorWindow::rebuild()
+    {
+        const auto selectedElement = Editor::getInstance().getEditorModel().getSelectedNodeUiElement();
+        if (!selectedElement) return;
+        lookupNode(selectedElement->getNode());
     }
 
     void NodeInspectorWindow::onNodeActiveChanged(const bool isActive) const
