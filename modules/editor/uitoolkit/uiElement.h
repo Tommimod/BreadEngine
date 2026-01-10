@@ -134,6 +134,8 @@ namespace BreadEditor {
 
         void computeBounds();
 
+        void setDirty();
+
     protected:
         bool _isDeleted = false;
         GuiState _state = STATE_NORMAL;
@@ -164,6 +166,7 @@ namespace BreadEditor {
 
     private:
         friend class Editor;
+        bool _isDirty = true;
         std::vector<UiElement *> _childs{};
 
         void drawInternal(float deltaTime);

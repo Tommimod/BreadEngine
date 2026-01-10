@@ -1,11 +1,6 @@
 ﻿#include "uiElement.h"
 #include <algorithm>
 #include <ranges>
-#include <ranges>
-#include <ranges>
-#include <ranges>
-
-#include "raymath.h"
 
 namespace BreadEditor {
     UiElement &UiElement::setup(const std::string &newId)
@@ -122,12 +117,14 @@ namespace BreadEditor {
     {
         if (isStatic) return;
         _localPosition = position;
+        setDirty();
     }
 
     void UiElement::setSize(const Vector2 &size)
     {
         if (isStatic) return;
         _localSize = size;
+        setDirty();
     }
 
     void UiElement::setSizePercentOneTime(const Vector2 &percent)
@@ -149,6 +146,8 @@ namespace BreadEditor {
             _localSize.y = getSizeInPixByPercentOnlyY(percent);
             setSize({xSize, _localSize.y});
         }
+
+        setDirty();
     }
 
     void UiElement::setSizePercentPermanent(const Vector2 &percent)
@@ -172,11 +171,13 @@ namespace BreadEditor {
         }
 
         _sizeInPercents = percent;
+        setDirty();
     }
 
     void UiElement::setSizeMax(const Vector2 &maxSize)
     {
         _maxSize = maxSize;
+        setDirty();
     }
 
     void UiElement::setBounds(const Vector2 &position, const Vector2 &size)
@@ -184,6 +185,7 @@ namespace BreadEditor {
         if (isStatic) return;
         _localPosition = position;
         _localSize = size;
+        setDirty();
     }
 
     Vector2 &UiElement::getPivot()
@@ -232,11 +234,11 @@ namespace BreadEditor {
         return this->_parent;
     }
 
-    std::vector<UiElement*> UiElement::getAllChilds() const
+    std::vector<UiElement *> UiElement::getAllChilds() const
     {
-        std::vector<UiElement*> result;
+        std::vector<UiElement *> result;
         std::ranges::copy_if(_childs, std::back_inserter(result),
-                             [](const UiElement* child) { return !child->_isDeleted; });
+                             [](const UiElement *child) { return !child->_isDeleted; });
         return result;
     }
 
@@ -272,6 +274,8 @@ namespace BreadEditor {
             child->_parent = this;
             _childs.push_back(child);
         }
+
+        setDirty();
     }
 
     void UiElement::destroyChild(UiElement *child)
@@ -305,6 +309,7 @@ namespace BreadEditor {
     {
         if (isStatic) return;
         _anchor = newAnchor;
+        setDirty();
     }
 
     UI_ANCHOR_TYPE UiElement::getAnchor() const
@@ -467,12 +472,14 @@ namespace BreadEditor {
     {
         if (isStatic) return;
         _layoutType = layout;
+        setDirty();
     }
 
     void UiElement::setPivot(const Vector2 &newPivot)
     {
         if (isStatic) return;
         _pivot = newPivot;
+        setDirty();
     }
 
     void UiElement::changeParent(UiElement *newParent)
@@ -480,6 +487,7 @@ namespace BreadEditor {
         if (_parent != nullptr)
         {
             _parent->_childs.erase(std::ranges::find(_parent->_childs, this));
+            _parent->setDirty();
             _parent = nullptr;
         }
 
@@ -487,7 +495,10 @@ namespace BreadEditor {
         if (_parent != nullptr)
         {
             _parent->_childs.emplace_back(this);
+            _parent->setDirty();
         }
+
+        setDirty();
     }
 
     void UiElement::setChildFirst(UiElement *child)
@@ -496,6 +507,7 @@ namespace BreadEditor {
         {
             _childs.erase(it);
             _childs.insert(_childs.begin(), child);
+            setDirty();
             return;
         }
 
@@ -508,6 +520,7 @@ namespace BreadEditor {
         {
             _childs.erase(it);
             _childs.push_back(child);
+            setDirty();
             return;
         }
 
@@ -548,6 +561,7 @@ namespace BreadEditor {
         _layoutType = LAYOUT_NONE;
         _bounds = {0, 0, 1, 1};
         _isDeleted = false;
+        _isDirty = true;
     }
 
     void UiElement::drawDebugRect() const
@@ -635,6 +649,15 @@ namespace BreadEditor {
             child->_bounds = {currPos.x, currPos.y, childSize.x, childSize.y};
             if (_layoutType == LAYOUT_HORIZONTAL) currPos.x += childSize.x;
             else currPos.y += childSize.y;
+        }
+    }
+
+    void UiElement::setDirty()
+    {
+        _isDirty = true;
+        for (const auto child: _childs)
+        {
+            child->setDirty();
         }
     }
 
@@ -736,7 +759,12 @@ namespace BreadEditor {
             return;
         }
 
-        computeBounds();
+        if (_isDirty)
+        {
+            computeBounds();
+            _isDirty = false;
+        }
+
         update(deltaTime);
         destroyChildsInternal();
         for (const auto child: _childs)
@@ -766,6 +794,4 @@ namespace BreadEditor {
 
         toDelete.clear();
     }
-
-    //TODO обновлять баундсы когда дёрти. Сделать флаг и метод для помечания что объект дёрти
 } // namespace BreadEditor

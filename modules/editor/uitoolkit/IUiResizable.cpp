@@ -1,5 +1,6 @@
 ﻿#include "IUiResizable.h"
 #include "cursorSystem.h"
+#include "editor.h"
 #include "raymath.h"
 #include "engine.h"
 #include "uiToolbar.h"
@@ -207,6 +208,7 @@ namespace BreadEditor {
                                       : uiElement.getParentElement()->getBounds();
         size.y = Clamp(size.y, 100, parentBounds.height);
         uiElement.setSize(size);
+        Editor::getInstance().mainWindow.setDirty();
     }
 
     void IUiResizable::changeHorizontalSize(UiElement &uiElement, const bool isDragLeftSide, const bool isDragRightSide, const float mouseXDelta)
@@ -257,6 +259,7 @@ namespace BreadEditor {
                                        : uiElement.getParentElement()->getBounds();
         size.x = Clamp(size.x, 50, parentBounds.width);
         uiElement.setSize(size);
+        Editor::getInstance().mainWindow.setDirty();
     }
 
     void IUiResizable::drawDebugRect(const Rectangle &subBounds) const
