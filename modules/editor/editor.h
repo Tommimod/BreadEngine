@@ -21,7 +21,7 @@ namespace BreadEditor {
 
         void update(float deltaTime);
 
-        void render2D(float deltaTime);
+        void render2D(RenderTexture2D &renderTexture, float deltaTime);
 
         void render3D(float deltaTime);
 
@@ -43,6 +43,8 @@ namespace BreadEditor {
 
         [[nodiscard]] EditorModel &getEditorModel() { return _editorModel; }
 
+        [[nodiscard]] RenderTexture2D* getViewportRenderTexture() const { return _viewportRenderTexture; }
+
     private:
         Editor();
 
@@ -52,6 +54,7 @@ namespace BreadEditor {
         std::string _currentProjectPath;
         Engine *_engine = nullptr;
         EditorModel _editorModel;
-        UiElement& _uiRoot;
+        UiElement &_uiRoot;
+        RenderTexture2D* _viewportRenderTexture;
     };
 } // namespace BreadEditor

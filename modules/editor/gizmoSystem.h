@@ -1,6 +1,7 @@
 ﻿#pragma once
 #include "raygizmo.h"
 #include "transform.h"
+#include "windows/mainWindow/viewportWindow.h"
 
 namespace BreadEditor {
     class GizmoSystem
@@ -20,5 +21,6 @@ namespace BreadEditor {
         GizmoFlags _mode = GIZMO_TRANSLATE;
         ::Transform _transform{};
         BreadEngine::Transform *_nodeTransform{};
+        ViewportWindow *_viewportWindow = nullptr;
     };
 } // BreadEditor

@@ -22,6 +22,14 @@ namespace BreadEditor {
 
         const char *getTitle() override { return _title; }
 
+        [[nodiscard]] bool isMouseOver() const;
+
+        [[nodiscard]] Vector2 getMousePosition() const;
+
+        [[nodiscard]] static Ray getMouseRay(Vector2 virtualMouse, Camera3D camera, int width, int height);
+
+        [[nodiscard]] Rectangle getViewportSize() const;
+
     protected:
         void subscribe() override;
 
@@ -29,5 +37,6 @@ namespace BreadEditor {
 
     private:
         const char *_title = Id.c_str();
+        Vector2 _mousePosition{0, 0};
     };
 } // BreadEditor

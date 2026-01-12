@@ -312,6 +312,8 @@ static bool CheckGizmoCenter(const GizmoData* data, Ray ray);
  */
 static Vector3 GetWorldMouse(const GizmoData* data);
 
+static Vector3 GetViewportMouse(const GizmoData* data, Vector2 virtualMouse, int width, int height);
+
 
 /**
  * Handle all input interactions for the gizmo.
@@ -320,6 +322,8 @@ static Vector3 GetWorldMouse(const GizmoData* data);
  * @note This function may be modified in future iterations.
  */
 static void GizmoHandleInput(const GizmoData* data);
+
+static void GizmoHandleInputCustom(const GizmoData* data, Vector2 virtualMouse, int renderWidth, int renderHeight);
 
 
 //---------------------------------------------------------------------------------------------------
@@ -386,9 +390,9 @@ bool DrawGizmo3D(int flags, Transform* transform)
 		if (data.flags & GIZMO_ROTATE)
 		{
 			DrawGizmoCircle(&data, i);
-		}		
+		}
 	}
-	if ((data.flags & (GIZMO_SCALE | GIZMO_TRANSLATE)) != 0) 
+	if ((data.flags & (GIZMO_SCALE | GIZMO_TRANSLATE)) != 0)
 	{
 		DrawGizmoCenter(&data);
 	}
@@ -410,6 +414,92 @@ bool DrawGizmo3D(int flags, Transform* transform)
 	}
 
 	//------------------------------------------------------------------------
+
+	return IsThisGizmoTransforming(&data);
+}
+
+bool DrawGizmo3DViewport(int flags, Transform *transform, Vector2 virtualMouse, int renderWidth, int renderHeight)
+{
+    //------------------------------------------------------------------------
+
+	if (flags == GIZMO_DISABLED) return false;
+
+	//------------------------------------------------------------------------
+
+	GizmoData data = {0};
+
+	//------------------------------------------------------------------------
+
+	const Matrix matProj = rlGetMatrixProjection();
+	const Matrix matView = rlGetMatrixModelview();
+	const Matrix invMat = MatrixInvert(matView);
+
+	data.invViewProj = MatrixMultiply(MatrixInvert(matProj), invMat);
+
+	data.camPos = (Vector3){invMat.m12, invMat.m13, invMat.m14};
+
+	data.right = (Vector3){matView.m0, matView.m4, matView.m8};
+	data.up = (Vector3){matView.m1, matView.m5, matView.m9};
+	data.forward = Vector3Normalize(Vector3Subtract(transform->translation, data.camPos));
+
+	data.curTransform = transform;
+
+	data.gizmoSize = GIZMO.gizmoSize * Vector3Distance(data.camPos, transform->translation) * 0.1f;
+
+	data.flags = flags;
+
+	ComputeAxisOrientation(&data);
+
+	//------------------------------------------------------------------------
+
+	rlDrawRenderBatchActive();
+	const float prevLineWidth = rlGetLineWidth();
+	rlSetLineWidth(GIZMO.lineWidth);
+	rlDisableBackfaceCulling();
+	rlDisableDepthTest();
+	rlDisableDepthMask();
+
+	//------------------------------------------------------------------------
+
+	for (int i = 0; i < GIZMO_AXIS_COUNT; ++i)
+	{
+		if (data.flags & GIZMO_TRANSLATE)
+		{
+			DrawGizmoArrow(&data, i);
+		}
+		if (data.flags & GIZMO_SCALE)
+		{
+			DrawGizmoCube(&data, i);
+		}
+		if ((data.flags & (GIZMO_SCALE | GIZMO_TRANSLATE)) != 0)
+		{
+			DrawGizmoPlane(&data, i);
+		}
+		if (data.flags & GIZMO_ROTATE)
+		{
+			DrawGizmoCircle(&data, i);
+		}
+	}
+	if ((data.flags & (GIZMO_SCALE | GIZMO_TRANSLATE)) != 0)
+	{
+		DrawGizmoCenter(&data);
+	}
+
+	//------------------------------------------------------------------------
+
+	rlDrawRenderBatchActive();
+	rlSetLineWidth(prevLineWidth);
+	rlEnableBackfaceCulling();
+	rlEnableDepthTest();
+	rlEnableDepthMask();
+
+	//------------------------------------------------------------------------
+
+	// If there's an active transformation, only the interested gizmo handles the input
+	if (!IsGizmoTransforming() || data.curTransform == GIZMO.activeTransform)
+	{
+		GizmoHandleInputCustom(&data, virtualMouse, renderWidth, renderHeight);
+	}
 
 	return IsThisGizmoTransforming(&data);
 }
@@ -572,6 +662,40 @@ static Ray Vec3ScreenToWorldRay(Vector2 position, const Matrix* matViewProjInv)
 	return ray;
 }
 
+static Vector3 Vec3ScreenToWorldCustom(Vector3 source, const Matrix* matViewProjInv) {
+    float x = source.x;
+    float y = source.y;
+    float z = source.z;
+    float w = 1.0f;
+
+    float tx = matViewProjInv->m0 * x + matViewProjInv->m4 * y + matViewProjInv->m8  * z + matViewProjInv->m12 * w;
+    float ty = matViewProjInv->m1 * x + matViewProjInv->m5 * y + matViewProjInv->m9  * z + matViewProjInv->m13 * w;
+    float tz = matViewProjInv->m2 * x + matViewProjInv->m6 * y + matViewProjInv->m10 * z + matViewProjInv->m14 * w;
+    float tw = matViewProjInv->m3 * x + matViewProjInv->m7 * y + matViewProjInv->m11 * z + matViewProjInv->m15 * w;
+
+    if (tw != 0.0f) {
+        tx /= tw;
+        ty /= tw;
+        tz /= tw;
+    }
+
+    return (Vector3){tx, ty, tz};
+}
+
+static Ray Vec3ScreenToWorldRayCustom(Vector2 position, const Matrix* matViewProjInv, int width, int height) {
+    Ray ray = {0};
+
+    float nx = (2.0f * position.x) / (float)width - 1.0f;
+    float ny = 1.0f - (2.0f * position.y) / (float)height;
+
+    Vector3 nearPoint = Vec3ScreenToWorldCustom((Vector3){nx, ny, -1.0f}, matViewProjInv);
+    Vector3 farPoint  = Vec3ScreenToWorldCustom((Vector3){nx, ny,  1.0f}, matViewProjInv);
+
+    ray.position = nearPoint;
+    ray.direction = Vector3Normalize(Vector3Subtract(farPoint, nearPoint));
+
+    return ray;
+}
 
 //---------------------------------------------------------------------------------------------------
 // Functions Definition - Drawing functions
@@ -797,7 +921,7 @@ static void DrawGizmoCircle(const GizmoData* data, int axis)
 	{
 		return;
 	}
-	
+
 	const Vector3 origin = data->curTransform->translation;
 
 	const Vector3 dir1 = data->axis[(axis + 1) % 3];
@@ -936,6 +1060,13 @@ static Vector3 GetWorldMouse(const GizmoData* data)
 	const float dist = Vector3Distance(data->camPos, data->curTransform->translation);
 	const Ray mouseRay = Vec3ScreenToWorldRay(GetMousePosition(), &data->invViewProj);
 	return Vector3Add(mouseRay.position, Vector3Scale(mouseRay.direction, dist));
+}
+
+static Vector3 GetViewportMouse(const GizmoData* data, Vector2 virtualMouse, int width, int height)
+{
+    const float dist = Vector3Distance(data->camPos, data->curTransform->translation);
+    const Ray mouseRay = Vec3ScreenToWorldRayCustom(virtualMouse, &data->invViewProj, width, height);
+    return Vector3Add(mouseRay.position, Vector3Scale(mouseRay.direction, dist));
 }
 
 static void GizmoHandleInput(const GizmoData* data)
@@ -1132,6 +1263,207 @@ static void GizmoHandleInput(const GizmoData* data)
 				GIZMO.activeTransform = data->curTransform;
 				GIZMO.startTransform = *data->curTransform;
 				GIZMO.startWorldMouse = GetWorldMouse(data);
+			}
+		}
+	}
+
+	GIZMO.curAction = action;
+}
+
+void GizmoHandleInputCustom(const GizmoData *data, const Vector2 virtualMouse, const int renderWidth, const int renderHeight)
+{
+    int action = GIZMO.curAction;
+
+	if (action != GZ_ACTION_NONE)
+	{
+		if (!IsMouseButtonDown(MOUSE_BUTTON_LEFT))
+		{
+			//SetMouseCursor(MOUSE_CURSOR_DEFAULT);
+			action = GZ_ACTION_NONE;
+			GIZMO.activeAxis = 0;
+		}
+		else
+		{
+			const Vector3 endWorldMouse = GetViewportMouse(data, virtualMouse, renderWidth, renderHeight);
+			const Vector3 pVec = Vector3Subtract(endWorldMouse, GIZMO.startWorldMouse);
+
+			switch (action)
+			{
+			case GZ_ACTION_TRANSLATE:
+				{
+					GIZMO.activeTransform->translation = GIZMO.startTransform.translation;
+					if (GIZMO.activeAxis == GZ_ACTIVE_XYZ)
+					{
+						GIZMO.activeTransform->translation = Vector3Add(GIZMO.activeTransform->translation,
+						                                                Vector3Project(pVec, data->right));
+						GIZMO.activeTransform->translation = Vector3Add(GIZMO.activeTransform->translation,
+						                                                Vector3Project(pVec, data->up));
+					}
+					else
+					{
+						if (GIZMO.activeAxis & GZ_ACTIVE_X)
+						{
+							const Vector3 prj = Vector3Project(pVec, data->axis[GZ_AXIS_X]);
+							GIZMO.activeTransform->translation = Vector3Add(GIZMO.activeTransform->translation, prj);
+						}
+						if (GIZMO.activeAxis & GZ_ACTIVE_Y)
+						{
+							const Vector3 prj = Vector3Project(pVec, data->axis[GZ_AXIS_Y]);
+							GIZMO.activeTransform->translation = Vector3Add(GIZMO.activeTransform->translation, prj);
+						}
+						if (GIZMO.activeAxis & GZ_ACTIVE_Z)
+						{
+							const Vector3 prj = Vector3Project(pVec, data->axis[GZ_AXIS_Z]);
+							GIZMO.activeTransform->translation = Vector3Add(GIZMO.activeTransform->translation, prj);
+						}
+					}
+				}
+				break;
+			case GZ_ACTION_SCALE:
+				{
+					GIZMO.activeTransform->scale = GIZMO.startTransform.scale;
+					if (GIZMO.activeAxis == GZ_ACTIVE_XYZ)
+					{
+						const float delta = Vector3DotProduct(pVec, GIZMO.axisCfg[GZ_AXIS_X].normal);
+						GIZMO.activeTransform->scale = Vector3AddValue(GIZMO.activeTransform->scale, delta);
+					}
+					else
+					{
+						if (GIZMO.activeAxis & GZ_ACTIVE_X)
+						{
+							const Vector3 prj = Vector3Project(pVec, GIZMO.axisCfg[GZ_AXIS_X].normal);
+							// data->axis[GIZMO_AXIS_X]);
+							GIZMO.activeTransform->scale = Vector3Add(GIZMO.activeTransform->scale, prj);
+						}
+						if (GIZMO.activeAxis & GZ_ACTIVE_Y)
+						{
+							const Vector3 prj = Vector3Project(pVec, GIZMO.axisCfg[GZ_AXIS_Y].normal);
+							GIZMO.activeTransform->scale = Vector3Add(GIZMO.activeTransform->scale, prj);
+						}
+						if (GIZMO.activeAxis & GZ_ACTIVE_Z)
+						{
+							const Vector3 prj = Vector3Project(pVec, GIZMO.axisCfg[GZ_AXIS_Z].normal);
+							GIZMO.activeTransform->scale = Vector3Add(GIZMO.activeTransform->scale, prj);
+						}
+					}
+				}
+				break;
+			case GZ_ACTION_ROTATE:
+				{
+					GIZMO.activeTransform->rotation = GIZMO.startTransform.rotation;
+					//SetMouseCursor(MOUSE_CURSOR_RESIZE_EW);
+					const float delta = Clamp(Vector3DotProduct(pVec, Vector3Add(data->right, data->up)), -2 * PI,
+					                          +2 * PI);
+					if (GIZMO.activeAxis & GZ_ACTIVE_X)
+					{
+						const Quaternion q = QuaternionFromAxisAngle(data->axis[GZ_AXIS_X], delta);
+						GIZMO.activeTransform->rotation = QuaternionMultiply(q, GIZMO.activeTransform->rotation);
+					}
+					if (GIZMO.activeAxis & GZ_ACTIVE_Y)
+					{
+						const Quaternion q = QuaternionFromAxisAngle(data->axis[GZ_AXIS_Y], delta);
+						GIZMO.activeTransform->rotation = QuaternionMultiply(q, GIZMO.activeTransform->rotation);
+					}
+					if (GIZMO.activeAxis & GZ_ACTIVE_Z)
+					{
+						const Quaternion q = QuaternionFromAxisAngle(data->axis[GZ_AXIS_Z], delta);
+						GIZMO.activeTransform->rotation = QuaternionMultiply(q, GIZMO.activeTransform->rotation);
+					}
+					//BUG FIXED: Updating the transform "starting point" prevents uncontrolled rotations in local mode
+					GIZMO.startTransform = *GIZMO.activeTransform;
+					GIZMO.startWorldMouse = endWorldMouse;
+				}
+				break;
+			default:
+				break;
+			}
+		}
+	}
+	else
+	{
+		if (IsMouseButtonPressed(MOUSE_BUTTON_LEFT))
+		{
+			const Ray mouseRay = Vec3ScreenToWorldRayCustom(virtualMouse, &data->invViewProj, renderWidth, renderHeight);
+
+			int hit = -1;
+			action = GZ_ACTION_NONE;
+
+			for (int k = 0; hit == -1 && k < 2; ++k)
+			{
+				const int gizmoFlag = k == 0 ? GIZMO_SCALE : GIZMO_TRANSLATE;
+				const int gizmoAction = k == 0 ? GZ_ACTION_SCALE : GZ_ACTION_TRANSLATE;
+
+				if (data->flags & gizmoFlag)
+				{
+					if (CheckGizmoCenter(data, mouseRay))
+					{
+						action = gizmoAction;
+						hit = 6;
+						break;
+					}
+					for (int i = 0; i < GIZMO_AXIS_COUNT; ++i)
+					{
+						if (CheckGizmoAxis(data, i, mouseRay, gizmoFlag))
+						{
+							action = gizmoAction;
+							hit = i;
+							break;
+						}
+						if (CheckGizmoPlane(data, i, mouseRay))
+						{
+							action = CheckGizmoType(data, GIZMO_SCALE | GIZMO_TRANSLATE)
+								         ? GIZMO_TRANSLATE
+								         : gizmoAction;
+							hit = 3 + i;
+							break;
+						}
+					}
+				}
+			}
+
+			if (hit == -1 && data->flags & GIZMO_ROTATE)
+			{
+				for (int i = 0; i < GIZMO_AXIS_COUNT; ++i)
+				{
+					if (CheckGizmoCircle(data, i, mouseRay))
+					{
+						action = GZ_ACTION_ROTATE;
+						hit = i;
+						break;
+					}
+				}
+			}
+
+			GIZMO.activeAxis = 0;
+			if (hit >= 0)
+			{
+				switch (hit)
+				{
+				case 0:
+					GIZMO.activeAxis = GZ_ACTIVE_X;
+					break;
+				case 1:
+					GIZMO.activeAxis = GZ_ACTIVE_Y;
+					break;
+				case 2:
+					GIZMO.activeAxis = GZ_ACTIVE_Z;
+					break;
+				case 3:
+					GIZMO.activeAxis = GZ_ACTIVE_Y | GZ_ACTIVE_Z;
+					break;
+				case 4:
+					GIZMO.activeAxis = GZ_ACTIVE_X | GZ_ACTIVE_Z;
+					break;
+				case 5:
+					GIZMO.activeAxis = GZ_ACTIVE_X | GZ_ACTIVE_Y;
+					break;
+				case 6:
+					GIZMO.activeAxis = GZ_ACTIVE_XYZ;
+					break;
+				}
+				GIZMO.activeTransform = data->curTransform;
+				GIZMO.startTransform = *data->curTransform;
+				GIZMO.startWorldMouse = GetViewportMouse(data, virtualMouse, renderWidth, renderHeight);
 			}
 		}
 	}

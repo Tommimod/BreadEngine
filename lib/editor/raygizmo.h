@@ -32,7 +32,6 @@
 
 #include <raylib.h>
 
-
 /**
  * Bitwise flags for configuring DrawGizmo3D().
  * Use these flags to customize specific gizmo behaviors.
@@ -41,21 +40,19 @@
  */
 typedef enum
 {
-	GIZMO_DISABLED	= 0,		// 0: Disables gizmo drawing
+    GIZMO_DISABLED = 0, // 0: Disables gizmo drawing
 
-	// Bitwise flags
-	GIZMO_TRANSLATE = 1 << 0,	// Enables translation gizmo
-	GIZMO_ROTATE	= 1 << 1,	// Enables rotation gizmo
-	GIZMO_SCALE		= 1 << 2,	// Enables scaling gizmo (implicitly enables GIZMO_LOCAL)
-	GIZMO_ALL		= GIZMO_TRANSLATE | GIZMO_ROTATE | GIZMO_SCALE,		// Enables all gizmos
+    // Bitwise flags
+    GIZMO_TRANSLATE = 1 << 0, // Enables translation gizmo
+    GIZMO_ROTATE = 1 << 1, // Enables rotation gizmo
+    GIZMO_SCALE = 1 << 2, // Enables scaling gizmo (implicitly enables GIZMO_LOCAL)
+    GIZMO_ALL = GIZMO_TRANSLATE | GIZMO_ROTATE | GIZMO_SCALE, // Enables all gizmos
 
-	// Mutually exclusive axis orientation flags
-	// Default: Global axis orientation
-	GIZMO_LOCAL		= 1 << 3,	// Orients axes locally
-	GIZMO_VIEW		= 1 << 4	// Orients axes based on screen view
+    // Mutually exclusive axis orientation flags
+    // Default: Global axis orientation
+    GIZMO_LOCAL = 1 << 3, // Orients axes locally
+    GIZMO_VIEW = 1 << 4 // Orients axes based on screen view
 } GizmoFlags;
-
-
 
 //--------------------------------------------------------------------------------------------------
 // GIZMO API
@@ -64,93 +61,97 @@ typedef enum
 //--------------------------------------------------------------------------------------------------
 
 #if defined(__cplusplus)
-extern "C" {
+extern "C"
+{
+
 #endif
 
 //--------------------------------------------------------------------------------------------------
 
-	/**
-	 * Initialize a gizmo Transform with default values.
-	 * @return A Transform initialized to default values.
-	 */
-	RLAPI Transform GizmoIdentity(void);
+/**
+ * Initialize a gizmo Transform with default values.
+ * @return A Transform initialized to default values.
+ */
+RLAPI Transform GizmoIdentity(void);
 
-	/**
-	 * Convert a gizmo Transform to the corresponding Matrix.
-	 * @param transform The gizmo Transform to convert.
-	 * @return A Matrix built from the Transform values.
-	 */
-	RLAPI Matrix GizmoToMatrix(Transform transform);
+/**
+ * Convert a gizmo Transform to the corresponding Matrix.
+ * @param transform The gizmo Transform to convert.
+ * @return A Matrix built from the Transform values.
+ */
+RLAPI Matrix GizmoToMatrix(Transform transform);
 
-	/**
-	 * Draw the gizmo on the screen in an immediate-mode style.
-	 * @param flags A combination of GizmoFlags to configure gizmo behavior.
-	 * @param transform A pointer to the Transform affected by the gizmo.
-	 * @return true if the gizmo is active and affecting the transform; false otherwise.
-	 */
-	RLAPI bool DrawGizmo3D(int flags, Transform* transform);
+/**
+ * Draw the gizmo on the screen in an immediate-mode style.
+ * @param flags A combination of GizmoFlags to configure gizmo behavior.
+ * @param transform A pointer to the Transform affected by the gizmo.
+ * @return true if the gizmo is active and affecting the transform; false otherwise.
+ */
+RLAPI bool DrawGizmo3D(int flags, Transform *transform);
 
-	/**
-	 * Set the size of the gizmo.
-	 * @param size The new size of the gizmo.
-	 * @note All internal gizmo metrics are expressed as a fraction of this measure.
-	 * @default 1.5f
-	 */
-	RLAPI void SetGizmoSize(float size);
+/**
+* Method for Bread Editor
+*/
+RLAPI bool DrawGizmo3DViewport(int flags, Transform *transform, Vector2 virtualMouse, int renderWidth, int renderHeight);
 
-	/**
-	 * Set the line width of the gizmo geometry.
-	 * @param width The new line width.
-	 * @default 2.5f
-	 */
-	RLAPI void SetGizmoLineWidth(float width);
+/**
+ * Set the size of the gizmo.
+ * @param size The new size of the gizmo.
+ * @note All internal gizmo metrics are expressed as a fraction of this measure.
+ * @default 1.5f
+ */
+RLAPI void SetGizmoSize(float size);
 
-	/**
-	 * Set the colors used by the gizmo.
-	 * @param x Color of the X-axis.
-	 * @param y Color of the Y-axis.
-	 * @param z Color of the Z-axis.
-	 * @param center Color of the central circle.
-	 * @default {229, 72, 91, 255}, {131, 205, 56, 255}, {69, 138, 242, 255}, {255, 255, 255, 200}
-	 */
-	RLAPI void SetGizmoColors(Color x, Color y, Color z, Color center);
+/**
+ * Set the line width of the gizmo geometry.
+ * @param width The new line width.
+ * @default 2.5f
+ */
+RLAPI void SetGizmoLineWidth(float width);
 
-	/**
-	 * Change the global axis orientation.
-	 * @param right Direction of the right vector.
-	 * @param up Direction of the up vector.
-	 * @param forward Direction of the forward vector.
-	 * @note The vectors should be orthogonal to each other for consistent behavior.
-	 * @default (1.0, 0.0, 0.0), (0.0, 1.0, 0.0), (0.0, 0.0, 1.0)
-	 */
-	RLAPI void SetGizmoGlobalAxis(Vector3 right, Vector3 up, Vector3 forward);
+/**
+ * Set the colors used by the gizmo.
+ * @param x Color of the X-axis.
+ * @param y Color of the Y-axis.
+ * @param z Color of the Z-axis.
+ * @param center Color of the central circle.
+ * @default {229, 72, 91, 255}, {131, 205, 56, 255}, {69, 138, 242, 255}, {255, 255, 255, 200}
+ */
+RLAPI void SetGizmoColors(Color x, Color y, Color z, Color center);
 
+/**
+ * Change the global axis orientation.
+ * @param right Direction of the right vector.
+ * @param up Direction of the up vector.
+ * @param forward Direction of the forward vector.
+ * @note The vectors should be orthogonal to each other for consistent behavior.
+ * @default (1.0, 0.0, 0.0), (0.0, 1.0, 0.0), (0.0, 0.0, 1.0)
+ */
+RLAPI void SetGizmoGlobalAxis(Vector3 right, Vector3 up, Vector3 forward);
 
-    /**
-     * Check if any gizmo is currently transforming.
-     * @return true if a gizmo is active and transforming; false otherwise.
-     */
-    RLAPI bool IsGizmoTransforming(void);
+/**
+ * Check if any gizmo is currently transforming.
+ * @return true if a gizmo is active and transforming; false otherwise.
+ */
+RLAPI bool IsGizmoTransforming(void);
 
+/**
+ * Check if the active transformation is of scaling type.
+ * @return true if a gizmo is actively scaling; false otherwise.
+ */
+RLAPI bool IsGizmoScaling(void);
 
-    /**
-     * Check if the active transformation is of scaling type.
-     * @return true if a gizmo is actively scaling; false otherwise.
-     */
-    RLAPI bool IsGizmoScaling(void);
+/**
+ * Check if the active transformation is of translation type.
+ * @return true if a gizmo is actively translating; false otherwise.
+ */
+RLAPI bool IsGizmoTranslating(void);
 
-    /**
-     * Check if the active transformation is of translation type.
-     * @return true if a gizmo is actively translating; false otherwise.
-     */
-    RLAPI bool IsGizmoTranslating(void);
-
-    /**
-     * Check if the active transformation is of rotation type.
-     * @return true if a gizmo is actively rotating; false otherwise.
-     */
-    RLAPI bool IsGizmoRotating(void);
-
+/**
+ * Check if the active transformation is of rotation type.
+ * @return true if a gizmo is actively rotating; false otherwise.
+ */
+RLAPI bool IsGizmoRotating(void);
 
 //--------------------------------------------------------------------------------------------------
 

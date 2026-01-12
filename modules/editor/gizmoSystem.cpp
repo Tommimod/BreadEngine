@@ -1,4 +1,5 @@
 ﻿#include "gizmoSystem.h"
+#include "editor.h"
 
 namespace BreadEditor {
     void GizmoSystem::recalculateGizmo(BreadEngine::Transform &nodeTransform)
@@ -11,15 +12,18 @@ namespace BreadEditor {
 
     void GizmoSystem::render()
     {
-        const auto isTransforming = IsGizmoTransforming();
+        if (_viewportWindow == nullptr)
+        {
+            _viewportWindow = &Editor::getInstance().mainWindow.getViewportWindow();
+        }
+
+        const auto viewportSize = _viewportWindow->getViewportSize();
+        const auto isTransforming = DrawGizmo3DViewport(_mode, &_transform,
+                                                        _viewportWindow->getMousePosition(), static_cast<int>(viewportSize.width),
+                                                        static_cast<int>(viewportSize.height));
         if (!isTransforming)
         {
             recalculateGizmo(*_nodeTransform);
-        }
-
-        DrawGizmo3D(_mode, &_transform);
-        if (!isTransforming)
-        {
             return;
         }
 

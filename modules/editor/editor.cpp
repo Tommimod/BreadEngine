@@ -50,10 +50,11 @@ namespace BreadEditor {
         CursorSystem::draw();
     }
 
-    void Editor::render2D(const float deltaTime)
+    void Editor::render2D(RenderTexture2D &renderTexture, const float deltaTime)
     {
         if (!_initialized) return;
 
+        _viewportRenderTexture = &renderTexture;
         mainWindow.drawInternal(deltaTime);
     }
 

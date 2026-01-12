@@ -5,7 +5,6 @@
 int main()
 {
     Engine &engine = Engine::getInstance();
-
     if (!engine.initialize(1920, 1080, "Bread Engine - Editor"))
     {
         return -1;
@@ -18,12 +17,23 @@ int main()
         return -1;
     }
 
+    const auto &viewportWindow = editor.mainWindow.getViewportWindow();
+    auto renderTexture = LoadRenderTexture(static_cast<int>(viewportWindow.getViewportSize().width), static_cast<int>(viewportWindow.getViewportSize().height));
+
     while (!Engine::shouldClose())
     {
+        const auto nextWidth = static_cast<int>(viewportWindow.getViewportSize().width);
+        const auto nextHeight = static_cast<int>(viewportWindow.getViewportSize().height);
+        if (nextWidth != renderTexture.texture.width || nextHeight != renderTexture.texture.height)
+        {
+            UnloadRenderTexture(renderTexture);
+            renderTexture = LoadRenderTexture(nextWidth, nextHeight);
+        }
+
         const auto deltaTime = Engine::getDeltaTime();
-        engine.beginFrame();
         editor.update(deltaTime);
 
+        BeginTextureMode(renderTexture);
         ClearBackground(RAYWHITE);
 
         BeginMode3D(engine.getCamera());
@@ -33,11 +43,15 @@ int main()
         EndMode3D();
 
         engine.callGameRender2D();
-        editor.render2D(deltaTime);
+        EndTextureMode();
+
+        engine.beginFrame();
+        editor.render2D(renderTexture, deltaTime);
         engine.endFrame();
     }
 
     editor.shutdown();
     engine.shutdown();
+    UnloadRenderTexture(renderTexture);
     return 0;
 }
