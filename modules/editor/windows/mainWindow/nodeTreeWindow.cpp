@@ -1,4 +1,4 @@
-﻿#include "nodeTreeWindow.h"
+#include "nodeTreeWindow.h"
 #include "editor.h"
 #include "engine.h"
 #include "nodeProvider.h"
@@ -26,17 +26,29 @@ namespace BreadEditor {
 
     void NodeTreeWindow::draw(const float deltaTime)
     {
-        GuiScrollPanel(_bounds, _title, _contentView, &_scrollPos, &_scrollView);
+        if (GuiScrollPanel(_bounds, _title, _contentView, &_scrollPos, &_scrollView))
+        {
+            setDirty();
+        }
+
+        const auto &bounds = getBounds();
+        BeginScissorMode(bounds.x, bounds.y + RAYGUI_WINDOWBOX_STATUSBAR_HEIGHT, bounds.width, bounds.height - RAYGUI_WINDOWBOX_STATUSBAR_HEIGHT);
         drawLines(Engine::getRootNode());
+        EndScissorMode();
         UiWindow::draw(deltaTime);
     }
 
     void NodeTreeWindow::update(const float deltaTime)
     {
-        const auto lastNodeBounds = _nodeUiElements.empty() ? Rectangle{} : _nodeUiElements.back()->getBounds();
-        updateScrollView(lastNodeBounds);
-        updateResizable(*this);
+        const auto &targetWidthBounds = _rightmostElement == nullptr ? getBounds() : _rightmostElement->getBounds();
+        const auto &targetHeightBounds = _downmostElement == nullptr ? getBounds() : _downmostElement->getBounds();
+        updateScrollView(targetWidthBounds, targetHeightBounds);
         UiWindow::update(deltaTime);
+    }
+
+    void NodeTreeWindow::onFrameEnd(const float deltaTime)
+    {
+        UiWindow::onFrameEnd(deltaTime);
     }
 
     void NodeTreeWindow::dispose()
@@ -73,7 +85,7 @@ namespace BreadEditor {
             onNodeCreated(node);
         }
 
-        for (const auto child : node->getAllChilds())
+        for (const auto child: node->getAllChilds())
         {
             rebuildByNode(child);
         }
@@ -104,13 +116,32 @@ namespace BreadEditor {
         UiWindow::unsubscribe();
     }
 
+    void NodeTreeWindow::updateScrollView(const Rectangle &targetWidthRect, const Rectangle &targetHeightRect)
+    {
+        _contentView.x = _bounds.x;
+        _contentView.y = _bounds.y;
+        _contentView.height = targetHeightRect.height + targetHeightRect.y;
+        _contentView.width = targetWidthRect.width;
+        if (_contentView.height < _bounds.height)
+        {
+            _contentView.height = _bounds.height - static_cast<float>(GuiGetStyle(LISTVIEW, SCROLLBAR_WIDTH)) - static_cast<float>(GuiGetStyle(DEFAULT, BORDER_WIDTH)) - 15;
+        }
+
+        if (_contentView.width < _bounds.width)
+        {
+            _contentView.width = _bounds.width - static_cast<float>(GuiGetStyle(LISTVIEW, SCROLLBAR_WIDTH)) - static_cast<float>(GuiGetStyle(DEFAULT, BORDER_WIDTH)) - 1;
+        }
+    }
+
     void NodeTreeWindow::onNodeCreated(Node *node)
     {
-        constexpr auto elementIdFormat = "NinsT_%d";
+        constexpr auto elementIdFormat = "NinsT_%s_%d";
         constexpr float elementHeight = 20.0f;
         constexpr float elementWidthInPercent = 0.8f;
 
-        const auto id = TextFormat(elementIdFormat, getChildCount());
+        update(0);
+
+        const auto id = TextFormat(elementIdFormat, node->getName().c_str(), getChildCount());
         auto &element = UiPool::nodeUiElementPool.get().setup(id, this, node);
 
         element.setParentNode(findNodeUiElementByEngineNode(node->getParent()));
@@ -129,7 +160,7 @@ namespace BreadEditor {
         element.onDragEnded.subscribe([this](UiElement *uiElement) { this->onElementEndDrag(uiElement); });
     }
 
-    void NodeTreeWindow::onNodeChangedParent(const Node *node) const
+    void NodeTreeWindow::onNodeChangedParent(const Node *node)
     {
         const auto instance = findNodeUiElementByEngineNode(node);
         instance->setParentNode(findNodeUiElementByEngineNode(node->getParent()));
@@ -179,11 +210,13 @@ namespace BreadEditor {
 
     void NodeTreeWindow::onElementEndDrag(UiElement *uiElement)
     {
+        if (_draggedNodeUiElementCopy == nullptr) return;
+
         this->destroyChild(_draggedNodeUiElementCopy);
         _draggedNodeUiElementCopy = nullptr;
         const auto originalElement = dynamic_cast<NodeUiElement *>(uiElement);
         originalElement->switchMuteState();
-        for (auto nodeElement: _nodeUiElements)
+        for (const auto nodeElement: _nodeUiElements)
         {
             const auto nodeBounds = nodeElement->getBounds();
             if (Engine::isCollisionPointRec(GetMousePosition(), nodeBounds))
@@ -216,26 +249,15 @@ namespace BreadEditor {
         }
     }
 
-    void NodeTreeWindow::updateScrollView(const Rectangle lastNodeBounds)
-    {
-        if (_contentView.width == 0 && _contentView.height == 0)
-        {
-            _contentView = _bounds;
-        }
-
-        _contentView.x = _bounds.x;
-        _contentView.y = _bounds.y;
-        _contentView.width = _bounds.width;
-    }
-
-    void NodeTreeWindow::recalculateUiNodes(Node &startNode, int &nodeOrder) const
+    void NodeTreeWindow::recalculateUiNodes(Node &startNode, int &nodeOrder)
     {
         const auto element = findNodeUiElementByEngineNode(&startNode);
         if (!element) return;
 
+        element->computeBounds();
         constexpr float nodeHorizontalPadding = 15.0f;
         constexpr float nodeVerticalPadding = 5.0f;
-        constexpr float startYPosition = 30.0f;
+        constexpr float startYPosition = RAYGUI_WINDOWBOX_STATUSBAR_HEIGHT + 10;
 
         const auto nodeHeight = element->getSize().y;
         const auto deepLevel = static_cast<float>(startNode.getDeepLevel());
@@ -244,6 +266,7 @@ namespace BreadEditor {
         const auto verticalPadding = (nodeVerticalPadding + nodeHeight) * static_cast<float>(nodeOrder);
         element->setPosition({nodeHorizontalPadding + horizontalOffset, startYPosition + verticalPadding});
         nodeOrder++;
+        updateElementForScrollTarget(element);
         if (startNode.getChildCount() == 0)
         {
             return;
@@ -300,6 +323,37 @@ namespace BreadEditor {
         for (const auto child: childs)
         {
             drawLines(*child);
+        }
+    }
+
+    void NodeTreeWindow::updateElementForScrollTarget(NodeUiElement *nextNodeUiElement)
+    {
+        if (_rightmostElement == nullptr)
+        {
+            _rightmostElement = nextNodeUiElement;
+        }
+        else
+        {
+            const auto rightmostRightBound = _rightmostElement->getBounds().x + _rightmostElement->getBounds().width;
+            const auto nextRightBound = nextNodeUiElement->getBounds().x + nextNodeUiElement->getBounds().width;
+            if (nextRightBound > rightmostRightBound)
+            {
+                _rightmostElement = nextNodeUiElement;
+            }
+        }
+
+        if (_downmostElement == nullptr)
+        {
+            _downmostElement = nextNodeUiElement;
+        }
+        else
+        {
+            const auto downmostDownBound = _downmostElement->getBounds().y + _downmostElement->getBounds().height;
+            const auto nextDownBound = nextNodeUiElement->getBounds().y + nextNodeUiElement->getBounds().height;
+            if (nextDownBound > downmostDownBound)
+            {
+                _downmostElement = nextNodeUiElement;
+            }
         }
     }
 } // BreadEditor

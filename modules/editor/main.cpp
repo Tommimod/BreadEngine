@@ -33,7 +33,7 @@ int main()
         const auto deltaTime = Engine::getDeltaTime();
         editor.update(deltaTime);
 
-        BeginTextureMode(renderTexture);
+        BeginTextureMode(renderTexture); // drawing 3D game to viewport
         ClearBackground(RAYWHITE);
 
         BeginMode3D(engine.getCamera());
@@ -43,10 +43,10 @@ int main()
         EndMode3D();
 
         engine.callGameRender2D();
-        EndTextureMode();
+        EndTextureMode(); // end 3D of viewport
 
         engine.beginFrame();
-        editor.render2D(renderTexture, deltaTime);
+        editor.render2D(renderTexture, deltaTime); // drawing editor UI
         engine.endFrame();
     }
 

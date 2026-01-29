@@ -74,6 +74,10 @@ namespace BreadEditor {
     {
     }
 
+    void UiElement::onFrameEnd(float deltaTime)
+    {
+    }
+
     Rectangle &UiElement::getBounds()
     {
         return _bounds;
@@ -562,6 +566,7 @@ namespace BreadEditor {
         _bounds = {0, 0, 1, 1};
         _isDeleted = false;
         _isDirty = true;
+        _scrollOffset = {0, 0};
     }
 
     void UiElement::drawDebugRect() const
@@ -604,15 +609,18 @@ namespace BreadEditor {
         if (_parent)
         {
             effectiveParentBounds = _parent->getBounds();
+            effectiveParentBounds.x += _parent->getScrollOffset().x;
+            effectiveParentBounds.y += _parent->getScrollOffset().y;
         }
         else
         {
             effectiveParentBounds = {0.0f, 0.0f, static_cast<float>(GetScreenWidth()), static_cast<float>(GetScreenHeight())};
         }
 
+        const auto parentScrollOffset = _parent ? _parent->getScrollOffset() : Vector2{0, 0};
         const Vector2 anchorPoint = getAnchorPoint(effectiveParentBounds);
         const Vector2 pivotOffset = {_pivot.x * _localSize.x, _pivot.y * _localSize.y};
-        const Vector2 prelimPosition = {anchorPoint.x + _localPosition.x - pivotOffset.x, anchorPoint.y + _localPosition.y - pivotOffset.y};
+        const Vector2 prelimPosition = {anchorPoint.x + _localPosition.x - pivotOffset.x + parentScrollOffset.x, anchorPoint.y + _localPosition.y - pivotOffset.y + parentScrollOffset.y};
         Vector2 computedSize = getComputedSize(effectiveParentBounds, prelimPosition);
         if (_maxSize.x > 0)
         {
@@ -631,7 +639,8 @@ namespace BreadEditor {
         }
 
         const auto parentBounds = _parent ? _parent->getBounds() : Rectangle{0, 0, static_cast<float>(GetScreenWidth()), static_cast<float>(GetScreenHeight())};
-        Vector2 currPos = {parentBounds.x, parentBounds.y};
+
+        Vector2 currPos = {parentBounds.x + parentScrollOffset.x, parentBounds.y + parentScrollOffset.y};
 
         auto totalProp = 0.0f;
         for (const auto child: _childs)
@@ -726,6 +735,16 @@ namespace BreadEditor {
         return false;
     }
 
+    void UiElement::setScrollOffset(const Vector2 &scrollOffset)
+    {
+        _scrollOffset = scrollOffset;
+    }
+
+    Vector2 &UiElement::getScrollOffset()
+    {
+        return _scrollOffset;
+    }
+
     void UiElement::drawInternal(const float deltaTime)
     {
         if (!isActive)
@@ -750,6 +769,8 @@ namespace BreadEditor {
         {
             child->drawInternal(deltaTime);
         }
+
+        onFrameEnd(deltaTime);
     }
 
     void UiElement::updateInternal(const float deltaTime)

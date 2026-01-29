@@ -58,6 +58,8 @@ namespace BreadEditor {
 
         virtual void update(float deltaTime);
 
+        virtual void onFrameEnd(float deltaTime);
+
         virtual void setState(GuiState nextState);
 
         void setPosition(const Vector2 &position);
@@ -164,10 +166,15 @@ namespace BreadEditor {
 
         virtual bool tryDeleteSelf();
 
+        void setScrollOffset(const Vector2 &scrollOffset);
+
+        [[nodiscard]] Vector2 &getScrollOffset();
+
     private:
         friend class Editor;
         bool _isDirty = true;
         std::vector<UiElement *> _childs{};
+        Vector2 _scrollOffset{0, 0};
 
         void drawInternal(float deltaTime);
 

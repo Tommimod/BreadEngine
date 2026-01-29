@@ -4,7 +4,9 @@
 #include "engine.h"
 #include "models/editorModel.h"
 using namespace BreadEngine;
-
+#if !defined(RAYGUI_WINDOWBOX_STATUSBAR_HEIGHT)
+#define RAYGUI_WINDOWBOX_STATUSBAR_HEIGHT        24
+#endif
 namespace BreadEditor {
     class Editor
     {
@@ -43,7 +45,7 @@ namespace BreadEditor {
 
         [[nodiscard]] EditorModel &getEditorModel() { return _editorModel; }
 
-        [[nodiscard]] RenderTexture2D* getViewportRenderTexture() const { return _viewportRenderTexture; }
+        [[nodiscard]] RenderTexture2D *getViewportRenderTexture() const { return _viewportRenderTexture; }
 
     private:
         Editor();
@@ -55,6 +57,6 @@ namespace BreadEditor {
         Engine *_engine = nullptr;
         EditorModel _editorModel;
         UiElement &_uiRoot;
-        RenderTexture2D* _viewportRenderTexture;
+        RenderTexture2D *_viewportRenderTexture;
     };
 } // namespace BreadEditor

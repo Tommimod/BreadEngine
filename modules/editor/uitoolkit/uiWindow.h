@@ -17,6 +17,8 @@ namespace BreadEditor {
 
         void update(float deltaTime) override;
 
+        void onFrameEnd(float deltaTime) override;
+
         void dispose() override;
 
         void setIsCloseable(const bool value) const { _closeButton.isActive = value; }
@@ -37,5 +39,7 @@ namespace BreadEditor {
         virtual void unsubscribe();
 
         bool tryDeleteSelf() override;
+
+        virtual void updateScrollView(const Rectangle &targetWidthRect, const Rectangle &targetHeightRect) = 0;
     };
 } // BreadEditor

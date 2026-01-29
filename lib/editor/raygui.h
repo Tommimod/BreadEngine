@@ -1914,8 +1914,16 @@ int GuiScrollPanel(Rectangle bounds, const char *text, Rectangle content, Vector
             if (mouseWheelSpeed.y < RAYGUI_MIN_MOUSE_WHEEL_SPEED) mouseWheelSpeed.y = RAYGUI_MIN_MOUSE_WHEEL_SPEED;
 
             // Horizontal and vertical scrolling with mouse wheel
-            if (hasHorizontalScrollBar && (IsKeyDown(KEY_LEFT_CONTROL) || IsKeyDown(KEY_LEFT_SHIFT))) scrollPos.x += wheelMove*mouseWheelSpeed.x;
-            else scrollPos.y += wheelMove*mouseWheelSpeed.y; // Vertical scroll
+            if (hasHorizontalScrollBar && (IsKeyDown(KEY_LEFT_CONTROL) || IsKeyDown(KEY_LEFT_SHIFT)))
+            {
+                scrollPos.x += wheelMove*mouseWheelSpeed.x;
+            }
+            else
+            {
+                scrollPos.y += wheelMove*mouseWheelSpeed.y; // Vertical scroll
+            }
+
+            result = 1;
         }
     }
 

@@ -22,6 +22,8 @@ namespace BreadEditor {
 
         void update(float deltaTime) override;
 
+        void onFrameEnd(float deltaTime) override;
+
         void dispose() override;
 
         const char *getTitle() override { return _title; }
@@ -31,20 +33,25 @@ namespace BreadEditor {
 
         void unsubscribe() override;
 
+        void updateScrollView(const Rectangle &targetWidthRect, const Rectangle &targetHeightRect) override;
+
     private:
         const char *_title = Id.c_str();
-        std::vector<SubscriptionHandle> _nodeNotificatorSubscriptions {};
-        std::vector<NodeUiElement *> _nodeUiElements {};
+        std::vector<SubscriptionHandle> _nodeNotificatorSubscriptions{};
+        std::vector<NodeUiElement *> _nodeUiElements{};
         NodeUiElement *_draggedNodeUiElementCopy = nullptr;
+        NodeUiElement *_rightmostElement = nullptr;
+        NodeUiElement *_downmostElement = nullptr;
 
         [[nodiscard]] NodeUiElement *findNodeUiElementByEngineNode(const Node *node) const;
 
         void rebuild();
-        void rebuildByNode(Node* node);
+
+        void rebuildByNode(Node *node);
 
         void onNodeCreated(Node *node);
 
-        void onNodeChangedParent(const Node *node) const;
+        void onNodeChangedParent(const Node *node);
 
         void onNodeChangedActive(const Node *node) const;
 
@@ -56,10 +63,10 @@ namespace BreadEditor {
 
         void onElementEndDrag(UiElement *uiElement);
 
-        void updateScrollView(Rectangle lastNodeBounds);
-
-        void recalculateUiNodes(Node &startNode, int &nodeOrder) const;
+        void recalculateUiNodes(Node &startNode, int &nodeOrder);
 
         void drawLines(Node &startNode) const;
+
+        void updateElementForScrollTarget(NodeUiElement *nextNodeUiElement);
     };
 } // BreadEditor

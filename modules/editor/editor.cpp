@@ -20,17 +20,52 @@ namespace BreadEditor {
     {
         if (_initialized) return false;
 
-        mainWindow.initialize();
         GuiLoadStyleDefault();
         SetTraceLogLevel(LOG_ALL);
         _initialized = true;
 
+        mainWindow.initialize();
+        mainWindow.updateInternal(0);
+        mainWindow.drawInternal(0);
         const auto rootNode = &Engine::getRootNode();
         auto &testNode = Engine::nodePool.get().setup("1", *rootNode);
         auto &testNode2 = Engine::nodePool.get().setup("1.1", testNode);
         auto &testNode25 = Engine::nodePool.get().setup("1.2", testNode);
         auto &testNode444 = Engine::nodePool.get().setup("1.1.1", testNode2);
         auto &testNode3 = Engine::nodePool.get().setup("2", *rootNode);
+        Engine::nodePool.get().setup("3", *rootNode);
+        Engine::nodePool.get().setup("4", *rootNode);
+        Engine::nodePool.get().setup("5", *rootNode);
+        Engine::nodePool.get().setup("6", *rootNode);
+        Engine::nodePool.get().setup("7", *rootNode);
+        Engine::nodePool.get().setup("8", *rootNode);
+        Engine::nodePool.get().setup("9", *rootNode);
+        Engine::nodePool.get().setup("10", *rootNode);
+        Engine::nodePool.get().setup("11", *rootNode);
+        Engine::nodePool.get().setup("12", *rootNode);
+        Engine::nodePool.get().setup("13", *rootNode);
+        Engine::nodePool.get().setup("14", *rootNode);
+        Engine::nodePool.get().setup("15", *rootNode);
+        Engine::nodePool.get().setup("16", *rootNode);
+        Engine::nodePool.get().setup("17", *rootNode);
+        Engine::nodePool.get().setup("18", *rootNode);
+        Engine::nodePool.get().setup("19", *rootNode);
+        Engine::nodePool.get().setup("20", *rootNode);
+        Engine::nodePool.get().setup("21", *rootNode);
+        Engine::nodePool.get().setup("22", *rootNode);
+        Engine::nodePool.get().setup("23", *rootNode);
+        Engine::nodePool.get().setup("24", *rootNode);
+        Engine::nodePool.get().setup("25", *rootNode);
+        Engine::nodePool.get().setup("26", *rootNode);
+        Engine::nodePool.get().setup("27", *rootNode);
+        Engine::nodePool.get().setup("28", *rootNode);
+        Engine::nodePool.get().setup("29", *rootNode);
+        Engine::nodePool.get().setup("30", *rootNode);
+        Engine::nodePool.get().setup("31", *rootNode);
+        Engine::nodePool.get().setup("32", *rootNode);
+        Engine::nodePool.get().setup("33", *rootNode);
+        Engine::nodePool.get().setup("34", *rootNode);
+        Engine::nodePool.get().setup("35", *rootNode);
         return true;
     }
 

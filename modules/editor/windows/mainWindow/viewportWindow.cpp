@@ -43,6 +43,7 @@ namespace BreadEditor {
 
     void ViewportWindow::update(const float deltaTime)
     {
+        updateScrollView(_bounds, _bounds);
         UiWindow::update(deltaTime);
     }
 
@@ -113,10 +114,6 @@ namespace BreadEditor {
 
     Rectangle ViewportWindow::getViewportSize() const
     {
-#if !defined(RAYGUI_WINDOWBOX_STATUSBAR_HEIGHT)
-#define RAYGUI_WINDOWBOX_STATUSBAR_HEIGHT        24
-#endif
-
         auto bounds = _bounds;
         bounds.height -= RAYGUI_WINDOWBOX_STATUSBAR_HEIGHT;
         bounds.y += RAYGUI_WINDOWBOX_STATUSBAR_HEIGHT;
@@ -131,5 +128,13 @@ namespace BreadEditor {
     void ViewportWindow::unsubscribe()
     {
         UiWindow::unsubscribe();
+    }
+
+    void ViewportWindow::updateScrollView(const Rectangle &targetWidthRect, const Rectangle &targetHeightRect)
+    {
+        _contentView.x = _bounds.x;
+        _contentView.y = _bounds.y;
+        _contentView.height = _bounds.height - GuiGetStyle(LISTVIEW, SCROLLBAR_WIDTH) - GuiGetStyle(DEFAULT, BORDER_WIDTH) - 15;
+        _contentView.width = _bounds.width - GuiGetStyle(LISTVIEW, SCROLLBAR_WIDTH) - GuiGetStyle(DEFAULT, BORDER_WIDTH) - 1;
     }
 } // BreadEditor

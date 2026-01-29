@@ -1,5 +1,4 @@
 ﻿#include "nodeInspectorWindow.h"
-
 #include "editor.h"
 #include "raygui.h"
 #include "uitoolkit/uiPool.h"
@@ -38,7 +37,7 @@ namespace BreadEditor {
 
     void NodeInspectorWindow::draw(const float deltaTime)
     {
-        GuiPanel(_bounds, nullptr);
+        GuiScrollPanel(_bounds, _title, _contentView, &_scrollPos, &_scrollView);
         const auto isDisabled = _engineNode == nullptr;
         for (const auto childElement: getAllChilds())
         {
@@ -50,6 +49,7 @@ namespace BreadEditor {
 
     void NodeInspectorWindow::update(const float deltaTime)
     {
+        updateScrollView(_bounds, _bounds);
         UiWindow::update(deltaTime);
     }
 
@@ -113,14 +113,22 @@ namespace BreadEditor {
         UiWindow::unsubscribe();
     }
 
+    void NodeInspectorWindow::updateScrollView(const Rectangle &targetWidthRect, const Rectangle &targetHeightRect)
+    {
+        _contentView.x = _bounds.x;
+        _contentView.y = _bounds.y;
+        _contentView.height = _bounds.height - GuiGetStyle(LISTVIEW, SCROLLBAR_WIDTH) - GuiGetStyle(DEFAULT, BORDER_WIDTH) - 15;
+        _contentView.width = _bounds.width - GuiGetStyle(LISTVIEW, SCROLLBAR_WIDTH) - GuiGetStyle(DEFAULT, BORDER_WIDTH) - 1;
+    }
+
     void NodeInspectorWindow::initialize()
     {
-        constexpr int verticalOffset = 5;
+        constexpr int verticalOffset = RAYGUI_WINDOWBOX_STATUSBAR_HEIGHT + 10;
         constexpr int horizontalOffset = 5;
 
         _activeCheckBox = &UiPool::checkBoxPool.get().setup("nodeInspectorActiveCheckBox", this, "Active", false);
         _activeCheckBox->setAnchor(UI_LEFT_TOP);
-        _activeCheckBox->setPosition({horizontalOffset, verticalOffset + 5});
+        _activeCheckBox->setPosition({horizontalOffset, verticalOffset});
         _activeCheckBox->setSize({10, 10});
         _subscriptions.emplace(_activeCheckBox, _activeCheckBox->onValueChanged.subscribe([this](const bool checked) { this->onNodeActiveChanged(checked); }));
 

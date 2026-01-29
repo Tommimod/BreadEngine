@@ -19,11 +19,18 @@ namespace BreadEditor {
 
     void UiWindow::draw(const float deltaTime)
     {
+        BeginScissorMode(_scrollView.x, _scrollView.y, _scrollView.width, _scrollView.height);
     }
 
     void UiWindow::update(const float deltaTime)
     {
         updateResizable(*this);
+        setScrollOffset(_scrollPos);
+    }
+
+    void UiWindow::onFrameEnd(const float deltaTime)
+    {
+        EndScissorMode();
     }
 
     void UiWindow::dispose()
@@ -51,6 +58,10 @@ namespace BreadEditor {
     bool UiWindow::tryDeleteSelf()
     {
         return false;
+    }
+
+    void UiWindow::updateScrollView(const Rectangle &targetWidthRect, const Rectangle &targetHeightRect)
+    {
     }
 
     void UiWindow::initialize()
