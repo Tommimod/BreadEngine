@@ -32,12 +32,13 @@ namespace BreadEditor {
         GuiSetStyle(BUTTON, TEXT_ALIGNMENT, _textAlignment);
         if (GuiButton(_bounds, _text.c_str()))
         {
-            if (const auto childsCount = getChildCount(); childsCount > 0)
+            const auto mousePos = GetMousePosition();
+            auto isNeedIgnore = !Engine::isCollisionPointRec(mousePos, _parent->getBounds());
+            if (const auto childsCount = getChildCount(); !isNeedIgnore && childsCount > 0)
             {
-                auto isNeedIgnore = false;
                 for (const auto child : getAllChilds())
                 {
-                    if (Engine::isCollisionPointRec(GetMousePosition(), child->getBounds()))
+                    if (Engine::isCollisionPointRec(mousePos, child->getBounds()))
                     {
                         isNeedIgnore = true;
                     }
@@ -48,7 +49,7 @@ namespace BreadEditor {
                     onClick.invoke(this);
                 }
             }
-            else
+            else if (!isNeedIgnore)
             {
                 onClick.invoke(this);
             }

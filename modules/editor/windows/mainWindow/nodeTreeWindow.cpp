@@ -40,9 +40,6 @@ namespace BreadEditor {
 
     void NodeTreeWindow::update(const float deltaTime)
     {
-        const auto &targetWidthBounds = _rightmostElement == nullptr ? getBounds() : _rightmostElement->getBounds();
-        const auto &targetHeightBounds = _downmostElement == nullptr ? getBounds() : _downmostElement->getBounds();
-        updateScrollView(targetWidthBounds, targetHeightBounds);
         UiWindow::update(deltaTime);
     }
 
@@ -114,23 +111,6 @@ namespace BreadEditor {
         _nodeNotificatorSubscriptions.clear();
 
         UiWindow::unsubscribe();
-    }
-
-    void NodeTreeWindow::updateScrollView(const Rectangle &targetWidthRect, const Rectangle &targetHeightRect)
-    {
-        _contentView.x = _bounds.x;
-        _contentView.y = _bounds.y;
-        _contentView.height = targetHeightRect.height + targetHeightRect.y;
-        _contentView.width = targetWidthRect.width;
-        if (_contentView.height < _bounds.height)
-        {
-            _contentView.height = _bounds.height - static_cast<float>(GuiGetStyle(LISTVIEW, SCROLLBAR_WIDTH)) - static_cast<float>(GuiGetStyle(DEFAULT, BORDER_WIDTH)) - 15;
-        }
-
-        if (_contentView.width < _bounds.width)
-        {
-            _contentView.width = _bounds.width - static_cast<float>(GuiGetStyle(LISTVIEW, SCROLLBAR_WIDTH)) - static_cast<float>(GuiGetStyle(DEFAULT, BORDER_WIDTH)) - 1;
-        }
     }
 
     void NodeTreeWindow::onNodeCreated(Node *node)
@@ -266,7 +246,7 @@ namespace BreadEditor {
         const auto verticalPadding = (nodeVerticalPadding + nodeHeight) * static_cast<float>(nodeOrder);
         element->setPosition({nodeHorizontalPadding + horizontalOffset, startYPosition + verticalPadding});
         nodeOrder++;
-        updateElementForScrollTarget(element);
+        calculateRectForScroll(element);
         if (startNode.getChildCount() == 0)
         {
             return;
@@ -326,34 +306,5 @@ namespace BreadEditor {
         }
     }
 
-    void NodeTreeWindow::updateElementForScrollTarget(NodeUiElement *nextNodeUiElement)
-    {
-        if (_rightmostElement == nullptr)
-        {
-            _rightmostElement = nextNodeUiElement;
-        }
-        else
-        {
-            const auto rightmostRightBound = _rightmostElement->getBounds().x + _rightmostElement->getBounds().width;
-            const auto nextRightBound = nextNodeUiElement->getBounds().x + nextNodeUiElement->getBounds().width;
-            if (nextRightBound > rightmostRightBound)
-            {
-                _rightmostElement = nextNodeUiElement;
-            }
-        }
 
-        if (_downmostElement == nullptr)
-        {
-            _downmostElement = nextNodeUiElement;
-        }
-        else
-        {
-            const auto downmostDownBound = _downmostElement->getBounds().y + _downmostElement->getBounds().height;
-            const auto nextDownBound = nextNodeUiElement->getBounds().y + nextNodeUiElement->getBounds().height;
-            if (nextDownBound > downmostDownBound)
-            {
-                _downmostElement = nextNodeUiElement;
-            }
-        }
-    }
 } // BreadEditor

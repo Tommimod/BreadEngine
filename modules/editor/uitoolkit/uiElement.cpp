@@ -745,6 +745,14 @@ namespace BreadEditor {
         return _scrollOffset;
     }
 
+    bool UiElement::IsNullRectangle(const Rectangle &rectangle)
+    {
+        return rectangle.x == 0 &&
+               rectangle.y == 0 &&
+               rectangle.width == 1 &&
+               rectangle.height == 1;
+    }
+
     void UiElement::drawInternal(const float deltaTime)
     {
         if (!isActive)

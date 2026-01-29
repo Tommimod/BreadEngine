@@ -29,7 +29,7 @@ namespace BreadEditor {
         Vector2 _scrollPos = {0.0f, 0.0f};
         Rectangle _contentView = {0.0f, 0.0f, 0.0f, 0.0f};
         Rectangle _scrollView = {0.0f, 0.0f, 0.0f, 0.0f};
-
+        Vector2 _contentSize{0, 0};
         UiButton &_closeButton;
 
         virtual void initialize();
@@ -40,6 +40,8 @@ namespace BreadEditor {
 
         bool tryDeleteSelf() override;
 
-        virtual void updateScrollView(const Rectangle &targetWidthRect, const Rectangle &targetHeightRect) = 0;
+        virtual void updateScrollView();
+
+        void calculateRectForScroll(UiElement *element);
     };
 } // BreadEditor

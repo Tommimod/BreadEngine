@@ -49,7 +49,6 @@ namespace BreadEditor {
 
     void NodeInspectorWindow::update(const float deltaTime)
     {
-        updateScrollView(_bounds, _bounds);
         UiWindow::update(deltaTime);
     }
 
@@ -111,14 +110,6 @@ namespace BreadEditor {
     void NodeInspectorWindow::unsubscribe()
     {
         UiWindow::unsubscribe();
-    }
-
-    void NodeInspectorWindow::updateScrollView(const Rectangle &targetWidthRect, const Rectangle &targetHeightRect)
-    {
-        _contentView.x = _bounds.x;
-        _contentView.y = _bounds.y;
-        _contentView.height = _bounds.height - GuiGetStyle(LISTVIEW, SCROLLBAR_WIDTH) - GuiGetStyle(DEFAULT, BORDER_WIDTH) - 15;
-        _contentView.width = _bounds.width - GuiGetStyle(LISTVIEW, SCROLLBAR_WIDTH) - GuiGetStyle(DEFAULT, BORDER_WIDTH) - 1;
     }
 
     void NodeInspectorWindow::initialize()

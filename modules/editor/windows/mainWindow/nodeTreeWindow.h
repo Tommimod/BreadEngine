@@ -33,15 +33,11 @@ namespace BreadEditor {
 
         void unsubscribe() override;
 
-        void updateScrollView(const Rectangle &targetWidthRect, const Rectangle &targetHeightRect) override;
-
     private:
         const char *_title = Id.c_str();
         std::vector<SubscriptionHandle> _nodeNotificatorSubscriptions{};
         std::vector<NodeUiElement *> _nodeUiElements{};
         NodeUiElement *_draggedNodeUiElementCopy = nullptr;
-        NodeUiElement *_rightmostElement = nullptr;
-        NodeUiElement *_downmostElement = nullptr;
 
         [[nodiscard]] NodeUiElement *findNodeUiElementByEngineNode(const Node *node) const;
 
@@ -66,7 +62,5 @@ namespace BreadEditor {
         void recalculateUiNodes(Node &startNode, int &nodeOrder);
 
         void drawLines(Node &startNode) const;
-
-        void updateElementForScrollTarget(NodeUiElement *nextNodeUiElement);
     };
 } // BreadEditor

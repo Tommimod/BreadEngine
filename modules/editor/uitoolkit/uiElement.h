@@ -170,6 +170,8 @@ namespace BreadEditor {
 
         [[nodiscard]] Vector2 &getScrollOffset();
 
+        [[nodiscard]] static bool IsNullRectangle(const Rectangle &rectangle);
+
     private:
         friend class Editor;
         bool _isDirty = true;

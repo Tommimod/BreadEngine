@@ -1,4 +1,6 @@
 #include "nodeUiElement.h"
+
+#include "editor.h"
 #include "engine.h"
 #include "raygui.h"
 #include "uitoolkit/uiPool.h"
@@ -17,14 +19,22 @@ namespace BreadEditor {
     void NodeUiElement::draw(const float deltaTime)
     {
         prepareToClick();
-        GuiButton(_bounds, nullptr);
-        if (_isPreparedToClick && IsMouseButtonPressed(MOUSE_LEFT_BUTTON) && Engine::isCollisionPointRec(GetMousePosition(), _bounds))
+        GuiButton(getBounds(), nullptr);
+        const auto mousePos = GetMousePosition();
+        if (_isPreparedToClick && IsMouseButtonPressed(MOUSE_LEFT_BUTTON) && Engine::isCollisionPointRec(mousePos, getBounds()))
         {
-            onSelected.invoke(this);
+            auto parentBounds = _parent->getBounds();
+            parentBounds.height -= RAYGUI_WINDOWBOX_STATUSBAR_HEIGHT;
+            parentBounds.y += RAYGUI_WINDOWBOX_STATUSBAR_HEIGHT;
+            const auto isNeedIgnore = !Engine::isCollisionPointRec(mousePos, parentBounds);
+            if (!isNeedIgnore)
+            {
+                onSelected.invoke(this);
+            }
         }
 
         const auto buttonText = GuiIconText(ICON_CPU, _engineNode->getName().c_str());
-        GuiLabel(_bounds, buttonText);
+        GuiLabel(getBounds(), buttonText);
     }
 
     void NodeUiElement::update(const float deltaTime)

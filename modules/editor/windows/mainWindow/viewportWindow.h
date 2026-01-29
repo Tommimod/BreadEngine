@@ -35,8 +35,6 @@ namespace BreadEditor {
 
         void unsubscribe() override;
 
-        void updateScrollView(const Rectangle &targetWidthRect, const Rectangle &targetHeightRect) override;
-
     private:
         const char *_title = Id.c_str();
         Vector2 _mousePosition{0, 0};

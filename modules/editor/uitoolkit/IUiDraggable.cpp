@@ -12,6 +12,11 @@ namespace BreadEditor {
     void IUiDraggable::updateDraggable(UiElement *element)
     {
         const auto mousePos = GetMousePosition();
+        if (!BreadEngine::Engine::isCollisionPointRec(mousePos, element->getParentElement()->getBounds()))
+        {
+            return;
+        }
+
         if (IsMouseButtonUp(MOUSE_LEFT_BUTTON))
         {
             _mousePositionBeforeClick = Vector2Zero();
