@@ -2,7 +2,7 @@
 #include "uiPanel.h"
 #include "uiToolbar.h"
 #include "uiLabelButton.h"
-#include "windows/mainWindow/nodeUiElement.h"
+#include "../editorElements/nodeUiElement.h"
 #include "objectPool.h"
 #include "uiButton.h"
 #include "uiCheckBox.h"

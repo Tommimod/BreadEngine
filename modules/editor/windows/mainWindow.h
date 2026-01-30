@@ -1,10 +1,10 @@
 #pragma once
 #include "assetsWindow.h"
 #include "consoleWindow.h"
-#include "gizmoSystem.h"
+#include "../systems/gizmoSystem.h"
 #include "nodeInspectorWindow.h"
 #include "nodeTreeWindow.h"
-#include "../../uitoolkit/uiToolbar.h"
+#include "../uitoolkit/uiToolbar.h"
 #include "raylib.h"
 #include "viewportWindow.h"
 #include "uitoolkit/uiContainer.h"

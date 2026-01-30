@@ -1,6 +1,6 @@
 ﻿#pragma once
 #include "windowsModel.h"
-#include "../windows/mainWindow/nodeTreeWindow.h"
+#include "../windows/nodeTreeWindow.h"
 
 namespace BreadEditor {
     class EditorModel

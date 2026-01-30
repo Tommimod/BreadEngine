@@ -1,9 +1,9 @@
 ﻿#include "windowsModel.h"
-#include "windows/mainWindow/assetsWindow.h"
-#include "windows/mainWindow/consoleWindow.h"
-#include "windows/mainWindow/nodeInspectorWindow.h"
-#include "windows/mainWindow/nodeTreeWindow.h"
-#include "windows/mainWindow/viewportWindow.h"
+#include "../windows/assetsWindow.h"
+#include "../windows/consoleWindow.h"
+#include "../windows/nodeInspectorWindow.h"
+#include "../windows/nodeTreeWindow.h"
+#include "../windows/viewportWindow.h"
 
 namespace BreadEditor {
     WindowsModel::WindowsModel()

@@ -1,7 +1,7 @@
 ﻿#include "uiContainer.h"
 #include "editor.h"
 #include "uiPool.h"
-#include "windows/mainWindow/mainWindow.h"
+#include "../windows/mainWindow.h"
 
 namespace BreadEditor {
     UiContainer::UiContainer(const LAYOUT_TYPE layoutType) : _toolbar(UiPool::toolbarPool.get())

@@ -1,7 +1,7 @@
 ﻿#pragma once
 #include "raygizmo.h"
 #include "transform.h"
-#include "windows/mainWindow/viewportWindow.h"
+#include "../windows/viewportWindow.h"
 
 namespace BreadEditor {
     class GizmoSystem

@@ -1,5 +1,5 @@
 #pragma once
-#include "windows/mainWindow/mainWindow.h"
+#include "windows/mainWindow.h"
 #include <string>
 #include "engine.h"
 #include "models/editorModel.h"

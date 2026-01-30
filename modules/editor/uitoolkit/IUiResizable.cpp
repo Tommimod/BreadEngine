@@ -1,5 +1,5 @@
 ﻿#include "IUiResizable.h"
-#include "cursorSystem.h"
+#include "../systems/cursorSystem.h"
 #include "editor.h"
 #include "raymath.h"
 #include "engine.h"

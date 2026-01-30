@@ -1,8 +1,7 @@
 ﻿#pragma once
 #include "action.h"
 #include "node.h"
-#include "nodeUiElement.h"
-#include "uitoolkit/IUiResizable.h"
+#include "../editorElements/nodeUiElement.h"
 #include "uitoolkit/uiWindow.h"
 using namespace BreadEngine;
 

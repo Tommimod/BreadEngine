@@ -1,7 +1,7 @@
 #include "../engine/engine.h"
 #include "editor.h"
 
-#include "cursorSystem.h"
+#include "systems/cursorSystem.h"
 #include "node.h"
 
 namespace BreadEditor {

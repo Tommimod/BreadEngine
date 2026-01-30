@@ -1,5 +1,5 @@
 #include "uiToolbar.h"
-#include "../windows/mainWindow/mainWindow.h"
+#include "../windows/mainWindow.h"
 #include "raygui.h"
 #include "uiPool.h"
 #include "raymath.h"

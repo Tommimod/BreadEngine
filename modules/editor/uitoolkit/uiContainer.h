@@ -2,7 +2,7 @@
 #include "IUiResizable.h"
 #include "uiElement.h"
 #include "uiToolbar.h"
-#include "windows/mainWindow/nodeTreeWindow.h"
+#include "../windows/nodeTreeWindow.h"
 
 namespace BreadEditor {
     class UiContainer final : public UiElement, public IUiResizable

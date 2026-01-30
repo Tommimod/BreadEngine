@@ -1,5 +1,5 @@
 ﻿#include "gizmoSystem.h"
-#include "editor.h"
+#include "../editor.h"
 
 namespace BreadEditor {
     void GizmoSystem::recalculateGizmo(BreadEngine::Transform &nodeTransform)
