@@ -57,7 +57,12 @@ namespace BreadEditor {
 
         GizmoSystem _gizmoSystem;
         vector<std::string> _windowsOptions{};
+        const vector<std::string> _toolbarFileOptions{"New Project", "Open Project", "Save Project", "Save Project As", "Close Editor"};
+        const vector<std::string> _toolbarEditOptions{"Undo", "Redo", "Cut", "Copy", "Paste", "Delete"};
+        const vector<std::string> _toolbarHelpOptions{"About"};
 
         [[nodiscard]] UiElement *findUiElementById(const std::string &id) const;
+
+        [[nodiscard]] UiToolbar &getToolbar();
     };
 } // namespace BreadEditor

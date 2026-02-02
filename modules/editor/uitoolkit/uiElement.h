@@ -82,7 +82,7 @@ namespace BreadEditor {
 
         [[nodiscard]] Vector2 getSizeInPixByPercent(const Vector2 &percent) const;
 
-        [[nodiscard]] const UiElement *getRootElement() const;
+        [[nodiscard]] UiElement *getRootElement();
 
         [[nodiscard]] UiElement *getParentElement() const;
 
@@ -138,8 +138,16 @@ namespace BreadEditor {
 
         void setDirty();
 
+        void setOnOverlayLayer();
+
+        void setRenderOnEndOfFrame();
+
+        void setIgnoreScrollLayout();
+
     protected:
+        bool _isRenderOnEndOfFrame = false;
         bool _isDeleted = false;
+        bool _ignoreScrollLayout = false;
         GuiState _state = STATE_NORMAL;
         Vector2 _pivot{};
         Vector2 _localPosition{0.0f, 0.0f};
@@ -151,6 +159,7 @@ namespace BreadEditor {
         Color _bgColor = RAYWHITE;
         UI_ANCHOR_TYPE _anchor = UI_LEFT_TOP;
         LAYOUT_TYPE _layoutType = LAYOUT_NONE;
+        std::vector<UiElement *> _overlayChilds{};
 
         UiElement &setup(const std::string &newId);
 
@@ -175,6 +184,7 @@ namespace BreadEditor {
     private:
         friend class Editor;
         bool _isDirty = true;
+        bool _onOverlayLayer = false;
         std::vector<UiElement *> _childs{};
         Vector2 _scrollOffset{0, 0};
 

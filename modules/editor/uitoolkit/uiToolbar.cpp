@@ -16,6 +16,13 @@ namespace BreadEditor {
 
     UiToolbar::~UiToolbar() = default;
 
+    void UiToolbar::dispose()
+    {
+        onButtonPressed.unsubscribeAll();
+        onButtonRequestedToRemove.unsubscribeAll();
+        UiElement::dispose();
+    }
+
     void UiToolbar::draw(const float deltaTime)
     {
         GuiPanel(_bounds, nullptr);

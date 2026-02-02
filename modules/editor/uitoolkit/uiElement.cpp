@@ -223,7 +223,7 @@ namespace BreadEditor {
         return {clampedPercent.x * effectiveParentBounds.width, clampedPercent.y * effectiveParentBounds.height};
     }
 
-    const UiElement *UiElement::getRootElement() const
+    UiElement *UiElement::getRootElement()
     {
         if (!_parent)
         {
@@ -567,6 +567,10 @@ namespace BreadEditor {
         _isDeleted = false;
         _isDirty = true;
         _scrollOffset = {0, 0};
+        _onOverlayLayer = false;
+        _overlayChilds.clear();
+        _isRenderOnEndOfFrame = false;
+        _ignoreScrollLayout = false;
     }
 
     void UiElement::drawDebugRect() const
@@ -609,15 +613,18 @@ namespace BreadEditor {
         if (_parent)
         {
             effectiveParentBounds = _parent->getBounds();
-            effectiveParentBounds.x += _parent->getScrollOffset().x;
-            effectiveParentBounds.y += _parent->getScrollOffset().y;
+            if (!_ignoreScrollLayout)
+            {
+                effectiveParentBounds.x += _parent->getScrollOffset().x;
+                effectiveParentBounds.y += _parent->getScrollOffset().y;
+            }
         }
         else
         {
             effectiveParentBounds = {0.0f, 0.0f, static_cast<float>(GetScreenWidth()), static_cast<float>(GetScreenHeight())};
         }
 
-        const auto parentScrollOffset = _parent ? _parent->getScrollOffset() : Vector2{0, 0};
+        const auto parentScrollOffset = _parent && !_ignoreScrollLayout ? _parent->getScrollOffset() : Vector2{0, 0};
         const Vector2 anchorPoint = getAnchorPoint(effectiveParentBounds);
         const Vector2 pivotOffset = {_pivot.x * _localSize.x, _pivot.y * _localSize.y};
         const Vector2 prelimPosition = {anchorPoint.x + _localPosition.x - pivotOffset.x + parentScrollOffset.x, anchorPoint.y + _localPosition.y - pivotOffset.y + parentScrollOffset.y};
@@ -668,6 +675,23 @@ namespace BreadEditor {
         {
             child->setDirty();
         }
+    }
+
+    void UiElement::setOnOverlayLayer()
+    {
+        _onOverlayLayer = true;
+        const auto root= getRootElement();
+        root->_overlayChilds.emplace_back(this);
+    }
+
+    void UiElement::setRenderOnEndOfFrame()
+    {
+        _isRenderOnEndOfFrame = true;
+    }
+
+    void UiElement::setIgnoreScrollLayout()
+    {
+        _ignoreScrollLayout = true;
     }
 
     Vector2 UiElement::getAnchorPoint(const Rectangle &effectiveParentBounds) const
@@ -775,10 +799,38 @@ namespace BreadEditor {
 
         for (const auto child: _childs)
         {
+            if (child->_onOverlayLayer || child->_isRenderOnEndOfFrame)
+            {
+                continue;
+            }
+
             child->drawInternal(deltaTime);
         }
 
+        if (_parent == nullptr) // only for root
+        {
+            for (const auto child: _overlayChilds)
+            {
+                if (child == nullptr || !child->_onOverlayLayer)
+                {
+                    _overlayChilds.erase(std::ranges::find(_overlayChilds, child));
+                    continue;
+                }
+
+                child->drawInternal(deltaTime);
+            }
+        }
+
         onFrameEnd(deltaTime);
+        for (const auto child: _childs)
+        {
+            if (child->_onOverlayLayer || !child->_isRenderOnEndOfFrame)
+            {
+                continue;
+            }
+
+            child->drawInternal(deltaTime);
+        }
     }
 
     void UiElement::updateInternal(const float deltaTime)

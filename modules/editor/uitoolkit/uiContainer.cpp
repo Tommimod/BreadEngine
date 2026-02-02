@@ -122,7 +122,6 @@ namespace BreadEditor {
 
     void UiContainer::recalculateChilds()
     {
-        _toolbarHeightInPercent = _toolbar.getBounds().height / _bounds.height;
         const auto isSingleChild = getChildCount() == 2; //1. toolbar + 2. child
         int i = 0;
         float lastPosition = _toolbar.getSize().y;

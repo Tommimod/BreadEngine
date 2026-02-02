@@ -30,12 +30,8 @@ namespace BreadEditor {
         {
             setDirty();
         }
-
-        const auto &bounds = getBounds();
-        BeginScissorMode(bounds.x, bounds.y + RAYGUI_WINDOWBOX_STATUSBAR_HEIGHT, bounds.width, bounds.height - RAYGUI_WINDOWBOX_STATUSBAR_HEIGHT);
-        drawLines(Engine::getRootNode());
-        EndScissorMode();
         UiWindow::draw(deltaTime);
+        drawLines(Engine::getRootNode());
     }
 
     void NodeTreeWindow::update(const float deltaTime)

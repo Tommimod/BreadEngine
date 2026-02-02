@@ -47,7 +47,14 @@ namespace BreadEditor {
     {
         _closeButton.onClick.subscribe([this](UiButton *_)
         {
+            if (!_closeButton.isActive)
+            {
+                return;
+            }
+
+            _closeButton.isActive = false;
             _parent->destroyChild(this);
+            getRootElement()->setDirty();
         });
     }
 
@@ -85,6 +92,8 @@ namespace BreadEditor {
         _closeButton.setAnchor(UI_RIGHT_TOP);
         _closeButton.setPivot({1, 1});
         _closeButton.setPosition({-5, 20});
+        _closeButton.setRenderOnEndOfFrame();
+        _closeButton.setIgnoreScrollLayout();
 
         Editor::getInstance().getEditorModel().getWindowsModel()->removeWindowFromAllowList(id);
     }

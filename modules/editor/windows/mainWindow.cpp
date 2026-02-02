@@ -22,56 +22,51 @@ namespace BreadEditor {
         setSizePercentPermanent({1, 1});
         computeBounds();
 
-        const auto toolbar = &UiPool::toolbarPool.get().setup("mainWindowToolbar", this, {"File", "Edit", "Help"}, true);
-        toolbar->setAnchor(UI_FIT_TOP_HORIZONTAL);
-        toolbar->setPivot({0, 0});
-        toolbar->setSize({0, 20});
-        toolbar->computeBounds();
-        toolbar->isStatic = true;
+        const auto &toolbar = getToolbar();
 
         _leftContainer = std::make_unique<UiContainer>(LAYOUT_VERTICAL);
         _leftContainer->setPivot({0, 0});
         _leftContainer->setAnchor(UI_FIT_LEFT_VERTICAL);
         _leftContainer->setSizePercentOneTime({.15f, .5f});
-        _leftContainer->setPosition({0, toolbar->getSize().y - 1});
+        _leftContainer->setPosition({0, toolbar.getSize().y - 1});
         _leftContainer->setHorizontalResized(true);
         _leftContainer->computeBounds();
         _leftContainer->setup("leftContainer", this);
 
-        _leftContainer->addChild(new AssetsWindow(AssetsWindow::Id));
-
-        _bottomContainer = std::make_unique<UiContainer>(LAYOUT_HORIZONTAL);
-        _bottomContainer->setPivot({.5f, 1});
-        _bottomContainer->setAnchor(UI_CENTER_BOTTOM);
-        _bottomContainer->setSizePercentOneTime({.7f, .35f});
-        _bottomContainer->setPosition({0, toolbar->getSize().y - 1});
-        _bottomContainer->setVerticalResized(true);
-        _bottomContainer->computeBounds();
-        _bottomContainer->setup("bottomContainer", this);
-
-        _bottomContainer->addChild(new ConsoleWindow(ConsoleWindow::Id));
+        _leftContainer->addChild(new AssetsWindow(AssetsWindow::Id, _leftContainer.get()));
 
         _centerContainer = std::make_unique<UiContainer>(LAYOUT_VERTICAL);
         _centerContainer->setPivot({.5f, 0});
         _centerContainer->setAnchor(UI_CENTER_TOP);
         _centerContainer->setSizePercentOneTime({.7f, .65f});
-        _centerContainer->setPosition({0, toolbar->getSize().y - 1});
+        _centerContainer->setPosition({0, toolbar.getSize().y - 1});
         _centerContainer->computeBounds();
         _centerContainer->setup("centerContainer", this);
 
-        _centerContainer->addChild(new ViewportWindow(ViewportWindow::Id));
+        _centerContainer->addChild(new ViewportWindow(ViewportWindow::Id, _centerContainer.get()));
+
+        _bottomContainer = std::make_unique<UiContainer>(LAYOUT_HORIZONTAL);
+        _bottomContainer->setPivot({.5f, 1});
+        _bottomContainer->setAnchor(UI_CENTER_BOTTOM);
+        _bottomContainer->setSizePercentOneTime({.7f, .35f});
+        _bottomContainer->setPosition({0, toolbar.getSize().y - 1});
+        _bottomContainer->setVerticalResized(true);
+        _bottomContainer->computeBounds();
+        _bottomContainer->setup("bottomContainer", this);
+
+        _bottomContainer->addChild(new ConsoleWindow(ConsoleWindow::Id, _bottomContainer.get()));
 
         _rightContainer = std::make_unique<UiContainer>(LAYOUT_VERTICAL);
         _rightContainer->setPivot({1, 0});
         _rightContainer->setAnchor(UI_FIT_RIGHT_VERTICAL);
         _rightContainer->setSizePercentOneTime({.15f, .5f});
-        _rightContainer->setPosition({0, toolbar->getSize().y - 1});
+        _rightContainer->setPosition({0, toolbar.getSize().y - 1});
         _rightContainer->setHorizontalResized(true);
         _rightContainer->computeBounds();
         _rightContainer->setup("rightContainer", this);
 
-        _rightContainer->addChild(new NodeTreeWindow(NodeTreeWindow::Id));
-        _rightContainer->addChild(new NodeInspectorWindow(NodeInspectorWindow::Id));
+        _rightContainer->addChild(new NodeTreeWindow(NodeTreeWindow::Id, _rightContainer.get()));
+        _rightContainer->addChild(new NodeInspectorWindow(NodeInspectorWindow::Id, _rightContainer.get()));
     }
 
     vector<std::string> &MainWindow::getWindowsOptions()
@@ -155,5 +150,57 @@ namespace BreadEditor {
         if (element != nullptr) return element;
 
         return element;
+    }
+
+    UiToolbar &MainWindow::getToolbar()
+    {
+        auto &toolbar = UiPool::toolbarPool.get().setup("mainWindowToolbar", this, {"File", "Edit", "Help"}, true);
+        toolbar.setAnchor(UI_FIT_TOP_HORIZONTAL);
+        toolbar.setPivot({0, 0});
+        toolbar.setSize({0, 20});
+        toolbar.computeBounds();
+        toolbar.setOnOverlayLayer();
+        toolbar.isStatic = true;
+
+        toolbar.onButtonPressed.subscribe([this, &toolbar](const int index)
+        {
+            vector<string> nextOptions;
+            switch (index)
+            {
+                case 0: //File
+                {
+                    nextOptions = _toolbarFileOptions;
+                    break;
+                }
+                case 1: //Edit
+                {
+                    nextOptions = _toolbarEditOptions;
+                    break;
+                }
+                case 2: //Help
+                {
+                    nextOptions = _toolbarHelpOptions;
+                    break;
+                }
+                default: { break; }
+            }
+
+            auto &dropdown = UiPool::dropdownPool.get().setup(toolbar.id + "toolbarDropdown", &toolbar, nextOptions, false);
+            dropdown.setAnchor(UI_LEFT_CENTER);
+            dropdown.setPivot({0, 0});
+            dropdown.setSize({80, 15});
+            dropdown.setPosition({toolbar.getAllChilds()[index]->getPosition().x, 0});
+            dropdown.setTextAlignment(TEXT_ALIGN_LEFT);
+            dropdown.isDebugRectVisible = true;
+            dropdown.onValueChanged.subscribe([&dropdown, &toolbar](const int value)
+            {
+                toolbar.destroyChild(&dropdown);
+                if (value >= 1)
+                {
+
+                }
+            });
+        });
+        return toolbar;
     }
 } // namespace BreadEditor

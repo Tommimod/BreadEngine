@@ -37,7 +37,6 @@ namespace BreadEditor {
     private:
         UiToolbar &_toolbar;
         vector<std::string> _tabs {};
-        float _toolbarHeightInPercent = 0;
         int _activeTab = 0;
         std::unordered_map<int, std::vector<std::string>> _tabToWindowIds {};
 
