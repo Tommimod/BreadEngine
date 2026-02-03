@@ -7,6 +7,7 @@
 #include "../uitoolkit/uiToolbar.h"
 #include "raylib.h"
 #include "viewportWindow.h"
+#include "systems/mainToolbarSystem.h"
 #include "uitoolkit/uiContainer.h"
 using namespace BreadEngine;
 
@@ -56,10 +57,8 @@ namespace BreadEditor {
         unique_ptr<UiContainer> _centerContainer;
 
         GizmoSystem _gizmoSystem;
+        MainToolbarSystem _mainToolbarSystem;
         vector<std::string> _windowsOptions{};
-        const vector<std::string> _toolbarFileOptions{"New Project", "Open Project", "Save Project", "Save Project As", "Close Editor"};
-        const vector<std::string> _toolbarEditOptions{"Undo", "Redo", "Cut", "Copy", "Paste", "Delete"};
-        const vector<std::string> _toolbarHelpOptions{"About"};
 
         [[nodiscard]] UiElement *findUiElementById(const std::string &id) const;
 

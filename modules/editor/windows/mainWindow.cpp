@@ -154,7 +154,8 @@ namespace BreadEditor {
 
     UiToolbar &MainWindow::getToolbar()
     {
-        auto &toolbar = UiPool::toolbarPool.get().setup("mainWindowToolbar", this, {"File", "Edit", "Help"}, true);
+        auto &categories = _mainToolbarSystem.getCategories();
+        auto &toolbar = UiPool::toolbarPool.get().setup("mainWindowToolbar", this, categories, true);
         toolbar.setAnchor(UI_FIT_TOP_HORIZONTAL);
         toolbar.setPivot({0, 0});
         toolbar.setSize({0, 20});
@@ -162,42 +163,29 @@ namespace BreadEditor {
         toolbar.setOnOverlayLayer();
         toolbar.isStatic = true;
 
-        toolbar.onButtonPressed.subscribe([this, &toolbar](const int index)
+        toolbar.onButtonPressed.subscribe([this, &toolbar, &categories](int index)
         {
-            vector<string> nextOptions;
-            switch (index)
+            auto &nextOptions = _mainToolbarSystem.getOptions(categories[index]);
+            std::vector<std::string> options{};
+            options.reserve(nextOptions.size());
+            for (const auto &nextOption: nextOptions)
             {
-                case 0: //File
-                {
-                    nextOptions = _toolbarFileOptions;
-                    break;
-                }
-                case 1: //Edit
-                {
-                    nextOptions = _toolbarEditOptions;
-                    break;
-                }
-                case 2: //Help
-                {
-                    nextOptions = _toolbarHelpOptions;
-                    break;
-                }
-                default: { break; }
+                options.push_back(nextOption.optionName);
             }
 
-            auto &dropdown = UiPool::dropdownPool.get().setup(toolbar.id + "toolbarDropdown", &toolbar, nextOptions, false);
+            auto &dropdown = UiPool::dropdownPool.get().setup(toolbar.id + "toolbarDropdown", &toolbar, options, false);
             dropdown.setAnchor(UI_LEFT_CENTER);
             dropdown.setPivot({0, 0});
             dropdown.setSize({80, 15});
             dropdown.setPosition({toolbar.getAllChilds()[index]->getPosition().x, 0});
             dropdown.setTextAlignment(TEXT_ALIGN_LEFT);
             dropdown.isDebugRectVisible = true;
-            dropdown.onValueChanged.subscribe([&dropdown, &toolbar](const int value)
+            dropdown.onValueChanged.subscribe([&dropdown, &toolbar, this, &index, &categories](const int value)
             {
                 toolbar.destroyChild(&dropdown);
                 if (value >= 1)
                 {
-
+                    _mainToolbarSystem.processCommand(categories[index], value);
                 }
             });
         });
