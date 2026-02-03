@@ -1,14 +1,13 @@
 ﻿#include "fileDialogHelper.h"
 #include <shlobj.h>
-
+#include <windows.h>
 namespace BreadEditor {
-    std::wstring FileDialogHelper::OpenFile(const HWND owner, const wchar_t *filter, const wchar_t *title, const wchar_t *defExt)
+    std::wstring FileDialogHelper::OpenFile(const wchar_t *filter, const wchar_t *title, const wchar_t *defExt)
     {
         wchar_t path[MAX_PATH * 2] = {0};
 
         OPENFILENAMEW ofn = {};
         ofn.lStructSize = sizeof(ofn);
-        ofn.hwndOwner = owner;
         ofn.lpstrFilter = filter;
         ofn.nFilterIndex = 1;
         ofn.lpstrFile = path;
@@ -25,12 +24,11 @@ namespace BreadEditor {
         return std::wstring{};
     }
 
-    std::wstring FileDialogHelper::SelectFolder(HWND owner, const wchar_t *title)
+    std::wstring FileDialogHelper::SelectFolder(const wchar_t *title)
     {
         wchar_t path[MAX_PATH] = {0};
 
         BROWSEINFOW bi = {};
-        bi.hwndOwner = owner;
         bi.lpszTitle = title;
         bi.ulFlags = BIF_RETURNONLYFSDIRS | BIF_NEWDIALOGSTYLE | BIF_USENEWUI;
 
@@ -51,17 +49,17 @@ namespace BreadEditor {
         return std::wstring{};
     }
 
-    std::string FileDialogHelper::OpenFileUTF8(HWND owner, const wchar_t *filter, const wchar_t *title, const wchar_t *defExt)
+    std::string FileDialogHelper::OpenFileUTF8(const wchar_t *filter, const wchar_t *title, const wchar_t *defExt)
     {
-        const std::wstring wpath = OpenFile(owner, filter, title, defExt);
+        const std::wstring wpath = OpenFile(filter, title, defExt);
         if (wpath.empty()) return {};
 
         return WideToUtf8(wpath);
     }
 
-    std::string FileDialogHelper::SelectFolderUTF8(HWND owner, const wchar_t *title)
+    std::string FileDialogHelper::SelectFolderUTF8(const wchar_t *title)
     {
-        std::wstring wpath = SelectFolder(owner, title);
+        std::wstring wpath = SelectFolder(title);
         if (wpath.empty()) return {};
 
         return WideToUtf8(wpath);
