@@ -1,5 +1,7 @@
 # BreadEditor - Game Editor Application
+cmake_policy(VERSION 3.5)
 project(BreadEditor_App)
+include(FetchContent)
 
 file(GLOB_RECURSE EDITOR_SOURCES
         "*.cpp"
@@ -70,6 +72,15 @@ add_custom_command(TARGET BreadEditor POST_BUILD
         "${CMAKE_SOURCE_DIR}/lib/libc++.dll"
         "${CMAKE_BINARY_DIR}/bin"
 )
+
+FetchContent_Declare(
+        yaml-cpp
+        GIT_REPOSITORY https://github.com/jbeder/yaml-cpp.git
+        GIT_TAG master
+)
+FetchContent_MakeAvailable(yaml-cpp)
+
+target_link_libraries(BreadEditor PUBLIC yaml-cpp::yaml-cpp)
 
 message(STATUS "BreadEditor executable configured")
 message(STATUS "${CMAKE_BINARY_DIR}/bin")

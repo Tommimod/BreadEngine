@@ -179,7 +179,6 @@ namespace BreadEditor {
             dropdown.setSize({80, 15});
             dropdown.setPosition({toolbar.getAllChilds()[index]->getPosition().x, 0});
             dropdown.setTextAlignment(TEXT_ALIGN_LEFT);
-            dropdown.isDebugRectVisible = true;
             dropdown.onValueChanged.subscribe([&dropdown, &toolbar, this, &index, &categories](const int value)
             {
                 toolbar.destroyChild(&dropdown);
