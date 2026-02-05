@@ -4,7 +4,9 @@ namespace BreadEditor {
     class ReservedFileNames
     {
     public:
-        constexpr static auto EDITOR_SETTINGS_NAME = "editor_settings.yaml";
-        constexpr static auto PROJECT_SETTINGS_NAME = "project_settings.yaml";
+        constexpr static auto MARKER_CONFIG = ".cnf";
+        constexpr static auto EDITOR_PREFS_NAME = "editor_prefs.cnf";
+        constexpr static auto EDITOR_IN_PROJECT_SETTINGS_NAME = "editor_settings.cnf";
+        constexpr static auto PROJECT_SETTINGS_NAME = "project_settings.cnf";
     };
 } // BreadEditor

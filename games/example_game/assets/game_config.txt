@@ -1,6 +1,0 @@
-# Example Game Configuration
-player_speed=5.0
-jump_height=10.0
-gravity=9.8
-max_health=100
-starting_level=1

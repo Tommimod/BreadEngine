@@ -35,11 +35,11 @@ namespace BreadEditor {
             _projectPath = std::move(path);
         }
 
-        [[nodiscard]] const char *getProjectAssetsPath() const { return TextFormat("%s/assets/", _projectPath.c_str()); }
+        [[nodiscard]] const char *getProjectAssetsPath() const { return TextFormat("%s\\assets\\", _projectPath.c_str()); }
 
         [[nodiscard]] static const char *getEditorAssetsPath()
         {
-            constexpr auto path = "assets/editor/";
+            constexpr auto path = R"(\assets\editor\)";
             return path;
         }
 
