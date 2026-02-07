@@ -5,7 +5,7 @@
 #include <yaml-cpp/node/parse.h>
 
 namespace BreadEditor {
-    EditorPrefsConfig::EditorPrefsConfig() : BaseYamlConfig("")
+    EditorPrefsConfig::EditorPrefsConfig() : BaseYamlConfig()
     {
     }
 
@@ -20,6 +20,7 @@ namespace BreadEditor {
         node[name] = LastProjectPath;
 
         std::ofstream process(_filePath);
+        process.clear();
         process << node;
         process.close();
     }

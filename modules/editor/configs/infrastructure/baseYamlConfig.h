@@ -1,9 +1,11 @@
 ﻿#pragma once
+#include <string>
 
 namespace BreadEditor {
     struct BaseYamlConfig
     {
-        explicit BaseYamlConfig(const char *filePath);
+        explicit BaseYamlConfig() = default;
+        explicit BaseYamlConfig(const std::string &filePath);
 
         virtual ~BaseYamlConfig();
 
@@ -12,7 +14,7 @@ namespace BreadEditor {
         virtual void deserialize() = 0;
 
     protected:
-        void setPath(const char *filePath) { _filePath = filePath; }
-        const char *_filePath = nullptr;
+        void setPath(const std::string &filePath) { _filePath = filePath; }
+        std::string _filePath;
     };
 } // BreadEditor

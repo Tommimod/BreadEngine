@@ -9,7 +9,7 @@ namespace BreadEditor {
     public:
         ConfigsProvider() = default;
 
-        ~ConfigsProvider();
+        ~ConfigsProvider() = default;
 
         [[nodiscard]] EditorPrefsConfig *getEditorPrefsConfig() const
         {
