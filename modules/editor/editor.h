@@ -2,6 +2,7 @@
 #include "windows/mainWindow.h"
 #include <string>
 #include "engine.h"
+#include "configs/infrastructure/configsProvider.h"
 #include "models/editorModel.h"
 using namespace BreadEngine;
 #if !defined(RAYGUI_WINDOWBOX_STATUSBAR_HEIGHT)
@@ -47,6 +48,8 @@ namespace BreadEditor {
 
         [[nodiscard]] RenderTexture2D *getViewportRenderTexture() const { return _viewportRenderTexture; }
 
+        [[nodiscard]] ConfigsProvider &getConfigsProvider() { return _configsProvider; }
+
     private:
         Editor();
 
@@ -56,6 +59,7 @@ namespace BreadEditor {
         std::string _currentProjectPath;
         Engine *_engine = nullptr;
         EditorModel _editorModel;
+        ConfigsProvider _configsProvider;
         UiElement &_uiRoot;
         RenderTexture2D *_viewportRenderTexture;
     };

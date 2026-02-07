@@ -3,6 +3,9 @@
 
 #include "systems/cursorSystem.h"
 #include "node.h"
+#include "systems/commands/commandsHandler.h"
+#include "systems/commands/mainToolbarCommands/reopenLastProjectCommand.h"
+#include "validators/mandatoryEditorFilesValidator.h"
 
 namespace BreadEditor {
     Editor &Editor::getInstance()
@@ -20,9 +23,11 @@ namespace BreadEditor {
     {
         if (_initialized) return false;
 
+        _initialized = MandatoryEditorFilesValidator::validate();
+        CommandsHandler::execute(std::make_unique<ReopenLastProjectCommand>());
+
         GuiLoadStyleDefault();
         SetTraceLogLevel(LOG_ALL);
-        _initialized = true;
 
         mainWindow.initialize();
         mainWindow.updateInternal(0);
@@ -66,7 +71,7 @@ namespace BreadEditor {
         Engine::nodePool.get().setup("33", *rootNode);
         Engine::nodePool.get().setup("34", *rootNode);
         Engine::nodePool.get().setup("35", *rootNode);
-        return true;
+        return _initialized;
     }
 
     void Editor::shutdown()
