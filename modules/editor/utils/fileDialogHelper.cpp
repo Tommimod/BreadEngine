@@ -88,8 +88,7 @@ namespace BreadEditor {
     {
         if (wstr.empty()) return {};
 
-        std::wcout << L"Raw wide path from SHBrowse: [" << wstr << L"]\n";
-        int len = WideCharToMultiByte(
+        const int len = WideCharToMultiByte(
             CP_UTF8,
             0,
             wstr.data(),
@@ -103,8 +102,7 @@ namespace BreadEditor {
         if (len <= 0) return {};
 
         std::string utf8(len, '\0');
-
-        int result = WideCharToMultiByte(
+        const int result = WideCharToMultiByte(
             CP_UTF8,
             0,
             wstr.data(),
@@ -114,8 +112,7 @@ namespace BreadEditor {
             nullptr,
             nullptr
         );
-        std::cout << "UTF-8 result: [" << utf8 << "]\n";
-        std::cout << "UTF-8 length: " << utf8.size() << "\n";
+
         if (result == 0) return {};
         return utf8;
     }

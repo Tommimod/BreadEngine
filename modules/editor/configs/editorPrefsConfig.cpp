@@ -36,9 +36,12 @@ namespace BreadEditor {
         auto rawConfig = YAML::LoadFile(_filePath);
         if (rawConfig.IsNull())
         {
-            serialize();
-            configProvider.setEditorPrefsConfig(std::make_unique<EditorPrefsConfig>());
-            return;
+            const auto name = NAMEOF(LastProjectPath).c_str();
+            rawConfig[name] = TextFormat("%s\\%s", GetWorkingDirectory(), "assets\\game");
+
+            std::ofstream process(_filePath);
+            process << rawConfig;
+            process.close();
         }
 
         auto data = rawConfig.as<EditorPrefsConfig>();

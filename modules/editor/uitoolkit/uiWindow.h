@@ -32,6 +32,8 @@ namespace BreadEditor {
         Vector2 _contentSize{0, 0};
         UiButton &_closeButton;
 
+        virtual void awake();
+
         virtual void initialize();
 
         virtual void subscribe();
@@ -43,5 +45,8 @@ namespace BreadEditor {
         virtual void updateScrollView();
 
         void calculateRectForScroll(UiElement *element);
+
+    private:
+        bool _isAwake = false;
     };
 } // BreadEditor

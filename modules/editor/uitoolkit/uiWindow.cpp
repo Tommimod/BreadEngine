@@ -17,13 +17,23 @@ namespace BreadEditor {
 
     UiWindow::~UiWindow() = default;
 
+    void UiWindow::awake()
+    {
+    }
+
     void UiWindow::draw(const float deltaTime)
     {
-        BeginScissorMode(_scrollView.x, _scrollView.y, _scrollView.width, _scrollView.height);
+        BeginScissorMode(static_cast<int>(_scrollView.x), static_cast<int>(_scrollView.y), static_cast<int>(_scrollView.width), static_cast<int>(_scrollView.height));
     }
 
     void UiWindow::update(const float deltaTime)
     {
+        if (!_isAwake)
+        {
+            awake();
+            _isAwake = true;
+        }
+
         updateResizable(*this);
         updateScrollView();
         setScrollOffset(_scrollPos);
@@ -41,6 +51,7 @@ namespace BreadEditor {
         UiElement::dispose();
         setVerticalResized(false);
         setHorizontalResized(false);
+        _isAwake = false;
     }
 
     void UiWindow::subscribe()
