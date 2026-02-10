@@ -2,7 +2,10 @@
 #include "uitoolkit/uiPool.h"
 
 namespace BreadEditor {
-    FolderUiElement::FolderUiElement() = default;
+    FolderUiElement::FolderUiElement() : _button(UiPool::labelButtonPool.get())
+    {
+        _button.setup(id + "button", this, "");
+    }
 
     FolderUiElement::~FolderUiElement() = default;
 
@@ -22,6 +25,13 @@ namespace BreadEditor {
         return *this;
     }
 
+    void FolderUiElement::awake()
+    {
+        _button.setText(_engineFolder->name);
+        _button.setTextAlignment(TEXT_ALIGN_LEFT);
+        _button.setSizePercentPermanent({1, 1});
+    }
+
     void FolderUiElement::draw(const float deltaTime)
     {
     }
@@ -35,6 +45,9 @@ namespace BreadEditor {
         _engineFolder = nullptr;
         _isExpanded = false;
         _parentFolderElement = nullptr;
+        onExpanded.unsubscribeAll();
+        onDragEnded.unsubscribeAll();
+        onDragStarted.unsubscribeAll();
         UiElement::dispose();
     }
 

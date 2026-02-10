@@ -111,13 +111,12 @@ namespace BreadEditor {
 
     void NodeTreeWindow::onNodeCreated(Node *node)
     {
-        constexpr auto elementIdFormat = "NinsT_%s_%d";
         constexpr float elementHeight = 20.0f;
         constexpr float elementWidthInPercent = 0.8f;
 
         update(0);
 
-        const auto id = TextFormat(elementIdFormat, node->getName().c_str(), getChildCount());
+        const auto id = TextFormat(NodeUiElement::elementIdFormat, node->getName().c_str(), getChildCount());
         auto &element = UiPool::nodeUiElementPool.get().setup(id, this, node);
 
         element.setParentNode(findNodeUiElementByEngineNode(node->getParent()));

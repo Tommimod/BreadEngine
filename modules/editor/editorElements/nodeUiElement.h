@@ -10,6 +10,8 @@ namespace BreadEditor {
     class NodeUiElement final : public UiElement, public IUiDraggable
     {
     public:
+        static constexpr auto elementIdFormat = "NinsT_%s_%d";
+
         Action<NodeUiElement *> onSelected;
         Action<NodeUiElement *> onExpandStateChanged;
 
@@ -57,6 +59,7 @@ namespace BreadEditor {
         UiButton &_expandButton;
 
         void prepareToClick();
+
         void updateExpandButtonText() const;
     };
 } // BreadEditor

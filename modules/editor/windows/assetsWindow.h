@@ -1,4 +1,5 @@
 ﻿#pragma once
+#include "editorElements/folderUiElement.h"
 #include "systems/fileSystem.h"
 #include "uitoolkit/uiElement.h"
 #include "uitoolkit/uiWindow.h"
@@ -33,6 +34,7 @@ namespace BreadEditor {
     private:
         const char *_title = Id.c_str();
         FileSystem &_fileSystem;
+        std::vector<FolderUiElement *> _folderUiElements;
 
         void createFolderElement(const Folder &folder);
     };

@@ -3,6 +3,7 @@
 #include "systems/fileSystem.h"
 #include "uitoolkit/IUiDraggable.h"
 #include "uitoolkit/uiElement.h"
+#include "uitoolkit/uiLabelButton.h"
 
 namespace BreadEditor {
     class FolderUiElement : public UiElement, public IUiDraggable
@@ -20,6 +21,8 @@ namespace BreadEditor {
 
         [[nodiscard]] bool &IsExpanded() { return _isExpanded; }
 
+        void awake() override;
+
         void draw(float deltaTime) override;
 
         void update(float deltaTime) override;
@@ -33,5 +36,6 @@ namespace BreadEditor {
         bool _isExpanded = false;
         BreadEngine::Folder *_engineFolder = nullptr;
         FolderUiElement *_parentFolderElement = nullptr;
+        UiLabelButton &_button;
     };
 } // BreadEditor
