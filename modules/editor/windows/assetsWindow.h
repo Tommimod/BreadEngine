@@ -1,4 +1,5 @@
 ﻿#pragma once
+#include "editorElements/fileUiElement.h"
 #include "editorElements/folderUiElement.h"
 #include "systems/fileSystem.h"
 #include "uitoolkit/uiElement.h"
@@ -22,7 +23,7 @@ namespace BreadEditor {
 
         void dispose() override;
 
-        const char *getTitle() override { return _title; }
+        [[nodiscard]] const char *getTitle() override { return _title; }
 
     protected:
         void awake() override;
@@ -35,7 +36,18 @@ namespace BreadEditor {
         const char *_title = Id.c_str();
         FileSystem &_fileSystem;
         std::vector<FolderUiElement *> _folderUiElements;
+        std::vector<FileUiElement *> _fileUiElements;
 
-        void createFolderElement(const Folder &folder);
+        [[nodiscard]] FolderUiElement *getFolderUiElementByEngineFolder(const Folder *folder) const;
+
+        [[nodiscard]] FileUiElement *getFileUiElementByPath(const std::string &fileName) const;
+
+        FolderUiElement &CreateFolderUiElement(Folder *folder);
+
+        FileUiElement &CreateFileUiElement(const std::string &fileName);
+
+        void recalculateUiFolders(Folder *folder, int &nodeOrder, bool isParentExpanded = true);
+
+        void recalculateUiFiles(const std::string &fileName, int &nodeOrder, int depth);
     };
 } // BreadEditor

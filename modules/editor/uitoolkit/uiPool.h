@@ -15,6 +15,7 @@
 #include "uiVector3D.h"
 #include "uiVector4D.h"
 #include "editorElements/folderUiElement.h"
+#include "editorElements/fileUiElement.h"
 using namespace BreadEngine;
 
 namespace BreadEditor {
@@ -36,5 +37,6 @@ namespace BreadEditor {
         static ObjectPool<UiVector4D> vector4DPool;
         static ObjectPool<UiDropdown> dropdownPool;
         static ObjectPool<FolderUiElement> folderUiElementPool;
+        static ObjectPool<FileUiElement> fileUiElementPool;
     };
 } // BreadEditor

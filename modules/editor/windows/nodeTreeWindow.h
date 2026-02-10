@@ -38,7 +38,7 @@ namespace BreadEditor {
         std::vector<NodeUiElement *> _nodeUiElements{};
         NodeUiElement *_draggedNodeUiElementCopy = nullptr;
 
-        [[nodiscard]] NodeUiElement *findNodeUiElementByEngineNode(const Node *node) const;
+        [[nodiscard]] NodeUiElement *getNodeUiElementByEngineNode(const Node *node) const;
 
         void rebuild();
 

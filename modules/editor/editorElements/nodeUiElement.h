@@ -10,7 +10,7 @@ namespace BreadEditor {
     class NodeUiElement final : public UiElement, public IUiDraggable
     {
     public:
-        static constexpr auto elementIdFormat = "NinsT_%s_%d";
+        static constexpr auto elementIdFormat = "NodeInsT_%s_%d";
 
         Action<NodeUiElement *> onSelected;
         Action<NodeUiElement *> onExpandStateChanged;

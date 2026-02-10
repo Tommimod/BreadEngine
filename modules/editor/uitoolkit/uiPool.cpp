@@ -92,4 +92,10 @@ namespace BreadEditor {
         return new FolderUiElement();
     };
     ObjectPool<FolderUiElement> UiPool::folderUiElementPool(UIFolderElementFactory, 10);
+
+    auto UIFileElementFactory = []() -> FileUiElement *
+    {
+        return new FileUiElement();
+    };
+    ObjectPool<FileUiElement> UiPool::fileUiElementPool(UIFileElementFactory, 10);
 } // BreadEditor

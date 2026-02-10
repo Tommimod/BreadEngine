@@ -15,9 +15,9 @@ namespace BreadEngine {
         return LoadDirectoryFiles(path).count > 0 && GetFileExtension(path) == nullptr;
     }
 
-    const Folder &FileSystem::getRootFolder()
+    Folder *FileSystem::getRootFolder()
     {
-        return _rootFolder;
+        return &_rootFolder;
     }
 
     void FileSystem::parseFolders(Folder &folder, const FilePathList &filePathList)

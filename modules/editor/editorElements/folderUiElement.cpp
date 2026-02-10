@@ -1,4 +1,6 @@
 ﻿#include "folderUiElement.h"
+
+#include "engine.h"
 #include "uitoolkit/uiPool.h"
 
 namespace BreadEditor {
@@ -13,27 +15,24 @@ namespace BreadEditor {
     {
         _isExpanded = true;
         _engineFolder = folder;
-        UiElement::setup(id, parentElement);
-        return *this;
-    }
+        _button.setText( GuiIconText(ICON_FOLDER, folder->name.c_str()));
+        _button.setTextAlignment(TEXT_ALIGN_LEFT);
+        _button.setSizePercentPermanent({1, 1});
 
-    FolderUiElement &FolderUiElement::setup(const std::string &id, FolderUiElement *parentElement, Folder *folder)
-    {
-        _engineFolder = folder;
-        _parentFolderElement = parentElement;
         UiElement::setup(id, parentElement);
         return *this;
     }
 
     void FolderUiElement::awake()
     {
-        _button.setText(_engineFolder->name);
-        _button.setTextAlignment(TEXT_ALIGN_LEFT);
-        _button.setSizePercentPermanent({1, 1});
     }
 
     void FolderUiElement::draw(const float deltaTime)
     {
+        if (Engine::isCollisionPointRec(GetMousePosition(), getBounds()))
+        {
+            GuiPanel(getBounds(), nullptr);
+        }
     }
 
     void FolderUiElement::update(const float deltaTime)
@@ -44,7 +43,6 @@ namespace BreadEditor {
     {
         _engineFolder = nullptr;
         _isExpanded = false;
-        _parentFolderElement = nullptr;
         onExpanded.unsubscribeAll();
         onDragEnded.unsubscribeAll();
         onDragStarted.unsubscribeAll();

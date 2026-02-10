@@ -9,6 +9,7 @@ namespace BreadEditor {
     class FolderUiElement : public UiElement, public IUiDraggable
     {
     public:
+        static constexpr auto elementIdFormat = "FoldInsT_%s_%d";
         BreadEngine::Action<FolderUiElement *> onExpanded;
 
         FolderUiElement();
@@ -17,9 +18,12 @@ namespace BreadEditor {
 
         [[nodiscard]] FolderUiElement &setup(const std::string &id, UiElement *parentElement, BreadEngine::Folder *folder);
 
-        [[nodiscard]] FolderUiElement &setup(const std::string &id, FolderUiElement *parentElement, BreadEngine::Folder *folder);
 
         [[nodiscard]] bool &IsExpanded() { return _isExpanded; }
+
+        [[nodiscard]] Folder &getFolder() const { return *_engineFolder; }
+
+        [[nodiscard]] bool getIsExpanded() const { return _isExpanded; }
 
         void awake() override;
 
@@ -35,7 +39,6 @@ namespace BreadEditor {
     private:
         bool _isExpanded = false;
         BreadEngine::Folder *_engineFolder = nullptr;
-        FolderUiElement *_parentFolderElement = nullptr;
         UiLabelButton &_button;
     };
 } // BreadEditor

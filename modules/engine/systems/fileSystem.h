@@ -12,6 +12,11 @@ namespace BreadEngine {
         std::vector<Folder> folders;
 
         [[nodiscard]] bool isEmpty() const { return files.empty() && folders.empty(); }
+
+        bool operator==(const Folder &other) const
+        {
+            return depth == other.depth && name == other.name && files.data() == other.files.data() && folders.data() == other.folders.data();
+        }
     };
 
     class FileSystem
@@ -21,11 +26,11 @@ namespace BreadEngine {
 
         [[nodiscard]] static bool isFolder(const char *path);
 
-        [[nodiscard]] const Folder &getRootFolder();
+        [[nodiscard]] Folder *getRootFolder();
 
     private:
         std::string _projectPath;
-        Folder _rootFolder{.depth = 0, .name = "assets"};
+        Folder _rootFolder{.depth = 0, .name = "Project Files"};
 
         void parseFolders(Folder &folder, const FilePathList &filePathList);
     };

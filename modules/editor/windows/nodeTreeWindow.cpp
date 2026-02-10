@@ -49,7 +49,7 @@ namespace BreadEditor {
         UiWindow::dispose();
     }
 
-    NodeUiElement *NodeTreeWindow::findNodeUiElementByEngineNode(const Node *node) const
+    NodeUiElement *NodeTreeWindow::getNodeUiElementByEngineNode(const Node *node) const
     {
         for (const auto child: getAllChilds())
         {
@@ -65,7 +65,7 @@ namespace BreadEditor {
     void NodeTreeWindow::rebuild()
     {
         const auto rootNode = &Engine::getRootNode();
-        if (const auto instance = findNodeUiElementByEngineNode(rootNode); !instance)
+        if (const auto instance = getNodeUiElementByEngineNode(rootNode); !instance)
         {
             rebuildByNode(rootNode);
         }
@@ -73,7 +73,7 @@ namespace BreadEditor {
 
     void NodeTreeWindow::rebuildByNode(Node *node)
     {
-        if (const auto instance = findNodeUiElementByEngineNode(node); !instance)
+        if (const auto instance = getNodeUiElementByEngineNode(node); !instance)
         {
             onNodeCreated(node);
         }
@@ -119,7 +119,7 @@ namespace BreadEditor {
         const auto id = TextFormat(NodeUiElement::elementIdFormat, node->getName().c_str(), getChildCount());
         auto &element = UiPool::nodeUiElementPool.get().setup(id, this, node);
 
-        element.setParentNode(findNodeUiElementByEngineNode(node->getParent()));
+        element.setParentNode(getNodeUiElementByEngineNode(node->getParent()));
         element.setAnchor(UI_LEFT_TOP);
         element.setSize({0, elementHeight});
         element.setSizePercentPermanent({elementWidthInPercent, -1});
@@ -142,8 +142,8 @@ namespace BreadEditor {
 
     void NodeTreeWindow::onNodeChangedParent(const Node *node)
     {
-        const auto instance = findNodeUiElementByEngineNode(node);
-        instance->setParentNode(findNodeUiElementByEngineNode(node->getParent()));
+        const auto instance = getNodeUiElementByEngineNode(node);
+        instance->setParentNode(getNodeUiElementByEngineNode(node->getParent()));
 
         int i = 0;
         recalculateUiNodes(Engine::getRootNode(), i);
@@ -151,13 +151,13 @@ namespace BreadEditor {
 
     void NodeTreeWindow::onNodeChangedActive(const Node *node) const
     {
-        const auto instance = findNodeUiElementByEngineNode(node);
+        const auto instance = getNodeUiElementByEngineNode(node);
         instance->setState(node->getIsActive() ? STATE_NORMAL : STATE_DISABLED);
     }
 
     void NodeTreeWindow::onNodeRemoved(const Node *node)
     {
-        const auto instance = findNodeUiElementByEngineNode(node);
+        const auto instance = getNodeUiElementByEngineNode(node);
         instance->onSelected.unsubscribeAll();
         destroyChild(instance);
         _nodeUiElements.erase(ranges::find(_nodeUiElements, instance));
@@ -231,7 +231,7 @@ namespace BreadEditor {
 
     void NodeTreeWindow::recalculateUiNodes(Node &startNode, int &nodeOrder, const bool isParentExpanded)
     {
-        const auto element = findNodeUiElementByEngineNode(&startNode);
+        const auto element = getNodeUiElementByEngineNode(&startNode);
         if (!element) return;
 
         if (!isParentExpanded)
@@ -277,7 +277,7 @@ namespace BreadEditor {
 
         constexpr float nodeHorizontalPadding = 15.0f * .5f;
 
-        const auto instance = findNodeUiElementByEngineNode(&startNode);
+        const auto instance = getNodeUiElementByEngineNode(&startNode);
         if (!instance || !isParentExpanded) return;
 
         const bool isLast = _nodeUiElements.back() == instance;
@@ -297,7 +297,7 @@ namespace BreadEditor {
 
         const auto childs = startNode.getAllChilds();
         const auto lastChild = childs.back();
-        const auto lastElement = findNodeUiElementByEngineNode(lastChild);
+        const auto lastElement = getNodeUiElementByEngineNode(lastChild);
         auto lastTargetPoint = Vector2(targetPoint);
         lastTargetPoint.y = 1 + lastElement->getBounds().y + lastElement->getBounds().height * .5f;
         targetPoint.y++;
@@ -305,7 +305,7 @@ namespace BreadEditor {
 
         for (const auto child: childs)
         {
-            const auto childElement = findNodeUiElementByEngineNode(child);
+            const auto childElement = getNodeUiElementByEngineNode(child);
             const auto childBound = childElement->getBounds();
             const auto xPoint = childBound.x;
             const auto yPoint = childBound.y + childBound.height * .5f;
