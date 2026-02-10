@@ -38,12 +38,6 @@ namespace BreadEditor {
     void NodeInspectorWindow::draw(const float deltaTime)
     {
         GuiScrollPanel(_bounds, _title, _contentView, &_scrollPos, &_scrollView);
-        const auto isDisabled = _engineNode == nullptr;
-        for (const auto childElement: getAllChilds())
-        {
-            childElement->setState(isDisabled ? STATE_DISABLED : STATE_NORMAL);
-        }
-
         UiWindow::draw(deltaTime);
     }
 
@@ -150,11 +144,13 @@ namespace BreadEditor {
     void NodeInspectorWindow::onNodeActiveChanged(const bool isActive) const
     {
         _engineNode->setIsActive(isActive);
+        _activeCheckBox->setChecked(_engineNode->getIsActive());
     }
 
     void NodeInspectorWindow::onNodeNameChanged(const char *name) const
     {
         _engineNode->setName(name);
+        _nameTextBox->setText(_engineNode->getName());
     }
 
     void NodeInspectorWindow::setupUiComponent(UiComponent *uiComponentElement) const

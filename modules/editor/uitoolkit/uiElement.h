@@ -145,6 +145,7 @@ namespace BreadEditor {
         void setIgnoreScrollLayout();
 
     protected:
+        bool _isAwake = false;
         bool _isRenderOnEndOfFrame = false;
         bool _isDeleted = false;
         bool _ignoreScrollLayout = false;
@@ -164,6 +165,8 @@ namespace BreadEditor {
         UiElement &setup(const std::string &newId);
 
         UiElement &setup(const std::string &newId, UiElement *parentElement);
+
+        virtual void awake();
 
         [[nodiscard]] std::vector<UiElement *> getChildsSorterByHorizontal(bool reverse) const;
 
@@ -188,7 +191,7 @@ namespace BreadEditor {
         std::vector<UiElement *> _childs{};
         Vector2 _scrollOffset{0, 0};
 
-        void drawInternal(float deltaTime);
+        void drawInternal(float deltaTime, GuiState state = STATE_NORMAL);
 
         void updateInternal(float deltaTime);
 

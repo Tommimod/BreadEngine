@@ -134,6 +134,11 @@ namespace BreadEditor {
         element.onSelected.subscribe([this](NodeUiElement *nodeUiElement) { this->onNodeSelected(nodeUiElement); });
         element.onDragStarted.subscribe([this](UiElement *uiElement) { this->onElementStartDrag(uiElement); });
         element.onDragEnded.subscribe([this](UiElement *uiElement) { this->onElementEndDrag(uiElement); });
+        element.onExpandStateChanged.subscribe([this](NodeUiElement *)
+        {
+            int ii = 0;
+            recalculateUiNodes(Engine::getRootNode(), ii);
+        });
     }
 
     void NodeTreeWindow::onNodeChangedParent(const Node *node)
@@ -225,12 +230,24 @@ namespace BreadEditor {
         }
     }
 
-    void NodeTreeWindow::recalculateUiNodes(Node &startNode, int &nodeOrder)
+    void NodeTreeWindow::recalculateUiNodes(Node &startNode, int &nodeOrder, const bool isParentExpanded)
     {
         const auto element = findNodeUiElementByEngineNode(&startNode);
         if (!element) return;
 
+        if (!isParentExpanded)
+        {
+            element->isActive = false;
+            for (const auto child: startNode.getAllChilds())
+            {
+                recalculateUiNodes(*child, nodeOrder, false);
+            }
+            return;
+        }
+
+        element->isActive = true;
         element->computeBounds();
+        element->update(0);
         constexpr float nodeHorizontalPadding = 15.0f;
         constexpr float nodeVerticalPadding = 5.0f;
         constexpr float startYPosition = RAYGUI_WINDOWBOX_STATUSBAR_HEIGHT + 10;
@@ -248,24 +265,26 @@ namespace BreadEditor {
             return;
         }
 
+        const auto &isExpanded = element->getIsExpanded();
         for (const auto child: startNode.getAllChilds())
         {
-            recalculateUiNodes(*child, nodeOrder);
+            recalculateUiNodes(*child, nodeOrder, isExpanded);
         }
     }
 
-    void NodeTreeWindow::drawLines(Node &startNode) const
+    void NodeTreeWindow::drawLines(Node &startNode, const bool isParentExpanded) const
     {
         if (_nodeUiElements.empty()) return;
 
         constexpr float nodeHorizontalPadding = 15.0f * .5f;
 
         const auto instance = findNodeUiElementByEngineNode(&startNode);
-        if (!instance) return;
+        if (!instance || !isParentExpanded) return;
 
         const bool isLast = _nodeUiElements.back() == instance;
         const int childCount = instance->getNode()->getChildCount();
-        if (isLast || childCount == 0)
+        const auto &isExpanded = instance->getIsExpanded();
+        if (isLast || childCount == 0 || !isExpanded)
         {
             return;
         }
@@ -298,9 +317,7 @@ namespace BreadEditor {
 
         for (const auto child: childs)
         {
-            drawLines(*child);
+            drawLines(*child, isExpanded);
         }
     }
-
-
 } // BreadEditor

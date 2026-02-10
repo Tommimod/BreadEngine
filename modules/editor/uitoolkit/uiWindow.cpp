@@ -17,10 +17,6 @@ namespace BreadEditor {
 
     UiWindow::~UiWindow() = default;
 
-    void UiWindow::awake()
-    {
-    }
-
     void UiWindow::draw(const float deltaTime)
     {
         BeginScissorMode(static_cast<int>(_scrollView.x), static_cast<int>(_scrollView.y), static_cast<int>(_scrollView.width), static_cast<int>(_scrollView.height));
@@ -111,9 +107,10 @@ namespace BreadEditor {
 
     void UiWindow::calculateRectForScroll(UiElement *element)
     {
+        _contentSize = {0, 0};
+
         const auto &elementPosition = element->getPosition();
         const auto &elementSize = element->getSize();
-        const auto &windowBounds = getBounds();
         const auto size = Vector2(elementPosition.x + elementSize.x, elementPosition.y + elementSize.y);
         if (_contentSize.x == 0)
         {
@@ -132,5 +129,7 @@ namespace BreadEditor {
         {
             if (_contentSize.y < size.y) _contentSize.y = size.y;
         }
+
+        setDirty();
     }
 } // BreadEditor

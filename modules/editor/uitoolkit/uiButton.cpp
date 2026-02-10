@@ -33,7 +33,7 @@ namespace BreadEditor {
         if (GuiButton(_bounds, _text.c_str()))
         {
             const auto mousePos = GetMousePosition();
-            auto isNeedIgnore = !Engine::isCollisionPointRec(mousePos, _parent->getBounds());
+            auto isNeedIgnore = !Engine::isCollisionPointRec(mousePos, _parent->getBounds()) && !_canClickOutside;
             if (const auto childsCount = getChildCount(); !isNeedIgnore && childsCount > 0)
             {
                 for (const auto child : getAllChilds())

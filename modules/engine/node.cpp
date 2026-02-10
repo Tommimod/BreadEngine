@@ -111,7 +111,17 @@ namespace BreadEngine {
 
     void Node::setIsActive(bool nextIsActive)
     {
+        if (_parent != nullptr)
+        {
+            nextIsActive = _parent->getIsActive() && nextIsActive;
+        }
+
         _isActive = nextIsActive;
+        for (const auto &child: _childs)
+        {
+            child->setIsActive(nextIsActive);
+        }
+
         NodeProvider::onNodeChangedActive.invoke(this);
     }
 

@@ -58,8 +58,8 @@ namespace BreadEditor {
 
         void onElementEndDrag(UiElement *uiElement);
 
-        void recalculateUiNodes(Node &startNode, int &nodeOrder);
+        void recalculateUiNodes(Node &startNode, int &nodeOrder, bool isParentExpanded = true);
 
-        void drawLines(Node &startNode) const;
+        void drawLines(Node &startNode, bool isParentExpanded = true) const;
     };
 } // BreadEditor

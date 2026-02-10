@@ -86,4 +86,10 @@ namespace BreadEditor {
         return new UiDropdown();
     };
     ObjectPool<UiDropdown> UiPool::dropdownPool(UiDropdownFactory, 10);
+
+    auto UIFolderElementFactory = []() -> FolderUiElement *
+    {
+        return new FolderUiElement();
+    };
+    ObjectPool<FolderUiElement> UiPool::folderUiElementPool(UIFolderElementFactory, 10);
 } // BreadEditor

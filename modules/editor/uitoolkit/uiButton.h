@@ -27,12 +27,17 @@ namespace BreadEditor {
 
         void setTextSize(const int textSize) { _textSize = textSize; }
 
+        void setText(const std::string &newText) { _text = newText; }
+
+        void setClickOutside(const bool isCanClickOutside) { _canClickOutside = isCanClickOutside; }
+
     protected:
         bool tryDeleteSelf() override;
 
     private:
+        bool _canClickOutside = false;
+        int _textSize = 10;
         std::string _text;
         GuiTextAlignment _textAlignment = TEXT_ALIGN_CENTER;
-        int _textSize = 10;
     };
 } // namespace BreadEditor

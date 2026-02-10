@@ -5,14 +5,35 @@
 #include "uitoolkit/uiPool.h"
 
 namespace BreadEditor {
-    NodeUiElement::NodeUiElement() = default;
+    NodeUiElement::NodeUiElement() : _expandButton(UiPool::buttonPool.get())
+    {
+    }
 
     NodeUiElement::~NodeUiElement() = default;
 
     NodeUiElement &NodeUiElement::setup(const std::string &id, UiElement *parentElement, Node *node)
     {
         this->_engineNode = node;
+        _expandButton.setup(id + "expandButton", this, "");
+        updateExpandButtonText();
+        _expandButton.setAnchor(UI_LEFT_TOP);
+        _expandButton.setPivot({1, 0});
+        _expandButton.setPosition({-2, 5});
+        _expandButton.setClickOutside(true);
+        _expandButton.onClick.subscribe([this](UiButton *)
+        {
+            _isExpanded = !_isExpanded;
+            updateExpandButtonText();
+            onExpandStateChanged.invoke(this);
+        });
+
         return dynamic_cast<NodeUiElement &>(UiElement::setup(id, parentElement));
+    }
+
+    void NodeUiElement::awake()
+    {
+        const auto size = getSize().y * .5f;
+        _expandButton.setSize({size, size});
     }
 
     void NodeUiElement::draw(const float deltaTime)
@@ -38,11 +59,25 @@ namespace BreadEditor {
 
     void NodeUiElement::update(const float deltaTime)
     {
+        const auto childCount = _engineNode->getChildCount();
+        _expandButton.isActive = childCount > 0;
+        if (childCount == 0)
+        {
+            _isExpanded = true;
+        }
+
         updateDraggable(this);
     }
 
     void NodeUiElement::dispose()
     {
+        _isExpanded = true;
+        _isMuted = false;
+        _isPreparedToClick = false;
+        _localStateBeforeMuted = STATE_NORMAL;
+        _localState = STATE_NORMAL;
+        _engineNode = nullptr;
+        _parentNode = nullptr;
         UiElement::dispose();
     }
 
@@ -53,15 +88,15 @@ namespace BreadEditor {
 
     void NodeUiElement::setParentNode(NodeUiElement *nextParentNode)
     {
-        this->_parentNode = nextParentNode;
+        _parentNode = nextParentNode;
     }
 
     void NodeUiElement::setEngineNode(Node *nextEngineNode)
     {
-        this->_engineNode = nextEngineNode;
+        _engineNode = nextEngineNode;
     }
 
-    void NodeUiElement::setState(GuiState nextState)
+    void NodeUiElement::setState(const GuiState nextState)
     {
         UiElement::setState(nextState);
         _localState = nextState;
@@ -94,7 +129,7 @@ namespace BreadEditor {
     {
         if (_parentNode != nullptr)
         {
-            auto parentState = _parentNode->_state;
+            const auto parentState = _parentNode->_state;
             return std::max(_localState, parentState);
         }
 
@@ -111,7 +146,12 @@ namespace BreadEditor {
     {
         if (IsMouseButtonDown(MOUSE_LEFT_BUTTON))
         {
-            _isPreparedToClick = Engine::isCollisionPointRec(GetMousePosition(), _bounds);
+            _isPreparedToClick = Engine::isCollisionPointRec(GetMousePosition(), getBounds());
         }
+    }
+
+    void NodeUiElement::updateExpandButtonText() const
+    {
+        _expandButton.setText(_isExpanded ? "-" : "+");
     }
 } // BreadEditor

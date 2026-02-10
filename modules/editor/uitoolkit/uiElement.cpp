@@ -21,6 +21,10 @@ namespace BreadEditor {
         return *this;
     }
 
+    void UiElement::awake()
+    {
+    }
+
     std::vector<UiElement *> UiElement::getChildsSorterByHorizontal(const bool reverse) const
     {
         std::vector<UiElement *> sortedChilds = _childs;
@@ -552,6 +556,7 @@ namespace BreadEditor {
 
         _childs.clear();
         _parent = nullptr;
+        _isAwake = false;
         id = "";
         isDebugRectVisible = false;
         _state = STATE_NORMAL;
@@ -680,7 +685,7 @@ namespace BreadEditor {
     void UiElement::setOnOverlayLayer()
     {
         _onOverlayLayer = true;
-        const auto root= getRootElement();
+        const auto root = getRootElement();
         root->_overlayChilds.emplace_back(this);
     }
 
@@ -777,14 +782,15 @@ namespace BreadEditor {
                rectangle.height == 1;
     }
 
-    void UiElement::drawInternal(const float deltaTime)
+    void UiElement::drawInternal(const float deltaTime, const GuiState state)
     {
         if (!isActive)
         {
             return;
         }
 
-        GuiSetState(_state);
+        const auto nextState = std::max(_state, state);
+        GuiSetState(nextState);
         draw(deltaTime);
         GuiSetState(STATE_NORMAL);
 
@@ -804,7 +810,7 @@ namespace BreadEditor {
                 continue;
             }
 
-            child->drawInternal(deltaTime);
+            child->drawInternal(deltaTime, nextState);
         }
 
         if (_parent == nullptr) // only for root
@@ -817,7 +823,7 @@ namespace BreadEditor {
                     continue;
                 }
 
-                child->drawInternal(deltaTime);
+                child->drawInternal(deltaTime, nextState);
             }
         }
 
@@ -829,7 +835,7 @@ namespace BreadEditor {
                 continue;
             }
 
-            child->drawInternal(deltaTime);
+            child->drawInternal(deltaTime, nextState);
         }
     }
 
@@ -844,6 +850,12 @@ namespace BreadEditor {
         {
             computeBounds();
             _isDirty = false;
+        }
+
+        if (!_isAwake)
+        {
+            _isAwake = true;
+            awake();
         }
 
         update(deltaTime);
