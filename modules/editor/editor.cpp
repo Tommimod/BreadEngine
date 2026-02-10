@@ -1,6 +1,5 @@
 #include "../engine/engine.h"
 #include "editor.h"
-
 #include "systems/cursorSystem.h"
 #include "node.h"
 #include "systems/commands/commandsHandler.h"
@@ -8,10 +7,11 @@
 #include "validators/mandatoryEditorFilesValidator.h"
 
 namespace BreadEditor {
+    std::unique_ptr<Editor> Editor::_instance = std::make_unique<Editor>();
+
     Editor &Editor::getInstance()
     {
-        static Editor instance;
-        return instance;
+        return *_instance;
     }
 
     void Editor::setEngine(Engine &engine)

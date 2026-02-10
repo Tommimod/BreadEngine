@@ -11,13 +11,13 @@ namespace BreadEngine {
     };
     ObjectPool<Node> Engine::nodePool(nodeFactory, 10);
     Node Engine::_rootNode;
+    std::unique_ptr<Engine> Engine::_instance = std::make_unique<Engine>();
 
     Engine::Engine() = default;
 
     Engine &Engine::getInstance()
     {
-        static Engine instance;
-        return instance;
+        return *_instance;
     }
 
     Node &Engine::getRootNode()

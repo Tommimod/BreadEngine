@@ -3,6 +3,7 @@
 #include "../../lib/engine/raylib.h"
 #include "moduleLoader.h"
 #include <string>
+#include <memory>
 #include "node.h"
 #include "objectPool.h"
 #include "systems/fileSystem.h"
@@ -11,6 +12,10 @@ namespace BreadEngine {
     class Engine
     {
     public:
+        Engine();
+
+        ~Engine() = default;
+
         static ObjectPool<Node> nodePool;
 
         static Engine &getInstance();
@@ -57,11 +62,8 @@ namespace BreadEngine {
         [[nodiscard]] FileSystem &getFileSystem() { return _fileSystem; };
 
     private:
-        Engine();
-
-        ~Engine() = default;
-
         static Node _rootNode;
+        static std::unique_ptr<Engine> _instance;
 
         Camera3D _camera{};
         ModuleLoader *_gameModuleLoader = nullptr;

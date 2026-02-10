@@ -1,6 +1,7 @@
 #pragma once
 #include "windows/mainWindow.h"
 #include <string>
+#include <memory>
 #include "engine.h"
 #include "configs/infrastructure/configsProvider.h"
 #include "models/editorModel.h"
@@ -12,6 +13,10 @@ namespace BreadEditor {
     class Editor
     {
     public:
+        Editor();
+
+        ~Editor() = default;
+
         MainWindow mainWindow{};
 
         static Editor &getInstance();
@@ -51,16 +56,15 @@ namespace BreadEditor {
         [[nodiscard]] ConfigsProvider &getConfigsProvider() { return _configsProvider; }
 
     private:
-        Editor();
-
-        ~Editor() = default;
+        static std::unique_ptr<Editor> _instance;
 
         bool _initialized = false;
         std::string _currentProjectPath;
+        RenderTexture2D *_viewportRenderTexture = nullptr;
         Engine *_engine = nullptr;
+        UiElement &_uiRoot;
+
         EditorModel _editorModel;
         ConfigsProvider _configsProvider;
-        UiElement &_uiRoot;
-        RenderTexture2D *_viewportRenderTexture;
     };
 } // namespace BreadEditor
