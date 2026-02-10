@@ -2,7 +2,6 @@
 #include "windows/mainWindow.h"
 #include <string>
 #include <memory>
-#include "engine.h"
 #include "configs/infrastructure/configsProvider.h"
 #include "models/editorModel.h"
 using namespace BreadEngine;
@@ -20,8 +19,6 @@ namespace BreadEditor {
         MainWindow mainWindow{};
 
         static Editor &getInstance();
-
-        void setEngine(Engine &engine);
 
         bool initialize();
 
@@ -61,7 +58,6 @@ namespace BreadEditor {
         bool _initialized = false;
         std::string _currentProjectPath;
         RenderTexture2D *_viewportRenderTexture = nullptr;
-        Engine *_engine = nullptr;
         UiElement &_uiRoot;
 
         EditorModel _editorModel;

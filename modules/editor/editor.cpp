@@ -14,11 +14,6 @@ namespace BreadEditor {
         return *_instance;
     }
 
-    void Editor::setEngine(Engine &engine)
-    {
-        _engine = &engine;
-    }
-
     bool Editor::initialize()
     {
         if (_initialized) return false;
