@@ -26,8 +26,8 @@ namespace BreadEditor {
             updateExpandButtonText();
             onExpandStateChanged.invoke(this);
         });
-
-        return dynamic_cast<NodeUiElement &>(UiElement::setup(id, parentElement));
+        UiElement::setup(id, parentElement);
+        return *this;
     }
 
     void NodeUiElement::awake()

@@ -1,4 +1,7 @@
 #include "mainWindow.h"
+
+#include <thread>
+
 #include "editor.h"
 #include "uitoolkit/uiPool.h"
 
@@ -67,6 +70,23 @@ namespace BreadEditor {
 
         _rightContainer->addChild(new NodeTreeWindow(NodeTreeWindow::Id, _rightContainer.get()));
         _rightContainer->addChild(new NodeInspectorWindow(NodeInspectorWindow::Id, _rightContainer.get()));
+    }
+
+    void MainWindow::awake()
+    {
+        std::thread workerThread([this]
+        {
+            while (!Engine::getInstance().shouldClose())
+            {
+                std::this_thread::sleep_for(std::chrono::milliseconds(16));
+                if (IsWindowResized() || IsWindowMinimized() || IsWindowMaximized())
+                {
+                    setDirty();
+                }
+            }
+        });
+
+        workerThread.detach();
     }
 
     vector<std::string> &MainWindow::getWindowsOptions()

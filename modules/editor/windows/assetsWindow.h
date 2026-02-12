@@ -48,6 +48,6 @@ namespace BreadEditor {
 
         void recalculateUiFolders(Folder *folder, int &nodeOrder, bool isParentExpanded = true);
 
-        void recalculateUiFiles(File *file, int &nodeOrder, int depth);
+        void recalculateUiFiles(File *file, int &nodeOrder, int depth, bool isParentExpanded);
     };
 } // BreadEditor

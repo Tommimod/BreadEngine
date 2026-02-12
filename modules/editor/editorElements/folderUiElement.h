@@ -1,7 +1,9 @@
 ﻿#pragma once
 #include "action.h"
+#include "nodeUiElement.h"
 #include "systems/fileSystem.h"
 #include "uitoolkit/IUiDraggable.h"
+#include "uitoolkit/uiButton.h"
 #include "uitoolkit/uiElement.h"
 #include "uitoolkit/uiLabelButton.h"
 
@@ -10,16 +12,13 @@ namespace BreadEditor {
     {
     public:
         static constexpr auto elementIdFormat = "FoldInsT_%s_%d";
-        BreadEngine::Action<FolderUiElement *> onExpanded;
+        Action<FolderUiElement *> onExpandStateChanged;
 
         FolderUiElement();
 
         ~FolderUiElement() override;
 
-        [[nodiscard]] FolderUiElement &setup(const std::string &id, UiElement *parentElement, BreadEngine::Folder *folder);
-
-
-        [[nodiscard]] bool &IsExpanded() { return _isExpanded; }
+        [[nodiscard]] FolderUiElement &setup(const std::string &id, UiElement *parentElement, Folder *folder);
 
         [[nodiscard]] Folder &getFolder() const { return *_engineFolder; }
 
@@ -38,7 +37,10 @@ namespace BreadEditor {
 
     private:
         bool _isExpanded = false;
-        BreadEngine::Folder *_engineFolder = nullptr;
+        Folder *_engineFolder = nullptr;
         UiLabelButton &_button;
+        UiButton &_expandButton;
+
+        void updateExpandButtonText() const;
     };
 } // BreadEditor

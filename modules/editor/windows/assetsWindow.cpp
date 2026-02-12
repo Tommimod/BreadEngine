@@ -68,6 +68,11 @@ namespace BreadEditor {
         element.setSizePercentPermanent({elementWidthInPercent, -1});
         element.dragContainer = _parent;
         element.onlyProvideDragEvents = true;
+        element.onExpandStateChanged.subscribe([this](const FolderUiElement *)
+        {
+            auto i = 0;
+            recalculateUiFolders(_fileSystem.getRootFolder(), i);
+        });
 
         _folderUiElements.emplace_back(&element);
         return element;
@@ -103,6 +108,20 @@ namespace BreadEditor {
             {
                 element = &CreateFolderUiElement(folder);
             }
+            if (!isParentExpanded)
+            {
+                element->isActive = false;
+                for (auto &file: folder->getFiles())
+                {
+                    recalculateUiFiles(&file, nodeOrder, folder->getDepth(), false);
+                }
+
+                for (auto &fld: folder->getFolders())
+                {
+                    recalculateUiFolders(&fld, nodeOrder, false);
+                }
+                return;
+            }
 
             element->isActive = true;
             element->computeBounds();
@@ -120,30 +139,31 @@ namespace BreadEditor {
             nodeOrder++;
             calculateRectForScroll(element);
             isExpanded = element->getIsExpanded();
-            if (!isParentExpanded)
-            {
-                return;
-            }
         }
 
         for (auto &file: folder->getFiles())
         {
-            recalculateUiFiles(&file, nodeOrder, folder->getDepth());
+            recalculateUiFiles(&file, nodeOrder, folder->getDepth(), isExpanded);
         }
 
         for (auto &fld: folder->getFolders())
         {
-            if (fld.isEmpty()) continue;
             recalculateUiFolders(&fld, nodeOrder, isExpanded);
         }
     }
 
-    void AssetsWindow::recalculateUiFiles(File *file, int &nodeOrder, const int depth)
+    void AssetsWindow::recalculateUiFiles(File *file, int &nodeOrder, const int depth, const bool isParentExpanded)
     {
         auto element = getFileUiElementByPath(file);
         if (!element)
         {
             element = &CreateFileUiElement(file);
+        }
+
+        if (!isParentExpanded)
+        {
+            element->isActive = false;
+            return;
         }
 
         element->isActive = true;
