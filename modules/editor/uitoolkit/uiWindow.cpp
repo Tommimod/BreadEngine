@@ -24,12 +24,6 @@ namespace BreadEditor {
 
     void UiWindow::update(const float deltaTime)
     {
-        if (!_isAwake)
-        {
-            awake();
-            _isAwake = true;
-        }
-
         updateResizable(*this);
         updateScrollView();
         setScrollOffset(_scrollPos);

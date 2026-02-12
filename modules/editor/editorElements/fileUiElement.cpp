@@ -11,11 +11,10 @@ namespace BreadEditor {
 
     FileUiElement::~FileUiElement() = default;
 
-    FileUiElement &FileUiElement::setup(const std::string &id, UiElement *parentElement, const std::string &fileName)
+    FileUiElement &FileUiElement::setup(const std::string &id, UiElement *parentElement, File *file)
     {
-        _fileName = fileName;
-
-        _button.setText(GuiIconText(ICON_FILE, getFileName()));
+        _file = file;
+        _button.setText(GuiIconText(ICON_FILE, _file->getPathFromRoot().c_str()));
         _button.setTextAlignment(TEXT_ALIGN_LEFT);
         _button.setSizePercentPermanent({1, 1});
 

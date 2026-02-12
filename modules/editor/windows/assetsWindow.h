@@ -40,14 +40,14 @@ namespace BreadEditor {
 
         [[nodiscard]] FolderUiElement *getFolderUiElementByEngineFolder(const Folder *folder) const;
 
-        [[nodiscard]] FileUiElement *getFileUiElementByPath(const std::string &fileName) const;
+        [[nodiscard]] FileUiElement *getFileUiElementByPath(const File *file) const;
 
         FolderUiElement &CreateFolderUiElement(Folder *folder);
 
-        FileUiElement &CreateFileUiElement(const std::string &fileName);
+        FileUiElement &CreateFileUiElement(File *file);
 
         void recalculateUiFolders(Folder *folder, int &nodeOrder, bool isParentExpanded = true);
 
-        void recalculateUiFiles(const std::string &fileName, int &nodeOrder, int depth);
+        void recalculateUiFiles(File *file, int &nodeOrder, int depth);
     };
 } // BreadEditor

@@ -1,5 +1,6 @@
 ﻿#pragma once
 #include "action.h"
+#include "systems/fileSystem.h"
 #include "uitoolkit/IUiDraggable.h"
 #include "uitoolkit/uiElement.h"
 #include "uitoolkit/uiLabelButton.h"
@@ -15,9 +16,9 @@ namespace BreadEditor {
 
         ~FileUiElement() override;
 
-        [[nodiscard]] FileUiElement &setup(const std::string &id, UiElement *parentElement, const std::string &fileName);
+        [[nodiscard]] FileUiElement &setup(const std::string &id, UiElement *parentElement, File *file);
 
-        [[nodiscard]] const char *getFileName() const { return _fileName.c_str(); }
+        [[nodiscard]] File *getFile() const { return _file; }
 
         void awake() override;
 
@@ -31,7 +32,7 @@ namespace BreadEditor {
         bool tryDeleteSelf() override;
 
     private:
-        std::string _fileName;
+        File *_file = nullptr;
         UiLabelButton &_button;
     };
 } // BreadEditor

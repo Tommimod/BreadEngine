@@ -40,11 +40,11 @@ namespace BreadEditor {
         return nullptr;
     }
 
-    FileUiElement * AssetsWindow::getFileUiElementByPath(const std::string &fileName) const
+    FileUiElement *AssetsWindow::getFileUiElementByPath(const File *file) const
     {
         for (const auto fileInstance: _fileUiElements)
         {
-            if (fileInstance && fileInstance->getFileName() == fileName.c_str())
+            if (fileInstance && fileInstance->getFile() == file)
             {
                 return fileInstance;
             }
@@ -60,7 +60,7 @@ namespace BreadEditor {
 
         update(0);
 
-        const auto id = TextFormat(FolderUiElement::elementIdFormat, folder->name.c_str(), getChildCount());
+        const auto id = TextFormat(FolderUiElement::elementIdFormat, folder->getName().c_str(), getChildCount());
         auto &element = UiPool::folderUiElementPool.get().setup(id, this, folder);
 
         element.setAnchor(UI_LEFT_TOP);
@@ -73,15 +73,15 @@ namespace BreadEditor {
         return element;
     }
 
-    FileUiElement & AssetsWindow::CreateFileUiElement(const std::string &fileName)
+    FileUiElement &AssetsWindow::CreateFileUiElement(File *file)
     {
         constexpr float elementHeight = 20.0f;
         constexpr float elementWidthInPercent = 0.8f;
 
         update(0);
 
-        const auto id = TextFormat(FileUiElement::elementIdFormat, fileName.c_str(), getChildCount());
-        auto &element = UiPool::fileUiElementPool.get().setup(id, this, fileName);
+        const auto id = TextFormat(FileUiElement::elementIdFormat, file->getPathFromRoot().c_str(), getChildCount());
+        auto &element = UiPool::fileUiElementPool.get().setup(id, this, file);
 
         element.setAnchor(UI_LEFT_TOP);
         element.setSize({0, elementHeight});
@@ -95,53 +95,55 @@ namespace BreadEditor {
 
     void AssetsWindow::recalculateUiFolders(Folder *folder, int &nodeOrder, const bool isParentExpanded)
     {
-        auto element = getFolderUiElementByEngineFolder(folder);
-        if (!element)
+        auto isExpanded = true;
+        if (nodeOrder > 0)
         {
-            element = &CreateFolderUiElement(folder);
+            auto element = getFolderUiElementByEngineFolder(folder);
+            if (!element)
+            {
+                element = &CreateFolderUiElement(folder);
+            }
+
+            element->isActive = true;
+            element->computeBounds();
+            element->update(0);
+            constexpr float nodeHorizontalPadding = 15.0f;
+            constexpr float nodeVerticalPadding = 5.0f;
+            constexpr float startYPosition = RAYGUI_WINDOWBOX_STATUSBAR_HEIGHT + 10;
+
+            const auto nodeHeight = element->getSize().y;
+            const auto deepLevel = static_cast<float>(folder->getDepth() - 1);
+
+            const auto horizontalOffset = nodeHorizontalPadding * deepLevel;
+            const auto verticalPadding = (nodeVerticalPadding + nodeHeight) * static_cast<float>(nodeOrder);
+            element->setPosition({nodeHorizontalPadding + horizontalOffset, startYPosition + verticalPadding});
+            nodeOrder++;
+            calculateRectForScroll(element);
+            isExpanded = element->getIsExpanded();
+            if (!isParentExpanded)
+            {
+                return;
+            }
         }
 
-        element->isActive = true;
-        element->computeBounds();
-        element->update(0);
-        constexpr float nodeHorizontalPadding = 15.0f;
-        constexpr float nodeVerticalPadding = 5.0f;
-        constexpr float startYPosition = RAYGUI_WINDOWBOX_STATUSBAR_HEIGHT + 10;
-
-        const auto nodeHeight = element->getSize().y;
-        const auto deepLevel = static_cast<float>(folder->depth + 1);
-
-        const auto horizontalOffset = nodeHorizontalPadding * deepLevel;
-        const auto verticalPadding = (nodeVerticalPadding + nodeHeight) * static_cast<float>(nodeOrder);
-        element->setPosition({nodeHorizontalPadding + horizontalOffset, startYPosition + verticalPadding});
-        nodeOrder++;
-        calculateRectForScroll(element);
-        if (!isParentExpanded)
+        for (auto &file: folder->getFiles())
         {
-            return;
+            recalculateUiFiles(&file, nodeOrder, folder->getDepth());
         }
 
-        for (const auto &file: folder->files)
-        {
-            if (file.empty()) continue;
-            TraceLog(LOG_INFO, file.c_str());
-            recalculateUiFiles(file, nodeOrder, folder->depth + 1);
-        }
-
-        TraceLog(LOG_INFO, "Folders:");
-        for (auto &fld: folder->folders)
+        for (auto &fld: folder->getFolders())
         {
             if (fld.isEmpty()) continue;
-            recalculateUiFolders(&fld, nodeOrder, element->getIsExpanded());
+            recalculateUiFolders(&fld, nodeOrder, isExpanded);
         }
     }
 
-    void AssetsWindow::recalculateUiFiles(const std::string &fileName, int &nodeOrder, const int depth)
+    void AssetsWindow::recalculateUiFiles(File *file, int &nodeOrder, const int depth)
     {
-        auto element = getFileUiElementByPath(fileName);
+        auto element = getFileUiElementByPath(file);
         if (!element)
         {
-            element = &CreateFileUiElement(fileName);
+            element = &CreateFileUiElement(file);
         }
 
         element->isActive = true;
@@ -152,7 +154,7 @@ namespace BreadEditor {
         constexpr float startYPosition = RAYGUI_WINDOWBOX_STATUSBAR_HEIGHT + 10;
 
         const auto nodeHeight = element->getSize().y;
-        const auto deepLevel = static_cast<float>(depth + 1);
+        const auto deepLevel = static_cast<float>(depth);
 
         const auto horizontalOffset = nodeHorizontalPadding * deepLevel;
         const auto verticalPadding = (nodeVerticalPadding + nodeHeight) * static_cast<float>(nodeOrder);

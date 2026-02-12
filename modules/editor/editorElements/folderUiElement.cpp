@@ -15,7 +15,7 @@ namespace BreadEditor {
     {
         _isExpanded = true;
         _engineFolder = folder;
-        _button.setText( GuiIconText(ICON_FOLDER, folder->name.c_str()));
+        _button.setText( GuiIconText(ICON_FOLDER, folder->getName().c_str()));
         _button.setTextAlignment(TEXT_ALIGN_LEFT);
         _button.setSizePercentPermanent({1, 1});
 
