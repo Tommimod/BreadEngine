@@ -78,7 +78,7 @@ namespace BreadEditor {
         {
             while (!Engine::getInstance().shouldClose())
             {
-                std::this_thread::sleep_for(std::chrono::milliseconds(16));
+                std::this_thread::sleep_for(std::chrono::milliseconds(32));
                 if (IsWindowResized() || IsWindowMinimized() || IsWindowMaximized())
                 {
                     setDirty();
