@@ -37,8 +37,6 @@ namespace BreadEngine {
 
         virtual void setIsActive(bool nextActive);
 
-        void setParent(Node *nextParent);
-
         [[nodiscard]] virtual std::vector<Property> getInspectedProperties() const
         {
             return {};

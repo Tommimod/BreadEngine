@@ -1,6 +1,6 @@
 #include "component.h"
 #include <typeinfo>
-
+#include <cxxabi.h>
 #include "../node.h"
 
 namespace BreadEngine {
@@ -60,11 +60,6 @@ namespace BreadEngine {
     void Component::setIsActive(const bool nextActive)
     {
         this->_isActive = nextActive;
-    }
-
-    void Component::setParent(Node *nextParent)
-    {
-        this->_parent = nextParent;
     }
 
     std::string Component::getTypeName()
