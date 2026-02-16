@@ -1,6 +1,5 @@
 #include "component.h"
 #include <typeinfo>
-#include <cxxabi.h>
 #include "../node.h"
 
 namespace BreadEngine {
@@ -44,7 +43,8 @@ namespace BreadEngine {
 
     std::string Component::toString() const
     {
-        return typeid(this).name();
+        constexpr auto name = &typeid(this);
+        return name->name();
     }
 
     Node *Component::getParent() const
@@ -60,19 +60,5 @@ namespace BreadEngine {
     void Component::setIsActive(const bool nextActive)
     {
         this->_isActive = nextActive;
-    }
-
-    std::string Component::getTypeName()
-    {
-        int status;
-        auto *mangled = abi::__cxa_demangle(typeid(*this).name(), nullptr, nullptr, &status);
-        std::string result = status == 0 ? mangled : typeid(*this).name();
-        std::free(mangled);
-
-        if (const size_t lastColon = result.rfind("::"); lastColon != std::string::npos)
-        {
-            return result.substr(lastColon + 2);
-        }
-        return result;
     }
 } // namespace BreadEngine

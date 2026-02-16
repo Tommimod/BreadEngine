@@ -1,41 +1,41 @@
-﻿#include "uiComponent.h"
+﻿#include "uiInspector.h"
 #include "uiPool.h"
 using namespace BreadEngine;
 
 namespace BreadEditor {
-    UiComponent::UiComponent() = default;
+    UiInspector::UiInspector() = default;
 
-    UiComponent::~UiComponent() = default;
+    UiInspector::~UiInspector() = default;
 
-    UiComponent &UiComponent::setup(const std::string &id, UiElement *parentElement)
+    UiInspector &UiInspector::setup(const std::string &id, UiElement *parentElement)
     {
         UiElement::setup(id, parentElement);
         return *this;
     }
 
-    void UiComponent::dispose()
+    void UiInspector::dispose()
     {
-        _component = nullptr;
+        _inspectorStruct = nullptr;
         onDelete.unsubscribeAll();
 
         UiElement::dispose();
     }
 
-    void UiComponent::trackComponent(Component *component)
+    void UiInspector::track(InspectorStruct* inspectorStruct)
     {
         constexpr std::string transformName = "Transform";
 
-        _component = component;
-        _componentName = component->getTypeName();
+        _inspectorStruct = inspectorStruct;
+        _componentName = inspectorStruct->getTypeName();
         _isTransform = _componentName == transformName;
-        _properties = component->getInspectedProperties();
+        _properties = inspectorStruct->getInspectedProperties();
 
         cleanUp();
 
         for (int i = 0; i < static_cast<int>(_properties.size()); i++)
         {
             const auto &property = _properties[i];
-            auto propValue = property.get(component);
+            auto propValue = property.get(inspectorStruct);
             constexpr float horOffset = 5;
             constexpr float heightSize = 17;
             const auto verOffset = horOffset * static_cast<float>(i) + 30 + heightSize * static_cast<float>(i);
@@ -48,8 +48,8 @@ namespace BreadEditor {
             UiElement *createdElement = nullptr;
 
             auto isSingleField = true;
-            auto propWithComponent = PropWithComponent(std::make_unique<Property>(property), component);
-            if (property.type == PropertyType::COMPONENT)
+            auto propWithComponent = PropsOfStruct(std::make_unique<Property>(property), inspectorStruct);
+            if (property.type == PropertyType::INSPECTOR_STRUCT)
             {
                 //TODO
             }
@@ -57,36 +57,36 @@ namespace BreadEditor {
             {
                 createdElement = &UiPool::numberBoxPool.get().setup(TextFormat("NumberBox %s", property.name.c_str()), this, "", std::move(propWithComponent));
                 const auto element = dynamic_cast<UiNumberBox *>(createdElement);
-                element->onValueChanged.subscribe([component, property](const int &value)
+                element->onValueChanged.subscribe([inspectorStruct, property](const int &value)
                 {
-                    property.set(component, value);
+                    property.set(inspectorStruct, value);
                 });
             }
             else if (property.type == PropertyType::FLOAT)
             {
                 createdElement = &UiPool::numberBoxPool.get().setup(TextFormat("NumberBox %s", property.name.c_str()), this, "", std::move(propWithComponent));
                 const auto element = dynamic_cast<UiNumberBox *>(createdElement);
-                element->onValueChanged.subscribe([component, property](const float &value)
+                element->onValueChanged.subscribe([inspectorStruct, property](const float &value)
                 {
-                    property.set(component, value);
+                    property.set(inspectorStruct, value);
                 });
             }
             else if (property.type == PropertyType::LONG)
             {
                 createdElement = &UiPool::numberBoxPool.get().setup(TextFormat("NumberBox %s", property.name.c_str()), this, "", std::move(propWithComponent));
                 const auto element = dynamic_cast<UiNumberBox *>(createdElement);
-                element->onValueChanged.subscribe([component, property](const long &value)
+                element->onValueChanged.subscribe([inspectorStruct, property](const long &value)
                 {
-                    property.set(component, value);
+                    property.set(inspectorStruct, value);
                 });
             }
             else if (property.type == PropertyType::BOOL)
             {
                 createdElement = &UiPool::checkBoxPool.get().setup(TextFormat("NumberBox %s", property.name.c_str()), this, "", std::move(propWithComponent));
                 const auto element = dynamic_cast<UiCheckBox *>(createdElement);
-                element->onValueChanged.subscribe([component, property](const bool &value)
+                element->onValueChanged.subscribe([inspectorStruct, property](const bool &value)
                 {
-                    property.set(component, value);
+                    property.set(inspectorStruct, value);
                 });
                 element->setSizeMax({heightSize, heightSize});
             }
@@ -94,9 +94,9 @@ namespace BreadEditor {
             {
                 createdElement = &UiPool::textBoxPool.get().setup(TextFormat("NumberBox %s", property.name.c_str()), this, std::move(propWithComponent));
                 const auto element = dynamic_cast<UiTextBox *>(createdElement);
-                element->onValueChanged.subscribe([component, property](const std::string &value)
+                element->onValueChanged.subscribe([inspectorStruct, property](const std::string &value)
                 {
-                    property.set(component, value);
+                    property.set(inspectorStruct, value);
                 });
             }
             else if (property.type == PropertyType::VECTOR2)
@@ -104,9 +104,9 @@ namespace BreadEditor {
                 isSingleField = false;
                 createdElement = UiPool::vector2DPool.get().setup(TextFormat("Vector2D %s", property.name.c_str()), this, std::move(propWithComponent));
                 const auto element = dynamic_cast<UiVector2D *>(createdElement);
-                element->onChanged.subscribe([component, property](const Vector2 &value)
+                element->onChanged.subscribe([inspectorStruct, property](const Vector2 &value)
                 {
-                    property.set(component, value);
+                    property.set(inspectorStruct, value);
                 });
             }
             else if (property.type == PropertyType::VECTOR3)
@@ -114,9 +114,9 @@ namespace BreadEditor {
                 isSingleField = false;
                 createdElement = UiPool::vector3DPool.get().setup(TextFormat("Vector3D %s", property.name.c_str()), this, std::move(propWithComponent));
                 const auto element = dynamic_cast<UiVector3D *>(createdElement);
-                element->onChanged.subscribe([component, property](const Vector3 &value)
+                element->onChanged.subscribe([inspectorStruct, property](const Vector3 &value)
                 {
-                    property.set(component, value);
+                    property.set(inspectorStruct, value);
                 });
             }
             else if (property.type == PropertyType::VECTOR4)
@@ -124,9 +124,9 @@ namespace BreadEditor {
                 isSingleField = false;
                 createdElement = UiPool::vector4DPool.get().setup(TextFormat("Vector4D %s", property.name.c_str()), this, std::move(propWithComponent));
                 const auto element = dynamic_cast<UiVector4D *>(createdElement);
-                element->onChanged.subscribe([component, property](const Vector4 &value)
+                element->onChanged.subscribe([inspectorStruct, property](const Vector4 &value)
                 {
-                    property.set(component, value);
+                    property.set(inspectorStruct, value);
                 });
             }
             else if (property.type == PropertyType::COLOR)
@@ -149,7 +149,7 @@ namespace BreadEditor {
         }
     }
 
-    void UiComponent::draw(const float deltaTime)
+    void UiInspector::draw(const float deltaTime)
     {
         if (_isTransform)
         {
@@ -159,7 +159,7 @@ namespace BreadEditor {
         {
             if (GuiWindowBox(_bounds, _componentName.c_str()))
             {
-                onDelete.invoke(typeid(_component));
+                onDelete.invoke(typeid(_inspectorStruct));
             }
         }
 
@@ -177,22 +177,17 @@ namespace BreadEditor {
         }
     }
 
-    void UiComponent::update(const float deltaTime)
+    void UiInspector::update(const float deltaTime)
     {
     }
 
-    Component *UiComponent::getTrackedComponent() const
-    {
-        return _component;
-    }
-
-    bool UiComponent::tryDeleteSelf()
+    bool UiInspector::tryDeleteSelf()
     {
         UiPool::componentPool.release(*this);
         return true;
     }
 
-    void UiComponent::cleanUp()
+    void UiInspector::cleanUp()
     {
         destroyAllChilds();
     }

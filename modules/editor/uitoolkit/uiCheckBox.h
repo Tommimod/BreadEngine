@@ -1,6 +1,6 @@
 ﻿#pragma once
 #include "action.h"
-#include "uiComponent.h"
+#include "uiInspector.h"
 #include "uiElement.h"
 using namespace BreadEngine;
 
@@ -16,7 +16,7 @@ namespace BreadEditor {
 
         UiCheckBox &setup(const std::string &id, UiElement *parentElement, std::string checkBoxText, bool checked);
 
-        UiCheckBox &setup(const std::string &id, UiElement *parentElement, std::string checkBoxText, UiComponent::PropWithComponent dynamicValue);
+        UiCheckBox &setup(const std::string &id, UiElement *parentElement, std::string checkBoxText, UiInspector::PropsOfStruct dynamicValue);
 
         ~UiCheckBox() override;
 
@@ -35,6 +35,6 @@ namespace BreadEditor {
         bool _internalChecked = false;
         bool *_externalChecked = nullptr;
         std::string _text;
-        UiComponent::PropWithComponent _dynamicValue{};
+        UiInspector::PropsOfStruct _dynamicValue{};
     };
 } // BreadEditor

@@ -1,6 +1,6 @@
 ﻿#pragma once
 #include "action.h"
-#include "uiComponent.h"
+#include "uiInspector.h"
 #include "uiElement.h"
 using namespace BreadEngine;
 
@@ -17,7 +17,7 @@ namespace BreadEditor {
 
         UiTextBox &setup(const std::string &id, UiElement *parentElement, const std::string &defaultText, int defaultTextSize = 14, bool defaultEditMode = false);
 
-        UiTextBox &setup(const std::string &id, UiElement *parentElement, UiComponent::PropWithComponent dynamicValue, int defaultTextSize = 14, bool defaultEditMode = false);
+        UiTextBox &setup(const std::string &id, UiElement *parentElement, UiInspector::PropsOfStruct dynamicValue, int defaultTextSize = 14, bool defaultEditMode = false);
 
         ~UiTextBox() override;
 
@@ -37,6 +37,6 @@ namespace BreadEditor {
         char *_text = nullptr;
         int _textSize = 0;
         bool _editMode = false;
-        UiComponent::PropWithComponent _dynamicValue{};
+        UiInspector::PropsOfStruct _dynamicValue{};
     };
 } // BreadEditor

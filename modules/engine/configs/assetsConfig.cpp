@@ -10,6 +10,9 @@
 #include "assetsConfigYaml.h"
 
 namespace BreadEngine {
+    DEFINE_STATIC_PROPS(AssetsConfig)
+    DEFINE_STATIC_PROPS(Folder)
+    DEFINE_STATIC_PROPS(File)
     void AssetsConfig::serialize()
     {
         const auto filePath = std::string(_projectPath) + "\\" + ReservedFileNames::ASSETS_REGISTRY_NAME;
@@ -34,6 +37,11 @@ namespace BreadEngine {
         auto data = rawConfig.as<AssetsConfig>();
         _projectPath = data._projectPath;
         _rootFolder = data._rootFolder;
+    }
+
+    void AssetsConfig::deserialize()
+    {
+        deserialize(TextFormat("%s\\%s", GetWorkingDirectory(), "assets\\game"));
     }
 
     void AssetsConfig::findAllAssets(const char *projectPath)

@@ -2,7 +2,7 @@
 #include <map>
 #include "node.h"
 #include "uitoolkit/uiCheckBox.h"
-#include "uitoolkit/uiComponent.h"
+#include "uitoolkit/uiInspector.h"
 #include "uitoolkit/uiElement.h"
 #include "uitoolkit/uiTextBox.h"
 #include "uitoolkit/uiWindow.h"
@@ -28,6 +28,8 @@ namespace BreadEditor {
 
         void lookupNode(Node *node);
 
+        void lookupStruct(InspectorStruct *inspectorStruct);
+
         void clear();
 
         [[nodiscard]] const char *getTitle() override { return _title; }
@@ -42,10 +44,11 @@ namespace BreadEditor {
 
         std::map<UiElement *, SubscriptionHandle> _subscriptions{};
         Node *_engineNode = nullptr;
+        InspectorStruct *_inspectorStruct = nullptr;
         UiCheckBox *_activeCheckBox = nullptr;
         UiTextBox *_nameTextBox = nullptr;
         std::vector<Component *> _trackedComponents{};
-        std::vector<UiComponent *> _uiComponentElements{};
+        std::vector<UiInspector *> _uiComponentElements{};
 
         void initialize() override;
 
@@ -57,7 +60,7 @@ namespace BreadEditor {
 
         void onNodeNameChanged(const char *name) const;
 
-        void setupUiComponent(UiComponent *uiComponentElement) const;
+        void setupUiComponent(UiInspector *uiComponentElement) const;
 
         void onUiComponentDeleted(std::type_index type);
     };

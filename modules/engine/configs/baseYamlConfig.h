@@ -1,13 +1,16 @@
 ﻿#pragma once
 #include <string>
 
+#include "inspectorObject.h"
+
 namespace BreadEngine {
-    struct BaseYamlConfig
+    struct BaseYamlConfig : InspectorStruct
     {
         explicit BaseYamlConfig() = default;
+
         explicit BaseYamlConfig(const std::string &filePath);
 
-        virtual ~BaseYamlConfig();
+        ~BaseYamlConfig() override;
 
         virtual void serialize() = 0;
 

@@ -2,11 +2,12 @@
 #include <string>
 #include <vector>
 #include <yaml-cpp/node/node.h>
+#include "baseYamlConfig.h"
 #include "nameof.h"
 #include "raylib.h"
 
 namespace BreadEngine {
-    struct File
+    struct File : InspectorStruct
     {
         File() = default;
 
@@ -18,7 +19,7 @@ namespace BreadEngine {
             this->_guid = guid;
         }
 
-        ~File() = default;
+        ~File() override = default;
 
         [[nodiscard]] const std::string &getGUID() const { return _guid; }
         [[nodiscard]] const std::string &getFullName() const { return _fullPath; }
@@ -31,9 +32,16 @@ namespace BreadEngine {
         std::string _fullPath;
         std::string _pathFromRoot;
         std::string _extension;
+
+        INSPECTOR_BEGIN(File)
+            INSPECT_FIELD(_guid);
+            INSPECT_FIELD(_fullPath);
+            INSPECT_FIELD(_pathFromRoot);
+            INSPECT_FIELD(_extension);
+        INSPECTOR_END()
     };
 
-    struct Folder
+    struct Folder : InspectorStruct
     {
         Folder() = default;
 
@@ -44,7 +52,7 @@ namespace BreadEngine {
             this->_guid = guid;
         }
 
-        ~Folder() = default;
+        ~Folder() override = default;
 
         [[nodiscard]] bool isEmpty() const { return _files.empty() && _folders.empty(); }
         [[nodiscard]] int getDepth() const { return _depth; }
@@ -65,18 +73,27 @@ namespace BreadEngine {
         std::string _name;
         std::vector<File> _files;
         std::vector<Folder> _folders;
+
+        INSPECTOR_BEGIN(Folder)
+            INSPECT_FIELD(_depth);
+            INSPECT_FIELD(_guid);
+            INSPECT_FIELD(_name);
+            INSPECT_FIELD(_files);
+            INSPECT_FIELD(_folders);
+        INSPECTOR_END()
     };
 
-    class AssetsConfig
+    struct AssetsConfig : BaseYamlConfig
     {
-    public:
         AssetsConfig() = default;
 
-        ~AssetsConfig() = default;
+        ~AssetsConfig() override = default;
 
-        void serialize();
+        void serialize() override;
 
         void deserialize(const char *projectPath);
+
+        void deserialize() override;
 
         void findAllAssets(const char *projectPath);
 
@@ -101,5 +118,10 @@ namespace BreadEngine {
         Folder _rootFolder = Folder(0, "Project Files", "0");
 
         void parseFolders(Folder &folder, const FilePathList &filePathList) noexcept;
+
+        INSPECTOR_BEGIN(AssetsConfig)
+            INSPECT_FIELD(_projectPath);
+            INSPECT_FIELD(_rootFolder);
+        INSPECTOR_END()
     };
 } // BreadEngine

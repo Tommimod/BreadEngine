@@ -53,6 +53,7 @@ namespace BreadEditor {
 
     void NodeInspectorWindow::lookupNode(Node *node)
     {
+        clear();
         _engineNode = node;
         if (_engineNode != nullptr)
         {
@@ -82,7 +83,7 @@ namespace BreadEditor {
 
             for (int i = 0; i < static_cast<int>(_trackedComponents.size()); i++)
             {
-                _uiComponentElements[i]->trackComponent(_trackedComponents[i]);
+                _uiComponentElements[i]->track(_trackedComponents[i]);
             }
         }
         else
@@ -91,9 +92,18 @@ namespace BreadEditor {
         }
     }
 
+    void NodeInspectorWindow::lookupStruct(InspectorStruct *inspectorStruct)
+    {
+        clear();
+        resetElementsState();
+        _inspectorStruct = inspectorStruct;
+        //TODO
+    }
+
     void NodeInspectorWindow::clear()
     {
         _engineNode = nullptr;
+        _inspectorStruct = nullptr;
     }
 
     void NodeInspectorWindow::subscribe()
@@ -153,7 +163,7 @@ namespace BreadEditor {
         _nameTextBox->setText(_engineNode->getName());
     }
 
-    void NodeInspectorWindow::setupUiComponent(UiComponent *uiComponentElement) const
+    void NodeInspectorWindow::setupUiComponent(UiInspector *uiComponentElement) const
     {
         uiComponentElement->setAnchor(UI_LEFT_TOP);
         uiComponentElement->setSize(Vector2{_bounds.width - 10, 50});

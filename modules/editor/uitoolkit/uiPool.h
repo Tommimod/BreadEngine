@@ -6,7 +6,7 @@
 #include "objectPool.h"
 #include "uiButton.h"
 #include "uiCheckBox.h"
-#include "uiComponent.h"
+#include "uiInspector.h"
 #include "uiDropdown.h"
 #include "uiLabel.h"
 #include "uiNumberBox.h"
@@ -30,7 +30,7 @@ namespace BreadEditor {
         static ObjectPool<UiCheckBox> checkBoxPool;
         static ObjectPool<UiTextBox> textBoxPool;
         static ObjectPool<UiNumberBox> numberBoxPool;
-        static ObjectPool<UiComponent> componentPool;
+        static ObjectPool<UiInspector> componentPool;
         static ObjectPool<UiLabel> labelPool;
         static ObjectPool<UiVector2D> vector2DPool;
         static ObjectPool<UiVector3D> vector3DPool;

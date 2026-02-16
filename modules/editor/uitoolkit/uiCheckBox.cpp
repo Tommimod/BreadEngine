@@ -1,5 +1,6 @@
-﻿#include "uiCheckBox.h"
+#include "uiCheckBox.h"
 
+#include <any>
 #include <utility>
 #include "uiPool.h"
 
@@ -24,11 +25,11 @@ namespace BreadEditor {
         return *this;
     }
 
-    UiCheckBox &UiCheckBox::setup(const std::string &id, UiElement *parentElement, std::string checkBoxText, UiComponent::PropWithComponent dynamicValue)
+    UiCheckBox &UiCheckBox::setup(const std::string &id, UiElement *parentElement, std::string checkBoxText, UiInspector::PropsOfStruct dynamicValue)
     {
         this->_text = std::move(checkBoxText);
         _dynamicValue = std::move(dynamicValue);
-        this->_internalChecked = get<bool>(_dynamicValue.property->get(_dynamicValue.component));
+        this->_internalChecked = std::any_cast<bool>(_dynamicValue.property->get(_dynamicValue.inspectorStruct));
         this->_externalChecked = nullptr;
         UiElement::setup(id, parentElement);
         return *this;
@@ -61,12 +62,12 @@ namespace BreadEditor {
 
     void UiCheckBox::update(const float deltaTime)
     {
-        if (_dynamicValue.component == nullptr)
+        if (_dynamicValue.inspectorStruct == nullptr)
         {
             return;
         }
 
-        this->_internalChecked = get<bool>(_dynamicValue.property->get(_dynamicValue.component));
+        this->_internalChecked = std::any_cast<bool>(_dynamicValue.property->get(_dynamicValue.inspectorStruct));
     }
 
     void UiCheckBox::setChecked(const bool isChecked)

@@ -51,11 +51,11 @@ namespace BreadEditor {
     };
     ObjectPool<UiNumberBox> UiPool::numberBoxPool(UiNumberBoxFactory, 10);
 
-    auto UiComponentFactory = []() -> UiComponent *
+    auto UiComponentFactory = []() -> UiInspector *
     {
-        return new UiComponent();
+        return new UiInspector();
     };
-    ObjectPool<UiComponent> UiPool::componentPool(UiComponentFactory, 10);
+    ObjectPool<UiInspector> UiPool::componentPool(UiComponentFactory, 10);
 
     auto UiLabelFactory = []() -> UiLabel *
     {

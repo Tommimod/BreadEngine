@@ -86,7 +86,7 @@ namespace BreadEditor {
         return *this;
     }
 
-    UiNumberBox &UiNumberBox::setup(const std::string &id, UiElement *parentElement, const std::string &label, UiComponent::PropWithComponent dynamicValue, int defaultTextSize, bool defaultEditMode)
+    UiNumberBox &UiNumberBox::setup(const std::string &id, UiElement *parentElement, const std::string &label, UiInspector::PropsOfStruct dynamicValue, int defaultTextSize, bool defaultEditMode)
     {
         _intMode = true;
         _label = label.c_str();
@@ -128,15 +128,15 @@ namespace BreadEditor {
 
     void UiNumberBox::update(const float deltaTime)
     {
-        if (!_editMode && _dynamicValue.component != nullptr)
+        if (!_editMode && _dynamicValue.inspectorStruct != nullptr)
         {
             if (_intMode)
             {
-                _intValue = get<int>(_dynamicValue.property->get(_dynamicValue.component));
+                _intValue = std::any_cast<int>(_dynamicValue.property->get(_dynamicValue.inspectorStruct));
             }
             else
             {
-                _floatValue = get<float>(_dynamicValue.property->get(_dynamicValue.component));
+                _floatValue = std::any_cast<float>(_dynamicValue.property->get(_dynamicValue.inspectorStruct));
             }
         }
     }
