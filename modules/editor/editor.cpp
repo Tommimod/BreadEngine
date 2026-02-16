@@ -20,7 +20,7 @@ namespace BreadEditor {
 
         _initialized = MandatoryEditorFilesValidator::validate();
         CommandsHandler::execute(std::make_unique<ReopenLastProjectCommand>());
-        Engine::getInstance().getFileSystem().initialize(_configsProvider.getEditorPrefsConfig()->LastProjectPath.c_str());
+        Engine::getInstance().getAssetsRegistry().deserialize(_configsProvider.getEditorPrefsConfig()->LastProjectPath.c_str());
 
         GuiLoadStyleDefault();
         SetTraceLogLevel(LOG_ALL);

@@ -1,14 +1,5 @@
 # BreadEditor - Game Editor Application
 project(BreadEditor_App)
-FetchContent_Declare(
-        yaml-cpp
-        GIT_REPOSITORY https://github.com/jbeder/yaml-cpp.git
-        GIT_TAG master
-)
-FetchContent_MakeAvailable(yaml-cpp)
-target_compile_options(yaml-cpp PRIVATE -stdlib=libc++)
-target_link_options   (yaml-cpp PRIVATE -stdlib=libc++)
-set_target_properties(yaml-cpp PROPERTIES CXX_STANDARD 23 CXX_STANDARD_REQUIRED ON)
 
 file(GLOB_RECURSE EDITOR_SOURCES
         "*.cpp"
@@ -46,7 +37,6 @@ target_include_directories(BreadEditor PRIVATE
 
 target_link_libraries(BreadEditor PUBLIC
         BreadEngine
-        yaml-cpp::yaml-cpp
         ${PLATFORM_LIBS}
 )
 

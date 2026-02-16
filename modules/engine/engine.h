@@ -6,7 +6,7 @@
 #include <memory>
 #include "node.h"
 #include "objectPool.h"
-#include "systems/fileSystem.h"
+#include "configs/assetsConfig.h"
 
 namespace BreadEngine {
     class Engine
@@ -59,7 +59,7 @@ namespace BreadEngine {
         // Check if point is inside rectangle with hole
         static bool isCollisionPointRec(Vector2 point, Rectangle rec, Rectangle subtraction);
 
-        [[nodiscard]] FileSystem &getFileSystem() { return _fileSystem; };
+        [[nodiscard]] AssetsConfig &getAssetsRegistry() { return _fileSystem; };
 
     private:
         static Node _rootNode;
@@ -67,7 +67,7 @@ namespace BreadEngine {
 
         Camera3D _camera{};
         ModuleLoader *_gameModuleLoader = nullptr;
-        FileSystem _fileSystem;
+        AssetsConfig _fileSystem;
 
         typedef void (*GameInitFunc)();
 

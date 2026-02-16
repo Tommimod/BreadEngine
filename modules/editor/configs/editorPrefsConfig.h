@@ -2,24 +2,23 @@
 #include <string>
 
 #include "nameof.h"
-#include "infrastructure/baseYamlConfig.h"
+#include "../../engine/configs/baseYamlConfig.h"
 
 namespace BreadEditor {
-    struct EditorPrefsConfig : BaseYamlConfig
+    struct EditorPrefsConfig : BreadEngine::BaseYamlConfig
     {
-    public:
         std::string LastProjectPath;
 
         EditorPrefsConfig();
+
+        explicit EditorPrefsConfig(const char *filePath);
+
+        ~EditorPrefsConfig() override = default;
 
         bool operator==(const EditorPrefsConfig &d) const
         {
             return LastProjectPath == d.LastProjectPath;
         }
-
-        EditorPrefsConfig(const char *filePath);
-
-        ~EditorPrefsConfig() override = default;
 
         void serialize() override;
 
@@ -36,7 +35,8 @@ namespace YAML {
         static Node encode(const BreadEditor::EditorPrefsConfig &rhs)
         {
             Node node;
-            node.push_back(rhs.LastProjectPath);
+            const auto name = NAMEOF(rhs.LastProjectPath).c_str();
+            node[name] = rhs.LastProjectPath;
             return node;
         }
 

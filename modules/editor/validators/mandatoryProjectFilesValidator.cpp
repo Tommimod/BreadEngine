@@ -1,6 +1,7 @@
 ﻿#include "mandatoryProjectFilesValidator.h"
 #include <fstream>
 #include "editor.h"
+#include "../models/reservedFileNames.h"
 #include "models/reservedFileNames.h"
 
 namespace BreadEditor {
@@ -8,13 +9,13 @@ namespace BreadEditor {
     {
         try
         {
-            std::string path = Editor::getInstance().getEditorModel().getProjectAssetsPath();
+            std::string path = Editor::getInstance().getEditorModel().getProjectPath();
             if (path.empty())
             {
                 return false;
             }
 
-            auto filePath = TextFormat("%s%s", path.c_str(), ReservedFileNames::PROJECT_SETTINGS_NAME);
+            auto filePath = TextFormat("%s%s", path.c_str(), BreadEngine::ReservedFileNames::PROJECT_SETTINGS_NAME);
             if (!FileExists(filePath))
             {
                 std::ofstream outfile(filePath);
@@ -22,6 +23,13 @@ namespace BreadEditor {
             }
 
             filePath = TextFormat("%s%s", path.c_str(), ReservedFileNames::EDITOR_IN_PROJECT_SETTINGS_NAME);
+            if (!FileExists(filePath))
+            {
+                std::ofstream outfile(filePath);
+                outfile.close();
+            }
+
+            filePath = TextFormat("%s%s", path.c_str(), BreadEngine::ReservedFileNames::ASSETS_REGISTRY_NAME);
             if (!FileExists(filePath))
             {
                 std::ofstream outfile(filePath);

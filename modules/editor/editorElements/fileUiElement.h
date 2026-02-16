@@ -1,6 +1,6 @@
 ﻿#pragma once
 #include "action.h"
-#include "systems/fileSystem.h"
+#include "../../engine/configs/assetsConfig.h"
 #include "uitoolkit/IUiDraggable.h"
 #include "uitoolkit/uiElement.h"
 #include "uitoolkit/uiLabelButton.h"

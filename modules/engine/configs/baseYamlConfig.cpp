@@ -1,6 +1,6 @@
 ﻿#include "baseYamlConfig.h"
 
-namespace BreadEditor {
+namespace BreadEngine {
     BaseYamlConfig::BaseYamlConfig(const std::string &filePath)
     {
         _filePath = filePath;
@@ -8,4 +8,4 @@ namespace BreadEditor {
 
     BaseYamlConfig::~BaseYamlConfig()
     = default;
-} // BreadEditor
+} // BreadEngine

@@ -30,7 +30,7 @@ namespace BreadEditor {
 
         void clear();
 
-        const char *getTitle() override { return _title; }
+        [[nodiscard]] const char *getTitle() override { return _title; }
 
     protected:
         void subscribe() override;

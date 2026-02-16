@@ -1,7 +1,7 @@
 ﻿#pragma once
 #include "editorElements/fileUiElement.h"
 #include "editorElements/folderUiElement.h"
-#include "systems/fileSystem.h"
+#include "../../engine/configs/assetsConfig.h"
 #include "uitoolkit/uiElement.h"
 #include "uitoolkit/uiWindow.h"
 
@@ -34,7 +34,7 @@ namespace BreadEditor {
 
     private:
         const char *_title = Id.c_str();
-        FileSystem &_fileSystem;
+        AssetsConfig &_fileSystem;
         std::vector<FolderUiElement *> _folderUiElements;
         std::vector<FileUiElement *> _fileUiElements;
 

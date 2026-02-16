@@ -1,7 +1,7 @@
 ﻿#pragma once
 #include <string>
 
-namespace BreadEditor {
+namespace BreadEngine {
     struct BaseYamlConfig
     {
         explicit BaseYamlConfig() = default;
@@ -17,4 +17,4 @@ namespace BreadEditor {
         void setPath(const std::string &filePath) { _filePath = filePath; }
         std::string _filePath;
     };
-} // BreadEditor
+} // BreadEngine

@@ -1,7 +1,7 @@
 ﻿#pragma once
 #include "action.h"
 #include "nodeUiElement.h"
-#include "systems/fileSystem.h"
+#include "../../engine/configs/assetsConfig.h"
 #include "uitoolkit/IUiDraggable.h"
 #include "uitoolkit/uiButton.h"
 #include "uitoolkit/uiElement.h"

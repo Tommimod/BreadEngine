@@ -1,7 +1,7 @@
 ﻿#include "mandatoryEditorFilesValidator.h"
 #include <fstream>
 #include "editor.h"
-#include "models/reservedFileNames.h"
+#include "../models/reservedFileNames.h"
 
 namespace BreadEditor {
     bool MandatoryEditorFilesValidator::validate()

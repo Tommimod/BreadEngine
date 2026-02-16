@@ -1,7 +1,7 @@
 ﻿#include "windowsModel.h"
 #include "../windows/assetsWindow.h"
 #include "../windows/consoleWindow.h"
-#include "../windows/nodeInspectorWindow.h"
+#include "../windows/inspectors/nodeInspectorWindow.h"
 #include "../windows/nodeTreeWindow.h"
 #include "../windows/viewportWindow.h"
 

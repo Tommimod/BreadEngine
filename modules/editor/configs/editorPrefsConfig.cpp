@@ -15,13 +15,9 @@ namespace BreadEditor {
 
     void EditorPrefsConfig::serialize()
     {
-        YAML::Node node;
-        const auto name = NAMEOF(LastProjectPath).c_str();
-        node[name] = LastProjectPath;
-
         std::ofstream process(_filePath);
         process.clear();
-        process << node;
+        process << YAML::Node(*this);
         process.close();
     }
 
@@ -33,15 +29,11 @@ namespace BreadEditor {
             return;
         }
 
-        auto rawConfig = YAML::LoadFile(_filePath);
+        const auto rawConfig = YAML::LoadFile(_filePath);
         if (rawConfig.IsNull())
         {
-            const auto name = NAMEOF(LastProjectPath).c_str();
-            rawConfig[name] = TextFormat("%s\\%s", GetWorkingDirectory(), "assets\\game");
-
-            std::ofstream process(_filePath);
-            process << rawConfig;
-            process.close();
+            LastProjectPath = TextFormat("%s\\%s", GetWorkingDirectory(), "assets\\game");
+            serialize();
         }
 
         auto data = rawConfig.as<EditorPrefsConfig>();

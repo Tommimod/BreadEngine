@@ -6,7 +6,7 @@
 namespace BreadEditor {
     void OpenProjectCommand::execute()
     {
-        auto path = FileDialogHelper::SelectFolderUTF8();
+        const auto path = FileDialogHelper::SelectFolderUTF8();
         Editor::getInstance().getEditorModel().setProjectPath(path);
         if (!MandatoryProjectFilesValidator::validate())
         {
@@ -15,7 +15,7 @@ namespace BreadEditor {
 
         const auto title = TextFormat("Bread Engine - Editor: %s", path.c_str());
         SetWindowTitle(title);
-        auto config = Editor::getInstance().getConfigsProvider().getEditorPrefsConfig();
+        const auto config = Editor::getInstance().getConfigsProvider().getEditorPrefsConfig();
         config->LastProjectPath = path;
         config->serialize();
     }

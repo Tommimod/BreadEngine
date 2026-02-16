@@ -7,13 +7,13 @@ namespace BreadEditor {
     std::string AssetsWindow::Id = "Assets";
     std::string get_stem(const filesystem::path &p) { return p.stem().string(); }
 
-    AssetsWindow::AssetsWindow(const std::string &id) : UiWindow(id), _fileSystem(Engine::getInstance().getFileSystem())
+    AssetsWindow::AssetsWindow(const std::string &id) : UiWindow(id), _fileSystem(Engine::getInstance().getAssetsRegistry())
     {
         setup(id);
         subscribe();
     }
 
-    AssetsWindow::AssetsWindow(const std::string &id, UiElement *parentElement) : UiWindow(id, parentElement), _fileSystem(Engine::getInstance().getFileSystem())
+    AssetsWindow::AssetsWindow(const std::string &id, UiElement *parentElement) : UiWindow(id, parentElement), _fileSystem(Engine::getInstance().getAssetsRegistry())
     {
         setup(id, parentElement);
         subscribe();
