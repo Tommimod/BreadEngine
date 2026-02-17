@@ -21,20 +21,20 @@ namespace BreadEditor {
         UiElement::dispose();
     }
 
-    void UiInspector::track(InspectorStruct* inspectorStruct)
+    void UiInspector::track(InspectorStruct *inspectorStruct)
     {
         constexpr std::string transformName = "Transform";
 
         _inspectorStruct = inspectorStruct;
         _componentName = inspectorStruct->getTypeName();
         _isTransform = _componentName == transformName;
-        _properties = inspectorStruct->getInspectedProperties();
+        const auto properties = inspectorStruct->getInspectedProperties();
 
         cleanUp();
 
-        for (int i = 0; i < static_cast<int>(_properties.size()); i++)
+        for (int i = 0; i < static_cast<int>(properties.size()); i++)
         {
-            const auto &property = _properties[i];
+            const auto &property = properties[i];
             auto propValue = property.get(inspectorStruct);
             constexpr float horOffset = 5;
             constexpr float heightSize = 17;
@@ -51,7 +51,8 @@ namespace BreadEditor {
             auto propWithComponent = PropsOfStruct(std::make_unique<Property>(property), inspectorStruct);
             if (property.type == PropertyType::INSPECTOR_STRUCT)
             {
-                //TODO
+                const auto structPtr = std::any_cast<InspectorStruct *>(property.get(inspectorStruct));
+                track(structPtr);
             }
             else if (property.type == PropertyType::INT)
             {
@@ -136,6 +137,10 @@ namespace BreadEditor {
             else if (property.type == PropertyType::ENUM)
             {
                 //TODO
+            }
+            else if (property.type == PropertyType::VECTOR_L)
+            {
+                //How parse to vector<T> if I don't know T?
             }
 
             if (!createdElement) continue;

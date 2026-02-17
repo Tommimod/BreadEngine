@@ -17,6 +17,10 @@ namespace BreadEditor {
         _button.setText(GuiIconText(ICON_FILE, _file->getPathFromRoot().c_str()));
         _button.setTextAlignment(TEXT_ALIGN_LEFT);
         _button.setSizePercentPermanent({1, 1});
+        _button.onClick.subscribe([this](const UiLabelButton *)
+        {
+            onClicked.invoke(this);
+        });
 
         UiElement::setup(id, parentElement);
         return *this;
@@ -42,6 +46,7 @@ namespace BreadEditor {
     {
         onDragEnded.unsubscribeAll();
         onDragStarted.unsubscribeAll();
+        onClicked.unsubscribeAll();
         UiElement::dispose();
     }
 

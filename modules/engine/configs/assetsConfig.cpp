@@ -13,6 +13,7 @@ namespace BreadEngine {
     DEFINE_STATIC_PROPS(AssetsConfig)
     DEFINE_STATIC_PROPS(Folder)
     DEFINE_STATIC_PROPS(File)
+
     void AssetsConfig::serialize()
     {
         const auto filePath = std::string(_projectPath) + "\\" + ReservedFileNames::ASSETS_REGISTRY_NAME;
@@ -104,12 +105,16 @@ namespace BreadEngine {
         {
             const auto path = filePathList.paths[i];
             const auto isFolder = AssetsConfig::isFolder(path);
-            const auto relativePathStart = path + strlen(_projectPath.c_str()) + 1;
-            const auto fileName = strrchr(relativePathStart, '\\');
-            auto pathFromRoot = fileName ? fileName + 1 : relativePathStart;
+            if (strncmp(path, _projectPath.c_str(), _projectPath.size()) != 0)
+            {
+                TraceLog(LOG_ERROR, "Path does not start with project path");
+                throw std::runtime_error("Path does not start with project path");
+            }
+
+            std::string relPath = path + _projectPath.size() + 1;
             if (isFolder)
             {
-                auto subFolder = Folder(folder.getDepth() + 1, pathFromRoot, getNewGUID());
+                auto subFolder = Folder(folder.getDepth() + 1, relPath, getNewGUID());
                 auto list = LoadDirectoryFiles(path);
                 parseFolders(subFolder, list);
                 folder.getFolders().push_back(std::move(subFolder));
@@ -118,7 +123,7 @@ namespace BreadEngine {
             else
             {
                 const auto ext = GetFileExtension(path);
-                auto file = File(path, pathFromRoot, ext, getNewGUID());
+                auto file = File(path, relPath, ext, getNewGUID());
                 folder.getFiles().push_back(std::move(file));
             }
         }

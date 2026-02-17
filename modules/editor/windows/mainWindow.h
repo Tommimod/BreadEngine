@@ -2,7 +2,7 @@
 #include "assetsWindow.h"
 #include "consoleWindow.h"
 #include "../systems/gizmoSystem.h"
-#include "inspectors/nodeInspectorWindow.h"
+#include "nodeInspectorWindow.h"
 #include "nodeTreeWindow.h"
 #include "../uitoolkit/uiToolbar.h"
 #include "raylib.h"

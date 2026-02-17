@@ -1,6 +1,7 @@
 ﻿#include "assetsWindow.h"
 #include <filesystem>
 #include "editor.h"
+#include "models/reservedFileNames.h"
 #include "uitoolkit/uiPool.h"
 
 namespace BreadEditor {
@@ -95,6 +96,10 @@ namespace BreadEditor {
         element.onlyProvideDragEvents = true;
 
         _fileUiElements.emplace_back(&element);
+        element.onClicked.subscribe([this](const FileUiElement *fileUiElement)
+        {
+            onFileSelected(fileUiElement);
+        });
         return element;
     }
 
@@ -181,6 +186,16 @@ namespace BreadEditor {
         element->setPosition({nodeHorizontalPadding + horizontalOffset, startYPosition + verticalPadding});
         nodeOrder++;
         calculateRectForScroll(element);
+    }
+
+    void AssetsWindow::onFileSelected(const FileUiElement *fileUiElement)
+    {
+        const auto fileName = fileUiElement->getFile()->getPathFromRoot().c_str();
+        const auto inspectorWindow = &Editor::getInstance().mainWindow.getNodeInspector();
+        if (strcmp(fileName, BreadEngine::ReservedFileNames::ASSETS_REGISTRY_NAME) == 0)
+        {
+            inspectorWindow->lookupStruct(&Engine::getInstance().getAssetsRegistry());
+        }
     }
 
     void AssetsWindow::draw(const float deltaTime)

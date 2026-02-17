@@ -39,7 +39,6 @@ namespace BreadEditor {
     private:
         bool _isTransform = false;
         std::string _componentName;
-        std::vector<Property> _properties{};
         InspectorStruct *_inspectorStruct = nullptr;
 
         void cleanUp();

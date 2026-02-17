@@ -9,16 +9,18 @@
 namespace BreadEngine {
     struct InspectorStruct;
 
-    enum class PropertyType : uint8_t { INSPECTOR_STRUCT, INT, FLOAT, LONG, BOOL, STRING, VECTOR2, VECTOR3, VECTOR4, COLOR, ENUM, VECTOR_INSPECTOR_STRUCT };
+    enum class PropertyType : uint8_t { INSPECTOR_STRUCT, INT, FLOAT, LONG, BOOL, STRING, VECTOR2, VECTOR3, VECTOR4, COLOR, ENUM, VECTOR_L };
 
     template<typename T>
     struct DeducePropertyType {
-        static constexpr auto value = PropertyType::INSPECTOR_STRUCT; // default fallback
-    };
-
-    template<>
-    struct DeducePropertyType<InspectorStruct> {
-        static constexpr auto value = PropertyType::INSPECTOR_STRUCT;
+        static constexpr PropertyType value = [] {
+            if constexpr (std::is_base_of_v<InspectorStruct, T>) {
+                return PropertyType::INSPECTOR_STRUCT;
+            } else {
+                static_assert(false, "Unsupported type for inspector property");
+                return PropertyType{}; // never reached
+            }
+        }();
     };
 
     template<>
@@ -74,8 +76,7 @@ namespace BreadEngine {
     template<typename T>
     struct DeducePropertyType<std::vector<T>> {
         static constexpr PropertyType value = []() constexpr {
-            static_assert(std::is_base_of_v<InspectorStruct, T>, "Vector element must derive from InspectorStruct");
-            return PropertyType::VECTOR_INSPECTOR_STRUCT;
+            return PropertyType::VECTOR_L;
         }();
     };
 
@@ -115,27 +116,65 @@ namespace BreadEngine {
         decltype((std::declval<std::remove_pointer_t<std::decay_t<MemberPtr> > >()
                   .*std::declval<std::decay_t<MemberPtr> >()))> >;
 
-    template<typename LocalClass, typename T>
-    void addInspectedProperty(std::vector<Property> &props, const char *fieldName, T LocalClass::*memberPtr)
-    {
-        using RawFieldType = std::remove_cvref_t<decltype( (static_cast<LocalClass *>(nullptr)->*memberPtr) )>;
-        using FieldType = std::conditional_t<std::is_reference_v<RawFieldType>, std::remove_reference_t<RawFieldType>, RawFieldType>;
-        constexpr PropertyType ptype = deducePropertyType<FieldType>();
+template<typename LocalClass, typename T>
+void addInspectedProperty(std::vector<Property> &props, const char *fieldName, T LocalClass::*memberPtr)
+{
+    using RawFieldType = std::remove_cvref_t<decltype( (static_cast<LocalClass *>(nullptr)->*memberPtr) )>;
+    using FieldType = std::conditional_t<std::is_reference_v<RawFieldType>, std::remove_reference_t<RawFieldType>, RawFieldType>;
+    constexpr PropertyType ptype = deducePropertyType<FieldType>();
+
+    if constexpr (ptype == PropertyType::INSPECTOR_STRUCT) {
         props.emplace_back(Property{
-            std::string(fieldName),
-            ptype,
-            [memberPtr](const InspectorStruct *comp) -> Property::VariantT
-            {
+            .name = std::string(fieldName),
+            .type = ptype,
+            .get = [memberPtr](const InspectorStruct *comp) -> Property::VariantT {
+                auto nonConstComp = const_cast<InspectorStruct*>(comp);
+                auto nonConstObj = static_cast<LocalClass*>(nonConstComp);
+                InspectorStruct* structPtr = static_cast<InspectorStruct*>(&(nonConstObj->*memberPtr));
+                return structPtr;
+            },
+            .set = [](InspectorStruct *, const Property::VariantT &) {
+                // Не используем set для вложенных структур — редактируем рекурсивно
+                // Если нужно присвоить целиком, реализуйте, но рискуете slicing
+            },
+            .toStr = {}  // Если нужно, добавьте реализацию
+        });
+    } else if constexpr (ptype == PropertyType::VECTOR_L) {
+        props.emplace_back(Property{
+            .name = std::string(fieldName),
+            .type = ptype,
+            .get = [memberPtr](const InspectorStruct *comp) -> Property::VariantT {
+                auto nonConstComp = const_cast<InspectorStruct*>(comp);
+                auto nonConstObj = static_cast<LocalClass*>(nonConstComp);
+                void* vecPtr = static_cast<void*>(&(nonConstObj->*memberPtr));
+                auto forEach = [vecPtr](auto callback) {
+                    auto& vec = *static_cast<FieldType*>(vecPtr);
+                    for (auto& elem : vec) {
+                        callback(&elem);
+                    }
+                };
+                return std::make_pair(vecPtr, forEach);
+            },
+            .set = [](InspectorStruct *, const Property::VariantT &) {
+            },
+            .toStr = {}
+        });
+    } else {
+        props.emplace_back(Property{
+            .name = std::string(fieldName),
+            .type = ptype,
+            .get = [memberPtr](const InspectorStruct *comp) -> Property::VariantT {
                 const auto *obj = static_cast<const LocalClass *>(comp);
                 return Property::VariantT{obj->*memberPtr};
             },
-            [memberPtr](InspectorStruct *comp, const Property::VariantT &value)
-            {
+            .set = [memberPtr](InspectorStruct *comp, const Property::VariantT &value) {
                 auto *obj = static_cast<LocalClass *>(comp);
                 obj->*memberPtr = std::any_cast<FieldType>(value);
-            }
+            },
+            .toStr = {}
         });
     }
+}
 
 #define INSPECTOR_BEGIN(ClassName) \
     private: \

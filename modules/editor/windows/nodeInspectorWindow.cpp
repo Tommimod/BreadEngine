@@ -97,7 +97,18 @@ namespace BreadEditor {
         clear();
         resetElementsState();
         _inspectorStruct = inspectorStruct;
-        //TODO
+        for (int i = static_cast<int>(_uiComponentElements.size()); i != 0; i--)
+        {
+            const auto element = _uiComponentElements.back();
+            element->dispose();
+            _uiComponentElements.pop_back();
+            element->onDelete.unsubscribe(_subscriptions[element]);
+        }
+
+        const auto element = &UiPool::componentPool.get().setup("UiStruct_0", this);
+        _uiComponentElements.push_back(element);
+        setupUiComponent(element);
+        element->track(inspectorStruct);
     }
 
     void NodeInspectorWindow::clear()
