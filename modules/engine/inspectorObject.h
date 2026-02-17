@@ -23,7 +23,7 @@ namespace BreadEngine {
             else
             {
                 static_assert(false, "Unsupported type for inspector property");
-                return PropertyType{}; // never reached
+                return PropertyType{};
             }
         }();
     };
@@ -114,7 +114,6 @@ namespace BreadEngine {
         std::function<std::string(const VariantT &)> toStr;
     };
 
-    // Базовый полиморфный интерфейс для доступа к вектору любого типа
     struct VectorAccessor
     {
         virtual ~VectorAccessor() = default;
@@ -129,18 +128,15 @@ namespace BreadEngine {
 
         virtual void remove(size_t index) = 0;
 
-        // Для случаев, когда элементы — наследники InspectorStruct
         virtual void forEachInspectorStruct(std::function<void(InspectorStruct *)> callback) = 0;
 
-        // Тип элемента (чтобы в UI знать, какой контрол рисовать)
         virtual PropertyType elementType() const = 0;
     };
 
-    // Шаблонная реализация для конкретного типа вектора
     template<typename VecT>
     struct TypedVectorAccessor : VectorAccessor
     {
-        VecT &vec; // ← ссылка на вектор (не указатель!)
+        VecT &vec;
 
         explicit TypedVectorAccessor(VecT &v) : vec(v)
         {
@@ -185,7 +181,6 @@ namespace BreadEngine {
 
         void forEachInspectorStruct(std::function<void(InspectorStruct *)> callback) override
         {
-            // Вызываем только если элементы — InspectorStruct или производные
             if constexpr (std::is_base_of_v<InspectorStruct, typename VecT::value_type>)
             {
                 for (auto &elem: vec)
@@ -193,7 +188,6 @@ namespace BreadEngine {
                     callback(static_cast<InspectorStruct *>(&elem));
                 }
             }
-            // иначе — ничего не делаем (или можно throw, если хочешь жёсткую проверку)
         }
 
         PropertyType elementType() const override
@@ -267,17 +261,19 @@ namespace BreadEngine {
                 .name = std::string(fieldName),
                 .type = ptype,
                 .elementType = deducePropertyType<typename FieldType::value_type>(),
-                .get = [memberPtr](const InspectorStruct *comp) -> Property::VariantT {
-                    auto *nonConstObj = const_cast<LocalClass*>(static_cast<const LocalClass*>(comp));
+                .get = [memberPtr](const InspectorStruct *comp) -> Property::VariantT
+                {
+                    auto *nonConstObj = const_cast<LocalClass *>(static_cast<const LocalClass *>(comp));
                     auto &vecRef = nonConstObj->*memberPtr;
                     using VecT = std::remove_reference_t<decltype(vecRef)>;
 
-                    std::shared_ptr<VectorAccessor> acc = std::make_shared<TypedVectorAccessor<VecT>>(vecRef);
+                    std::shared_ptr<VectorAccessor> acc = std::make_shared<TypedVectorAccessor<VecT> >(vecRef);
                     return acc;
                 },
-                .set = [](InspectorStruct *, const Property::VariantT &)
+                .set = [memberPtr](InspectorStruct *comp, const Property::VariantT &value)
                 {
-                    // Если хочешь — можно реализовать присвоение всего вектора целиком
+                    auto *obj = static_cast<LocalClass *>(comp);
+                    obj->*memberPtr = std::any_cast<FieldType>(value);
                 },
                 .toStr = [](const Property::VariantT &) -> std::string
                 {
