@@ -27,11 +27,12 @@ namespace BreadEditor {
 
         _inspectorStruct = inspectorStruct;
         _componentName = inspectorStruct->getTypeName();
-        _isTransform = _componentName == transformName;
+        _isPermanent = _componentName == transformName;
         const auto properties = inspectorStruct->getInspectedProperties();
 
         cleanUp();
 
+        //TODO move to method
         for (int i = 0; i < static_cast<int>(properties.size()); i++)
         {
             const auto &property = properties[i];
@@ -140,7 +141,18 @@ namespace BreadEditor {
             }
             else if (property.type == PropertyType::VECTOR_L)
             {
-                //How parse to vector<T> if I don't know T?
+                auto accessorAny = property.get(inspectorStruct);
+                const auto *sharedPtr = std::any_cast<std::shared_ptr<VectorAccessor>>(&accessorAny);
+
+                if (!sharedPtr || !*sharedPtr) {
+                    TraceLog(LOG_ERROR, "Vector accessor is null for %s", property.name.c_str());
+                    continue;
+                }
+
+                auto &acc = **sharedPtr;
+                auto elemType = acc.elementType();
+
+                //TODO Create element for generic vector
             }
 
             if (!createdElement) continue;
@@ -156,7 +168,7 @@ namespace BreadEditor {
 
     void UiInspector::draw(const float deltaTime)
     {
-        if (_isTransform)
+        if (_isPermanent)
         {
             GuiPanel(_bounds, _componentName.c_str());
         }

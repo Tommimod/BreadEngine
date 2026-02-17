@@ -37,7 +37,7 @@ namespace BreadEditor {
         bool tryDeleteSelf() override;
 
     private:
-        bool _isTransform = false;
+        bool _isPermanent = false;
         std::string _componentName;
         InspectorStruct *_inspectorStruct = nullptr;
 
