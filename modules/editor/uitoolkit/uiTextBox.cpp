@@ -48,6 +48,7 @@ namespace BreadEditor {
         onValueChanged.unsubscribeAll();
         onValueChangedWithSender.unsubscribeAll();
         _text = nullptr;
+        _dynamicValue = UiInspector::PropsOfStruct();
         UiElement::dispose();
     }
 

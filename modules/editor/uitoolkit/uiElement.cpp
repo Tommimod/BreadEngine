@@ -289,6 +289,7 @@ namespace BreadEditor {
     void UiElement::destroyChild(UiElement *child)
     {
         child->_isDeleted = true;
+        child->destroyAllChilds();
     }
 
     void UiElement::destroyChild(const std::string &childId)
@@ -784,7 +785,7 @@ namespace BreadEditor {
 
     void UiElement::drawInternal(const float deltaTime, const GuiState state)
     {
-        if (!isActive)
+        if (!isActive || _isDeleted)
         {
             return;
         }
@@ -841,7 +842,7 @@ namespace BreadEditor {
 
     void UiElement::updateInternal(const float deltaTime)
     {
-        if (!isActive)
+        if (!isActive || _isDeleted)
         {
             return;
         }

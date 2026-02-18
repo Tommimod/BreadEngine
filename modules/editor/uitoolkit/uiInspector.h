@@ -14,20 +14,20 @@ namespace BreadEditor {
         struct PropsOfStruct
         {
             std::unique_ptr<Property> property;
-            InspectorStruct* inspectorStruct;
+            InspectorStruct *inspectorStruct;
         };
 
         Action<std::type_index> onDelete;
 
         UiInspector();
 
-        UiInspector &setup(const std::string &id, UiElement *parentElement);
+        UiInspector &setup(const std::string &id, UiElement *parentElement, bool isStatic);
 
         ~UiInspector() override;
 
         void dispose() override;
 
-        void track(InspectorStruct* inspectorStruct);
+        void track(InspectorStruct *inspectorStruct);
 
         void draw(float deltaTime) override;
 
@@ -37,10 +37,13 @@ namespace BreadEditor {
         bool tryDeleteSelf() override;
 
     private:
+        bool _isStatic = false;
         bool _isPermanent = false;
         std::string _componentName;
         InspectorStruct *_inspectorStruct = nullptr;
 
         void cleanUp();
+
+        void initializeProperties(InspectorStruct *inspectorStruct, const std::vector<Property> &properties);
     };
 } // BreadEditor

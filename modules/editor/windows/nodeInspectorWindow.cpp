@@ -53,6 +53,12 @@ namespace BreadEditor {
 
     void NodeInspectorWindow::lookupNode(Node *node)
     {
+        if (_engineNode == node)
+        {
+            return;
+        }
+
+        resetElementsState(true);
         clear();
         _engineNode = node;
         if (_engineNode != nullptr)
@@ -64,7 +70,7 @@ namespace BreadEditor {
             {
                 for (int i = static_cast<int>(_trackedComponents.size()) - needCreateCount; i < static_cast<int>(_trackedComponents.size()); i++)
                 {
-                    auto element = &UiPool::componentPool.get().setup("UiComponent_" + std::to_string(_uiComponentElements.size()), this);
+                    auto element = &UiPool::componentPool.get().setup("UiComponent_" + std::to_string(_uiComponentElements.size()), this, false);
                     _uiComponentElements.push_back(element);
                     setupUiComponent(element);
                     _subscriptions.emplace(element, element->onDelete.subscribe([this](const std::type_index type) { this->onUiComponentDeleted(type); }));
@@ -88,14 +94,19 @@ namespace BreadEditor {
         }
         else
         {
-            resetElementsState();
+            resetElementsState(true);
         }
     }
 
     void NodeInspectorWindow::lookupStruct(InspectorStruct *inspectorStruct)
     {
+        if (_inspectorStruct == inspectorStruct)
+        {
+            return;
+        }
+
         clear();
-        resetElementsState();
+        resetElementsState(false);
         _inspectorStruct = inspectorStruct;
         for (int i = static_cast<int>(_uiComponentElements.size()); i != 0; i--)
         {
@@ -105,7 +116,7 @@ namespace BreadEditor {
             element->onDelete.unsubscribe(_subscriptions[element]);
         }
 
-        const auto element = &UiPool::componentPool.get().setup("UiStruct_0", this);
+        const auto element = &UiPool::componentPool.get().setup("UiStruct_0", this, true);
         _uiComponentElements.push_back(element);
         setupUiComponent(element);
         element->track(inspectorStruct);
@@ -144,12 +155,14 @@ namespace BreadEditor {
         _nameTextBox->setSize({100, 20});
         _subscriptions.emplace(_nameTextBox, _nameTextBox->onValueChanged.subscribe([this](const char *text) { this->onNodeNameChanged(text); }));
 
-        resetElementsState();
+        resetElementsState(true);
     }
 
-    void NodeInspectorWindow::resetElementsState()
+    void NodeInspectorWindow::resetElementsState(const bool withGlobalSettings)
     {
         const auto emptyString = "";
+        _activeCheckBox->isActive = withGlobalSettings;
+        _nameTextBox->isActive = withGlobalSettings;
         _activeCheckBox->setChecked(false);
         _nameTextBox->setText(emptyString);
         _trackedComponents = {};
@@ -179,7 +192,12 @@ namespace BreadEditor {
         uiComponentElement->setAnchor(UI_LEFT_TOP);
         uiComponentElement->setSize(Vector2{_bounds.width - 10, 50});
         uiComponentElement->setSizePercentPermanent({.97f, -1});
-        const auto yPosition = _nameTextBox->getPosition().y + _nameTextBox->getSize().y + 10;
+        auto yPosition = RAYGUI_WINDOWBOX_STATUSBAR_HEIGHT + 10.0f;
+        if (_activeCheckBox->isActive)
+        {
+            yPosition = _nameTextBox->getPosition().y + _nameTextBox->getSize().y + 10;
+        }
+
         uiComponentElement->setPosition(Vector2{5, yPosition});
     }
 

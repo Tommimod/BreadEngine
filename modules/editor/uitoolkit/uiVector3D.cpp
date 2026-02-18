@@ -23,6 +23,7 @@ namespace BreadEditor {
         _names[0] = "X";
         _names[1] = "Y";
         _names[2] = "Z";
+        _dynamicValue = UiInspector::PropsOfStruct();
         return this;
     }
 

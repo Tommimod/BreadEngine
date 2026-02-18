@@ -44,8 +44,8 @@ namespace BreadEditor {
         float _floatValue = 0;
         int _intValue = 0;
         int _textSize = 0;
-        const char *_label = nullptr;
         char _valueText[32] = {};
+        std::string _label;
         std::string _floatLabel;
         UiInspector::PropsOfStruct _dynamicValue{};
     };

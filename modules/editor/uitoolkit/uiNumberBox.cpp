@@ -5,10 +5,7 @@
 namespace BreadEditor {
     UiNumberBox::UiNumberBox() = default;
 
-    UiNumberBox::~UiNumberBox()
-    {
-        delete _label;
-    }
+    UiNumberBox::~UiNumberBox() = default;
 
     void UiNumberBox::dispose()
     {
@@ -16,8 +13,9 @@ namespace BreadEditor {
         _intValue = 0;
         _editMode = false;
         _intMode = false;
-        _label = nullptr;
+        _label = "";
         _floatLabel.clear();
+        _dynamicValue = UiInspector::PropsOfStruct();
         onValueChanged.unsubscribeAll();
         onValueChangedWithSender.unsubscribeAll();
 
@@ -65,7 +63,7 @@ namespace BreadEditor {
     UiNumberBox &UiNumberBox::setup(const std::string &id, const std::string &label, const int defaultValue, const int defaultTextSize, const bool defaultEditMode)
     {
         _intMode = true;
-        _label = label.c_str();
+        _label = label;
         _intValue = defaultValue;
         _textSize = defaultTextSize;
         snprintf(_valueText, sizeof(_valueText), "%i", _intValue);
@@ -77,7 +75,7 @@ namespace BreadEditor {
     UiNumberBox &UiNumberBox::setup(const std::string &id, UiElement *parentElement, const std::string &label, const int defaultValue, const int defaultTextSize, const bool defaultEditMode)
     {
         _intMode = true;
-        _label = label.c_str();
+        _label = label;
         _intValue = defaultValue;
         _textSize = defaultTextSize;
         snprintf(_valueText, sizeof(_valueText), "%i", _intValue);
@@ -89,7 +87,7 @@ namespace BreadEditor {
     UiNumberBox &UiNumberBox::setup(const std::string &id, UiElement *parentElement, const std::string &label, UiInspector::PropsOfStruct dynamicValue, int defaultTextSize, bool defaultEditMode)
     {
         _intMode = true;
-        _label = label.c_str();
+        _label = label;
         _dynamicValue = std::move(dynamicValue);
         _textSize = defaultTextSize;
         snprintf(_valueText, sizeof(_valueText), "%i", _intValue);
@@ -102,7 +100,7 @@ namespace BreadEditor {
     {
         if (_intMode)
         {
-            if (GuiValueBox(_bounds, _label, &_intValue, INT_MIN,INT_MAX, _editMode))
+            if (GuiValueBox(_bounds, _label.c_str(), &_intValue, INT_MIN,INT_MAX, _editMode))
             {
                 _editMode = !_editMode;
                 if (!_editMode)

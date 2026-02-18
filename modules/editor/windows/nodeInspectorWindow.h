@@ -52,7 +52,7 @@ namespace BreadEditor {
 
         void initialize() override;
 
-        void resetElementsState();
+        void resetElementsState(bool withGlobalSettings);
 
         void rebuild();
 

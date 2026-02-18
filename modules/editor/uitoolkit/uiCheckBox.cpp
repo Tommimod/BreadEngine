@@ -45,6 +45,7 @@ namespace BreadEditor {
         _internalChecked = false;
         _externalChecked = nullptr;
         _text.clear();
+        _dynamicValue = UiInspector::PropsOfStruct();
         onValueChanged.unsubscribeAll();
         UiElement::dispose();
     }
