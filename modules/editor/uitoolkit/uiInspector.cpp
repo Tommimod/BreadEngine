@@ -39,36 +39,39 @@ namespace BreadEditor {
             _inspectorStruct = inspectorStruct;
             _componentName = inspectorStruct->getTypeName();
             _isPermanent = _isStatic || _componentName == transformName;
-            initializeProperties(inspectorStruct, inspectorStruct->getInspectedProperties());
+            int depth = 0;
+            initializeProperties(inspectorStruct, inspectorStruct->getInspectedProperties(), depth, 1);
         });
 
         workerThread.detach();
     }
 
-    void UiInspector::initializeProperties(InspectorStruct *inspectorStruct, const std::vector<Property> &properties)
+    void UiInspector::initializeProperties(InspectorStruct *inspectorStruct, const std::vector<Property> &properties, int &depth, float horizonDepth)
     {
         for (int i = 0; i < static_cast<int>(properties.size()); i++)
         {
             constexpr std::string emptyLabel;
             const auto &property = properties[i];
             auto propValue = property.get(inspectorStruct);
-            constexpr float horOffset = 5;
+            float horOffset = 5.0f * horizonDepth;
             constexpr float heightSize = 17;
-            const auto verOffset = horOffset * static_cast<float>(i) + 30 + heightSize * static_cast<float>(i);
+            const auto verOffset = 5 * static_cast<float>(i + depth) + 30 + heightSize * static_cast<float>(i + depth);
             setSize({_localSize.x, verOffset + heightSize + horOffset});
 
-            const auto propName = UiPool::labelPool.get().setup(TextFormat("PropName %s", property.name.c_str()), this, property.name);
-            propName->setAnchor(UI_LEFT_TOP);
-            propName->setSize({70, heightSize});
-            propName->setPosition({horOffset, verOffset});
+            auto propName = property.type == PropertyType::INSPECTOR_STRUCT || property.type == PropertyType::VECTOR_L ? property.name + ":" : property.name;
+            const auto uiPropNameLabel = UiPool::labelPool.get().setup(TextFormat("PropName %s", property.name.c_str()), this, propName);
+            uiPropNameLabel->setAnchor(UI_LEFT_TOP);
+            uiPropNameLabel->setSize({70, heightSize});
+            uiPropNameLabel->setPosition({horOffset, verOffset});
             UiElement *createdElement = nullptr;
 
             auto isSingleField = true;
             auto propWithComponent = PropsOfStruct(std::make_unique<Property>(property), inspectorStruct);
             if (property.type == PropertyType::INSPECTOR_STRUCT)
             {
+                depth = i + 1;
                 const auto structPtr = std::any_cast<InspectorStruct *>(property.get(inspectorStruct));
-                initializeProperties(structPtr, structPtr->getInspectedProperties());
+                initializeProperties(structPtr, structPtr->getInspectedProperties(), depth, horizonDepth + 1);
             }
             else if (property.type == PropertyType::INT)
             {
@@ -173,7 +176,7 @@ namespace BreadEditor {
 
             if (!createdElement) continue;
 
-            const auto propNameWidth = propName->getSize().x + propName->getPosition().x;
+            const auto propNameWidth = uiPropNameLabel->getSize().x + uiPropNameLabel->getPosition().x;
             createdElement->setAnchor(UI_LEFT_TOP);
             createdElement->setSize({getSize().x, heightSize});
             const auto sizeInPercent = isSingleField ? .3f : 1;

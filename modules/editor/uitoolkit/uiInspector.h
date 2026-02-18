@@ -44,6 +44,6 @@ namespace BreadEditor {
 
         void cleanUp();
 
-        void initializeProperties(InspectorStruct *inspectorStruct, const std::vector<Property> &properties);
+        void initializeProperties(InspectorStruct *inspectorStruct, const std::vector<Property> &properties, int &depth, float horizonDepth);
     };
 } // BreadEditor
