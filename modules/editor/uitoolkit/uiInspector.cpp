@@ -21,6 +21,10 @@ namespace BreadEditor {
     {
         _inspectorStruct = nullptr;
         onDelete.unsubscribeAll();
+        _uiListData.clear();
+        _isStatic = false;
+        _isPermanent = false;
+        _componentName.clear();
 
         UiElement::dispose();
     }
@@ -46,7 +50,7 @@ namespace BreadEditor {
         workerThread.detach();
     }
 
-    void UiInspector::initializeProperties(InspectorStruct *inspectorStruct, const std::vector<Property> &properties, int &depth, float horizonDepth)
+    void UiInspector::initializeProperties(InspectorStruct *inspectorStruct, const std::vector<Property> &properties, int &depth, const float horizonDepth)
     {
         for (int i = 0; i < static_cast<int>(properties.size()); i++)
         {
@@ -63,6 +67,7 @@ namespace BreadEditor {
             uiPropNameLabel->setAnchor(UI_LEFT_TOP);
             uiPropNameLabel->setSize({70, heightSize});
             uiPropNameLabel->setPosition({horOffset, verOffset});
+            uiPropNameLabel->computeBounds();
             UiElement *createdElement = nullptr;
 
             auto isSingleField = true;
@@ -75,7 +80,7 @@ namespace BreadEditor {
             }
             else if (property.type == PropertyType::INT)
             {
-                createdElement = &UiPool::numberBoxPool.get().setup(TextFormat("NumberBox %s", property.name.c_str()), this, emptyLabel, std::move(propWithComponent));
+                createdElement = &UiPool::numberBoxPool.get().setup(TextFormat("IntBox %s", property.name.c_str()), this, emptyLabel, std::move(propWithComponent));
                 const auto element = dynamic_cast<UiNumberBox *>(createdElement);
                 element->onValueChanged.subscribe([inspectorStruct, property](const int &value)
                 {
@@ -84,7 +89,7 @@ namespace BreadEditor {
             }
             else if (property.type == PropertyType::FLOAT)
             {
-                createdElement = &UiPool::numberBoxPool.get().setup(TextFormat("NumberBox %s", property.name.c_str()), this, emptyLabel, std::move(propWithComponent));
+                createdElement = &UiPool::numberBoxPool.get().setup(TextFormat("FloatBox %s", property.name.c_str()), this, emptyLabel, std::move(propWithComponent));
                 const auto element = dynamic_cast<UiNumberBox *>(createdElement);
                 element->onValueChanged.subscribe([inspectorStruct, property](const float &value)
                 {
@@ -93,7 +98,7 @@ namespace BreadEditor {
             }
             else if (property.type == PropertyType::LONG)
             {
-                createdElement = &UiPool::numberBoxPool.get().setup(TextFormat("NumberBox %s", property.name.c_str()), this, emptyLabel, std::move(propWithComponent));
+                createdElement = &UiPool::numberBoxPool.get().setup(TextFormat("LongBox %s", property.name.c_str()), this, emptyLabel, std::move(propWithComponent));
                 const auto element = dynamic_cast<UiNumberBox *>(createdElement);
                 element->onValueChanged.subscribe([inspectorStruct, property](const long &value)
                 {
@@ -102,7 +107,7 @@ namespace BreadEditor {
             }
             else if (property.type == PropertyType::BOOL)
             {
-                createdElement = &UiPool::checkBoxPool.get().setup(TextFormat("NumberBox %s", property.name.c_str()), this, emptyLabel, std::move(propWithComponent));
+                createdElement = &UiPool::checkBoxPool.get().setup(TextFormat("CheckBox %s", property.name.c_str()), this, emptyLabel, std::move(propWithComponent));
                 const auto element = dynamic_cast<UiCheckBox *>(createdElement);
                 element->onValueChanged.subscribe([inspectorStruct, property](const bool &value)
                 {
@@ -112,7 +117,7 @@ namespace BreadEditor {
             }
             else if (property.type == PropertyType::STRING)
             {
-                createdElement = &UiPool::textBoxPool.get().setup(TextFormat("NumberBox %s", property.name.c_str()), this, std::move(propWithComponent));
+                createdElement = &UiPool::textBoxPool.get().setup(TextFormat("TextBox %s", property.name.c_str()), this, std::move(propWithComponent));
                 const auto element = dynamic_cast<UiTextBox *>(createdElement);
                 element->onValueChanged.subscribe([inspectorStruct, property](const std::string &value)
                 {
@@ -168,10 +173,28 @@ namespace BreadEditor {
                     continue;
                 }
 
-                auto &acc = **sharedPtr;
-                auto elemType = acc.elementType();
+                auto expandButton = &UiPool::labelButtonPool.get().setup(TextFormat("Expand %s", property.name.c_str()), this, GuiIconText(ICON_ARROW_RIGHT, nullptr));
+                expandButton->setAnchor(UI_LEFT_TOP);
+                expandButton->setSize({15, 15});
+                expandButton->setPosition({0, verOffset});
+                _uiListData[expandButton] = UiListData(false, sharedPtr);
+                expandButton->onClick.subscribe([this](UiLabelButton *button)
+                {
+                    _uiListData[button].isExpanded = !_uiListData[button].isExpanded;
+                    const auto isExpanded=  _uiListData[button].isExpanded;
+                    const auto &accessor = *_uiListData[button].accessor;
+                    auto elemType = accessor.elementType();
+                    button->setText(isExpanded ? GuiIconText(ICON_ARROW_DOWN, nullptr) : GuiIconText(ICON_ARROW_RIGHT, nullptr));
+                    if (!isExpanded)
+                    {
+                        return;
+                    }
 
-                //TODO Create element for generic vector
+                    for (auto index = 0; index < static_cast<int>(accessor.size()); index++)
+                    {
+                        auto data = accessor.get(index);
+                    }
+                });
             }
 
             if (!createdElement) continue;

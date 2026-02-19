@@ -13,13 +13,13 @@ namespace BreadEditor {
 
         UiTextBox();
 
+        ~UiTextBox() override;
+
         UiTextBox &setup(const std::string &id, const std::string &defaultText, int defaultTextSize = 14, bool defaultEditMode = false);
 
         UiTextBox &setup(const std::string &id, UiElement *parentElement, const std::string &defaultText, int defaultTextSize = 14, bool defaultEditMode = false);
 
         UiTextBox &setup(const std::string &id, UiElement *parentElement, UiInspector::PropsOfStruct dynamicValue, int defaultTextSize = 14, bool defaultEditMode = false);
-
-        ~UiTextBox() override;
 
         void dispose() override;
 
