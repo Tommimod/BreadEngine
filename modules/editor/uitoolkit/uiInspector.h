@@ -55,10 +55,12 @@ namespace BreadEditor {
         bool _isPermanent = false;
         std::string _componentName;
         InspectorStruct *_inspectorStruct = nullptr;
-        std::map<UiLabelButton *, UiListData> _uiListData{};
+        std::map<Property *, UiListData> _uiListData{};
 
         void cleanUp();
 
-        void initializeProperties(InspectorStruct *inspectorStruct, const std::vector<Property> &properties, int &depth, float horizonDepth);
+        void initializeProperties(InspectorStruct *inspectorStruct, std::vector<Property> &properties, int &depth, float horizonDepth);
+
+        void createSingleElement(int order, InspectorStruct *inspectorStruct, Property &property, VectorAccessor *vectorAccessor, int vectorIndex, int &depth, float horizonDepth);
     };
 } // BreadEditor

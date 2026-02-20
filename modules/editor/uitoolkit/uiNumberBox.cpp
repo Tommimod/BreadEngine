@@ -84,7 +84,7 @@ namespace BreadEditor {
         return *this;
     }
 
-    UiNumberBox & UiNumberBox::setup(const std::string &id, UiElement *parentElement, const std::string &label, std::function<std::variant<int, float, long>()> getFunc, int defaultTextSize, bool defaultEditMode)
+    UiNumberBox &UiNumberBox::setup(const std::string &id, UiElement *parentElement, const std::string &label, std::function<std::variant<int, float, long>()> getFunc, const int defaultTextSize, const bool defaultEditMode)
     {
         _intMode = true;
         _label = label;
@@ -130,11 +130,11 @@ namespace BreadEditor {
         {
             if (_intMode)
             {
-                _intValue = std::any_cast<int>(_getFunc());
+                _intValue = std::get<int>(_getFunc());
             }
             else
             {
-                _floatValue = std::any_cast<float>(_getFunc());
+                _floatValue = std::get<float>(_getFunc());
             }
         }
     }

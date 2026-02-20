@@ -200,9 +200,10 @@ namespace BreadEngine {
     {
         virtual ~InspectorStruct() = default;
 
-        [[nodiscard]] virtual std::vector<Property> getInspectedProperties() const
+        [[nodiscard]] virtual std::vector<Property> &getInspectedProperties() const
         {
-            return {};
+            static std::vector<Property> empty{};
+            return empty;
         }
 
         [[nodiscard]] std::string getTypeName();
@@ -304,7 +305,7 @@ namespace BreadEngine {
 #define INSPECTOR_BEGIN(ClassName) \
     private: \
         static std::vector<Property> inspectorProps_; \
-        [[nodiscard]] std::vector<Property> getInspectedProperties() const override { \
+        [[nodiscard]] std::vector<Property> &getInspectedProperties() const override { \
             if (inspectorProps_.empty()) { \
                 inspectorProps_ = buildInspectedProps(); \
             } \
