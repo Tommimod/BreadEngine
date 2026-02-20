@@ -15,7 +15,7 @@ namespace BreadEditor {
         _intMode = false;
         _label = "";
         _floatLabel.clear();
-        _dynamicValue = UiInspector::PropsOfStruct();
+        _getFunc = nullptr;
         onValueChanged.unsubscribeAll();
         onValueChangedWithSender.unsubscribeAll();
 
@@ -84,11 +84,11 @@ namespace BreadEditor {
         return *this;
     }
 
-    UiNumberBox &UiNumberBox::setup(const std::string &id, UiElement *parentElement, const std::string &label, UiInspector::PropsOfStruct dynamicValue, int defaultTextSize, bool defaultEditMode)
+    UiNumberBox & UiNumberBox::setup(const std::string &id, UiElement *parentElement, const std::string &label, std::function<std::variant<int, float, long>()> getFunc, int defaultTextSize, bool defaultEditMode)
     {
         _intMode = true;
         _label = label;
-        _dynamicValue = std::move(dynamicValue);
+        _getFunc = std::move(getFunc);
         _textSize = defaultTextSize;
         snprintf(_valueText, sizeof(_valueText), "%i", _intValue);
         _editMode = defaultEditMode;
@@ -126,15 +126,15 @@ namespace BreadEditor {
 
     void UiNumberBox::update(const float deltaTime)
     {
-        if (!_editMode && _dynamicValue.inspectorStruct != nullptr)
+        if (!_editMode && _getFunc != nullptr)
         {
             if (_intMode)
             {
-                _intValue = std::any_cast<int>(_dynamicValue.property->get(_dynamicValue.inspectorStruct));
+                _intValue = std::any_cast<int>(_getFunc());
             }
             else
             {
-                _floatValue = std::any_cast<float>(_dynamicValue.property->get(_dynamicValue.inspectorStruct));
+                _floatValue = std::any_cast<float>(_getFunc());
             }
         }
     }

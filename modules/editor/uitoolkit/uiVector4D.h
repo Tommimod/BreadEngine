@@ -19,11 +19,11 @@ namespace BreadEditor {
 
         UiVector4D *setup(const std::string &id, UiElement *parentElement, Vector4 initialValue);
 
-        UiVector4D *setup(const std::string &id, UiElement *parentElement, UiInspector::PropsOfStruct dynamicValue);
-
         UiVector4D *setup(const std::string &id, UiElement *parentElement, Vector4 initialValue, std::string_view xName, std::string_view yName, std::string_view zName, std::string_view wName);
 
-        UiVector4D *setup(const std::string &id, UiElement *parentElement, UiInspector::PropsOfStruct dynamicValue, std::string_view xName, std::string_view yName, std::string_view zName, std::string_view wName);
+        UiVector4D *setup(const std::string &id, UiElement *parentElement, std::function<Vector4()> getFunc);
+
+        UiVector4D *setup(const std::string &id, UiElement *parentElement, std::function<Vector4()> getFunc, std::string_view xName, std::string_view yName, std::string_view zName, std::string_view wName);
 
         void draw(float deltaTime) override;
 
@@ -36,7 +36,7 @@ namespace BreadEditor {
         Vector4 _value{};
         std::array<UiNumberBox *, 4> _fields{};
         std::array<std::string, 4> _names{};
-        UiInspector::PropsOfStruct _dynamicValue{};
+        std::function<Vector4()> _getFunc;
 
         void createFields();
 

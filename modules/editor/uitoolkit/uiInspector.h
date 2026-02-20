@@ -13,12 +13,6 @@ namespace BreadEditor {
     class UiInspector final : public UiElement
     {
     public:
-        struct PropsOfStruct
-        {
-            std::unique_ptr<Property> property;
-            InspectorStruct *inspectorStruct;
-        };
-
         Action<std::type_index> onDelete;
 
         UiInspector();

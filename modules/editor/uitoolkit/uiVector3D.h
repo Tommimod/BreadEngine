@@ -19,11 +19,11 @@ namespace BreadEditor {
 
         UiVector3D *setup(const std::string &id, UiElement *parentElement, Vector3 initialValue);
 
-        UiVector3D *setup(const std::string &id, UiElement *parentElement, UiInspector::PropsOfStruct dynamicValue);
-
         UiVector3D *setup(const std::string &id, UiElement *parentElement, Vector3 initialValue, std::string_view xName, std::string_view yName, std::string_view zName);
 
-        UiVector3D *setup(const std::string &id, UiElement *parentElement, UiInspector::PropsOfStruct dynamicValue, std::string_view xName, std::string_view yName, std::string_view zName);
+        UiVector3D *setup(const std::string &id, UiElement *parentElement, std::function<Vector3()> getFunc);
+
+        UiVector3D *setup(const std::string &id, UiElement *parentElement, std::function<Vector3()> getFunc, std::string_view xName, std::string_view yName, std::string_view zName);
 
         void draw(float deltaTime) override;
 
@@ -36,7 +36,7 @@ namespace BreadEditor {
         Vector3 _value{};
         std::array<UiNumberBox *, 3> _fields{};
         std::array<std::string, 3> _names{};
-        UiInspector::PropsOfStruct _dynamicValue{};
+        std::function<Vector3()> _getFunc;
 
         void createFields();
 

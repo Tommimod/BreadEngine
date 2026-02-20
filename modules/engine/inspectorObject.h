@@ -118,9 +118,9 @@ namespace BreadEngine {
     {
         virtual ~VectorAccessor() = default;
 
-        virtual size_t size() const = 0;
+        [[nodiscard]] virtual size_t size() const = 0;
 
-        virtual std::any get(size_t index) const = 0;
+        [[nodiscard]] virtual std::any get(size_t index) const = 0;
 
         virtual void set(size_t index, const std::any &value) = 0;
 
@@ -130,7 +130,7 @@ namespace BreadEngine {
 
         virtual void forEachInspectorStruct(std::function<void(InspectorStruct *)> callback) = 0;
 
-        virtual PropertyType elementType() const = 0;
+        [[nodiscard]] virtual PropertyType elementType() const = 0;
     };
 
     template<typename VecT>
@@ -142,12 +142,12 @@ namespace BreadEngine {
         {
         }
 
-        size_t size() const override
+        [[nodiscard]] size_t size() const override
         {
             return vec.size();
         }
 
-        std::any get(size_t index) const override
+        [[nodiscard]] std::any get(size_t index) const override
         {
             if (index >= vec.size())
             {
@@ -190,7 +190,7 @@ namespace BreadEngine {
             }
         }
 
-        PropertyType elementType() const override
+        [[nodiscard]] PropertyType elementType() const override
         {
             return deducePropertyType<typename VecT::value_type>();
         }

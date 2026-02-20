@@ -16,7 +16,7 @@ namespace BreadEditor {
 
         UiCheckBox &setup(const std::string &id, UiElement *parentElement, std::string checkBoxText, bool checked);
 
-        UiCheckBox &setup(const std::string &id, UiElement *parentElement, std::string checkBoxText, UiInspector::PropsOfStruct dynamicValue);
+        UiCheckBox &setup(const std::string &id, UiElement *parentElement, std::string checkBoxText, std::function<bool()> getFunc);
 
         ~UiCheckBox() override;
 
@@ -35,6 +35,6 @@ namespace BreadEditor {
         bool _internalChecked = false;
         bool *_externalChecked = nullptr;
         std::string _text;
-        UiInspector::PropsOfStruct _dynamicValue{};
+        std::function<bool()> _getFunc;
     };
 } // BreadEditor

@@ -19,7 +19,7 @@ namespace BreadEditor {
 
         UiTextBox &setup(const std::string &id, UiElement *parentElement, const std::string &defaultText, int defaultTextSize = 14, bool defaultEditMode = false);
 
-        UiTextBox &setup(const std::string &id, UiElement *parentElement, UiInspector::PropsOfStruct dynamicValue, int defaultTextSize = 14, bool defaultEditMode = false);
+        UiTextBox &setup(const std::string &id, UiElement *parentElement, std::function<std::string()> getFunc, int defaultTextSize = 14, bool defaultEditMode = false);
 
         void dispose() override;
 
@@ -33,10 +33,10 @@ namespace BreadEditor {
         bool tryDeleteSelf() override;
 
     private:
-        std::string _internalText;
-        char *_text = nullptr;
-        int _textSize = 0;
         bool _editMode = false;
-        UiInspector::PropsOfStruct _dynamicValue{};
+        int _textSize = 0;
+        char *_text = nullptr;
+        std::string _internalText;
+        std::function<std::string()> _getFunc;
     };
 } // BreadEditor

@@ -1,4 +1,6 @@
 #pragma once
+#include <variant>
+
 #include "action.h"
 #include "uiInspector.h"
 #include "uiElement.h"
@@ -25,7 +27,7 @@ namespace BreadEditor {
 
         UiNumberBox &setup(const std::string &id, UiElement *parentElement, const std::string &label, int defaultValue, int defaultTextSize = 14, bool defaultEditMode = false);
 
-        UiNumberBox &setup(const std::string &id, UiElement *parentElement, const std::string &label, UiInspector::PropsOfStruct dynamicValue, int defaultTextSize = 14, bool defaultEditMode = false);
+        UiNumberBox &setup(const std::string &id, UiElement *parentElement, const std::string &label, std::function<std::variant<int, float, long>()> getFunc, int defaultTextSize = 14, bool defaultEditMode = false);
 
         void draw(float deltaTime) override;
 
@@ -41,12 +43,12 @@ namespace BreadEditor {
     private:
         bool _editMode = false;
         bool _intMode = false;
-        float _floatValue = 0;
         int _intValue = 0;
         int _textSize = 0;
+        float _floatValue = 0;
         char _valueText[32] = {};
         std::string _label;
         std::string _floatLabel;
-        UiInspector::PropsOfStruct _dynamicValue{};
+        std::function<std::variant<int, float, long>()> _getFunc;
     };
 } // BreadEditor

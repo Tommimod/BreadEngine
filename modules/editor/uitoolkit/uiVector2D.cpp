@@ -13,6 +13,7 @@ namespace BreadEditor {
         }
 
         onChanged.unsubscribeAll();
+        _getFunc = nullptr;
         UiElement::dispose();
     }
 
@@ -20,17 +21,6 @@ namespace BreadEditor {
     {
         UiElement::setup(id, parentElement);
         _value = initialValue;
-        _names[0] = "X";
-        _names[1] = "Y";
-        _dynamicValue = UiInspector::PropsOfStruct();
-        return this;
-    }
-
-    UiVector2D *UiVector2D::setup(const std::string &id, UiElement *parentElement, UiInspector::PropsOfStruct dynamicValue)
-    {
-        UiElement::setup(id, parentElement);
-        _dynamicValue = std::move(dynamicValue);
-        _value = std::any_cast<Vector2>(_dynamicValue.property->get(_dynamicValue.inspectorStruct));
         _names[0] = "X";
         _names[1] = "Y";
         return this;
@@ -45,11 +35,21 @@ namespace BreadEditor {
         return this;
     }
 
-    UiVector2D *UiVector2D::setup(const std::string &id, UiElement *parentElement, UiInspector::PropsOfStruct dynamicValue, const std::string_view xName, const std::string_view yName)
+    UiVector2D *UiVector2D::setup(const std::string &id, UiElement *parentElement, std::function<Vector2()> getFunc)
     {
         UiElement::setup(id, parentElement);
-        _dynamicValue = std::move(dynamicValue);
-        _value = std::any_cast<Vector2>(_dynamicValue.property->get(_dynamicValue.inspectorStruct));
+        _getFunc = std::move(getFunc);
+        _value = _getFunc();
+        _names[0] = "X";
+        _names[1] = "Y";
+        return this;
+    }
+
+    UiVector2D *UiVector2D::setup(const std::string &id, UiElement *parentElement, std::function<Vector2()> getFunc, const std::string_view xName, const std::string_view yName)
+    {
+        UiElement::setup(id, parentElement);
+        _getFunc = std::move(getFunc);
+        _value = _getFunc();
         _names[0] = xName;
         _names[1] = yName;
         return this;
@@ -74,13 +74,12 @@ namespace BreadEditor {
     {
         if (_fields[0] != nullptr)
         {
-            if (_dynamicValue.inspectorStruct != nullptr)
+            if (_getFunc != nullptr)
             {
-                _value = std::any_cast<Vector2>(_dynamicValue.property->get(_dynamicValue.inspectorStruct));
+                _value = _getFunc();
                 _fields[0]->setValue(_value.x);
                 _fields[1]->setValue(_value.y);
             }
-
             return;
         }
 

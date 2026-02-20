@@ -25,11 +25,11 @@ namespace BreadEditor {
         return *this;
     }
 
-    UiCheckBox &UiCheckBox::setup(const std::string &id, UiElement *parentElement, std::string checkBoxText, UiInspector::PropsOfStruct dynamicValue)
+    UiCheckBox &UiCheckBox::setup(const std::string &id, UiElement *parentElement, std::string checkBoxText, std::function<bool()> getFunc)
     {
         this->_text = std::move(checkBoxText);
-        _dynamicValue = std::move(dynamicValue);
-        this->_internalChecked = std::any_cast<bool>(_dynamicValue.property->get(_dynamicValue.inspectorStruct));
+        _getFunc = std::move(getFunc);
+        this->_internalChecked = _getFunc();
         this->_externalChecked = nullptr;
         UiElement::setup(id, parentElement);
         return *this;
@@ -45,7 +45,7 @@ namespace BreadEditor {
         _internalChecked = false;
         _externalChecked = nullptr;
         _text.clear();
-        _dynamicValue = UiInspector::PropsOfStruct();
+        _getFunc = nullptr;
         onValueChanged.unsubscribeAll();
         UiElement::dispose();
     }
@@ -63,12 +63,10 @@ namespace BreadEditor {
 
     void UiCheckBox::update(const float deltaTime)
     {
-        if (_dynamicValue.inspectorStruct == nullptr)
+        if (_getFunc != nullptr)
         {
-            return;
+            _internalChecked = _getFunc();
         }
-
-        this->_internalChecked = std::any_cast<bool>(_dynamicValue.property->get(_dynamicValue.inspectorStruct));
     }
 
     void UiCheckBox::setChecked(const bool isChecked)

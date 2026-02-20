@@ -12,6 +12,7 @@ namespace BreadEditor {
             _field = nullptr;
         }
 
+        _getFunc = nullptr;
         onChanged.unsubscribeAll();
         UiElement::dispose();
     }
@@ -20,18 +21,6 @@ namespace BreadEditor {
     {
         UiElement::setup(id, parentElement);
         _value = initialValue;
-        _names[0] = "X";
-        _names[1] = "Y";
-        _names[2] = "Z";
-        _dynamicValue = UiInspector::PropsOfStruct();
-        return this;
-    }
-
-    UiVector3D *UiVector3D::setup(const std::string &id, UiElement *parentElement, UiInspector::PropsOfStruct dynamicValue)
-    {
-        UiElement::setup(id, parentElement);
-        _dynamicValue = std::move(dynamicValue);
-        _value = std::any_cast<Vector3>(_dynamicValue.property->get(_dynamicValue.inspectorStruct));
         _names[0] = "X";
         _names[1] = "Y";
         _names[2] = "Z";
@@ -48,11 +37,22 @@ namespace BreadEditor {
         return this;
     }
 
-    UiVector3D *UiVector3D::setup(const std::string &id, UiElement *parentElement, UiInspector::PropsOfStruct dynamicValue, const std::string_view xName, const std::string_view yName, const std::string_view zName)
+    UiVector3D * UiVector3D::setup(const std::string &id, UiElement *parentElement, std::function<Vector3()> getFunc)
     {
         UiElement::setup(id, parentElement);
-        _dynamicValue = std::move(dynamicValue);
-        _value = std::any_cast<Vector3>(_dynamicValue.property->get(_dynamicValue.inspectorStruct));
+        _getFunc = std::move(getFunc);
+        _value = _getFunc();
+        _names[0] = "X";
+        _names[1] = "Y";
+        _names[2] = "Z";
+        return this;
+    }
+
+    UiVector3D * UiVector3D::setup(const std::string &id, UiElement *parentElement, std::function<Vector3()> getFunc, const std::string_view xName, const std::string_view yName, const std::string_view zName)
+    {
+        UiElement::setup(id, parentElement);
+        _getFunc = std::move(getFunc);
+        _value = _getFunc();
         _names[0] = xName;
         _names[1] = yName;
         _names[2] = zName;
@@ -78,9 +78,9 @@ namespace BreadEditor {
     {
         if (_fields[0] != nullptr)
         {
-            if (_dynamicValue.inspectorStruct != nullptr)
+            if (_getFunc != nullptr)
             {
-                _value = std::any_cast<Vector3>(_dynamicValue.property->get(_dynamicValue.inspectorStruct));
+                _value = _getFunc();
                 _fields[0]->setValue(_value.x);
                 _fields[1]->setValue(_value.y);
                 _fields[2]->setValue(_value.z);
