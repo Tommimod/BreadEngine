@@ -1,4 +1,4 @@
-﻿#include "uiInspector.h"
+#include "uiInspector.h"
 
 #include <thread>
 
@@ -55,11 +55,11 @@ namespace BreadEditor {
         workerThread.detach();
     }
 
-    void UiInspector::initializeProperties(InspectorStruct *inspectorStruct, std::vector<Property> &properties, int &depth, const float horizonDepth)
+    void UiInspector::initializeProperties(InspectorStruct *inspectorStruct, std::vector<Property> &properties, int &depth, const float horizonDepth, const int continueFrom)
     {
         for (int i = 0; i < static_cast<int>(properties.size()); i++)
         {
-            createSingleElement(i, inspectorStruct, properties[i], nullptr, 0, depth, horizonDepth);
+            createSingleElement(i + continueFrom, inspectorStruct, properties[i], nullptr, 0, depth, horizonDepth);
         }
     }
 
@@ -73,11 +73,11 @@ namespace BreadEditor {
         const auto verOffset = 5 * static_cast<float>(order + depth) + 30 + heightSize * static_cast<float>(order + depth);
         setSize({_localSize.x, verOffset + heightSize + horOffset});
 
-        auto propType = property.type;
+        auto propType = isSimpleProp ? property.type : vectorAccessor->elementType();
         auto propName = propType == PropertyType::INSPECTOR_STRUCT || property.type == PropertyType::VECTOR_L ? property.name + ":" : property.name;
         if (isSimpleProp)
         {
-            const auto uiPropNameLabel = UiPool::labelPool.get().setup(TextFormat("PropName %s%i", property.name.c_str(), depth), this, propName);
+            auto uiPropNameLabel = &UiPool::labelPool.get().setup(TextFormat("PropName %s%i", property.name.c_str(), depth), this, propName);
             uiPropNameLabel->setAnchor(UI_LEFT_TOP);
             uiPropNameLabel->setSize({uiPropNameLabelWidth, heightSize});
             uiPropNameLabel->setPosition({horOffset, verOffset});
@@ -346,19 +346,21 @@ namespace BreadEditor {
                 return;
             }
 
+            depth++;
             VectorAccessor &accessor = *_uiListData[&property].accessor;
             for (auto index = 0; index < static_cast<int>(accessor.size()); index++)
             {
-                depth++;
                 if (accessor.elementType() == PropertyType::INSPECTOR_STRUCT)
                 {
-                    auto structPtr = std::any_cast<InspectorStruct>(accessor.get(index));
-                    initializeProperties(&structPtr, structPtr.getInspectedProperties(), depth, horizonDepth + 1);
+                    auto structPtr = std::any_cast<InspectorStruct *>(accessor.get(index));
+                    initializeProperties(structPtr, structPtr->getInspectedProperties(), depth, horizonDepth + 1, order);
                     continue;
                 }
 
                 createSingleElement(order, inspectorStruct, property, &accessor, index, depth, horizonDepth + 1);
             }
+
+            depth--;
         }
 
         if (!createdElement) return;
@@ -386,17 +388,17 @@ namespace BreadEditor {
         }
 
         int i = 1;
-        for (const auto &child: getAllChilds())
-        {
-            if (i == getChildCount() - 1)
-            {
-                break;
-            }
-
-            const auto height = child->getBounds().y + child->getBounds().height + 1.5f;
-            DrawLine(child->getBounds().x + 5, height, getBounds().x + getBounds().width - 5, height, LIGHTGRAY);
-            i++;
-        }
+        // for (const auto &child: getAllChilds())
+        // {
+        //     if (i == getChildCount() - 1)
+        //     {
+        //         break;
+        //     }
+        //
+        //     const auto height = child->getBounds().y + child->getBounds().height + 1.5f;
+        //     DrawLine(child->getBounds().x + 5, height, getBounds().x + getBounds().width - 5, height, LIGHTGRAY);
+        //     i++;
+        // }
     }
 
     void UiInspector::update(const float deltaTime)

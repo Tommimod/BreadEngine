@@ -153,7 +153,14 @@ namespace BreadEngine {
             {
                 throw std::out_of_range("Vector index out of range");
             }
-            return std::any{vec[index]};
+            if constexpr (std::is_base_of_v<InspectorStruct, typename VecT::value_type>)
+            {
+                return std::any{ const_cast<InspectorStruct*>(static_cast<const InspectorStruct*>(&vec[index])) };
+            }
+            else
+            {
+                return std::any{vec[index]};
+            }
         }
 
         void set(size_t index, const std::any &value) override

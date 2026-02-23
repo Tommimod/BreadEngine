@@ -4,11 +4,11 @@
 namespace BreadEditor {
     UiLabel::~UiLabel() = default;
 
-    UiLabel *UiLabel::setup(const std::string &id, UiElement *parentElement, const std::string &text)
+    UiLabel &UiLabel::setup(const std::string &id, UiElement *parentElement, const std::string &text)
     {
         UiElement::setup(id, parentElement);
         _text = text;
-        return this;
+        return *this;
     }
 
     void UiLabel::draw(const float deltaTime)

@@ -14,7 +14,7 @@ namespace BreadEditor {
             UiElement::dispose();
         }
 
-        UiLabel *setup(const std::string &id, UiElement *parentElement, const std::string &text);
+        UiLabel &setup(const std::string &id, UiElement *parentElement, const std::string &text);
 
         void draw(float deltaTime) override;
 
