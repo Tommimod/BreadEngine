@@ -11,6 +11,7 @@ namespace BreadEditor {
     {
         _floatValue = 0;
         _intValue = 0;
+        _textSize = 0;
         _editMode = false;
         _intMode = false;
         _label = "";

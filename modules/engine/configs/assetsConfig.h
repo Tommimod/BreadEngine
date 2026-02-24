@@ -105,8 +105,6 @@ namespace BreadEngine {
 
         [[nodiscard]] const std::string &getGuidByPath(const std::string &path);
 
-        [[nodiscard]] static std::string getNewGUID();
-
         bool operator==(const AssetsConfig &other) const
         {
             return _projectPath == other._projectPath && _rootFolder == other._rootFolder;

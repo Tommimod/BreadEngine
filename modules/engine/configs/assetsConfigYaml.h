@@ -12,7 +12,7 @@ namespace YAML {
             const auto fullPathName = NAMEOF(rhs._fullPath).c_str();
             const auto pathFromRootName = NAMEOF(rhs._pathFromRoot).c_str();
             const auto extensionName = NAMEOF(rhs._extension).c_str();
-            const auto guidName = NAMEOF(rhs._extension).c_str();
+            const auto guidName = NAMEOF(rhs._guid).c_str();
             Node node;
             node[fullPathName] = rhs._fullPath;
             node[pathFromRootName] = rhs._pathFromRoot;
@@ -26,11 +26,11 @@ namespace YAML {
             const auto fullPathName = NAMEOF(rhs._fullPath).c_str();
             const auto pathFromRootName = NAMEOF(rhs._pathFromRoot).c_str();
             const auto extensionName = NAMEOF(rhs._extension).c_str();
-            const auto guidName = NAMEOF(rhs._extension).c_str();
+            const auto guidName = NAMEOF(rhs._guid).c_str();
             rhs._fullPath = node[fullPathName].as<std::string>();
             rhs._pathFromRoot = node[pathFromRootName].as<std::string>();
             rhs._extension = node[extensionName].as<std::string>();
-            rhs._extension = node[guidName].as<std::string>();
+            rhs._guid = node[guidName].as<std::string>();
             return true;
         }
     };

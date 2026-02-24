@@ -5,7 +5,6 @@
 #include "component.h"
 #include "uiElement.h"
 #include "inspectorObject.h"
-#include "uiLabelButton.h"
 
 using namespace BreadEngine;
 
@@ -13,6 +12,7 @@ namespace BreadEditor {
     class UiInspector final : public UiElement
     {
     public:
+        Action<UiInspector *> onUpdated;
         Action<std::type_index> onDelete;
 
         UiInspector();
@@ -53,9 +53,12 @@ namespace BreadEditor {
 
         bool _isStatic = false;
         bool _isPermanent = false;
+        bool _hasNextInspectorStruct = false;
         std::string _componentName;
         InspectorStruct *_inspectorStruct = nullptr;
-        std::map<Property *, UiListData> _uiListData{};
+        InspectorStruct *_nextInspectorStruct = nullptr;
+        std::map<std::string, UiListData> _uiListData{};
+        std::vector<UiElement *> _fields{};
 
         void cleanUp();
 

@@ -74,31 +74,6 @@ namespace BreadEngine {
     {
     }
 
-    std::string AssetsConfig::getNewGUID()
-    {
-        static std::random_device rd;
-        static std::mt19937_64 gen(rd() ^ std::chrono::steady_clock::now().time_since_epoch().count());
-
-        std::uniform_int_distribution<uint64_t> dist(0, static_cast<uint64_t>(-1));
-
-        uint64_t part1 = dist(gen);
-        uint64_t part2 = dist(gen);
-
-        part1 = (part1 & 0xFFFFFFFFFFFF0FFFULL) | 0x0000000000004000ULL;
-        part2 = (part2 & 0x3FFFFFFFFFFFFFFFULL) | 0x8000000000000000ULL;
-
-        std::stringstream ss;
-        ss << std::hex << std::setfill('0');
-
-        ss << std::setw(8) << (part1 >> 32)
-                << std::setw(4) << ((part1 >> 16) & 0xFFFF)
-                << std::setw(4) << (part1 & 0xFFFF)
-                << std::setw(4) << ((part2 >> 48) & 0xFFFF)
-                << std::setw(12) << (part2 & 0xFFFFFFFFFFFFULL);
-
-        return ss.str();
-    }
-
     void AssetsConfig::parseFolders(Folder &folder, const FilePathList &filePathList) noexcept
     {
         for (auto i = 0u; i < filePathList.count; i++)

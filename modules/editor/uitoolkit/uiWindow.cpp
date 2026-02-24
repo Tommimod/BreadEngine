@@ -37,7 +37,6 @@ namespace BreadEditor {
     void UiWindow::dispose()
     {
         UiWindow::unsubscribe();
-        Editor::getInstance().getEditorModel().getWindowsModel()->addWindowToAllowList(id);
         UiElement::dispose();
         setVerticalResized(false);
         setHorizontalResized(false);
@@ -56,6 +55,7 @@ namespace BreadEditor {
             _closeButton.isActive = false;
             _parent->destroyChild(this);
             getRootElement()->setDirty();
+            Editor::getInstance().getEditorModel().getWindowsModel()->addWindowToAllowList(id);
         });
     }
 

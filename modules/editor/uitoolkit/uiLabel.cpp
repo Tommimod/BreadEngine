@@ -4,6 +4,14 @@
 namespace BreadEditor {
     UiLabel::~UiLabel() = default;
 
+    void UiLabel::dispose()
+    {
+        _text.clear();
+        _textAlignment = TEXT_ALIGN_CENTER;
+        _textSize = 10;
+        UiElement::dispose();
+    }
+
     UiLabel &UiLabel::setup(const std::string &id, UiElement *parentElement, const std::string &text)
     {
         UiElement::setup(id, parentElement);

@@ -1,6 +1,9 @@
 #pragma once
 #include <any>
+#include <chrono>
 #include <functional>
+#include <iomanip>
+#include <random>
 #include <string>
 #include "raylib.h"
 #include <type_traits>
@@ -106,12 +109,23 @@ namespace BreadEngine {
     struct Property
     {
         using VariantT = std::any;
+        std::string guid;
         std::string name;
         PropertyType type;
         PropertyType elementType = PropertyType{};
         std::function<VariantT(const InspectorStruct *)> get;
         std::function<void(InspectorStruct *, const VariantT &)> set;
         std::function<std::string(const VariantT &)> toStr;
+
+        bool operator==(const Property &other) const
+        {
+            return guid == other.guid && name == other.name && type == other.type && elementType == other.elementType;
+        }
+
+        bool operator!=(const Property &other) const
+        {
+            return !(*this == other);
+        }
     };
 
     struct VectorAccessor
@@ -155,7 +169,7 @@ namespace BreadEngine {
             }
             if constexpr (std::is_base_of_v<InspectorStruct, typename VecT::value_type>)
             {
-                return std::any{ const_cast<InspectorStruct*>(static_cast<const InspectorStruct*>(&vec[index])) };
+                return std::any{const_cast<InspectorStruct *>(static_cast<const InspectorStruct *>(&vec[index]))};
             }
             else
             {
@@ -214,6 +228,43 @@ namespace BreadEngine {
         }
 
         [[nodiscard]] std::string getTypeName();
+
+        static std::string getNewGUID()
+        {
+            static std::random_device rd;
+            static std::mt19937 gen(rd());
+            static std::uniform_int_distribution<> dis(0, 15);
+            static std::uniform_int_distribution<> dis2(8, 11);
+            std::stringstream ss;
+            int i;
+            ss << std::hex;
+            for (i = 0; i < 8; i++)
+            {
+                ss << dis(gen);
+            }
+            ss << "-";
+            for (i = 0; i < 4; i++)
+            {
+                ss << dis(gen);
+            }
+            ss << "-4";
+            for (i = 0; i < 3; i++)
+            {
+                ss << dis(gen);
+            }
+            ss << "-";
+            ss << dis2(gen);
+            for (i = 0; i < 3; i++)
+            {
+                ss << dis(gen);
+            }
+            ss << "-";
+            for (i = 0; i < 12; i++)
+            {
+                ss << dis(gen);
+            };
+            return ss.str();
+        }
     };
 
     template<typename Class, typename Field>
@@ -234,13 +285,14 @@ namespace BreadEngine {
         if constexpr (ptype == PropertyType::INSPECTOR_STRUCT)
         {
             props.emplace_back(Property{
+                .guid = InspectorStruct::getNewGUID(),
                 .name = std::string(fieldName),
                 .type = ptype,
                 .get = [memberPtr](const InspectorStruct *comp) -> Property::VariantT
                 {
                     auto nonConstComp = const_cast<InspectorStruct *>(comp);
                     auto nonConstObj = static_cast<LocalClass *>(nonConstComp);
-                    InspectorStruct *structPtr = static_cast<InspectorStruct *>(&(nonConstObj->*memberPtr));
+                    auto *structPtr = static_cast<InspectorStruct *>(&(nonConstObj->*memberPtr));
                     return structPtr;
                 },
                 .set = [memberPtr](InspectorStruct *comp, const Property::VariantT &value)
@@ -266,6 +318,7 @@ namespace BreadEngine {
         else if constexpr (ptype == PropertyType::VECTOR_L)
         {
             props.emplace_back(Property{
+                .guid = InspectorStruct::getNewGUID(),
                 .name = std::string(fieldName),
                 .type = ptype,
                 .elementType = deducePropertyType<typename FieldType::value_type>(),
@@ -292,6 +345,7 @@ namespace BreadEngine {
         else
         {
             props.emplace_back(Property{
+                .guid = InspectorStruct::getNewGUID(),
                 .name = std::string(fieldName),
                 .type = ptype,
                 .get = [memberPtr](const InspectorStruct *comp) -> Property::VariantT

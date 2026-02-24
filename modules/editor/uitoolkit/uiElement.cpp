@@ -869,15 +869,15 @@ namespace BreadEditor {
 
     void UiElement::destroyChildsInternal()
     {
-        std::vector<UiElement *> toDelete;
-        for (auto child: _childs)
+        const auto size = static_cast<int>(_childs.size());
+        for (int i = size - 1; i >= 0; --i)
         {
-            if (!child->_isDeleted) continue;
-            toDelete.push_back(child);
-        }
+            auto child = _childs[i];
+            if (!child->_isDeleted)
+            {
+                continue;
+            }
 
-        for (auto child: toDelete)
-        {
             _childs.erase(std::ranges::find(_childs, child));
             if (!child->tryDeleteSelf())
             {
@@ -885,7 +885,5 @@ namespace BreadEditor {
                 delete child;
             }
         }
-
-        toDelete.clear();
     }
 } // namespace BreadEditor

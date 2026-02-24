@@ -1,7 +1,5 @@
 #include "uiInspector.h"
-
 #include <thread>
-
 #include "uiPool.h"
 using namespace BreadEngine;
 
@@ -21,38 +19,21 @@ namespace BreadEditor {
     {
         _inspectorStruct = nullptr;
         onDelete.unsubscribeAll();
+        onUpdated.unsubscribeAll();
         _uiListData.clear();
         _isStatic = false;
         _isPermanent = false;
         _componentName.clear();
+        _nextInspectorStruct = nullptr;
+        _hasNextInspectorStruct = false;
 
         UiElement::dispose();
     }
 
     void UiInspector::track(InspectorStruct *inspectorStruct)
     {
-        if (_inspectorStruct != inspectorStruct)
-        {
-            _uiListData.clear();
-        }
-
-        cleanUp();
-        std::thread workerThread([this, inspectorStruct]
-        {
-            while (this->getChildCount() > 0)
-            {
-                std::this_thread::sleep_for(std::chrono::milliseconds(32));
-            }
-
-            constexpr std::string transformName = "Transform";
-            _inspectorStruct = inspectorStruct;
-            _componentName = inspectorStruct->getTypeName();
-            _isPermanent = _isStatic || _componentName == transformName;
-            int depth = 0;
-            initializeProperties(inspectorStruct, inspectorStruct->getInspectedProperties(), depth, 1);
-        });
-
-        workerThread.detach();
+        _nextInspectorStruct = inspectorStruct;
+        _hasNextInspectorStruct = true;
     }
 
     void UiInspector::initializeProperties(InspectorStruct *inspectorStruct, std::vector<Property> &properties, int &depth, const float horizonDepth, const int continueFrom)
@@ -72,6 +53,8 @@ namespace BreadEditor {
         constexpr float heightSize = 17;
         const auto verOffset = 5 * static_cast<float>(order + depth) + 30 + heightSize * static_cast<float>(order + depth);
         setSize({_localSize.x, verOffset + heightSize + horOffset});
+        computeBounds();
+        TraceLog(LOG_INFO, "Draw element %s.%s: order %i | depth %i | offset %f |", inspectorStruct->getTypeName().c_str(), property.name.c_str(), order, depth, horOffset);
 
         auto propType = isSimpleProp ? property.type : vectorAccessor->elementType();
         auto propName = propType == PropertyType::INSPECTOR_STRUCT || property.type == PropertyType::VECTOR_L ? property.name + ":" : property.name;
@@ -81,7 +64,7 @@ namespace BreadEditor {
             uiPropNameLabel->setAnchor(UI_LEFT_TOP);
             uiPropNameLabel->setSize({uiPropNameLabelWidth, heightSize});
             uiPropNameLabel->setPosition({horOffset, verOffset});
-            uiPropNameLabel->computeBounds();
+            uiPropNameLabel->setTextAlignment(GuiTextAlignment::TEXT_ALIGN_LEFT);
         }
 
         UiElement *createdElement = nullptr;
@@ -324,53 +307,71 @@ namespace BreadEditor {
                 return;
             }
 
-            auto expandButton = &UiPool::labelButtonPool.get().setup(TextFormat("Expand %s%i", property.name.c_str(), depth), this, GuiIconText(ICON_ARROW_RIGHT, nullptr));
+            //не уникальный ключ
+            auto key = TextFormat("%s%i", property.name.c_str(), order);
+            if (!_uiListData.contains(key))
+            {
+                _uiListData[key] = UiListData(false, sharedPtr);
+            }
+
+            const auto isExpanded = _uiListData[key].isExpanded;
+            auto expandButton = &UiPool::labelButtonPool.get().setup(TextFormat("Expand %s%i", property.name.c_str(), depth), this,
+                                                                     isExpanded ? GuiIconText(ICON_ARROW_DOWN, nullptr) : GuiIconText(ICON_ARROW_RIGHT, nullptr));
             expandButton->setAnchor(UI_LEFT_TOP);
             expandButton->setSize({15, 15});
             expandButton->setPosition({0, verOffset});
+            expandButton->computeBounds();
 
-            if (!_uiListData.contains(&property))
+            expandButton->onClick.subscribe([this, &property, order](UiLabelButton *button)
             {
-                _uiListData[&property] = UiListData(false, sharedPtr);
-            }
-
-            expandButton->onClick.subscribe([this, &property](UiLabelButton *button)
-            {
-                _uiListData[&property].isExpanded = !_uiListData[&property].isExpanded;
-                const auto isExpanded = _uiListData[&property].isExpanded;
-                button->setText(isExpanded ? GuiIconText(ICON_ARROW_DOWN, nullptr) : GuiIconText(ICON_ARROW_RIGHT, nullptr));
+                const auto buttonKey = TextFormat("%s%i", property.name.c_str(), order);
+                _uiListData[buttonKey].isExpanded = !_uiListData[buttonKey].isExpanded;
+                const auto expanded = _uiListData[buttonKey].isExpanded;
+                button->setText(expanded ? GuiIconText(ICON_ARROW_DOWN, nullptr) : GuiIconText(ICON_ARROW_RIGHT, nullptr));
                 track(_inspectorStruct);
             });
-            if (const auto isExpanded = _uiListData[&property].isExpanded; !isExpanded)
+
+            if (!isExpanded)
             {
                 return;
             }
 
+            VectorAccessor &accessor = *_uiListData[key].accessor;
+            auto offset = 0;
+            auto originalOrder = order;
             depth++;
-            VectorAccessor &accessor = *_uiListData[&property].accessor;
             for (auto index = 0; index < static_cast<int>(accessor.size()); index++)
             {
                 if (accessor.elementType() == PropertyType::INSPECTOR_STRUCT)
                 {
                     auto structPtr = std::any_cast<InspectorStruct *>(accessor.get(index));
                     initializeProperties(structPtr, structPtr->getInspectedProperties(), depth, horizonDepth + 1, order);
-                    continue;
+                    offset += static_cast<int>(structPtr->getInspectedProperties().size());
+                    order = originalOrder + offset;
                 }
-
-                createSingleElement(order, inspectorStruct, property, &accessor, index, depth, horizonDepth + 1);
+                else
+                {
+                    createSingleElement(order + index, inspectorStruct, property, &accessor, index, depth, horizonDepth + 1);
+                }
             }
 
-            depth--;
+            depth += offset - 1;
         }
 
         if (!createdElement) return;
 
-        const auto propNameWidth = isSimpleProp ? uiPropNameLabelWidth + horOffset : uiPropNameLabelWidth;
+        auto propNameWidth = isSimpleProp ? uiPropNameLabelWidth + horOffset : uiPropNameLabelWidth;
+        if (propType == PropertyType::VECTOR_L)
+        {
+            propNameWidth += 15;
+        }
+
         createdElement->setAnchor(UI_LEFT_TOP);
-        createdElement->setSize({getSize().x, heightSize});
-        const auto sizeInPercent = isSingleField ? .3f : 1;
+        createdElement->setSize({0, heightSize});
+        const auto sizeInPercent = isSingleField ? .6f : 1;
         createdElement->setSizePercentPermanent({sizeInPercent, -1});
         createdElement->setPosition({propNameWidth, verOffset});
+        _fields.emplace_back(createdElement);
     }
 
     void UiInspector::draw(const float deltaTime)
@@ -388,21 +389,47 @@ namespace BreadEditor {
         }
 
         int i = 1;
-        // for (const auto &child: getAllChilds())
-        // {
-        //     if (i == getChildCount() - 1)
-        //     {
-        //         break;
-        //     }
-        //
-        //     const auto height = child->getBounds().y + child->getBounds().height + 1.5f;
-        //     DrawLine(child->getBounds().x + 5, height, getBounds().x + getBounds().width - 5, height, LIGHTGRAY);
-        //     i++;
-        // }
+        for (const auto &child: _fields)
+        {
+            if (i == getChildCount() - 1)
+            {
+                break;
+            }
+
+            const auto height = child->getBounds().y + child->getBounds().height + 1.5f;
+            DrawLine(getBounds().x + 5, height, getBounds().x + getBounds().width - 5, height, LIGHTGRAY);
+            i++;
+        }
     }
 
     void UiInspector::update(const float deltaTime)
     {
+        if (_nextInspectorStruct == nullptr || !_hasNextInspectorStruct)
+        {
+            return;
+        }
+
+        if (_inspectorStruct != _nextInspectorStruct)
+        {
+            _uiListData.clear();
+        }
+
+        if (getChildCount() > 0)
+        {
+            cleanUp();
+        }
+        else
+        {
+            _hasNextInspectorStruct = false;
+            constexpr std::string transformName = "Transform";
+            _inspectorStruct = _nextInspectorStruct;
+            _componentName = _nextInspectorStruct->getTypeName();
+            _isPermanent = _isStatic || _componentName == transformName;
+            int depth = 0;
+            TraceLog(LOG_DEBUG, "______REDRAW_____");
+            initializeProperties(_nextInspectorStruct, _nextInspectorStruct->getInspectedProperties(), depth, 1);
+            onUpdated.invoke(this);
+        }
     }
 
     bool UiInspector::tryDeleteSelf()
@@ -414,5 +441,6 @@ namespace BreadEditor {
     void UiInspector::cleanUp()
     {
         destroyAllChilds();
+        _fields.clear();
     }
 }

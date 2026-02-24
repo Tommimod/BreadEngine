@@ -1,6 +1,5 @@
 #include "uiTextBox.h"
 
-#include <any>
 #include "engine.h"
 #include "uiPool.h"
 
@@ -10,7 +9,7 @@ namespace BreadEditor {
     UiTextBox &UiTextBox::setup(const std::string &id, const std::string &defaultText, const int defaultTextSize, const bool defaultEditMode)
     {
         _internalText = defaultText;
-        _text = _internalText.data();
+        _text = strdup(_internalText.c_str());
         _textSize = defaultTextSize;
         _editMode = defaultEditMode;
         UiElement::setup(id);
@@ -20,7 +19,7 @@ namespace BreadEditor {
     UiTextBox &UiTextBox::setup(const std::string &id, UiElement *parentElement, const std::string &defaultText, const int defaultTextSize, const bool defaultEditMode)
     {
         _internalText = defaultText;
-        _text = _internalText.data();
+        _text = strdup(_internalText.c_str());
         _textSize = defaultTextSize;
         _editMode = defaultEditMode;
         UiElement::setup(id, parentElement);
@@ -31,24 +30,25 @@ namespace BreadEditor {
     {
         _getFunc = std::move(getFunc);
         _internalText = _getFunc();
-        _text = _internalText.data();
+        _text = strdup(_internalText.c_str());
         _textSize = defaultTextSize;
         _editMode = defaultEditMode;
         UiElement::setup(id, parentElement);
         return *this;
     }
 
-    UiTextBox::~UiTextBox()
-    {
-        delete _text;
-    }
+    UiTextBox::~UiTextBox() = default;
 
     void UiTextBox::dispose()
     {
         onValueChanged.unsubscribeAll();
         onValueChangedWithSender.unsubscribeAll();
+        free(_text);
         _text = nullptr;
         _getFunc = nullptr;
+        _internalText.clear();
+        _textSize = 16;
+        _editMode = false;
         UiElement::dispose();
     }
 
@@ -90,7 +90,9 @@ namespace BreadEditor {
 
     void UiTextBox::setText(const std::string &newText)
     {
+        free(_text);
         _internalText = newText;
+        _text = strdup(_internalText.c_str());
     }
 
     bool UiTextBox::tryDeleteSelf()

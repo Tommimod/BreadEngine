@@ -23,6 +23,10 @@ namespace BreadEditor {
     void UiButton::dispose()
     {
         onClick.unsubscribeAll();
+        _text.clear();
+        _textAlignment = TEXT_ALIGN_CENTER;
+        _textSize = 10;
+        _canClickOutside = false;
         UiElement::dispose();
     }
 

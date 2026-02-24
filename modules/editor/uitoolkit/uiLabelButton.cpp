@@ -23,6 +23,9 @@ namespace BreadEditor {
     void UiLabelButton::dispose()
     {
         onClick.unsubscribeAll();
+        _text.clear();
+        _textAlignment = TEXT_ALIGN_LEFT;
+        _textSize = 10;
         UiElement::dispose();
     }
 

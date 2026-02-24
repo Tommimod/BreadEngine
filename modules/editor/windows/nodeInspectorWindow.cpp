@@ -81,9 +81,9 @@ namespace BreadEditor {
                 for (int i = static_cast<int>(_uiComponentElements.size()); i != static_cast<int>(_trackedComponents.size()); i--)
                 {
                     const auto element = _uiComponentElements.back();
-                    element->dispose();
                     _uiComponentElements.pop_back();
                     element->onDelete.unsubscribe(_subscriptions[element]);
+                    destroyChild(element);
                 }
             }
 
@@ -111,9 +111,9 @@ namespace BreadEditor {
         for (int i = static_cast<int>(_uiComponentElements.size()); i != 0; i--)
         {
             const auto element = _uiComponentElements.back();
-            element->dispose();
             _uiComponentElements.pop_back();
             element->onDelete.unsubscribe(_subscriptions[element]);
+            destroyChild(element);
         }
 
         const auto element = &UiPool::componentPool.get().setup("UiStruct_0", this, true);
@@ -187,11 +187,11 @@ namespace BreadEditor {
         _nameTextBox->setText(_engineNode->getName());
     }
 
-    void NodeInspectorWindow::setupUiComponent(UiInspector *uiComponentElement) const
+    void NodeInspectorWindow::setupUiComponent(UiInspector *uiComponentElement)
     {
         uiComponentElement->setAnchor(UI_LEFT_TOP);
-        uiComponentElement->setSize(Vector2{_bounds.width - 10, 50});
-        uiComponentElement->setSizePercentPermanent({.97f, -1});
+        uiComponentElement->setSize({0, 50});
+        uiComponentElement->setSizePercentPermanent({.955f, -1});
         auto yPosition = RAYGUI_WINDOWBOX_STATUSBAR_HEIGHT + 10.0f;
         if (_activeCheckBox->isActive)
         {
@@ -199,6 +199,10 @@ namespace BreadEditor {
         }
 
         uiComponentElement->setPosition(Vector2{5, yPosition});
+        uiComponentElement->onUpdated += [this](UiInspector *inspector)
+        {
+            calculateRectForScroll(inspector);
+        };
     }
 
     void NodeInspectorWindow::onUiComponentDeleted(const std::type_index type)

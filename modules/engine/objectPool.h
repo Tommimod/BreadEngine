@@ -2,6 +2,7 @@
 
 #include <functional>
 #include <type_traits>
+#include <memory>
 #include "iDisposable.h"
 
 namespace BreadEngine
@@ -19,7 +20,7 @@ namespace BreadEngine
         void release(T &obj);
 
     private:
-        std::vector<T *> _pool;
+        std::vector<std::unique_ptr<T>> _pool;
         std::vector<T *> _available;
         std::function<T*()> _factory = nullptr;
     };
@@ -34,14 +35,12 @@ namespace BreadEngine
     template<class T, std::enable_if_t<std::is_base_of_v<IDisposable, T>, int> E0>
     ObjectPool<T, E0>::~ObjectPool()
     {
-        for (T *p: _pool)
+        for (auto& p: _pool)
         {
             if (p && !p->getIsDisposed())
             {
                 p->dispose();
             }
-
-            delete p;
         }
 
         _pool.clear();
@@ -54,9 +53,10 @@ namespace BreadEngine
     {
         if (_available.empty())
         {
-            T *obj = _factory();
-            _pool.emplace_back(obj);
-            return *obj;
+            auto obj = std::unique_ptr<T>(_factory());
+            T *ptr = obj.get();
+            _pool.emplace_back(std::move(obj));
+            return *ptr;
         }
 
         T *obj = _available.back();

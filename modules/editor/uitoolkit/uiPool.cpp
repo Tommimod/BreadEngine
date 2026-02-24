@@ -1,5 +1,4 @@
 ﻿#include "uiPool.h"
-
 #include "engine.h"
 
 namespace BreadEditor {
@@ -55,7 +54,7 @@ namespace BreadEditor {
     {
         return new UiInspector();
     };
-    ObjectPool<UiInspector> UiPool::componentPool(UiComponentFactory, 10);
+    ObjectPool<UiInspector> UiPool::componentPool(UiComponentFactory, 1);
 
     auto UiLabelFactory = []() -> UiLabel *
     {
@@ -67,25 +66,25 @@ namespace BreadEditor {
     {
         return new UiVector2D();
     };
-    ObjectPool<UiVector2D> UiPool::vector2DPool(UiVector2DFactory, 10);
+    ObjectPool<UiVector2D> UiPool::vector2DPool(UiVector2DFactory, 1);
 
     auto UiVector3DFactory = []() -> UiVector3D *
     {
         return new UiVector3D();
     };
-    ObjectPool<UiVector3D> UiPool::vector3DPool(UiVector3DFactory, 10);
+    ObjectPool<UiVector3D> UiPool::vector3DPool(UiVector3DFactory, 1);
 
     auto UiVector4DFactory = []() -> UiVector4D *
     {
         return new UiVector4D();
     };
-    ObjectPool<UiVector4D> UiPool::vector4DPool(UiVector4DFactory, 10);
+    ObjectPool<UiVector4D> UiPool::vector4DPool(UiVector4DFactory, 1);
 
     auto UiDropdownFactory = []() -> UiDropdown *
     {
         return new UiDropdown();
     };
-    ObjectPool<UiDropdown> UiPool::dropdownPool(UiDropdownFactory, 10);
+    ObjectPool<UiDropdown> UiPool::dropdownPool(UiDropdownFactory, 1);
 
     auto UIFolderElementFactory = []() -> FolderUiElement *
     {

@@ -9,10 +9,7 @@ namespace BreadEditor {
 
         ~UiLabel() override;
 
-        void dispose() override
-        {
-            UiElement::dispose();
-        }
+        void dispose() override;
 
         UiLabel &setup(const std::string &id, UiElement *parentElement, const std::string &text);
 
