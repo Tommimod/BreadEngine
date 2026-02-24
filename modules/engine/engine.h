@@ -62,7 +62,6 @@ namespace BreadEngine {
         [[nodiscard]] AssetsConfig &getAssetsRegistry() { return _fileSystem; };
 
     private:
-        static Node _rootNode;
         static std::unique_ptr<Engine> _instance;
 
         Camera3D _camera{};

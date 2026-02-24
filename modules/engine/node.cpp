@@ -47,10 +47,10 @@ namespace BreadEngine {
     {
         if (_isDisposed) return;
 
-        _isDisposed = true;
         ComponentsProvider::clearOwner(_id);
         removeAllChildren();
         _parent = nullptr;
+        _isDisposed = true;
     }
 
     void Node::changeParent(Node *nextParent)

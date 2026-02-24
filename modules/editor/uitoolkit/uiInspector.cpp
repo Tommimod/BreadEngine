@@ -36,11 +36,11 @@ namespace BreadEditor {
         _hasNextInspectorStruct = true;
     }
 
-    void UiInspector::initializeProperties(InspectorStruct *inspectorStruct, std::vector<Property> &properties, int &depth, const float horizonDepth, const int continueFrom)
+    void UiInspector::initializeProperties(InspectorStruct *inspectorStruct, std::vector<Property> &properties, int &depth, const float horizonDepth, const int continueFrom, const int vectorIndex)
     {
         for (int i = 0; i < static_cast<int>(properties.size()); i++)
         {
-            createSingleElement(i + continueFrom, inspectorStruct, properties[i], nullptr, 0, depth, horizonDepth);
+            createSingleElement(i + continueFrom, inspectorStruct, properties[i], nullptr, vectorIndex, depth, horizonDepth);
         }
     }
 
@@ -49,22 +49,33 @@ namespace BreadEditor {
         constexpr std::string emptyLabel;
         constexpr int uiPropNameLabelWidth = 70;
         auto isSimpleProp = vectorAccessor == nullptr;
+        auto withVectorIndex = vectorIndex >= 0;
         float horOffset = 5.0f * horizonDepth;
         constexpr float heightSize = 17;
         const auto verOffset = 5 * static_cast<float>(order + depth) + 30 + heightSize * static_cast<float>(order + depth);
         setSize({_localSize.x, verOffset + heightSize + horOffset});
         computeBounds();
-        TraceLog(LOG_INFO, "Draw element %s.%s: order %i | depth %i | offset %f |", inspectorStruct->getTypeName().c_str(), property.name.c_str(), order, depth, horOffset);
 
         auto propType = isSimpleProp ? property.type : vectorAccessor->elementType();
         auto propName = propType == PropertyType::INSPECTOR_STRUCT || property.type == PropertyType::VECTOR_L ? property.name + ":" : property.name;
+        if (propType == PropertyType::VECTOR_L)
+        {
+            auto accessorAny = property.get(inspectorStruct);
+            propName += "[" + std::to_string(std::any_cast<std::shared_ptr<VectorAccessor> >(&accessorAny)->get()->size()) + "]";
+        }
+
+        if (withVectorIndex)
+        {
+            propName = TextFormat("[%i]%s", vectorIndex, propName.c_str());
+        }
+
         if (isSimpleProp)
         {
             auto uiPropNameLabel = &UiPool::labelPool.get().setup(TextFormat("PropName %s%i", property.name.c_str(), depth), this, propName);
             uiPropNameLabel->setAnchor(UI_LEFT_TOP);
             uiPropNameLabel->setSize({uiPropNameLabelWidth, heightSize});
             uiPropNameLabel->setPosition({horOffset, verOffset});
-            uiPropNameLabel->setTextAlignment(GuiTextAlignment::TEXT_ALIGN_LEFT);
+            uiPropNameLabel->setTextAlignment(TEXT_ALIGN_LEFT);
         }
 
         UiElement *createdElement = nullptr;
@@ -74,6 +85,7 @@ namespace BreadEditor {
             depth = order + 1;
             auto *structPtr = std::any_cast<InspectorStruct *>(property.get(inspectorStruct));
             initializeProperties(structPtr, structPtr->getInspectedProperties(), depth, horizonDepth + 1);
+            depth += static_cast<int>(structPtr->getInspectedProperties().size()) - 2;
         }
         else if (propType == PropertyType::INT)
         {
@@ -307,7 +319,6 @@ namespace BreadEditor {
                 return;
             }
 
-            //не уникальный ключ
             auto key = TextFormat("%s%i", property.name.c_str(), order);
             if (!_uiListData.contains(key))
             {
@@ -320,8 +331,6 @@ namespace BreadEditor {
             expandButton->setAnchor(UI_LEFT_TOP);
             expandButton->setSize({15, 15});
             expandButton->setPosition({0, verOffset});
-            expandButton->computeBounds();
-
             expandButton->onClick.subscribe([this, &property, order](UiLabelButton *button)
             {
                 const auto buttonKey = TextFormat("%s%i", property.name.c_str(), order);
@@ -340,12 +349,35 @@ namespace BreadEditor {
             auto offset = 0;
             auto originalOrder = order;
             depth++;
+            auto propNameWidth = isSimpleProp ? uiPropNameLabelWidth + horOffset : uiPropNameLabelWidth;
+            auto addButton = &UiPool::buttonPool.get().setup(TextFormat("AddL %s%i", property.name.c_str(), depth), this, "+");
+            addButton->setAnchor(UI_LEFT_TOP);
+            addButton->setSize({15, 15});
+            addButton->setPosition({propNameWidth, verOffset});
+            addButton->onClick.subscribe([this, &property, order](UiButton *)
+            {
+                const auto buttonKey = TextFormat("%s%i", property.name.c_str(), order);
+                _uiListData[buttonKey].accessor->add();
+                track(_inspectorStruct);
+            });
+
+            auto removeButton = &UiPool::buttonPool.get().setup(TextFormat("RemoveL %s%i", property.name.c_str(), depth), this, "-");
+            removeButton->setAnchor(UI_LEFT_TOP);
+            removeButton->setSize({15, 15});
+            removeButton->setPosition({propNameWidth + 20, verOffset});
+            removeButton->onClick.subscribe([this, &property, order](UiButton *)
+            {
+                const auto buttonKey = TextFormat("%s%i", property.name.c_str(), order);
+                const auto acc = _uiListData[buttonKey].accessor;
+                acc->remove(acc->size() - 1);
+                track(_inspectorStruct);
+            });
             for (auto index = 0; index < static_cast<int>(accessor.size()); index++)
             {
                 if (accessor.elementType() == PropertyType::INSPECTOR_STRUCT)
                 {
                     auto structPtr = std::any_cast<InspectorStruct *>(accessor.get(index));
-                    initializeProperties(structPtr, structPtr->getInspectedProperties(), depth, horizonDepth + 1, order);
+                    initializeProperties(structPtr, structPtr->getInspectedProperties(), depth, horizonDepth + 1, order, index);
                     offset += static_cast<int>(structPtr->getInspectedProperties().size());
                     order = originalOrder + offset;
                 }
@@ -370,7 +402,15 @@ namespace BreadEditor {
         createdElement->setSize({0, heightSize});
         const auto sizeInPercent = isSingleField ? .6f : 1;
         createdElement->setSizePercentPermanent({sizeInPercent, -1});
-        createdElement->setPosition({propNameWidth, verOffset});
+        if (isSimpleProp)
+        {
+            createdElement->setPosition({propNameWidth, verOffset});
+        }
+        else
+        {
+            createdElement->setPosition({horOffset, verOffset});
+        }
+
         _fields.emplace_back(createdElement);
     }
 

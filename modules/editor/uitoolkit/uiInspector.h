@@ -62,7 +62,7 @@ namespace BreadEditor {
 
         void cleanUp();
 
-        void initializeProperties(InspectorStruct *inspectorStruct, std::vector<Property> &properties, int &depth, float horizonDepth, int continueFrom = 0);
+        void initializeProperties(InspectorStruct *inspectorStruct, std::vector<Property> &properties, int &depth, float horizonDepth, int continueFrom = 0, int vectorIndex = -1);
 
         void createSingleElement(int order, InspectorStruct *inspectorStruct, Property &property, VectorAccessor *vectorAccessor, int vectorIndex, int &depth, float horizonDepth);
     };

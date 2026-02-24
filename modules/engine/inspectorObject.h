@@ -138,7 +138,7 @@ namespace BreadEngine {
 
         virtual void set(size_t index, const std::any &value) = 0;
 
-        virtual void add(const std::any &value) = 0;
+        virtual void add() = 0;
 
         virtual void remove(size_t index) = 0;
 
@@ -186,9 +186,9 @@ namespace BreadEngine {
             vec[index] = std::any_cast<typename VecT::value_type>(value);
         }
 
-        void add(const std::any &value) override
+        void add() override
         {
-            vec.push_back(std::any_cast<typename VecT::value_type>(value));
+            vec.push_back({});
         }
 
         void remove(size_t index) override

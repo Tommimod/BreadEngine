@@ -10,7 +10,6 @@ namespace BreadEngine {
         return new Node();
     };
     ObjectPool<Node> Engine::nodePool(nodeFactory, 10);
-    Node Engine::_rootNode;
     std::unique_ptr<Engine> Engine::_instance = std::make_unique<Engine>();
 
     Engine::Engine() = default;
@@ -22,6 +21,7 @@ namespace BreadEngine {
 
     Node &Engine::getRootNode()
     {
+        static Node _rootNode;
         if (_rootNode.getName().empty()) _rootNode = _rootNode.setupAsRoot("Root");
         return _rootNode;
     }
