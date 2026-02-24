@@ -1,10 +1,12 @@
-﻿#pragma once
+#pragma once
 #include <string>
 #include <vector>
 #include <yaml-cpp/node/node.h>
 #include "baseYamlConfig.h"
 #include "nameof.h"
 #include "raylib.h"
+#include <unordered_map>
+#include <string_view>
 
 namespace BreadEngine {
     struct File : InspectorStruct
@@ -28,6 +30,7 @@ namespace BreadEngine {
 
     private:
         friend struct YAML::convert<File>;
+        friend struct AssetsConfig;
         std::string _guid;
         std::string _fullPath;
         std::string _pathFromRoot;
@@ -68,6 +71,7 @@ namespace BreadEngine {
 
     private:
         friend struct YAML::convert<Folder>;
+        friend struct AssetsConfig;
         int _depth = 0;
         std::string _guid;
         std::string _name;
@@ -112,8 +116,17 @@ namespace BreadEngine {
 
     private:
         friend struct YAML::convert<AssetsConfig>;
+        std::string _empty;
         std::string _projectPath;
         Folder _rootFolder = Folder(0, "Project Files", "0");
+        std::unordered_map<std::string_view, Folder *> guid_to_folder;
+        std::unordered_map<std::string_view, File *> guid_to_file;
+        std::unordered_map<std::string_view, Folder *> path_to_folder;
+        std::unordered_map<std::string_view, File *> path_to_file;
+
+        void buildIndexes();
+
+        void indexFolder(Folder &folder);
 
         void parseFolders(Folder &folder, const FilePathList &filePathList) noexcept;
 

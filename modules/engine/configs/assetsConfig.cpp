@@ -38,6 +38,7 @@ namespace BreadEngine {
         auto data = rawConfig.as<AssetsConfig>();
         _projectPath = data._projectPath;
         _rootFolder = data._rootFolder;
+        buildIndexes();
     }
 
     void AssetsConfig::deserialize()
@@ -51,6 +52,7 @@ namespace BreadEngine {
         const FilePathList filesProvider = LoadDirectoryFiles(projectPath);
         parseFolders(_rootFolder, filesProvider);
         UnloadDirectoryFiles(filesProvider);
+        buildIndexes();
     }
 
     bool AssetsConfig::isFolder(const char *path)
@@ -68,10 +70,58 @@ namespace BreadEngine {
 
     const std::string &AssetsConfig::getPathByGuid(const std::string &guid)
     {
+        const auto folder_it = guid_to_folder.find(guid);
+        if (folder_it != guid_to_folder.end())
+        {
+            return folder_it->second->_name;
+        }
+        const auto file_it = guid_to_file.find(guid);
+        if (file_it != guid_to_file.end())
+        {
+            return file_it->second->_pathFromRoot;
+        }
+
+        return _empty;
     }
 
     const std::string &AssetsConfig::getGuidByPath(const std::string &path)
     {
+        const auto folder_it = path_to_folder.find(path);
+        if (folder_it != path_to_folder.end())
+        {
+            return folder_it->second->_guid;
+        }
+        const auto file_it = path_to_file.find(path);
+        if (file_it != path_to_file.end())
+        {
+            return file_it->second->_guid;
+        }
+
+        return _empty;
+    }
+
+    void AssetsConfig::buildIndexes()
+    {
+        guid_to_folder.clear();
+        guid_to_file.clear();
+        path_to_folder.clear();
+        path_to_file.clear();
+        indexFolder(_rootFolder);
+    }
+
+    void AssetsConfig::indexFolder(Folder &folder)
+    {
+        guid_to_folder[folder._guid] = &folder;
+        path_to_folder[folder._name] = &folder;
+        for (auto &file: folder._files)
+        {
+            guid_to_file[file._guid] = &file;
+            path_to_file[file._pathFromRoot] = &file;
+        }
+        for (auto &subfolder: folder._folders)
+        {
+            indexFolder(subfolder);
+        }
     }
 
     void AssetsConfig::parseFolders(Folder &folder, const FilePathList &filePathList) noexcept
