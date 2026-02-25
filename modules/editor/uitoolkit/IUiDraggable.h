@@ -25,6 +25,6 @@ namespace BreadEditor {
         Vector2 _mousePositionBeforeClick{};
         Vector2 _lastMousePosition{};
 
-        void dragSelf(UiElement *element) const;
+        static void dragSelf(UiElement *element);
     };
 } // BreadEditor

@@ -12,11 +12,6 @@ namespace BreadEditor {
     void IUiDraggable::updateDraggable(UiElement *element)
     {
         const auto mousePos = GetMousePosition();
-        if (!BreadEngine::Engine::isCollisionPointRec(mousePos, element->getParentElement()->getBounds()))
-        {
-            return;
-        }
-
         if (IsMouseButtonUp(MOUSE_LEFT_BUTTON))
         {
             _mousePositionBeforeClick = Vector2Zero();
@@ -56,11 +51,10 @@ namespace BreadEditor {
         _lastMousePosition = mousePos;
     }
 
-    void IUiDraggable::dragSelf(UiElement *element) const
+    void IUiDraggable::dragSelf(UiElement *element)
     {
-        const auto mousePos = GetMousePosition();
-        const auto delta = Vector2{_lastMousePosition.x - mousePos.x, _lastMousePosition.y - mousePos.y};
-        auto position = element->getPosition();
-        element->setPosition({position.x - delta.x, position.y - delta.y});
+        auto mousePos = GetMousePosition();
+        mousePos.x -= element->getSize().x * 0.5f;
+        element->setPosition(mousePos);
     }
 } // BreadEditor
