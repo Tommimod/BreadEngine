@@ -4,13 +4,17 @@
 #include "uiPool.h"
 
 namespace BreadEditor {
+    constexpr int BUFFER_SIZE = 127;
     UiTextBox::UiTextBox() = default;
 
     UiTextBox &UiTextBox::setup(const std::string &id, const std::string &defaultText, const int defaultTextSize, const bool defaultEditMode)
     {
         _internalText = defaultText;
-        _text = strdup(_internalText.c_str());
         _textSize = defaultTextSize;
+        _textBuffer.resize(BUFFER_SIZE + 1);
+        std::strncpy(_textBuffer.data(), _internalText.c_str(), BUFFER_SIZE);
+        _textBuffer[BUFFER_SIZE] = '\0';
+        _text = _textBuffer.data();
         _editMode = defaultEditMode;
         UiElement::setup(id);
         return *this;
@@ -19,8 +23,11 @@ namespace BreadEditor {
     UiTextBox &UiTextBox::setup(const std::string &id, UiElement *parentElement, const std::string &defaultText, const int defaultTextSize, const bool defaultEditMode)
     {
         _internalText = defaultText;
-        _text = strdup(_internalText.c_str());
         _textSize = defaultTextSize;
+        _textBuffer.resize(BUFFER_SIZE + 1);
+        std::strncpy(_textBuffer.data(), _internalText.c_str(), BUFFER_SIZE);
+        _textBuffer[BUFFER_SIZE] = '\0';
+        _text = _textBuffer.data();
         _editMode = defaultEditMode;
         UiElement::setup(id, parentElement);
         return *this;
@@ -30,8 +37,11 @@ namespace BreadEditor {
     {
         _getFunc = std::move(getFunc);
         _internalText = _getFunc();
-        _text = strdup(_internalText.c_str());
         _textSize = defaultTextSize;
+        _textBuffer.resize(BUFFER_SIZE + 1);
+        std::strncpy(_textBuffer.data(), _internalText.c_str(), BUFFER_SIZE);
+        _textBuffer[BUFFER_SIZE] = '\0';
+        _text = _textBuffer.data();
         _editMode = defaultEditMode;
         UiElement::setup(id, parentElement);
         return *this;
@@ -43,18 +53,19 @@ namespace BreadEditor {
     {
         onValueChanged.unsubscribeAll();
         onValueChangedWithSender.unsubscribeAll();
-        free(_text);
         _text = nullptr;
         _getFunc = nullptr;
         _internalText.clear();
-        _textSize = 16;
+        _textSize = 0;
         _editMode = false;
+        _textBuffer.clear();
         UiElement::dispose();
     }
 
     void UiTextBox::draw(const float deltaTime)
     {
-        GuiTextBox(_bounds, _text, _textSize, _editMode);
+        GuiSetStyle(DEFAULT, TEXT_SIZE, _textSize);
+        GuiTextBox(_bounds, _text, BUFFER_SIZE, _editMode);
     }
 
     void UiTextBox::update(const float deltaTime)
@@ -71,6 +82,7 @@ namespace BreadEditor {
         else if (_editMode && IsMouseButtonDown(MOUSE_LEFT_BUTTON))
         {
             _editMode = false;
+            _internalText = std::string(_text);
             onValueChanged.invoke(_text);
             onValueChangedWithSender.invoke(_text, this);
         }
@@ -78,6 +90,7 @@ namespace BreadEditor {
         if (_editMode && IsKeyDown(KEY_ENTER))
         {
             _editMode = false;
+            _internalText = std::string(_text);
             onValueChanged.invoke(_text);
             onValueChangedWithSender.invoke(_text, this);
         }
@@ -85,14 +98,18 @@ namespace BreadEditor {
         if (!_editMode && _getFunc != nullptr)
         {
             _internalText = _getFunc();
+            std::strncpy(_textBuffer.data(), _internalText.c_str(), BUFFER_SIZE);
+            _textBuffer[BUFFER_SIZE] = '\0';
         }
     }
 
     void UiTextBox::setText(const std::string &newText)
     {
-        free(_text);
         _internalText = newText;
-        _text = strdup(_internalText.c_str());
+        _textBuffer.resize(BUFFER_SIZE + 1);
+        std::strncpy(_textBuffer.data(), _internalText.c_str(), BUFFER_SIZE);
+        _textBuffer[BUFFER_SIZE] = '\0';
+        _text = _textBuffer.data();
     }
 
     bool UiTextBox::tryDeleteSelf()

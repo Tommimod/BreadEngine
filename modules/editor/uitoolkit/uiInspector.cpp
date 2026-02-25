@@ -68,12 +68,18 @@ namespace BreadEditor {
         {
             propName = TextFormat("[%i]%s", vectorIndex, propName.c_str());
         }
-
+        UiLabel *uiPropNameLabel = nullptr;
         if (isSimpleProp)
         {
-            auto uiPropNameLabel = &UiPool::labelPool.get().setup(TextFormat("PropName %s%i", property.name.c_str(), depth), this, propName);
+            uiPropNameLabel = &UiPool::labelPool.get().setup(TextFormat("PropName %s%i", property.name.c_str(), depth), this, propName);
             uiPropNameLabel->setAnchor(UI_LEFT_TOP);
-            uiPropNameLabel->setSize({uiPropNameLabelWidth, heightSize});
+            auto multiplier = 1.0f;
+            if (propType == PropertyType::VECTOR_L)
+            {
+                multiplier = 3;
+            }
+
+            uiPropNameLabel->setSize({uiPropNameLabelWidth * multiplier, heightSize});
             uiPropNameLabel->setPosition({horOffset, verOffset});
             uiPropNameLabel->setTextAlignment(TEXT_ALIGN_LEFT);
         }
@@ -349,7 +355,7 @@ namespace BreadEditor {
             auto offset = 0;
             auto originalOrder = order;
             depth++;
-            auto propNameWidth = isSimpleProp ? uiPropNameLabelWidth + horOffset : uiPropNameLabelWidth;
+            auto propNameWidth = isSimpleProp ? static_cast<float>(GuiGetTextWidth(propName.c_str())) + horOffset + 15 : uiPropNameLabelWidth;
             auto addButton = &UiPool::buttonPool.get().setup(TextFormat("AddL %s%i", property.name.c_str(), depth), this, "+");
             addButton->setAnchor(UI_LEFT_TOP);
             addButton->setSize({15, 15});
