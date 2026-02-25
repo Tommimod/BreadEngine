@@ -184,9 +184,7 @@ namespace BreadEditor {
     {
         const auto originalElement = dynamic_cast<NodeUiElement *>(uiElement);
         _draggedNodeUiElementCopy = dynamic_cast<NodeUiElement *>(uiElement)->copy();
-        const auto root = &Editor::getInstance().mainWindow;
-        _draggedNodeUiElementCopy->changeParent(root);
-        _draggedNodeUiElementCopy->forceStartDrag();
+        _draggedNodeUiElementCopy->forceStartDrag(_draggedNodeUiElementCopy);
         originalElement->switchMuteState();
     }
 
@@ -194,7 +192,7 @@ namespace BreadEditor {
     {
         if (_draggedNodeUiElementCopy == nullptr) return;
 
-        this->destroyChild(_draggedNodeUiElementCopy);
+        destroyChild(_draggedNodeUiElementCopy);
         _draggedNodeUiElementCopy = nullptr;
         const auto originalElement = dynamic_cast<NodeUiElement *>(uiElement);
         originalElement->switchMuteState();

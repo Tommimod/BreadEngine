@@ -1,10 +1,14 @@
 ﻿#include "IUiDraggable.h"
+
+#include "editor.h"
 #include "raymath.h"
 #include "engine.h"
 
 namespace BreadEditor {
-    void IUiDraggable::forceStartDrag()
+    void IUiDraggable::forceStartDrag(UiElement *element)
     {
+        const auto root = &Editor::getInstance().mainWindow;
+        element->changeParent(root);
         _mousePositionBeforeClick = GetMousePosition();
         _isPrepared = true;
     }
