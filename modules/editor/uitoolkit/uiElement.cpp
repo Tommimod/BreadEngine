@@ -2,6 +2,9 @@
 #include <algorithm>
 #include <ranges>
 
+#include "editor.h"
+#include "editorStyle.h"
+
 namespace BreadEditor {
     UiElement &UiElement::setup(const std::string &newId)
     {
@@ -798,7 +801,8 @@ namespace BreadEditor {
         GuiSetStyle(LABEL, TEXT_ALIGNMENT, 0);
         GuiSetStyle(DROPDOWNBOX, TEXT_ALIGNMENT, 1);
         GuiSetStyle(BUTTON, TEXT_ALIGNMENT, 0);
-        GuiSetStyle(DEFAULT, TEXT_SIZE, 10);
+        GuiSetStyle(DEFAULT, TEXT_SIZE, static_cast<int>(EditorStyle::FontSize::Medium));
+        Editor::getInstance().setFontSize(EditorStyle::FontSize::Medium);
         if (isDebugRectVisible)
         {
             drawDebugRect();

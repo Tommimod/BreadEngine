@@ -1,6 +1,7 @@
 ﻿#pragma once
 #include "action.h"
 #include "uiElement.h"
+#include "editorStyle.h"
 using namespace BreadEngine;
 
 namespace BreadEditor {
@@ -36,7 +37,7 @@ namespace BreadEditor {
 
     private:
         bool _canClickOutside = false;
-        int _textSize = 10;
+        int _textSize = static_cast<int>(EditorStyle::FontSize::Medium);
         std::string _text;
         GuiTextAlignment _textAlignment = TEXT_ALIGN_CENTER;
     };

@@ -1,4 +1,6 @@
 #include <format>
+
+#include "editor.h"
 #include "UiNumberBox.h"
 #include "uiPool.h"
 
@@ -11,7 +13,7 @@ namespace BreadEditor {
     {
         _floatValue = 0;
         _intValue = 0;
-        _textSize = 0;
+        _textSize = static_cast<int>(EditorStyle::FontSize::Medium);
         _editMode = false;
         _intMode = false;
         _label = "";
@@ -99,6 +101,8 @@ namespace BreadEditor {
 
     void UiNumberBox::draw(const float deltaTime)
     {
+        Editor::getInstance().setFontSize(_textSize);
+        GuiSetStyle(DEFAULT, TEXT_SIZE, _textSize);
         if (_intMode)
         {
             if (GuiValueBox(_bounds, _label.c_str(), &_intValue, INT_MIN,INT_MAX, _editMode))

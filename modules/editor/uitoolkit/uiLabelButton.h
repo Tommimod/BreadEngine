@@ -1,5 +1,6 @@
 #pragma once
 #include "action.h"
+#include "editorStyle.h"
 #include "uiElement.h"
 using namespace BreadEngine;
 
@@ -35,6 +36,6 @@ namespace BreadEditor {
     private:
         std::string _text;
         GuiTextAlignment _textAlignment = TEXT_ALIGN_LEFT;
-        int _textSize = 10;
+        int _textSize = static_cast<int>(EditorStyle::FontSize::Medium);
     };
 } // namespace BreadEditor

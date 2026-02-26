@@ -1,5 +1,6 @@
 ﻿#pragma once
 #include "action.h"
+#include "editorStyle.h"
 #include "uiInspector.h"
 #include "uiElement.h"
 using namespace BreadEngine;
@@ -15,11 +16,11 @@ namespace BreadEditor {
 
         ~UiTextBox() override;
 
-        UiTextBox &setup(const std::string &id, const std::string &defaultText, int defaultTextSize = 10, bool defaultEditMode = false);
+        UiTextBox &setup(const std::string &id, const std::string &defaultText, int defaultTextSize = 16, bool defaultEditMode = false);
 
-        UiTextBox &setup(const std::string &id, UiElement *parentElement, const std::string &defaultText, int defaultTextSize = 10, bool defaultEditMode = false);
+        UiTextBox &setup(const std::string &id, UiElement *parentElement, const std::string &defaultText, int defaultTextSize = 16, bool defaultEditMode = false);
 
-        UiTextBox &setup(const std::string &id, UiElement *parentElement, std::function<std::string()> getFunc, int defaultTextSize = 10, bool defaultEditMode = false);
+        UiTextBox &setup(const std::string &id, UiElement *parentElement, std::function<std::string()> getFunc, int defaultTextSize = 16, bool defaultEditMode = false);
 
         void dispose() override;
 
@@ -34,7 +35,7 @@ namespace BreadEditor {
 
     private:
         bool _editMode = false;
-        int _textSize = 0;
+        int _textSize = static_cast<int>(EditorStyle::FontSize::Medium);
         char *_text = nullptr;
         std::string _internalText;
         std::vector<char> _textBuffer;

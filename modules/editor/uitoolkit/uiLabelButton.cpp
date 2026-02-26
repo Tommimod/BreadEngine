@@ -1,4 +1,5 @@
 #include "uiLabelButton.h"
+#include "editor.h"
 #include "engine.h"
 #include "raygui.h"
 #include "uiPool.h"
@@ -25,12 +26,13 @@ namespace BreadEditor {
         onClick.unsubscribeAll();
         _text.clear();
         _textAlignment = TEXT_ALIGN_LEFT;
-        _textSize = 10;
+        _textSize = static_cast<int>(EditorStyle::FontSize::Medium);
         UiElement::dispose();
     }
 
     void UiLabelButton::draw(const float deltaTime)
     {
+        Editor::getInstance().setFontSize(_textSize);
         GuiSetStyle(DEFAULT, TEXT_SIZE, _textSize);
         GuiSetStyle(LABEL, TEXT_ALIGNMENT, _textAlignment);
         if (GuiLabelButton(_bounds, _text.c_str()))

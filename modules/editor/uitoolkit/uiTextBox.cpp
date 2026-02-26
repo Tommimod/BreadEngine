@@ -1,5 +1,7 @@
 #include "uiTextBox.h"
 
+#include "editor.h"
+#include "editorStyle.h"
 #include "engine.h"
 #include "uiPool.h"
 
@@ -56,7 +58,7 @@ namespace BreadEditor {
         _text = nullptr;
         _getFunc = nullptr;
         _internalText.clear();
-        _textSize = 0;
+        _textSize = static_cast<int>(EditorStyle::FontSize::Medium);
         _editMode = false;
         _textBuffer.clear();
         UiElement::dispose();
@@ -64,6 +66,7 @@ namespace BreadEditor {
 
     void UiTextBox::draw(const float deltaTime)
     {
+        Editor::getInstance().setFontSize(_textSize);
         GuiSetStyle(DEFAULT, TEXT_SIZE, _textSize);
         GuiTextBox(_bounds, _text, BUFFER_SIZE, _editMode);
     }

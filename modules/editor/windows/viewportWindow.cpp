@@ -22,6 +22,8 @@ namespace BreadEditor {
 
     void ViewportWindow::draw(const float deltaTime)
     {
+        Editor::getInstance().setFontSize(static_cast<int>(EditorStyle::FontSize::MediumLarge));
+        GuiSetStyle(DEFAULT, TEXT_SIZE, static_cast<int>(EditorStyle::FontSize::MediumLarge));
         GuiScrollPanel(_bounds, _title, _contentView, &_scrollPos, &_scrollView);
         const auto texture = Editor::getInstance().getViewportRenderTexture();
         if (!texture) return;

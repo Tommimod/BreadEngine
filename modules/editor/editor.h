@@ -2,6 +2,8 @@
 #include "windows/mainWindow.h"
 #include <string>
 #include <memory>
+
+#include "editorStyle.h"
 #include "configs/infrastructure/configsProvider.h"
 #include "models/editorModel.h"
 using namespace BreadEngine;
@@ -52,6 +54,10 @@ namespace BreadEditor {
 
         [[nodiscard]] ConfigsProvider &getConfigsProvider() { return _configsProvider; }
 
+        void setFontSize(EditorStyle::FontSize size) const;
+
+        void setFontSize(int size) const;
+
     private:
         static std::unique_ptr<Editor> _instance;
 
@@ -59,8 +65,16 @@ namespace BreadEditor {
         std::string _currentProjectPath;
         RenderTexture2D *_viewportRenderTexture = nullptr;
         UiElement &_uiRoot;
+        Font _fontSmall{};
+        Font _fontSmallMedium{};
+        Font _fontMedium{};
+        Font _fontMediumLarge{};
+        Font _fontLargeSmall{};
+        Font _fontLarge{};
 
         EditorModel _editorModel;
         ConfigsProvider _configsProvider;
+
+        void loadFont();
     };
 } // namespace BreadEditor

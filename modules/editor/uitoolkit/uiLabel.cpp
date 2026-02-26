@@ -1,4 +1,6 @@
 ﻿#include "uiLabel.h"
+
+#include "editor.h"
 #include "uiPool.h"
 
 namespace BreadEditor {
@@ -8,7 +10,7 @@ namespace BreadEditor {
     {
         _text.clear();
         _textAlignment = TEXT_ALIGN_CENTER;
-        _textSize = 10;
+        _textSize = static_cast<int>(EditorStyle::FontSize::Medium);
         UiElement::dispose();
     }
 
@@ -21,6 +23,7 @@ namespace BreadEditor {
 
     void UiLabel::draw(const float deltaTime)
     {
+        Editor::getInstance().setFontSize(_textSize);
         GuiSetStyle(DEFAULT, TEXT_SIZE, _textSize);
         GuiSetStyle(LABEL, TEXT_ALIGNMENT, _textAlignment);
         GuiLabel(_bounds, _text.c_str());

@@ -93,6 +93,7 @@ namespace BreadEditor {
         _closeButton.setAnchor(UI_RIGHT_TOP);
         _closeButton.setPivot({1, 1});
         _closeButton.setPosition({-5, 20});
+        _closeButton.setTextSize(static_cast<int>(EditorStyle::FontSize::SmallMedium));
         _closeButton.setRenderOnEndOfFrame();
         _closeButton.setIgnoreScrollLayout();
 
