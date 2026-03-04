@@ -2,7 +2,6 @@
 #include "windows/mainWindow.h"
 #include <string>
 #include <memory>
-
 #include "editorStyle.h"
 #include "configs/infrastructure/configsProvider.h"
 #include "models/editorModel.h"
@@ -58,9 +57,12 @@ namespace BreadEditor {
 
         void setFontSize(int size) const;
 
+        [[nodiscard]] bool isFrameEnded() const { return _isFrameEnded; }
+
     private:
         static std::unique_ptr<Editor> _instance;
 
+        bool _isFrameEnded = false;
         bool _initialized = false;
         std::string _currentProjectPath;
         RenderTexture2D *_viewportRenderTexture = nullptr;

@@ -7,6 +7,7 @@
 namespace BreadEditor {
     NodeUiElement::NodeUiElement() : _expandButton(UiPool::buttonPool.get())
     {
+        _expandButton.setup(id + "expandButton", this, "");
     }
 
     NodeUiElement::~NodeUiElement() = default;
@@ -14,7 +15,6 @@ namespace BreadEditor {
     NodeUiElement &NodeUiElement::setup(const std::string &id, UiElement *parentElement, Node *node)
     {
         this->_engineNode = node;
-        _expandButton.setup(id + "expandButton", this, "");
         updateExpandButtonText();
         _expandButton.setAnchor(UI_LEFT_TOP);
         _expandButton.setPivot({1, 0});
@@ -78,6 +78,8 @@ namespace BreadEditor {
         _localState = STATE_NORMAL;
         _engineNode = nullptr;
         _parentNode = nullptr;
+        _expandButton.onClick.unsubscribeAll();
+        disposeDraggable();
         UiElement::dispose();
     }
 

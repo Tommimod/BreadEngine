@@ -88,6 +88,7 @@ namespace BreadEditor {
     {
         if (!_initialized) return;
 
+        _isFrameEnded = false;
         mainWindow.updateInternal(deltaTime);
         CursorSystem::draw();
     }
@@ -98,6 +99,7 @@ namespace BreadEditor {
 
         _viewportRenderTexture = &renderTexture;
         mainWindow.drawInternal(deltaTime);
+        _isFrameEnded = true;
     }
 
     void Editor::render3D(const float deltaTime)

@@ -70,10 +70,9 @@ namespace BreadEditor {
         {
             propName = TextFormat("[%i]%s", vectorIndex, propName.c_str());
         }
-        UiLabel *uiPropNameLabel = nullptr;
         if (isSimpleProp)
         {
-            uiPropNameLabel = &UiPool::labelPool.get().setup(TextFormat("PropName %s%i", property.name.c_str(), depth), this, propName);
+            auto uiPropNameLabel = &UiPool::labelPool.get().setup(TextFormat("PropName %s%i", property.name.c_str(), depth), this, propName);
             uiPropNameLabel->setAnchor(UI_LEFT_TOP);
             auto multiplier = 1.0f;
             if (propType == PropertyType::VECTOR_L)
@@ -225,6 +224,7 @@ namespace BreadEditor {
             {
                 property.set(inspectorStruct, value);
             });
+            element->setTextSize(static_cast<int>(EditorStyle::FontSize::Medium));
         }
         else if (propType == PropertyType::VECTOR2)
         {
@@ -362,6 +362,7 @@ namespace BreadEditor {
             addButton->setAnchor(UI_LEFT_TOP);
             addButton->setSize({15, 15});
             addButton->setPosition({propNameWidth, verOffset});
+            addButton->setTextSize(static_cast<int>(EditorStyle::FontSize::Medium));
             addButton->onClick.subscribe([this, &property, order](UiButton *)
             {
                 const auto buttonKey = TextFormat("%s%i", property.name.c_str(), order);
@@ -373,6 +374,7 @@ namespace BreadEditor {
             removeButton->setAnchor(UI_LEFT_TOP);
             removeButton->setSize({15, 15});
             removeButton->setPosition({propNameWidth + 20, verOffset});
+            removeButton->setTextSize(static_cast<int>(EditorStyle::FontSize::Medium));
             removeButton->onClick.subscribe([this, &property, order](UiButton *)
             {
                 const auto buttonKey = TextFormat("%s%i", property.name.c_str(), order);

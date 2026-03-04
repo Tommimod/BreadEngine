@@ -19,6 +19,7 @@ namespace BreadEditor {
 
     protected:
         void updateDraggable(UiElement *element);
+        void disposeDraggable();
 
     private:
         bool _isPrepared = false;

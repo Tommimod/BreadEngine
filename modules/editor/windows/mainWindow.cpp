@@ -1,7 +1,5 @@
 #include "mainWindow.h"
-
 #include <thread>
-
 #include "editor.h"
 #include "uitoolkit/uiPool.h"
 

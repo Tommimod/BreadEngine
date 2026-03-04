@@ -30,6 +30,8 @@ namespace BreadEditor {
 
         void setText(const std::string &newText);
 
+        void setTextSize(const int textSize) { _textSize = textSize; }
+
     protected:
         bool tryDeleteSelf() override;
 

@@ -1,6 +1,5 @@
 ﻿#pragma once
 #include "action.h"
-#include "nodeUiElement.h"
 #include "../../engine/configs/assetsConfig.h"
 #include "uitoolkit/IUiDraggable.h"
 #include "uitoolkit/uiButton.h"
@@ -18,9 +17,9 @@ namespace BreadEditor {
 
         ~FolderUiElement() override;
 
-        [[nodiscard]] FolderUiElement &setup(const std::string &id, UiElement *parentElement, Folder *folder);
+        [[nodiscard]] FolderUiElement &setup(const std::string &id, UiElement *parentElement, const std::string &folderGuid);
 
-        [[nodiscard]] Folder &getFolder() const { return *_engineFolder; }
+        [[nodiscard]] const std::string &getFolderGuid() const { return _folderGuid; }
 
         [[nodiscard]] bool getIsExpanded() const { return _isExpanded; }
 
@@ -32,14 +31,18 @@ namespace BreadEditor {
 
         void dispose() override;
 
+        FolderUiElement *copy();
+
     protected:
         bool tryDeleteSelf() override;
 
     private:
+        AssetsConfig &_fileSystem;
         bool _isExpanded = false;
         Folder *_engineFolder = nullptr;
-        UiLabelButton &_button;
-        UiButton &_expandButton;
+        UiLabelButton *_button = nullptr;
+        UiButton *_expandButton = nullptr;
+        std::string _folderGuid;
 
         void updateExpandButtonText() const;
     };

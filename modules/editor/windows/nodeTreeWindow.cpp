@@ -186,7 +186,7 @@ namespace BreadEditor {
     void NodeTreeWindow::onElementStartDrag(UiElement *uiElement)
     {
         const auto originalElement = dynamic_cast<NodeUiElement *>(uiElement);
-        _draggedNodeUiElementCopy = dynamic_cast<NodeUiElement *>(uiElement)->copy();
+        _draggedNodeUiElementCopy = originalElement->copy();
         _draggedNodeUiElementCopy->forceStartDrag(_draggedNodeUiElementCopy);
         originalElement->switchMuteState();
     }

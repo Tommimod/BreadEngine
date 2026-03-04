@@ -25,11 +25,10 @@ namespace BreadEditor {
         UiElement::dispose();
     }
 
-    UiNumberBox &UiNumberBox::setup(const std::string &id, const std::string &label, const float defaultValue, const int defaultTextSize, const bool defaultEditMode)
+    UiNumberBox &UiNumberBox::setup(const std::string &id, const std::string &label, const float defaultValue, const bool defaultEditMode)
     {
         _floatLabel = label;
         _floatValue = defaultValue;
-        _textSize = defaultTextSize;
         if (defaultValue == 0.0000f)
         {
             snprintf(_valueText, sizeof(_valueText), "%.0f", _floatValue);
@@ -44,11 +43,10 @@ namespace BreadEditor {
         return *this;
     }
 
-    UiNumberBox &UiNumberBox::setup(const std::string &id, UiElement *parentElement, const std::string &label, const float defaultValue, const int defaultTextSize, const bool defaultEditMode)
+    UiNumberBox &UiNumberBox::setup(const std::string &id, UiElement *parentElement, const std::string &label, const float defaultValue, const bool defaultEditMode)
     {
         _floatLabel = label;
         _floatValue = defaultValue;
-        _textSize = defaultTextSize;
         if (defaultValue == 0.0000f)
         {
             snprintf(_valueText, sizeof(_valueText), "%.0f", _floatValue);
@@ -63,36 +61,33 @@ namespace BreadEditor {
         return *this;
     }
 
-    UiNumberBox &UiNumberBox::setup(const std::string &id, const std::string &label, const int defaultValue, const int defaultTextSize, const bool defaultEditMode)
+    UiNumberBox &UiNumberBox::setup(const std::string &id, const std::string &label, const int defaultValue, const bool defaultEditMode)
     {
         _intMode = true;
         _label = label;
         _intValue = defaultValue;
-        _textSize = defaultTextSize;
         snprintf(_valueText, sizeof(_valueText), "%i", _intValue);
         _editMode = defaultEditMode;
         UiElement::setup(id);
         return *this;
     }
 
-    UiNumberBox &UiNumberBox::setup(const std::string &id, UiElement *parentElement, const std::string &label, const int defaultValue, const int defaultTextSize, const bool defaultEditMode)
+    UiNumberBox &UiNumberBox::setup(const std::string &id, UiElement *parentElement, const std::string &label, const int defaultValue, const bool defaultEditMode)
     {
         _intMode = true;
         _label = label;
         _intValue = defaultValue;
-        _textSize = defaultTextSize;
         snprintf(_valueText, sizeof(_valueText), "%i", _intValue);
         _editMode = defaultEditMode;
         UiElement::setup(id, parentElement);
         return *this;
     }
 
-    UiNumberBox &UiNumberBox::setup(const std::string &id, UiElement *parentElement, const std::string &label, std::function<std::variant<int, float, long>()> getFunc, const int defaultTextSize, const bool defaultEditMode)
+    UiNumberBox &UiNumberBox::setup(const std::string &id, UiElement *parentElement, const std::string &label, std::function<std::variant<int, float, long>()> getFunc, const bool defaultEditMode)
     {
         _intMode = true;
         _label = label;
         _getFunc = std::move(getFunc);
-        _textSize = defaultTextSize;
         snprintf(_valueText, sizeof(_valueText), "%i", _intValue);
         _editMode = defaultEditMode;
         UiElement::setup(id, parentElement);

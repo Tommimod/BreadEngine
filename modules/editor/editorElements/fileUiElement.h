@@ -16,9 +16,9 @@ namespace BreadEditor {
 
         ~FileUiElement() override;
 
-        [[nodiscard]] FileUiElement &setup(const std::string &id, UiElement *parentElement, File *file);
+        [[nodiscard]] FileUiElement &setup(const std::string &id, UiElement *parentElement, const std::string &fileGuid);
 
-        [[nodiscard]] File *getFile() const { return _file; }
+        [[nodiscard]] const std::string &getFileGuid() const { return _fileGuid; }
 
         void awake() override;
 
@@ -28,11 +28,15 @@ namespace BreadEditor {
 
         void dispose() override;
 
+        FileUiElement *copy();
+
     protected:
         bool tryDeleteSelf() override;
 
     private:
+        AssetsConfig &_fileSystem;
         File *_file = nullptr;
-        UiLabelButton &_button;
+        UiLabelButton *_button = nullptr;
+        std::string _fileGuid;
     };
 } // BreadEditor

@@ -33,23 +33,32 @@ namespace BreadEditor {
         void unsubscribe() override;
 
     private:
+        bool _isUpdateAfterMove = true;
         const char *_title = Id.c_str();
         AssetsConfig &_fileSystem;
         std::vector<FolderUiElement *> _folderUiElements;
         std::vector<FileUiElement *> _fileUiElements;
+        FolderUiElement *_draggedFolderUiElementCopy = nullptr;
+        FileUiElement *_draggedFileUiElementCopy = nullptr;
 
         [[nodiscard]] FolderUiElement *getFolderUiElementByEngineFolder(const Folder *folder) const;
 
         [[nodiscard]] FileUiElement *getFileUiElementByPath(const File *file) const;
 
-        FolderUiElement &CreateFolderUiElement(Folder *folder);
+        FolderUiElement &createFolderUiElement(const Folder *folder);
 
-        FileUiElement &CreateFileUiElement(File *file);
+        FileUiElement &createFileUiElement(const File *file);
 
         void recalculateUiFolders(Folder *folder, int &nodeOrder, bool isParentExpanded = true);
 
-        void recalculateUiFiles(File *file, int &nodeOrder, int depth, bool isParentExpanded);
+        void recalculateUiFiles(const File *file, int &nodeOrder, int depth, bool isParentExpanded);
 
         void onFileSelected(const FileUiElement *fileUiElement);
+
+        void onElementDragStarted(UiElement *uiElement);
+
+        void onFolderElementDragEnded(UiElement *uiElement);
+
+        void onFileElementDragEnded(UiElement *uiElement);
     };
 } // BreadEditor

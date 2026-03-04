@@ -18,15 +18,15 @@ namespace BreadEditor {
 
         void dispose() override;
 
-        UiNumberBox &setup(const std::string &id, const std::string &label, float defaultValue, int defaultTextSize = 14, bool defaultEditMode = false);
+        UiNumberBox &setup(const std::string &id, const std::string &label, float defaultValue, bool defaultEditMode = false);
 
-        UiNumberBox &setup(const std::string &id, UiElement *parentElement, const std::string &label, float defaultValue, int defaultTextSize = 14, bool defaultEditMode = false);
+        UiNumberBox &setup(const std::string &id, UiElement *parentElement, const std::string &label, float defaultValue, bool defaultEditMode = false);
 
-        UiNumberBox &setup(const std::string &id, const std::string &label, int defaultValue, int defaultTextSize = 14, bool defaultEditMode = false);
+        UiNumberBox &setup(const std::string &id, const std::string &label, int defaultValue, bool defaultEditMode = false);
 
-        UiNumberBox &setup(const std::string &id, UiElement *parentElement, const std::string &label, int defaultValue, int defaultTextSize = 14, bool defaultEditMode = false);
+        UiNumberBox &setup(const std::string &id, UiElement *parentElement, const std::string &label, int defaultValue, bool defaultEditMode = false);
 
-        UiNumberBox &setup(const std::string &id, UiElement *parentElement, const std::string &label, std::function<std::variant<int, float, long>()> getFunc, int defaultTextSize = 16, bool defaultEditMode = false);
+        UiNumberBox &setup(const std::string &id, UiElement *parentElement, const std::string &label, std::function<std::variant<int, float, long>()> getFunc, bool defaultEditMode = false);
 
         void draw(float deltaTime) override;
 
@@ -35,6 +35,8 @@ namespace BreadEditor {
         void setValue(int value);
 
         void setValue(float value);
+
+        void setTextSize(const int textSize) { _textSize = textSize; }
 
     protected:
         bool tryDeleteSelf() override;

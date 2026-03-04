@@ -580,6 +580,8 @@ namespace BreadEditor {
         _overlayChilds.clear();
         _isRenderOnEndOfFrame = false;
         _ignoreScrollLayout = false;
+        isActive = true;
+        isStatic = false;
     }
 
     void UiElement::drawDebugRect() const
@@ -810,6 +812,7 @@ namespace BreadEditor {
 
         for (const auto child: _childs)
         {
+            if (child == nullptr) continue;
             if (child->_onOverlayLayer || child->_isRenderOnEndOfFrame)
             {
                 continue;
@@ -822,6 +825,7 @@ namespace BreadEditor {
         {
             for (const auto child: _overlayChilds)
             {
+                if (child == nullptr) continue;
                 if (child == nullptr || !child->_onOverlayLayer)
                 {
                     _overlayChilds.erase(std::ranges::find(_overlayChilds, child));
@@ -835,6 +839,7 @@ namespace BreadEditor {
         onFrameEnd(deltaTime);
         for (const auto child: _childs)
         {
+            if (child == nullptr) continue;
             if (child->_onOverlayLayer || !child->_isRenderOnEndOfFrame)
             {
                 continue;
@@ -867,6 +872,7 @@ namespace BreadEditor {
         destroyChildsInternal();
         for (const auto child: _childs)
         {
+            if (child == nullptr) continue;
             child->updateInternal(deltaTime);
         }
     }
@@ -877,6 +883,7 @@ namespace BreadEditor {
         for (int i = size - 1; i >= 0; --i)
         {
             auto child = _childs[i];
+            if (child == nullptr) continue;
             if (!child->_isDeleted)
             {
                 continue;

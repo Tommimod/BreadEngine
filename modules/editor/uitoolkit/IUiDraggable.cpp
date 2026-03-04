@@ -11,6 +11,7 @@ namespace BreadEditor {
         element->changeParent(root);
         _mousePositionBeforeClick = GetMousePosition();
         _isPrepared = true;
+        dragSelf(element);
     }
 
     void IUiDraggable::updateDraggable(UiElement *element)
@@ -39,11 +40,12 @@ namespace BreadEditor {
         if (IsMouseButtonDown(MOUSE_LEFT_BUTTON) && _isPrepared)
         {
             const auto delta = Vector2Distance(_mousePositionBeforeClick, mousePos);
-            if (!isDragging && delta > 10)
+            if (!isDragging && delta > 3)
             {
                 isDragging = true;
                 onDragStarted.invoke(element);
                 TraceLog(LOG_INFO, "Drag started");
+                TraceLog(LOG_INFO, to_string(delta).c_str());
             }
 
             if (isDragging && !onlyProvideDragEvents)
@@ -55,10 +57,20 @@ namespace BreadEditor {
         _lastMousePosition = mousePos;
     }
 
+    void IUiDraggable::disposeDraggable()
+    {
+        dragContainer = nullptr;
+        isDragging = false;
+        _isPrepared = false;
+        _mousePositionBeforeClick = Vector2Zero();
+        _lastMousePosition = Vector2Zero();
+    }
+
     void IUiDraggable::dragSelf(UiElement *element)
     {
         auto mousePos = GetMousePosition();
         mousePos.x -= element->getSize().x * 0.5f;
         element->setPosition(mousePos);
+        TraceLog(LOG_INFO, "Dragged");
     }
 } // BreadEditor
