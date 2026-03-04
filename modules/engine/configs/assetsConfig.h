@@ -255,13 +255,25 @@ namespace BreadEngine {
         std::unordered_map<std::string_view, Folder *> _pathToFolder{};
         std::unordered_map<std::string_view, File *> _pathToFile{};
 
-        void updateIncludesAfterMove(Folder *folder);
+        static void updateIncludesAfterMove(Folder *folder);
 
         void buildIndexes();
 
         void indexFolder(Folder &folder);
 
         void parseFolders(Folder &folder, const FilePathList &filePathList) noexcept;
+
+        static void moveInternal(const std::string &from, const std::string &to);
+
+        static void copyFileInternal(const std::string &from, const std::string &to);
+
+        static void copyFolderInternal(const std::string &from, const std::string &to);
+
+        static void renameInternal(const std::string &from, const std::string &to);
+
+        static void deleteFileInternal(const std::string &from);
+
+        static void deleteFolderInternal(const std::string &from);
 
         INSPECTOR_BEGIN(AssetsConfig)
             INSPECT_FIELD(_projectPath);

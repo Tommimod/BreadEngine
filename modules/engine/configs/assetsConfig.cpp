@@ -10,6 +10,7 @@ namespace BreadEngine {
     DEFINE_STATIC_PROPS(AssetsConfig)
     DEFINE_STATIC_PROPS(Folder)
     DEFINE_STATIC_PROPS(File)
+    namespace fs = std::filesystem;
 
     void AssetsConfig::serialize()
     {
@@ -113,6 +114,7 @@ namespace BreadEngine {
     void AssetsConfig::moveFile(const std::string &fileGuid, const std::string &nextFolderGuid)
     {
         auto file = _guidToFile[fileGuid];
+        const auto oldPath = file->_fullPath;
         const auto oldFolderPath = std::string(GetDirectoryPath(file->getFullName().c_str()));
         auto oldFolder = _pathToFolder[oldFolderPath];
         if (oldFolder == nullptr) oldFolder = &_rootFolder;
@@ -124,11 +126,14 @@ namespace BreadEngine {
         file->_fullPath = nextFolder->getFullName() + "\\" + file->getShortName();
         file->_pathFromRoot = nextFolder->_pathFromRoot + "\\" + file->getShortName();
         buildIndexes();
+        moveInternal(oldPath, file->_fullPath);
+        serialize();
     }
 
     void AssetsConfig::moveFolder(const std::string &folderGuid, const std::string &nextFolderGuid)
     {
         auto folder = _guidToFolder[folderGuid];
+        const auto oldPath = folder->_fullPath;
         const auto oldFolderPath = std::string(GetPrevDirectoryPath(folder->getFullName().c_str()));
         auto oldFolder = _pathToFolder[oldFolderPath];
         if (oldFolder == nullptr) oldFolder = &_rootFolder;
@@ -153,6 +158,8 @@ namespace BreadEngine {
 
         updateIncludesAfterMove(folder);
         buildIndexes();
+        moveInternal(oldPath, folder->_fullPath);
+        serialize();
     }
 
     void AssetsConfig::deleteFile(const std::string &fileGuid)
@@ -161,8 +168,10 @@ namespace BreadEngine {
         const auto oldFolderPath = std::string(GetDirectoryPath(file->getFullName().c_str()));
         auto oldFolder = _pathToFolder[oldFolderPath];
         if (oldFolder == nullptr) oldFolder = &_rootFolder;
+        deleteFileInternal(file->_pathFromRoot);
         oldFolder->removeFile(file);
         buildIndexes();
+        serialize();
     }
 
     void AssetsConfig::deleteFolder(const std::string &folderGuid)
@@ -171,8 +180,10 @@ namespace BreadEngine {
         const auto oldFolderPath = std::string(GetPrevDirectoryPath(folder->getFullName().c_str()));
         auto oldFolder = _pathToFolder[oldFolderPath];
         if (oldFolder == nullptr) oldFolder = &_rootFolder;
+        deleteFolderInternal(folder->_fullPath);
         oldFolder->removeFolder(folder);
         buildIndexes();
+        serialize();
     }
 
     void AssetsConfig::updateIncludesAfterMove(Folder *folder)
@@ -243,6 +254,85 @@ namespace BreadEngine {
                 auto file = File(path, relPath, ext, getNewGUID());
                 folder.getFiles().push_back(std::move(file));
             }
+        }
+    }
+
+    void AssetsConfig::moveInternal(const std::string &from, const std::string &to)
+    {
+        try
+        {
+            if (fs::equivalent(fs::path(from).root_path(), fs::path(to).root_path()))
+            {
+                renameInternal(from, to);
+                return;
+            }
+
+            fs::copy(from, to, fs::copy_options::overwrite_existing | fs::copy_options::recursive);
+            fs::remove_all(from);
+        }
+        catch (const fs::filesystem_error &err)
+        {
+            TraceLog(LOG_ERROR, err.what());
+        }
+    }
+
+    void AssetsConfig::copyFileInternal(const std::string &from, const std::string &to)
+    {
+        try
+        {
+            fs::copy(from, to, fs::copy_options::overwrite_existing);
+        }
+        catch (const fs::filesystem_error &err)
+        {
+            TraceLog(LOG_ERROR, err.what());
+        }
+    }
+
+    void AssetsConfig::copyFolderInternal(const std::string &from, const std::string &to)
+    {
+        try
+        {
+            fs::copy(from, to, fs::copy_options::recursive | fs::copy_options::overwrite_existing);
+        }
+        catch (const fs::filesystem_error &err)
+        {
+            TraceLog(LOG_ERROR, err.what());
+        }
+    }
+
+    void AssetsConfig::renameInternal(const std::string &from, const std::string &to)
+    {
+        try
+        {
+            fs::rename(from, to);
+        }
+        catch (const fs::filesystem_error &err)
+        {
+            TraceLog(LOG_ERROR, err.what());
+        }
+    }
+
+    void AssetsConfig::deleteFileInternal(const std::string &from)
+    {
+        try
+        {
+            fs::remove(from);
+        }
+        catch (const fs::filesystem_error &err)
+        {
+            TraceLog(LOG_ERROR, err.what());
+        }
+    }
+
+    void AssetsConfig::deleteFolderInternal(const std::string &from)
+    {
+        try
+        {
+            fs::remove_all(from);
+        }
+        catch (const fs::filesystem_error &err)
+        {
+            TraceLog(LOG_ERROR, err.what());
         }
     }
 } // BreadEngine
