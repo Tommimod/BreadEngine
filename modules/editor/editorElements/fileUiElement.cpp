@@ -74,7 +74,7 @@ namespace BreadEditor {
         return true;
     }
 
-    void FileUiElement::handleSelectedOption(int index)
+    void FileUiElement::handleSelectedOption(const int index)
     {
         if (index == 1)
         {
