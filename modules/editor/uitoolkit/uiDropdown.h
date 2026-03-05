@@ -7,7 +7,7 @@ namespace BreadEditor {
     class UiDropdown final : public UiElement
     {
     public:
-        Action<int> onValueChanged;
+        Action<int> onOptionSelected;
 
         UiDropdown();
 
@@ -27,6 +27,8 @@ namespace BreadEditor {
 
         void changeOptions(const std::vector<std::string> &options);
 
+        [[nodiscard]] bool isCollisionPointRec(Vector2 point) const;
+
     protected:
         bool tryDeleteSelf() override;
 
@@ -37,7 +39,5 @@ namespace BreadEditor {
         int _selectedOption = 0;
         int _elementsCount = 0;
         bool _isEditMode = true;
-
-        [[nodiscard]] bool isCollisionPointRec(Vector2 point) const;
     };
 } // BreadEditor

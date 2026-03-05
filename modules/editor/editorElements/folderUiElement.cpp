@@ -37,6 +37,7 @@ namespace BreadEditor {
             });
         }
 
+        initializeOptionsOwner(this, {"Rename", "Delete"});
         UiElement::setup(id, parentElement);
         return *this;
     }
@@ -61,6 +62,7 @@ namespace BreadEditor {
     void FolderUiElement::update(const float deltaTime)
     {
         updateDraggable(this);
+        updateOptionsOwner();
     }
 
     void FolderUiElement::dispose()
@@ -74,6 +76,7 @@ namespace BreadEditor {
         _expandButton = nullptr;
         _folderGuid.clear();
         disposeDraggable();
+        disposeOptionsOwner();
         UiElement::dispose();
     }
 
@@ -91,6 +94,18 @@ namespace BreadEditor {
     {
         UiPool::folderUiElementPool.release(*this);
         return true;
+    }
+
+    void FolderUiElement::handleSelectedOption(const int index)
+    {
+        if (index == 1)
+        {
+            onRenameRequested.invoke(this);
+        }
+        else if (index == 2)
+        {
+            onDeleteRequested.invoke(_folderGuid);
+        }
     }
 
     void FolderUiElement::updateExpandButtonText() const

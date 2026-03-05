@@ -2,15 +2,18 @@
 #include "action.h"
 #include "../../engine/configs/assetsConfig.h"
 #include "uitoolkit/IUiDraggable.h"
+#include "uitoolkit/IUiOptionsOwner.h"
 #include "uitoolkit/uiElement.h"
 #include "uitoolkit/uiLabelButton.h"
 
 namespace BreadEditor {
-    class FileUiElement : public UiElement, public IUiDraggable
+    class FileUiElement : public UiElement, public IUiDraggable, public IUiOptionsOwner
     {
     public:
         static constexpr auto elementIdFormat = "FileInsT_%s_%d";
-        BreadEngine::Action<FileUiElement *> onClicked;
+        Action<FileUiElement *> onClicked;
+        Action<FileUiElement *> onRenameRequested;
+        Action<std::string &> onDeleteRequested;
 
         FileUiElement();
 
@@ -30,10 +33,18 @@ namespace BreadEditor {
 
         FileUiElement *copy();
 
+        [[nodiscard]] virtual std::vector<std::string> &getOptions()
+        {
+            return _options;
+        }
+
     protected:
         bool tryDeleteSelf() override;
 
+        void handleSelectedOption(int index) override;
+
     private:
+        std::vector<std::string> _options = {"Rename", "Delete"};
         AssetsConfig &_assetConfig;
         File *_file = nullptr;
         UiLabelButton *_button = nullptr;

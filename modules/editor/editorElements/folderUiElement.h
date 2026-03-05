@@ -2,16 +2,19 @@
 #include "action.h"
 #include "../../engine/configs/assetsConfig.h"
 #include "uitoolkit/IUiDraggable.h"
+#include "uitoolkit/IUiOptionsOwner.h"
 #include "uitoolkit/uiButton.h"
 #include "uitoolkit/uiElement.h"
 #include "uitoolkit/uiLabelButton.h"
 
 namespace BreadEditor {
-    class FolderUiElement : public UiElement, public IUiDraggable
+    class FolderUiElement : public UiElement, public IUiDraggable, public IUiOptionsOwner
     {
     public:
         static constexpr auto elementIdFormat = "FoldInsT_%s_%d";
         Action<FolderUiElement *> onExpandStateChanged;
+        Action<FolderUiElement *> onRenameRequested;
+        Action<std::string &> onDeleteRequested;
 
         FolderUiElement();
 
@@ -35,6 +38,8 @@ namespace BreadEditor {
 
     protected:
         bool tryDeleteSelf() override;
+
+        void handleSelectedOption(int index) override;
 
     private:
         AssetsConfig &_assetConfig;

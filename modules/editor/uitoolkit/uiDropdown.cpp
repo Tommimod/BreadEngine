@@ -28,33 +28,37 @@ namespace BreadEditor {
 
     void UiDropdown::draw(const float deltaTime)
     {
-        if (_elementsCount <= 1) // None option
+        if (_options.empty())
         {
-            changeParent(nullptr);
-            tryDeleteSelf();
+            getParentElement()->destroyChild(this);
             return;
         }
 
         GuiSetStyle(DROPDOWNBOX, TEXT_ALIGNMENT, _textAlignment);
         if (GuiDropdownBox(_bounds, _optionsForGui, &_selectedOption, _isEditMode))
         {
-            if (!isCollisionPointRec(GetMousePosition()) || _selectedOption == 0)
+            if (!isCollisionPointRec(GetMousePosition()))
             {
-                _selectedOption = -1;
+                _selectedOption = -2;
             }
 
-            onValueChanged.invoke(_selectedOption);
+            onOptionSelected.invoke(_selectedOption + 1);
         }
     }
 
     void UiDropdown::update(const float deltaTime)
     {
+        if (_isEditMode && !isCollisionPointRec(GetMousePosition())
+            && (IsMouseButtonPressed(MOUSE_RIGHT_BUTTON) || IsMouseButtonPressed(MOUSE_LEFT_BUTTON)))
+        {
+            getParentElement()->destroyChild(this);
+        }
     }
 
     void UiDropdown::dispose()
     {
         _options.clear();
-        onValueChanged.unsubscribeAll();
+        onOptionSelected.unsubscribeAll();
         _optionsForGui = nullptr;
         _selectedOption = 0;
         _elementsCount = 0;
@@ -65,11 +69,6 @@ namespace BreadEditor {
     {
         _elementsCount = 0;
         _options.clear();
-        if (!options.empty())
-        {
-            _options = "None;";
-        }
-
         const int size = static_cast<int>(options.size());
         for (const auto &option: options)
         {
@@ -84,7 +83,6 @@ namespace BreadEditor {
             }
         }
 
-        _elementsCount++;
         _optionsForGui = _options.c_str();
     }
 

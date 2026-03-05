@@ -5,6 +5,7 @@
 #include "editor.h"
 #include "models/reservedFileNames.h"
 #include "systems/commands/commandsHandler.h"
+#include "systems/commands/assetsCommands/deleteAssetCommand.h"
 #include "systems/commands/assetsCommands/moveAssetCommand.h"
 #include "uitoolkit/uiPool.h"
 
@@ -19,7 +20,7 @@ namespace BreadEditor {
 
         _assetConfig.ConfigUndo.subscribe([this]
         {
-            awake();
+            rebuild();
         });
     }
 
@@ -30,7 +31,7 @@ namespace BreadEditor {
 
         _assetConfig.ConfigUndo.subscribe([this]
         {
-            awake();
+            rebuild();
         });
     }
 
@@ -89,8 +90,10 @@ namespace BreadEditor {
             recalculateUiFolders(_assetConfig.getRootFolder(), i);
         });
 
-        element->onDragStarted.subscribe([this](UiElement *uiElement) { this->onElementDragStarted(uiElement); });
-        element->onDragEnded.subscribe([this](UiElement *uiElement) { this->onFolderElementDragEnded(uiElement); });
+        element->onDragStarted.subscribe([this](UiElement *uiElement) { onElementDragStarted(uiElement); });
+        element->onDragEnded.subscribe([this](UiElement *uiElement) { onFolderElementDragEnded(uiElement); });
+        element->onDeleteRequested.subscribe([this](std::string &guid) { deleteAsset(guid); });
+        element->onRenameRequested.subscribe([this](FolderUiElement *uiElement) { onFolderRenameRequested(uiElement); });
         _folderUiElements.emplace_back(element);
         return *element;
     }
@@ -115,8 +118,10 @@ namespace BreadEditor {
             onFileSelected(fileUiElement);
         });
 
-        element->onDragStarted.subscribe([this](UiElement *uiElement) { this->onElementDragStarted(uiElement); });
-        element->onDragEnded.subscribe([this](UiElement *uiElement) { this->onFileElementDragEnded(uiElement); });
+        element->onDragStarted.subscribe([this](UiElement *uiElement) { onElementDragStarted(uiElement); });
+        element->onDragEnded.subscribe([this](UiElement *uiElement) { onFileElementDragEnded(uiElement); });
+        element->onDeleteRequested.subscribe([this](std::string &guid) { deleteAsset(guid); });
+        element->onRenameRequested.subscribe([this](FileUiElement *uiElement) { onFileRenameRequested(uiElement); });
         _fileUiElements.emplace_back(element);
         return *element;
     }
@@ -258,20 +263,7 @@ namespace BreadEditor {
                 }
 
                 CommandsHandler::execute(std::make_unique<MoveAssetCommand>(originalElement->getFolderGuid(), folderElement->getFolderGuid()));
-                _fileUiElements.clear();
-                _folderUiElements.clear();
-                destroyAllChilds();
-                std::thread workerThread([this]
-                {
-                    while (this->getChildCount() != 0)
-                    {
-                        std::this_thread::sleep_for(std::chrono::milliseconds(16));
-                    }
-
-                    auto i = 0;
-                    recalculateUiFolders(_assetConfig.getRootFolder(), i);
-                });
-                workerThread.detach();
+                rebuild();
             }
         }
     }
@@ -295,23 +287,41 @@ namespace BreadEditor {
                 }
 
                 CommandsHandler::execute(std::make_unique<MoveAssetCommand>(originalElement->getFileGuid(), folderElement->getFolderGuid()));
-                _fileUiElements.clear();
-                _folderUiElements.clear();
-                destroyAllChilds();
-                std::thread workerThread([this]
-                {
-                    while (this->getChildCount() != 0)
-                    {
-                        std::this_thread::sleep_for(std::chrono::milliseconds(16));
-                    }
-
-                    TraceLog(LOG_INFO, "-----------");
-                    auto i = 0;
-                    recalculateUiFolders(_assetConfig.getRootFolder(), i);
-                });
-                workerThread.detach();
+                rebuild();
             }
         }
+    }
+
+    void AssetsWindow::onFileRenameRequested(FileUiElement *element)
+    {
+    }
+
+    void AssetsWindow::onFolderRenameRequested(FolderUiElement *element)
+    {
+    }
+
+    void AssetsWindow::deleteAsset(std::string &guid)
+    {
+        CommandsHandler::execute(std::make_unique<DeleteAssetCommand>(guid));
+        rebuild();
+    }
+
+    void AssetsWindow::rebuild()
+    {
+        _fileUiElements.clear();
+        _folderUiElements.clear();
+        destroyAllChilds();
+        std::thread workerThread([this]
+        {
+            while (this->getChildCount() != 0)
+            {
+                std::this_thread::sleep_for(std::chrono::milliseconds(16));
+            }
+
+            auto i = 0;
+            recalculateUiFolders(_assetConfig.getRootFolder(), i);
+        });
+        workerThread.detach();
     }
 
     void AssetsWindow::draw(const float deltaTime)

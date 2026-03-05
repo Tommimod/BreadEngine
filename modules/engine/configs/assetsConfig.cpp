@@ -235,7 +235,7 @@ namespace BreadEngine {
         const auto folder = getFolderByGuid(folderGuid);
         const auto oldFolderPath = std::string(GetPrevDirectoryPath(folder->getFullPath().c_str()));
         auto oldFolder = _pathToFolder[oldFolderPath];
-        if (oldFolder == nullptr) oldFolder = &_rootFolder;
+        if (oldFolder == nullptr) return;
         deleteFolderInternal(folder->_fullPath);
         oldFolder->removeFolder(folder);
         buildIndexes();

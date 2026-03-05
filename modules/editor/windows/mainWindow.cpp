@@ -183,7 +183,7 @@ namespace BreadEditor {
 
         toolbar.onButtonPressed.subscribe([this, &toolbar, &categories](int index)
         {
-            auto &nextOptions = _mainToolbarSystem.getOptions(categories[index]);
+            const auto &nextOptions = _mainToolbarSystem.getOptions(categories[index]);
             std::vector<std::string> options{};
             options.reserve(nextOptions.size());
             for (const auto &nextOption: nextOptions)
@@ -197,7 +197,7 @@ namespace BreadEditor {
             dropdown.setSize({80, 15});
             dropdown.setPosition({toolbar.getAllChilds()[index]->getPosition().x, 0});
             dropdown.setTextAlignment(TEXT_ALIGN_LEFT);
-            dropdown.onValueChanged.subscribe([&dropdown, &toolbar, this, &index, &categories](const int value)
+            dropdown.onOptionSelected.subscribe([&dropdown, &toolbar, this, &index, &categories](const int value)
             {
                 toolbar.destroyChild(&dropdown);
                 if (value >= 1)

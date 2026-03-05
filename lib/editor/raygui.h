@@ -2399,7 +2399,7 @@ int GuiDropdownBox(Rectangle bounds, const char *text, int *active, bool editMod
 
     // Update control
     //--------------------------------------------------------------------
-    if ((state != STATE_DISABLED) && (editMode || !guiLocked) && (itemCount > 1) && !guiControlExclusiveMode)
+    if ((state != STATE_DISABLED) && (editMode || !guiLocked) && (itemCount > 0) && !guiControlExclusiveMode)
     {
         Vector2 mousePoint = GetMousePosition();
 
@@ -2408,10 +2408,10 @@ int GuiDropdownBox(Rectangle bounds, const char *text, int *active, bool editMod
             state = STATE_PRESSED;
 
             // Check if mouse has been pressed or released outside limits
-            if (!CheckCollisionPointRec(mousePoint, boundsOpen))
-            {
-                if (IsMouseButtonPressed(MOUSE_LEFT_BUTTON) || IsMouseButtonReleased(MOUSE_LEFT_BUTTON)) result = 1;
-            }
+            // if (!CheckCollisionPointRec(mousePoint, boundsOpen))
+            // {
+            //     if (IsMouseButtonPressed(MOUSE_LEFT_BUTTON) || IsMouseButtonReleased(MOUSE_LEFT_BUTTON)) result = 1;
+            // }
 
             // Check if already selected item has been pressed again
             if (CheckCollisionPointRec(mousePoint, bounds) && IsMouseButtonPressed(MOUSE_LEFT_BUTTON)) result = 1;
@@ -2439,15 +2439,15 @@ int GuiDropdownBox(Rectangle bounds, const char *text, int *active, bool editMod
         }
         else
         {
-            if (CheckCollisionPointRec(mousePoint, bounds))
-            {
-                if (IsMouseButtonPressed(MOUSE_LEFT_BUTTON))
-                {
-                    result = 1;
-                    state = STATE_PRESSED;
-                }
-                else state = STATE_FOCUSED;
-            }
+            // if (CheckCollisionPointRec(mousePoint, bounds))
+            // {
+            //     if (IsMouseButtonPressed(MOUSE_LEFT_BUTTON))
+            //     {
+            //         result = 1;
+            //         state = STATE_PRESSED;
+            //     }
+            //     else state = STATE_FOCUSED;
+            // }
         }
     }
     //--------------------------------------------------------------------

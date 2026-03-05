@@ -22,6 +22,7 @@ namespace BreadEditor {
             onClicked.invoke(this);
         });
 
+        initializeOptionsOwner(this, getOptions());
         UiElement::setup(id, parentElement);
         return *this;
     }
@@ -41,6 +42,7 @@ namespace BreadEditor {
     void FileUiElement::update(const float deltaTime)
     {
         updateDraggable(this);
+        updateOptionsOwner();
     }
 
     void FileUiElement::dispose()
@@ -52,6 +54,7 @@ namespace BreadEditor {
         _button = nullptr;
         _fileGuid.clear();
         disposeDraggable();
+        disposeOptionsOwner();
         UiElement::dispose();
     }
 
@@ -69,5 +72,17 @@ namespace BreadEditor {
     {
         UiPool::fileUiElementPool.release(*this);
         return true;
+    }
+
+    void FileUiElement::handleSelectedOption(int index)
+    {
+        if (index == 1)
+        {
+            onRenameRequested.invoke(this);
+        }
+        else if (index == 2)
+        {
+            onDeleteRequested.invoke(_fileGuid);
+        }
     }
 } // BreadEditor
