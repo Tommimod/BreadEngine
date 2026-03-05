@@ -59,7 +59,7 @@ namespace BreadEngine {
         // Check if point is inside rectangle with hole
         static bool isCollisionPointRec(Vector2 point, Rectangle rec, Rectangle subtraction);
 
-        [[nodiscard]] AssetsConfig &getAssetsRegistry() { return _fileSystem; };
+        [[nodiscard]] AssetsConfig &getAssetsConfig() { return _fileSystem; };
 
     private:
         static std::unique_ptr<Engine> _instance;

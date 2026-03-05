@@ -9,6 +9,8 @@
 #include <unordered_map>
 #include <string_view>
 
+#include "action.h"
+
 namespace BreadEngine {
     struct File : InspectorStruct
     {
@@ -46,7 +48,7 @@ namespace BreadEngine {
         }
 
         [[nodiscard]] const std::string &getGUID() const { return _guid; }
-        [[nodiscard]] const std::string &getFullName() const { return _fullPath; }
+        [[nodiscard]] const std::string &getFullPath() const { return _fullPath; }
         [[nodiscard]] const std::string &getPathFromRoot() const { return _pathFromRoot; }
         [[nodiscard]] const std::string &getExtension() const { return _extension; }
         [[nodiscard]] const std::string &getShortName() const { return _shortName; }
@@ -86,7 +88,7 @@ namespace BreadEngine {
         [[nodiscard]] bool isEmpty() const { return _files.empty() && _folders.empty(); }
         [[nodiscard]] int getDepth() const { return _depth; }
         [[nodiscard]] const std::string &getGUID() const { return _guid; }
-        [[nodiscard]] const std::string &getFullName() const { return _fullPath; }
+        [[nodiscard]] const std::string &getFullPath() const { return _fullPath; }
         [[nodiscard]] const std::string &getPathFromRoot() const { return _pathFromRoot; }
         [[nodiscard]] const std::string &getShortName() const { return _name; }
         [[nodiscard]] std::vector<File> &getFiles() { return _files; }
@@ -208,9 +210,14 @@ namespace BreadEngine {
 
     struct AssetsConfig : BaseYamlConfig
     {
+        Action<> ConfigUndo;
+
         AssetsConfig() = default;
 
-        ~AssetsConfig() override = default;
+        ~AssetsConfig() override
+        {
+            ConfigUndo.unsubscribeAll();
+        }
 
         void serialize() override;
 
@@ -232,6 +239,14 @@ namespace BreadEngine {
 
         [[nodiscard]] Folder *getFolderByGuid(const std::string &guid);
 
+        [[nodiscard]] File *getFileByPath(const std::string &path);
+
+        [[nodiscard]] Folder *getFolderByPath(const std::string &path);
+
+        void renameFile(const std::string &fileGuid, const std::string &nextName);
+
+        void renameFolder(const std::string &folderGuid, const std::string &nextName);
+
         void moveFile(const std::string &fileGuid, const std::string &nextFolderGuid);
 
         void moveFolder(const std::string &folderGuid, const std::string &nextFolderGuid);
@@ -249,13 +264,13 @@ namespace BreadEngine {
         friend struct YAML::convert<AssetsConfig>;
         std::string _empty;
         std::string _projectPath;
-        Folder _rootFolder = Folder(GetApplicationDirectory(), 0, "Project Files", "Project Files", "0");
+        Folder _rootFolder;
         std::unordered_map<std::string_view, Folder *> _guidToFolder{};
         std::unordered_map<std::string_view, File *> _guidToFile{};
         std::unordered_map<std::string_view, Folder *> _pathToFolder{};
         std::unordered_map<std::string_view, File *> _pathToFile{};
 
-        static void updateIncludesAfterMove(Folder *folder);
+        static void updateIncludesAfterFolderChange(Folder *folder);
 
         void buildIndexes();
 

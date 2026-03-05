@@ -37,7 +37,7 @@ namespace BreadEditor {
         bool tryDeleteSelf() override;
 
     private:
-        AssetsConfig &_fileSystem;
+        AssetsConfig &_assetConfig;
         bool _isExpanded = false;
         Folder *_engineFolder = nullptr;
         UiLabelButton *_button = nullptr;

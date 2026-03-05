@@ -47,6 +47,7 @@ namespace BreadEngine {
     void AssetsConfig::findAllAssets(const char *projectPath)
     {
         _projectPath = projectPath;
+        _rootFolder = Folder(_projectPath, 0, "Project Files", "Project Files", "0");
         const FilePathList filesProvider = LoadDirectoryFiles(projectPath);
         parseFolders(_rootFolder, filesProvider);
         UnloadDirectoryFiles(filesProvider);
@@ -102,20 +103,75 @@ namespace BreadEngine {
 
     File *AssetsConfig::getFileByGuid(const std::string &guid)
     {
+        if (!_guidToFile.contains(guid)) return nullptr;
         return _guidToFile[guid];
     }
 
     Folder *AssetsConfig::getFolderByGuid(const std::string &guid)
     {
         if (guid == _rootFolder.getGUID()) return &_rootFolder;
+        if (!_guidToFolder.contains(guid)) return nullptr;
         return _guidToFolder[guid];
+    }
+
+    File *AssetsConfig::getFileByPath(const std::string &path)
+    {
+        if (!_pathToFile.contains(path)) return nullptr;
+        return _pathToFile[path];
+    }
+
+    Folder *AssetsConfig::getFolderByPath(const std::string &path)
+    {
+        if (path == _rootFolder.getFullPath()) return &_rootFolder;
+        if (!_pathToFolder.contains(path)) return nullptr;
+        return _pathToFolder[path];
+    }
+
+    void AssetsConfig::renameFile(const std::string &fileGuid, const std::string &nextName)
+    {
+        const auto file = _guidToFile[fileGuid];
+        const auto oldPath = file->_fullPath;
+        const auto folderPath = std::string(GetDirectoryPath(file->getFullPath().c_str()));
+        auto folder = _pathToFolder[folderPath];
+        if (folder == nullptr) folder = &_rootFolder;
+
+        file->_shortName = std::move(nextName);
+        file->_fullPath = folder->getFullPath() + "\\" + file->getShortName();
+        file->_pathFromRoot = folder->_pathFromRoot + "\\" + file->getShortName();
+        buildIndexes();
+        renameInternal(oldPath, file->_fullPath);
+        serialize();
+    }
+
+    void AssetsConfig::renameFolder(const std::string &folderGuid, const std::string &nextName)
+    {
+        const auto folder = _guidToFolder[folderGuid];
+        const auto oldPath = folder->_fullPath;
+        const auto oldFolderPath = std::string(GetPrevDirectoryPath(folder->getFullPath().c_str()));
+        auto oldFolder = _pathToFolder[oldFolderPath];
+        if (oldFolder == nullptr) oldFolder = &_rootFolder;
+
+        folder->_name = std::move(nextName);
+        if (folder->getDepth() == 0)
+        {
+            folder->_pathFromRoot = folder->getShortName();
+        }
+        else
+        {
+            folder->_pathFromRoot = oldFolder->_pathFromRoot + "\\" + folder->getShortName();
+        }
+
+        updateIncludesAfterFolderChange(folder);
+        buildIndexes();
+        renameInternal(oldPath, folder->_fullPath);
+        serialize();
     }
 
     void AssetsConfig::moveFile(const std::string &fileGuid, const std::string &nextFolderGuid)
     {
         auto file = _guidToFile[fileGuid];
         const auto oldPath = file->_fullPath;
-        const auto oldFolderPath = std::string(GetDirectoryPath(file->getFullName().c_str()));
+        const auto oldFolderPath = std::string(GetDirectoryPath(file->getFullPath().c_str()));
         auto oldFolder = _pathToFolder[oldFolderPath];
         if (oldFolder == nullptr) oldFolder = &_rootFolder;
         const auto nextFolder = getFolderByGuid(nextFolderGuid);
@@ -123,7 +179,7 @@ namespace BreadEngine {
         oldFolder->removeFile(file);
 
         file = &nextFolder->getFiles().back();
-        file->_fullPath = nextFolder->getFullName() + "\\" + file->getShortName();
+        file->_fullPath = nextFolder->getFullPath() + "\\" + file->getShortName();
         file->_pathFromRoot = nextFolder->_pathFromRoot + "\\" + file->getShortName();
         buildIndexes();
         moveInternal(oldPath, file->_fullPath);
@@ -134,7 +190,7 @@ namespace BreadEngine {
     {
         auto folder = _guidToFolder[folderGuid];
         const auto oldPath = folder->_fullPath;
-        const auto oldFolderPath = std::string(GetPrevDirectoryPath(folder->getFullName().c_str()));
+        const auto oldFolderPath = std::string(GetPrevDirectoryPath(folder->getFullPath().c_str()));
         auto oldFolder = _pathToFolder[oldFolderPath];
         if (oldFolder == nullptr) oldFolder = &_rootFolder;
         const auto &nextFolderGuid_copy = nextFolderGuid;
@@ -146,7 +202,7 @@ namespace BreadEngine {
         folder = &getFolderByGuid(nextFolderGuid_copy)->getFolders().back();
         const auto nextFolder_updated = getFolderByGuid(nextFolderGuid_copy);
         folder->_depth = nextFolder_updated->getDepth() + 1;
-        folder->_fullPath = nextFolder_updated->getFullName() + "\\" + folder->_name;
+        folder->_fullPath = nextFolder_updated->getFullPath() + "\\" + folder->_name;
         if (nextFolder_updated->getDepth() == 0)
         {
             folder->_pathFromRoot = folder->_name;
@@ -156,7 +212,7 @@ namespace BreadEngine {
             folder->_pathFromRoot = nextFolder_updated->_pathFromRoot + "\\" + folder->_name;
         }
 
-        updateIncludesAfterMove(folder);
+        updateIncludesAfterFolderChange(folder);
         buildIndexes();
         moveInternal(oldPath, folder->_fullPath);
         serialize();
@@ -165,7 +221,7 @@ namespace BreadEngine {
     void AssetsConfig::deleteFile(const std::string &fileGuid)
     {
         const auto file = getFileByGuid(fileGuid);
-        const auto oldFolderPath = std::string(GetDirectoryPath(file->getFullName().c_str()));
+        const auto oldFolderPath = std::string(GetDirectoryPath(file->getFullPath().c_str()));
         auto oldFolder = _pathToFolder[oldFolderPath];
         if (oldFolder == nullptr) oldFolder = &_rootFolder;
         deleteFileInternal(file->_pathFromRoot);
@@ -177,7 +233,7 @@ namespace BreadEngine {
     void AssetsConfig::deleteFolder(const std::string &folderGuid)
     {
         const auto folder = getFolderByGuid(folderGuid);
-        const auto oldFolderPath = std::string(GetPrevDirectoryPath(folder->getFullName().c_str()));
+        const auto oldFolderPath = std::string(GetPrevDirectoryPath(folder->getFullPath().c_str()));
         auto oldFolder = _pathToFolder[oldFolderPath];
         if (oldFolder == nullptr) oldFolder = &_rootFolder;
         deleteFolderInternal(folder->_fullPath);
@@ -186,20 +242,20 @@ namespace BreadEngine {
         serialize();
     }
 
-    void AssetsConfig::updateIncludesAfterMove(Folder *folder)
+    void AssetsConfig::updateIncludesAfterFolderChange(Folder *folder)
     {
         for (auto &file: folder->_files)
         {
-            file._fullPath = folder->getFullName() + "\\" + file.getShortName();
+            file._fullPath = folder->getFullPath() + "\\" + file.getShortName();
             file._pathFromRoot = folder->_pathFromRoot + "\\" + file.getShortName();
         }
 
         for (auto &childFolder: folder->_folders)
         {
             childFolder._depth = folder->getDepth() + 1;
-            childFolder._fullPath = folder->getFullName() + "\\" + childFolder.getShortName();
+            childFolder._fullPath = folder->getFullPath() + "\\" + childFolder.getShortName();
             childFolder._pathFromRoot = folder->_pathFromRoot + "\\" + childFolder.getShortName();
-            updateIncludesAfterMove(&childFolder);
+            updateIncludesAfterFolderChange(&childFolder);
         }
     }
 

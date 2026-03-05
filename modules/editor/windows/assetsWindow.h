@@ -35,7 +35,7 @@ namespace BreadEditor {
     private:
         bool _isUpdateAfterMove = true;
         const char *_title = Id.c_str();
-        AssetsConfig &_fileSystem;
+        AssetsConfig &_assetConfig;
         std::vector<FolderUiElement *> _folderUiElements;
         std::vector<FileUiElement *> _fileUiElements;
         FolderUiElement *_draggedFolderUiElementCopy = nullptr;

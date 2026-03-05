@@ -3,7 +3,7 @@
 #include "uitoolkit/uiPool.h"
 
 namespace BreadEditor {
-    FolderUiElement::FolderUiElement() : _fileSystem(Engine::getInstance().getAssetsRegistry())
+    FolderUiElement::FolderUiElement() : _assetConfig(Engine::getInstance().getAssetsConfig())
     {
     }
 
@@ -13,26 +13,29 @@ namespace BreadEditor {
     {
         _isExpanded = true;
         _folderGuid = folderGuid;
-        _engineFolder = _fileSystem.getFolderByGuid(_folderGuid);
+        _engineFolder = _assetConfig.getFolderByGuid(_folderGuid);
 
         _button = &UiPool::labelButtonPool.get().setup(id + "button", this, "");
         _button->setText(GuiIconText(ICON_FOLDER, _engineFolder->getShortName().c_str()));
         _button->setTextAlignment(TEXT_ALIGN_LEFT);
         _button->setSizePercentPermanent({1, 1});
 
-        _expandButton = &UiPool::buttonPool.get().setup(id + "expandButton", this, "");
-        updateExpandButtonText();
-        _expandButton->setAnchor(UI_LEFT_TOP);
-        _expandButton->setPivot({1, 0});
-        _expandButton->setPosition({-2, 5});
-        _expandButton->setClickOutside(true);
-        _expandButton->setTextSize(static_cast<int>(EditorStyle::FontSize::SmallMedium));
-        _expandButton->onClick.subscribe([this](UiButton *)
+        if (_folderGuid != _assetConfig.getRootFolder()->getGUID())
         {
-            _isExpanded = !_isExpanded;
+            _expandButton = &UiPool::buttonPool.get().setup(id + "expandButton", this, "");
             updateExpandButtonText();
-            onExpandStateChanged.invoke(this);
-        });
+            _expandButton->setAnchor(UI_LEFT_TOP);
+            _expandButton->setPivot({1, 0});
+            _expandButton->setPosition({-2, 5});
+            _expandButton->setClickOutside(true);
+            _expandButton->setTextSize(static_cast<int>(EditorStyle::FontSize::SmallMedium));
+            _expandButton->onClick.subscribe([this](UiButton *)
+            {
+                _isExpanded = !_isExpanded;
+                updateExpandButtonText();
+                onExpandStateChanged.invoke(this);
+            });
+        }
 
         UiElement::setup(id, parentElement);
         return *this;
@@ -40,8 +43,11 @@ namespace BreadEditor {
 
     void FolderUiElement::awake()
     {
-        const auto size = getSize().y * .5f;
-        _expandButton->setSize({size, size});
+        if (_expandButton != nullptr)
+        {
+            const auto size = getSize().y * .5f;
+            _expandButton->setSize({size, size});
+        }
     }
 
     void FolderUiElement::draw(const float deltaTime)

@@ -25,7 +25,7 @@ namespace BreadEditor {
 
         _initialized = MandatoryEditorFilesValidator::validate();
         CommandsHandler::execute(std::make_unique<ReopenLastProjectCommand>());
-        Engine::getInstance().getAssetsRegistry().deserialize(_configsProvider.getEditorPrefsConfig()->LastProjectPath.c_str());
+        Engine::getInstance().getAssetsConfig().deserialize(_configsProvider.getEditorPrefsConfig()->LastProjectPath.c_str());
 
         GuiLoadStyleDefault();
         loadFont();
@@ -87,6 +87,12 @@ namespace BreadEditor {
     void Editor::update(const float deltaTime)
     {
         if (!_initialized) return;
+
+        const auto isCtrlPressed = IsKeyDown(KEY_LEFT_CONTROL);
+        if (const auto isZPressedOnce = IsKeyPressed(KEY_Z); isCtrlPressed && isZPressedOnce)
+        {
+            CommandsHandler::undo();
+        }
 
         _isFrameEnded = false;
         mainWindow.updateInternal(deltaTime);

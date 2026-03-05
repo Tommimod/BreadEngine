@@ -34,7 +34,7 @@ namespace BreadEditor {
         bool tryDeleteSelf() override;
 
     private:
-        AssetsConfig &_fileSystem;
+        AssetsConfig &_assetConfig;
         File *_file = nullptr;
         UiLabelButton *_button = nullptr;
         std::string _fileGuid;

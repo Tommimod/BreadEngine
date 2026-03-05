@@ -4,22 +4,34 @@
 
 #include "editor.h"
 #include "models/reservedFileNames.h"
+#include "systems/commands/commandsHandler.h"
+#include "systems/commands/assetsCommands/moveAssetCommand.h"
 #include "uitoolkit/uiPool.h"
 
 namespace BreadEditor {
     std::string AssetsWindow::Id = "Assets";
     std::string get_stem(const filesystem::path &p) { return p.stem().string(); }
 
-    AssetsWindow::AssetsWindow(const std::string &id) : UiWindow(id), _fileSystem(Engine::getInstance().getAssetsRegistry())
+    AssetsWindow::AssetsWindow(const std::string &id) : UiWindow(id), _assetConfig(Engine::getInstance().getAssetsConfig())
     {
         setup(id);
         subscribe();
+
+        _assetConfig.ConfigUndo.subscribe([this]
+        {
+            awake();
+        });
     }
 
-    AssetsWindow::AssetsWindow(const std::string &id, UiElement *parentElement) : UiWindow(id, parentElement), _fileSystem(Engine::getInstance().getAssetsRegistry())
+    AssetsWindow::AssetsWindow(const std::string &id, UiElement *parentElement) : UiWindow(id, parentElement), _assetConfig(Engine::getInstance().getAssetsConfig())
     {
         setup(id, parentElement);
         subscribe();
+
+        _assetConfig.ConfigUndo.subscribe([this]
+        {
+            awake();
+        });
     }
 
     AssetsWindow::~AssetsWindow() = default;
@@ -27,7 +39,7 @@ namespace BreadEditor {
     void AssetsWindow::awake()
     {
         auto i = 0;
-        recalculateUiFolders(_fileSystem.getRootFolder(), i);
+        recalculateUiFolders(_assetConfig.getRootFolder(), i);
     }
 
     FolderUiElement *AssetsWindow::getFolderUiElementByEngineFolder(const Folder *folder) const
@@ -74,7 +86,7 @@ namespace BreadEditor {
         element->onExpandStateChanged.subscribe([this](const FolderUiElement *)
         {
             auto i = 0;
-            recalculateUiFolders(_fileSystem.getRootFolder(), i);
+            recalculateUiFolders(_assetConfig.getRootFolder(), i);
         });
 
         element->onDragStarted.subscribe([this](UiElement *uiElement) { this->onElementDragStarted(uiElement); });
@@ -193,12 +205,12 @@ namespace BreadEditor {
 
     void AssetsWindow::onFileSelected(const FileUiElement *fileUiElement)
     {
-        const auto file = _fileSystem.getFileByGuid(fileUiElement->getFileGuid());
+        const auto file = _assetConfig.getFileByGuid(fileUiElement->getFileGuid());
         const auto fileName = file->getShortName().c_str();
         const auto inspectorWindow = &Editor::getInstance().mainWindow.getNodeInspector();
         if (strcmp(fileName, ReservedFileNames::ASSETS_REGISTRY_NAME) == 0)
         {
-            inspectorWindow->lookupStruct(&Engine::getInstance().getAssetsRegistry());
+            inspectorWindow->lookupStruct(&Engine::getInstance().getAssetsConfig());
         }
     }
 
@@ -233,8 +245,8 @@ namespace BreadEditor {
                     return;
                 }
 
-                const auto originalFolder = _fileSystem.getFolderByGuid(originalElement->getFolderGuid());
-                const auto selectedFolder = _fileSystem.getFolderByGuid(folderElement->getFolderGuid());
+                const auto originalFolder = _assetConfig.getFolderByGuid(originalElement->getFolderGuid());
+                const auto selectedFolder = _assetConfig.getFolderByGuid(folderElement->getFolderGuid());
                 if (originalFolder->tryFindRecursive(selectedFolder))
                 {
                     return;
@@ -245,7 +257,7 @@ namespace BreadEditor {
                     return;
                 }
 
-                _fileSystem.moveFolder(originalElement->getFolderGuid(), folderElement->getFolderGuid());
+                CommandsHandler::execute(std::make_unique<MoveAssetCommand>(originalElement->getFolderGuid(), folderElement->getFolderGuid()));
                 _fileUiElements.clear();
                 _folderUiElements.clear();
                 destroyAllChilds();
@@ -257,7 +269,7 @@ namespace BreadEditor {
                     }
 
                     auto i = 0;
-                    recalculateUiFolders(_fileSystem.getRootFolder(), i);
+                    recalculateUiFolders(_assetConfig.getRootFolder(), i);
                 });
                 workerThread.detach();
             }
@@ -276,13 +288,13 @@ namespace BreadEditor {
             const auto folderBounds = folderElement->getBounds();
             if (Engine::isCollisionPointRec(GetMousePosition(), folderBounds))
             {
-                const auto selectedFolder = _fileSystem.getFolderByGuid(folderElement->getFolderGuid());
+                const auto selectedFolder = _assetConfig.getFolderByGuid(folderElement->getFolderGuid());
                 if (selectedFolder->contains(originalElement->getFileGuid()))
                 {
                     return;
                 }
 
-                _fileSystem.moveFile(originalElement->getFileGuid(), folderElement->getFolderGuid());
+                CommandsHandler::execute(std::make_unique<MoveAssetCommand>(originalElement->getFileGuid(), folderElement->getFolderGuid()));
                 _fileUiElements.clear();
                 _folderUiElements.clear();
                 destroyAllChilds();
@@ -295,7 +307,7 @@ namespace BreadEditor {
 
                     TraceLog(LOG_INFO, "-----------");
                     auto i = 0;
-                    recalculateUiFolders(_fileSystem.getRootFolder(), i);
+                    recalculateUiFolders(_assetConfig.getRootFolder(), i);
                 });
                 workerThread.detach();
             }

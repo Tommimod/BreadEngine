@@ -3,7 +3,7 @@
 #include "uitoolkit/uiPool.h"
 
 namespace BreadEditor {
-    FileUiElement::FileUiElement() : _fileSystem(Engine::getInstance().getAssetsRegistry())
+    FileUiElement::FileUiElement() : _assetConfig(Engine::getInstance().getAssetsConfig())
     {
     }
 
@@ -12,7 +12,7 @@ namespace BreadEditor {
     FileUiElement &FileUiElement::setup(const std::string &id, UiElement *parentElement, const std::string &fileGuid)
     {
         _fileGuid = fileGuid;
-        _file = _fileSystem.getFileByGuid(_fileGuid);
+        _file = _assetConfig.getFileByGuid(_fileGuid);
         _button = &UiPool::labelButtonPool.get().setup(id + "button", this, "");
         _button->setText(GuiIconText(ICON_FILE, _file->getShortName().c_str()));
         _button->setTextAlignment(TEXT_ALIGN_LEFT);
