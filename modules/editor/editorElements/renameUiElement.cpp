@@ -20,7 +20,7 @@ namespace BreadEditor {
 
     void RenameUiElement::awake()
     {
-        _textBox = &UiPool::textBoxPool.get().setup(id + "text", this, _text);
+        _textBox = &UiPool::textBoxPool.get().setup(id + "text", this, _text, static_cast<int>(EditorStyle::FontSize::MediumLarge), true);
         _textBox->setAnchor(UI_CENTER_TOP);
         _textBox->setPivot({.5f, 0});
         _textBox->setPosition({0, RAYGUI_WINDOWBOX_STATUSBAR_HEIGHT + 5});
@@ -50,7 +50,7 @@ namespace BreadEditor {
             onApply.invoke(_text);
         });
 
-        _textBox->setState(STATE_FOCUSED);
+        _textBox->setState(STATE_PRESSED);
     }
 
     void RenameUiElement::draw(const float deltaTime)
