@@ -15,6 +15,7 @@ namespace BreadEditor {
     NodeUiElement &NodeUiElement::setup(const std::string &id, UiElement *parentElement, Node *node)
     {
         this->_engineNode = node;
+        _isRootNode = _engineNode->getParent() == nullptr;
         updateExpandButtonText();
         _expandButton.setAnchor(UI_LEFT_TOP);
         _expandButton.setPivot({1, 0});
@@ -26,6 +27,8 @@ namespace BreadEditor {
             updateExpandButtonText();
             onExpandStateChanged.invoke(this);
         });
+
+        initializeOptionsOwner(this, _isRootNode ? std::vector{_options[0], _options[1]} : _options);
         UiElement::setup(id, parentElement);
         return *this;
     }
@@ -46,8 +49,7 @@ namespace BreadEditor {
             auto parentBounds = _parent->getBounds();
             parentBounds.height -= RAYGUI_WINDOWBOX_STATUSBAR_HEIGHT;
             parentBounds.y += RAYGUI_WINDOWBOX_STATUSBAR_HEIGHT;
-            const auto isNeedIgnore = !Engine::isCollisionPointRec(mousePos, parentBounds);
-            if (!isNeedIgnore)
+            if (!Engine::isCollisionPointRec(mousePos, parentBounds))
             {
                 onSelected.invoke(this);
             }
@@ -66,11 +68,16 @@ namespace BreadEditor {
             _isExpanded = true;
         }
 
-        updateDraggable(this);
+        updateOptionsOwner();
+        if (!_isRootNode)
+        {
+            updateDraggable(this);
+        }
     }
 
     void NodeUiElement::dispose()
     {
+        _isRootNode = false;
         _isExpanded = true;
         _isMuted = false;
         _isPreparedToClick = false;
@@ -79,6 +86,12 @@ namespace BreadEditor {
         _engineNode = nullptr;
         _parentNode = nullptr;
         _expandButton.onClick.unsubscribeAll();
+        onCopyRequested.unsubscribeAll();
+        onDeleteRequested.unsubscribeAll();
+        onDuplicateRequested.unsubscribeAll();
+        onExpandStateChanged.unsubscribeAll();
+        onPasteRequested.unsubscribeAll();
+        onSelected.unsubscribeAll();
         disposeDraggable();
         UiElement::dispose();
     }
@@ -110,7 +123,7 @@ namespace BreadEditor {
         _localState = nextState;
     }
 
-    NodeUiElement *NodeUiElement::copy()
+    NodeUiElement *NodeUiElement::copySingle()
     {
         auto *copyElement = &UiPool::nodeUiElementPool.get().setup(id.append("_copy"), _parent, _engineNode);
         copyElement->setAnchor(_anchor);
@@ -148,6 +161,22 @@ namespace BreadEditor {
     {
         UiPool::nodeUiElementPool.release(*this);
         return true;
+    }
+
+    void NodeUiElement::handleSelectedOption(const int index)
+    {
+        if (index == 1) //Copy
+        {
+        }
+        else if (index == 2) //Paste
+        {
+        }
+        else if (index == 3) //Duplicate
+        {
+        }
+        else if (index == 4) //Delete
+        {
+        }
     }
 
     void NodeUiElement::prepareToClick()

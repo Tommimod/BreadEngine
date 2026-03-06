@@ -6,9 +6,11 @@
 #include <unordered_set>
 #include "iDisposable.h"
 #include "component/componentsProvider.h"
+#include <yaml-cpp/node/node.h>
 
 namespace BreadEngine {
     class ComponentsProvider;
+    struct NodeRawData;
 
     class Node final : public IDisposable
     {
@@ -59,6 +61,10 @@ namespace BreadEngine {
 
         void unparent(Node *node);
 
+        std::string serialize() const;
+
+        void deserialize();
+
         template<typename T, std::enable_if_t<std::is_base_of_v<Component, T>, int> = 0>
         [[nodiscard]] bool has() const;
 
@@ -78,12 +84,23 @@ namespace BreadEngine {
 
     private:
         friend class NodeProvider;
+        friend struct YAML::convert<Node>;
+        friend struct NodeRawData;
 
-        bool _isActive = true;
-        unsigned int _id = 0;
-        std::string _name;
         std::vector<Node *> _childs{};
         Node *_parent = nullptr;
+        std::string _name;
+        unsigned int _id = 0;
+        bool _isActive = true;
+    };
+
+    struct NodeRawData
+    {
+        std::vector<unsigned int> ChildsIds{};
+        unsigned int ParentId;
+        std::string Name;
+        unsigned int Id;
+        bool IsActive;
     };
 } // namespace BreadEngine
 

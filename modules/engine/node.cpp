@@ -1,8 +1,13 @@
 #include "node.h"
+#include <yaml-cpp/yaml.h>
+#include <yaml-cpp/node/parse.h>
+#include <fstream>
 #include <stdexcept>
 #include "transform.h"
 #include "engine.h"
 #include "nodeProvider.h"
+#include "models/reservedFileNames.h"
+#include "nodeYaml.h"
 
 namespace BreadEngine {
     Node::Node()
@@ -185,7 +190,7 @@ namespace BreadEngine {
         auto result = std::ranges::find(_childs, node) != _childs.end();
         if (!result)
         {
-            for (auto child: _childs)
+            for (const auto child: _childs)
             {
                 result = child->isMyChild(node);
                 if (result) break;
@@ -201,5 +206,60 @@ namespace BreadEngine {
         {
             _childs.erase(it);
         }
+    }
+
+    std::string Node::serialize() const
+    {
+        std::vector<unsigned int> childIds;
+        for (auto child: _childs)
+        {
+            childIds.emplace_back(child->_id);
+        }
+
+        auto pId = _parent != nullptr ? _parent->_id : INT_MAX;
+        auto rawData = NodeRawData
+        {
+            .ChildsIds = std::move(childIds),
+            .ParentId = std::move(pId),
+            .Name = _name,
+            .Id = _id,
+            .IsActive = _isActive,
+        };
+        if (_parent == nullptr)
+        {
+            auto &rootFolder = Engine::getInstance().getAssetsConfig().getRootFolder()->getFullPath();
+            const auto filePath = std::string(rootFolder) + "\\" + _name + ReservedFileNames::MARKER_NODE;
+            auto data = YAML::Node(rawData);
+            std::ofstream process(filePath);
+            process.clear();
+            process << data;
+            process.close();
+            YAML::Emitter out;
+            out << data;
+            return out.c_str();
+        }
+
+        auto data = YAML::Node(rawData);
+        YAML::Emitter out;
+        out << data;
+        return out.c_str();
+    }
+
+    void Node::deserialize()
+    {
+        if (_parent != nullptr) return;
+
+        auto &rootFolder = Engine::getInstance().getAssetsConfig().getRootFolder()->getFullPath();
+        const auto filePath = std::string(rootFolder) + "\\" + _name + ReservedFileNames::MARKER_NODE;
+        const auto rawConfig = YAML::LoadFile(filePath);
+        if (rawConfig.IsNull())
+        {
+            return;
+        }
+
+        const auto data = rawConfig.as<NodeRawData>();
+        _isActive = data.IsActive;
+        _id = data.Id;
+        _name = std::move(data.Name);
     }
 } // namespace BreadEngine

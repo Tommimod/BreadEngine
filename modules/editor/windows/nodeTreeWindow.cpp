@@ -141,13 +141,17 @@ namespace BreadEditor {
         int i = 0;
         recalculateUiNodes(Engine::getRootNode(), i);
         std::vector<SubscriptionHandle> nodeSubscriptions{};
-        element.onSelected.subscribe([this](NodeUiElement *nodeUiElement) { this->onNodeSelected(nodeUiElement); });
-        element.onDragStarted.subscribe([this](UiElement *uiElement) { this->onElementStartDrag(uiElement); });
-        element.onDragEnded.subscribe([this](UiElement *uiElement) { this->onElementEndDrag(uiElement); });
+        element.onSelected.subscribe([](NodeUiElement *nodeUiElement) { onNodeSelected(nodeUiElement); });
+        element.onDragStarted.subscribe([this](UiElement *uiElement) { onElementStartDrag(uiElement); });
+        element.onDragEnded.subscribe([this](UiElement *uiElement) { onElementEndDrag(uiElement); });
         element.onExpandStateChanged.subscribe([this](NodeUiElement *)
         {
             int ii = 0;
             recalculateUiNodes(Engine::getRootNode(), ii);
+        });
+        element.onCopyRequested.subscribe([this](NodeUiElement *nodeUiElement)
+        {
+
         });
     }
 
@@ -194,7 +198,7 @@ namespace BreadEditor {
     void NodeTreeWindow::onElementStartDrag(UiElement *uiElement)
     {
         const auto originalElement = dynamic_cast<NodeUiElement *>(uiElement);
-        _draggedNodeUiElementCopy = originalElement->copy();
+        _draggedNodeUiElementCopy = originalElement->copySingle();
         _draggedNodeUiElementCopy->forceStartDrag(_draggedNodeUiElementCopy);
         originalElement->switchMuteState();
     }

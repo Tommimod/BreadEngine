@@ -1,5 +1,4 @@
 #pragma once
-
 #include "component.h"
 #include <raylib.h>
 
@@ -38,8 +37,8 @@ namespace BreadEngine {
 
     private:
         Matrix _transformMatrix{};
-        Vector3 _position{};
         Quaternion _rotation{};
+        Vector3 _position{};
         Vector3 _scale{};
 
         INSPECTOR_BEGIN(Transform)

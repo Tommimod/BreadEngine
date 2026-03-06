@@ -61,4 +61,13 @@ namespace BreadEngine {
     {
         this->_isActive = nextActive;
     }
+
+    std::string Component::serialize()
+    {
+        return "";
+    }
+
+    void Component::deserialize(const std::string &rawData)
+    {
+    }
 } // namespace BreadEngine

@@ -2,18 +2,23 @@
 #include "action.h"
 #include "node.h"
 #include "uitoolkit/IUiDraggable.h"
+#include "uitoolkit/IUiOptionsOwner.h"
 #include "uitoolkit/uiButton.h"
 #include "uitoolkit/uiElement.h"
 using namespace BreadEngine;
 
 namespace BreadEditor {
-    class NodeUiElement final : public UiElement, public IUiDraggable
+    class NodeUiElement final : public UiElement, public IUiDraggable, public IUiOptionsOwner
     {
     public:
         static constexpr auto elementIdFormat = "NodeInsT_%s_%d";
 
         Action<NodeUiElement *> onSelected;
         Action<NodeUiElement *> onExpandStateChanged;
+        Action<NodeUiElement *> onDuplicateRequested;
+        Action<NodeUiElement *> onCopyRequested;
+        Action<NodeUiElement *> onPasteRequested;
+        Action<NodeUiElement *> onDeleteRequested;
 
         NodeUiElement();
 
@@ -39,7 +44,7 @@ namespace BreadEditor {
 
         void setState(GuiState nextState) override;
 
-        NodeUiElement *copy();
+        NodeUiElement *copySingle();
 
         void switchMuteState();
 
@@ -50,15 +55,19 @@ namespace BreadEditor {
     protected:
         bool tryDeleteSelf() override;
 
+        void handleSelectedOption(int index) override;
+
     private:
+        Node *_engineNode = nullptr;
+        NodeUiElement *_parentNode = nullptr;
+        const std::vector<std::string> _options{"Copy", "Paste", "Duplicate", "Delete"};
+        UiButton &_expandButton;
+        GuiState _localStateBeforeMuted = STATE_NORMAL;
+        GuiState _localState = STATE_NORMAL;
         bool _isExpanded = true;
         bool _isMuted = false;
         bool _isPreparedToClick = false;
-        GuiState _localStateBeforeMuted = STATE_NORMAL;
-        GuiState _localState = STATE_NORMAL;
-        Node *_engineNode = nullptr;
-        NodeUiElement *_parentNode = nullptr;
-        UiButton &_expandButton;
+        bool _isRootNode = false;
 
         void prepareToClick();
 

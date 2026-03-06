@@ -35,7 +35,7 @@ namespace BreadEditor {
 
         FileUiElement *copy();
 
-        [[nodiscard]] virtual std::vector<std::string> &getOptions()
+        [[nodiscard]] virtual const std::vector<std::string> &getOptions()
         {
             return _options;
         }
@@ -46,7 +46,7 @@ namespace BreadEditor {
         void handleSelectedOption(int index) override;
 
     private:
-        std::vector<std::string> _options = {"Rename", "Delete"};
+        const std::vector<std::string> _options = {"Rename", "Delete"};
         AssetsConfig &_assetConfig;
         File *_file = nullptr;
         UiLabelButton *_button = nullptr;

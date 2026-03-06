@@ -24,8 +24,8 @@ namespace BreadEngine {
     void AssetsConfig::deserialize(const char *projectPath)
     {
         _projectPath = projectPath;
-        auto filePath = std::string(projectPath) + "\\" + ReservedFileNames::ASSETS_REGISTRY_NAME;
-        auto rawConfig = YAML::LoadFile(filePath);
+        const auto filePath = std::string(projectPath) + "\\" + ReservedFileNames::ASSETS_REGISTRY_NAME;
+        const auto rawConfig = YAML::LoadFile(filePath);
         if (rawConfig.IsNull())
         {
             findAllAssets(projectPath);
@@ -33,7 +33,7 @@ namespace BreadEngine {
             return;
         }
 
-        auto data = rawConfig.as<AssetsConfig>();
+        const auto data = rawConfig.as<AssetsConfig>();
         _projectPath = data._projectPath;
         _rootFolder = data._rootFolder;
         buildIndexes();

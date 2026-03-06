@@ -81,11 +81,11 @@ namespace BreadEngine {
         }
 
     private:
-        int _size = 0;
+        std::unordered_map<unsigned int, int> _ownerIdToIndex{};
         std::vector<T> _components{};
         std::vector<unsigned int> _ownerIds{};
         std::vector<int> _freeSlots{};
-        std::unordered_map<unsigned int, int> _ownerIdToIndex{};
+        int _size = 0;
 
         T &add(unsigned int ownerId);
 

@@ -8,7 +8,6 @@
 #include "raylib.h"
 #include <unordered_map>
 #include <string_view>
-
 #include "action.h"
 
 namespace BreadEngine {
@@ -262,13 +261,14 @@ namespace BreadEngine {
 
     private:
         friend struct YAML::convert<AssetsConfig>;
-        std::string _empty;
-        std::string _projectPath;
-        Folder _rootFolder;
+
         std::unordered_map<std::string_view, Folder *> _guidToFolder{};
         std::unordered_map<std::string_view, File *> _guidToFile{};
         std::unordered_map<std::string_view, Folder *> _pathToFolder{};
         std::unordered_map<std::string_view, File *> _pathToFile{};
+        Folder _rootFolder;
+        std::string _empty;
+        std::string _projectPath;
 
         static void updateIncludesAfterFolderChange(Folder *folder);
 
