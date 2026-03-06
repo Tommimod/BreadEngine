@@ -98,6 +98,12 @@ namespace BreadEditor {
         _engineNode = nextEngineNode;
     }
 
+    void NodeUiElement::setIsSelected(const bool isSelected)
+    {
+        if (_localState == STATE_DISABLED) return;
+        setState(isSelected ? STATE_FOCUSED : STATE_NORMAL);
+    }
+
     void NodeUiElement::setState(const GuiState nextState)
     {
         UiElement::setState(nextState);

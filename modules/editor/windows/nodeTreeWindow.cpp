@@ -10,6 +10,7 @@ namespace BreadEditor {
 
     NodeTreeWindow::NodeTreeWindow(const std::string &id) : UiWindow(id)
     {
+        _editorModel = &Editor::getInstance().getEditorModel();
         setup(id);
         subscribe();
         rebuild();
@@ -17,6 +18,7 @@ namespace BreadEditor {
 
     NodeTreeWindow::NodeTreeWindow(const std::string &id, UiElement *parentElement) : UiWindow(id, parentElement)
     {
+        _editorModel = &Editor::getInstance().getEditorModel();
         setup(id, parentElement);
         subscribe();
         rebuild();
@@ -39,6 +41,12 @@ namespace BreadEditor {
 
     void NodeTreeWindow::update(const float deltaTime)
     {
+        const auto selectedNode = _editorModel->getSelectedNodeUiElement();
+        for (const auto nodeUiElement: _nodeUiElements)
+        {
+            nodeUiElement->setIsSelected(selectedNode != nullptr && selectedNode->id == nodeUiElement->id);
+        }
+
         UiWindow::update(deltaTime);
     }
 
@@ -171,7 +179,7 @@ namespace BreadEditor {
     void NodeTreeWindow::onNodeSelected(NodeUiElement *nodeUiElement)
     {
         auto &model = Editor::getInstance().getEditorModel();
-        model.setSelectedNodeUiElement(nodeUiElement);
+        model.selectNodeUiElement(nodeUiElement);
         Node *node = nullptr;
         if (nodeUiElement != nullptr)
         {
@@ -179,7 +187,7 @@ namespace BreadEditor {
             Editor::getInstance().mainWindow.getGizmoSystem().recalculateGizmo(node->get<BreadEngine::Transform>());
         }
 
-        NodeInspectorWindow &nodeInspector = Editor::getInstance().mainWindow.getNodeInspector();
+        PropertyInspectorWindow &nodeInspector = Editor::getInstance().mainWindow.getNodeInspector();
         nodeInspector.lookupNode(node);
     }
 

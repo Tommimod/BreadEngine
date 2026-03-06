@@ -31,6 +31,8 @@ namespace BreadEditor {
 
         void dispose() override;
 
+        void setIsSelected(bool isSelected);
+
         FileUiElement *copy();
 
         [[nodiscard]] virtual std::vector<std::string> &getOptions()

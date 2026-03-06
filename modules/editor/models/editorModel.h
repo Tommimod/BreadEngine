@@ -1,12 +1,15 @@
 ﻿#pragma once
 #include "windowsModel.h"
-#include "../windows/nodeTreeWindow.h"
+#include "editorElements/fileUiElement.h"
+#include "editorElements/nodeUiElement.h"
 
 namespace BreadEditor {
     class EditorModel
     {
     public:
+        Action<> onClearSelection;
         Action<NodeUiElement *> onNodeSelected;
+        Action<FileUiElement *> onFileSelected;
 
         EditorModel()
         {
@@ -16,34 +19,31 @@ namespace BreadEditor {
         ~EditorModel()
         {
             onNodeSelected.unsubscribeAll();
+            onFileSelected.unsubscribeAll();
+            onClearSelection.unsubscribeAll();
         };
 
         [[nodiscard]] NodeUiElement *getSelectedNodeUiElement() const { return _selectedNodeUiElement; }
+        [[nodiscard]] FileUiElement *getSelectedFileUiElement() const { return _selectedFileUiElement; }
 
-        void setSelectedNodeUiElement(NodeUiElement *nodeUiElement)
-        {
-            _selectedNodeUiElement = nodeUiElement;
-            onNodeSelected.invoke(_selectedNodeUiElement);
-        }
+        void selectNodeUiElement(NodeUiElement *nodeUiElement);
+
+        void selectFileUiElement(FileUiElement *fileUiElement);
 
         [[nodiscard]] WindowsModel *getWindowsModel() const { return _windowsModel.get(); }
 
         [[nodiscard]] std::string &getProjectPath() { return _projectPath; }
 
-        void setProjectPath(std::string path)
-        {
-            _projectPath = std::move(path) + "\\";
-        }
+        void setProjectPath(std::string path);
 
-        [[nodiscard]] static const char *getEditorAssetsPath()
-        {
-            constexpr auto path = R"(\assets\editor\)";
-            return path;
-        }
+        [[nodiscard]] static const char *getEditorAssetsPath();
 
     private:
         NodeUiElement *_selectedNodeUiElement = nullptr;
+        FileUiElement *_selectedFileUiElement = nullptr;
         std::unique_ptr<WindowsModel> _windowsModel;
         std::string _projectPath;
+
+        void clearSelections();
     };
 } // BreadEditor

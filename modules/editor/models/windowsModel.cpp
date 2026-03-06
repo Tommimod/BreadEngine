@@ -1,7 +1,7 @@
 ﻿#include "windowsModel.h"
 #include "../windows/assetsWindow.h"
 #include "../windows/consoleWindow.h"
-#include "../windows/nodeInspectorWindow.h"
+#include "../windows/propertyInspectorWindow.h"
 #include "../windows/nodeTreeWindow.h"
 #include "../windows/viewportWindow.h"
 
@@ -12,7 +12,7 @@ namespace BreadEditor {
             AssetsWindow::Id,
             ConsoleWindow::Id,
             NodeTreeWindow::Id,
-            NodeInspectorWindow::Id,
+            PropertyInspectorWindow::Id,
             ViewportWindow::Id,
         };
 
@@ -21,7 +21,7 @@ namespace BreadEditor {
             [] { return new AssetsWindow(AssetsWindow::Id); },
             [] { return new ConsoleWindow(ConsoleWindow::Id); },
             [] { return new NodeTreeWindow(NodeTreeWindow::Id); },
-            [] { return new NodeInspectorWindow(NodeInspectorWindow::Id); },
+            [] { return new PropertyInspectorWindow(PropertyInspectorWindow::Id); },
             [] { return new ViewportWindow(ViewportWindow::Id); },
         };
     }

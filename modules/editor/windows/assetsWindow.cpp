@@ -16,6 +16,8 @@ namespace BreadEditor {
 
     AssetsWindow::AssetsWindow(const std::string &id) : UiWindow(id), _assetConfig(Engine::getInstance().getAssetsConfig())
     {
+        _editorModel = &Editor::getInstance().getEditorModel();
+
         setup(id);
         subscribe();
 
@@ -27,6 +29,8 @@ namespace BreadEditor {
 
     AssetsWindow::AssetsWindow(const std::string &id, UiElement *parentElement) : UiWindow(id, parentElement), _assetConfig(Engine::getInstance().getAssetsConfig())
     {
+        _editorModel = &Editor::getInstance().getEditorModel();
+
         setup(id, parentElement);
         subscribe();
 
@@ -114,8 +118,9 @@ namespace BreadEditor {
         element->setSizePercentPermanent({elementWidthInPercent, -1});
         element->dragContainer = _parent;
         element->onlyProvideDragEvents = true;
-        element->onClicked.subscribe([this](const FileUiElement *fileUiElement)
+        element->onClicked.subscribe([this](FileUiElement *fileUiElement)
         {
+            _editorModel->selectFileUiElement(fileUiElement);
             onFileSelected(fileUiElement);
         });
 
@@ -348,6 +353,12 @@ namespace BreadEditor {
 
     void AssetsWindow::update(const float deltaTime)
     {
+        const auto selectedFile = _editorModel->getSelectedFileUiElement();
+        for (const auto fileUiElement: _fileUiElements)
+        {
+            fileUiElement->setIsSelected(selectedFile != nullptr && selectedFile->id == fileUiElement->id);
+        }
+
         UiWindow::update(deltaTime);
     }
 

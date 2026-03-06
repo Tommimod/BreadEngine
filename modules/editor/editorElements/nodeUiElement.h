@@ -35,6 +35,8 @@ namespace BreadEditor {
 
         void setEngineNode(Node *nextEngineNode);
 
+        void setIsSelected(bool isSelected);
+
         void setState(GuiState nextState) override;
 
         NodeUiElement *copy();

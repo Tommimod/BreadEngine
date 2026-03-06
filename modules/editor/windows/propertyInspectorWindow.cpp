@@ -1,12 +1,12 @@
-﻿#include "nodeInspectorWindow.h"
+﻿#include "propertyInspectorWindow.h"
 #include "editor.h"
 #include "raygui.h"
 #include "uitoolkit/uiPool.h"
 
 namespace BreadEditor {
-    std::string NodeInspectorWindow::Id = "Inspector";
+    std::string PropertyInspectorWindow::Id = "Inspector";
 
-    NodeInspectorWindow::NodeInspectorWindow(const std::string &id) : UiWindow(id)
+    PropertyInspectorWindow::PropertyInspectorWindow(const std::string &id) : UiWindow(id)
     {
         setup(id);
         initialize();
@@ -14,7 +14,7 @@ namespace BreadEditor {
         rebuild();
     }
 
-    NodeInspectorWindow::NodeInspectorWindow(const std::string &id, UiElement *parentElement) : UiWindow(id, parentElement)
+    PropertyInspectorWindow::PropertyInspectorWindow(const std::string &id, UiElement *parentElement) : UiWindow(id, parentElement)
     {
         setup(id, parentElement);
         initialize();
@@ -22,7 +22,7 @@ namespace BreadEditor {
         rebuild();
     }
 
-    NodeInspectorWindow::~NodeInspectorWindow()
+    PropertyInspectorWindow::~PropertyInspectorWindow()
     {
         _activeCheckBox->onValueChanged.unsubscribe(_subscriptions[_activeCheckBox]);
         _nameTextBox->onValueChanged.unsubscribe(_subscriptions[_nameTextBox]);
@@ -35,7 +35,7 @@ namespace BreadEditor {
         _subscriptions.clear();
     }
 
-    void NodeInspectorWindow::draw(const float deltaTime)
+    void PropertyInspectorWindow::draw(const float deltaTime)
     {
         Editor::getInstance().setFontSize(static_cast<int>(EditorStyle::FontSize::MediumLarge));
         GuiSetStyle(DEFAULT, TEXT_SIZE, static_cast<int>(EditorStyle::FontSize::MediumLarge));
@@ -43,17 +43,17 @@ namespace BreadEditor {
         UiWindow::draw(deltaTime);
     }
 
-    void NodeInspectorWindow::update(const float deltaTime)
+    void PropertyInspectorWindow::update(const float deltaTime)
     {
         UiWindow::update(deltaTime);
     }
 
-    void NodeInspectorWindow::dispose()
+    void PropertyInspectorWindow::dispose()
     {
         UiWindow::dispose();
     }
 
-    void NodeInspectorWindow::lookupNode(Node *node)
+    void PropertyInspectorWindow::lookupNode(Node *node)
     {
         if (_engineNode == node)
         {
@@ -100,7 +100,7 @@ namespace BreadEditor {
         }
     }
 
-    void NodeInspectorWindow::lookupStruct(InspectorStruct *inspectorStruct)
+    void PropertyInspectorWindow::lookupStruct(InspectorStruct *inspectorStruct)
     {
         if (_inspectorStruct == inspectorStruct)
         {
@@ -124,23 +124,36 @@ namespace BreadEditor {
         element->track(inspectorStruct);
     }
 
-    void NodeInspectorWindow::clear()
+    void PropertyInspectorWindow::clear()
     {
         _engineNode = nullptr;
         _inspectorStruct = nullptr;
     }
 
-    void NodeInspectorWindow::subscribe()
+    void PropertyInspectorWindow::subscribe()
     {
+        Editor::getInstance().getEditorModel().onClearSelection.subscribe([this]
+        {
+            clear();
+            resetElementsState(false);
+            for (int i = static_cast<int>(_uiComponentElements.size()); i != 0; i--)
+            {
+                const auto element = _uiComponentElements.back();
+                _uiComponentElements.pop_back();
+                element->onDelete.unsubscribe(_subscriptions[element]);
+                destroyChild(element);
+            }
+        });
+
         UiWindow::subscribe();
     }
 
-    void NodeInspectorWindow::unsubscribe()
+    void PropertyInspectorWindow::unsubscribe()
     {
         UiWindow::unsubscribe();
     }
 
-    void NodeInspectorWindow::initialize()
+    void PropertyInspectorWindow::initialize()
     {
         constexpr int verticalOffset = RAYGUI_WINDOWBOX_STATUSBAR_HEIGHT + 10;
         constexpr int horizontalOffset = 5;
@@ -160,7 +173,7 @@ namespace BreadEditor {
         resetElementsState(true);
     }
 
-    void NodeInspectorWindow::resetElementsState(const bool withGlobalSettings)
+    void PropertyInspectorWindow::resetElementsState(const bool withGlobalSettings)
     {
         const auto emptyString = "";
         _activeCheckBox->isActive = withGlobalSettings;
@@ -170,26 +183,26 @@ namespace BreadEditor {
         _trackedComponents = {};
     }
 
-    void NodeInspectorWindow::rebuild()
+    void PropertyInspectorWindow::rebuild()
     {
         const auto selectedElement = Editor::getInstance().getEditorModel().getSelectedNodeUiElement();
         if (!selectedElement) return;
         lookupNode(selectedElement->getNode());
     }
 
-    void NodeInspectorWindow::onNodeActiveChanged(const bool isActive) const
+    void PropertyInspectorWindow::onNodeActiveChanged(const bool isActive) const
     {
         _engineNode->setIsActive(isActive);
         _activeCheckBox->setChecked(_engineNode->getIsActive());
     }
 
-    void NodeInspectorWindow::onNodeNameChanged(const char *name) const
+    void PropertyInspectorWindow::onNodeNameChanged(const char *name) const
     {
         _engineNode->setName(name);
         _nameTextBox->setText(_engineNode->getName());
     }
 
-    void NodeInspectorWindow::setupUiComponent(UiInspector *uiComponentElement)
+    void PropertyInspectorWindow::setupUiComponent(UiInspector *uiComponentElement)
     {
         uiComponentElement->setAnchor(UI_LEFT_TOP);
         uiComponentElement->setSize({0, 50});
@@ -207,7 +220,7 @@ namespace BreadEditor {
         };
     }
 
-    void NodeInspectorWindow::onUiComponentDeleted(const std::type_index type)
+    void PropertyInspectorWindow::onUiComponentDeleted(const std::type_index type)
     {
         _engineNode->remove(type);
         lookupNode(_engineNode);

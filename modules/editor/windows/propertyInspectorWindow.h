@@ -9,16 +9,16 @@
 using namespace BreadEngine;
 
 namespace BreadEditor {
-    class NodeInspectorWindow final : public UiWindow
+    class PropertyInspectorWindow final : public UiWindow
     {
     public:
         static std::string Id;
 
-        explicit NodeInspectorWindow(const std::string &id);
+        explicit PropertyInspectorWindow(const std::string &id);
 
-        explicit NodeInspectorWindow(const std::string &id, UiElement *parentElement);
+        explicit PropertyInspectorWindow(const std::string &id, UiElement *parentElement);
 
-        ~NodeInspectorWindow() override;
+        ~PropertyInspectorWindow() override;
 
         void draw(float deltaTime) override;
 

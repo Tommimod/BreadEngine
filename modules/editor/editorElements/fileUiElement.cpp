@@ -58,6 +58,11 @@ namespace BreadEditor {
         UiElement::dispose();
     }
 
+    void FileUiElement::setIsSelected(const bool isSelected)
+    {
+        setState(isSelected ? STATE_PRESSED : STATE_NORMAL);
+    }
+
     FileUiElement *FileUiElement::copy()
     {
         const auto copyElement = &UiPool::fileUiElementPool.get().setup(id.append("_copy"), nullptr, _fileGuid);

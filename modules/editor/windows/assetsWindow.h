@@ -2,6 +2,7 @@
 #include "editorElements/fileUiElement.h"
 #include "editorElements/folderUiElement.h"
 #include "../../engine/configs/assetsConfig.h"
+#include "models/editorModel.h"
 #include "uitoolkit/uiElement.h"
 #include "uitoolkit/uiWindow.h"
 
@@ -40,6 +41,7 @@ namespace BreadEditor {
         std::vector<FileUiElement *> _fileUiElements;
         FolderUiElement *_draggedFolderUiElementCopy = nullptr;
         FileUiElement *_draggedFileUiElementCopy = nullptr;
+        EditorModel *_editorModel = nullptr;
 
         [[nodiscard]] FolderUiElement *getFolderUiElementByEngineFolder(const Folder *folder) const;
 

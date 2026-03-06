@@ -2,7 +2,7 @@
 #include "assetsWindow.h"
 #include "consoleWindow.h"
 #include "../systems/gizmoSystem.h"
-#include "nodeInspectorWindow.h"
+#include "propertyInspectorWindow.h"
 #include "nodeTreeWindow.h"
 #include "../uitoolkit/uiToolbar.h"
 #include "raylib.h"
@@ -31,7 +31,7 @@ namespace BreadEditor {
 
         [[nodiscard]] NodeTreeWindow &getNodeTree() const;
 
-        [[nodiscard]] NodeInspectorWindow &getNodeInspector() const;
+        [[nodiscard]] PropertyInspectorWindow &getNodeInspector() const;
 
         [[nodiscard]] GizmoSystem &getGizmoSystem();
 

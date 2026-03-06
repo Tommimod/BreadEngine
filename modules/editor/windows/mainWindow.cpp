@@ -67,7 +67,7 @@ namespace BreadEditor {
         _rightContainer->setup("rightContainer", this);
 
         _rightContainer->addChild(new NodeTreeWindow(NodeTreeWindow::Id, _rightContainer.get()));
-        _rightContainer->addChild(new NodeInspectorWindow(NodeInspectorWindow::Id, _rightContainer.get()));
+        _rightContainer->addChild(new PropertyInspectorWindow(PropertyInspectorWindow::Id, _rightContainer.get()));
     }
 
     void MainWindow::awake()
@@ -102,9 +102,9 @@ namespace BreadEditor {
         return dynamic_cast<NodeTreeWindow &>(*findUiElementById(NodeTreeWindow::Id));
     }
 
-    NodeInspectorWindow &MainWindow::getNodeInspector() const
+    PropertyInspectorWindow &MainWindow::getNodeInspector() const
     {
-        return dynamic_cast<NodeInspectorWindow &>(*findUiElementById(NodeInspectorWindow::Id));
+        return dynamic_cast<PropertyInspectorWindow &>(*findUiElementById(PropertyInspectorWindow::Id));
     }
 
     GizmoSystem &MainWindow::getGizmoSystem()

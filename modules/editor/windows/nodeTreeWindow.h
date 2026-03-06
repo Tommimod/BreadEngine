@@ -2,6 +2,7 @@
 #include "action.h"
 #include "node.h"
 #include "../editorElements/nodeUiElement.h"
+#include "models/editorModel.h"
 #include "uitoolkit/uiWindow.h"
 using namespace BreadEngine;
 
@@ -33,10 +34,11 @@ namespace BreadEditor {
         void unsubscribe() override;
 
     private:
-        const char *_title = Id.c_str();
+        EditorModel *_editorModel = nullptr;
+        NodeUiElement *_draggedNodeUiElementCopy = nullptr;
         std::vector<SubscriptionHandle> _nodeNotificatorSubscriptions{};
         std::vector<NodeUiElement *> _nodeUiElements{};
-        NodeUiElement *_draggedNodeUiElementCopy = nullptr;
+        const char *_title = Id.c_str();
 
         [[nodiscard]] NodeUiElement *getNodeUiElementByEngineNode(const Node *node) const;
 
@@ -52,7 +54,7 @@ namespace BreadEditor {
 
         void onNodeRemoved(const Node *node);
 
-        void onNodeSelected(NodeUiElement *nodeUiElement);
+        static void onNodeSelected(NodeUiElement *nodeUiElement);
 
         void onElementStartDrag(UiElement *uiElement);
 
