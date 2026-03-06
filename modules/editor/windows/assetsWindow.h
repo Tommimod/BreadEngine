@@ -61,11 +61,9 @@ namespace BreadEditor {
 
         void onFileElementDragEnded(UiElement *uiElement);
 
-        void onFileRenameRequested(FileUiElement *element);
+        void renameAsset(const std::string &guid);
 
-        void onFolderRenameRequested(FolderUiElement *element);
-
-        void deleteAsset(std::string &guid);
+        void deleteAsset(const std::string &guid);
 
         void rebuild();
     };

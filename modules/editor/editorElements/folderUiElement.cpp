@@ -20,7 +20,8 @@ namespace BreadEditor {
         _button->setTextAlignment(TEXT_ALIGN_LEFT);
         _button->setSizePercentPermanent({1, 1});
 
-        if (_folderGuid != _assetConfig.getRootFolder()->getGUID())
+        _isRootFolder = _folderGuid == _assetConfig.getRootFolder()->getGUID();
+        if (!_isRootFolder)
         {
             _expandButton = &UiPool::buttonPool.get().setup(id + "expandButton", this, "");
             updateExpandButtonText();
@@ -35,9 +36,10 @@ namespace BreadEditor {
                 updateExpandButtonText();
                 onExpandStateChanged.invoke(this);
             });
+
+            initializeOptionsOwner(this, {"Rename", "Delete"});
         }
 
-        initializeOptionsOwner(this, {"Rename", "Delete"});
         UiElement::setup(id, parentElement);
         return *this;
     }
@@ -61,14 +63,18 @@ namespace BreadEditor {
 
     void FolderUiElement::update(const float deltaTime)
     {
-        updateDraggable(this);
-        updateOptionsOwner();
+        if (!_isRootFolder)
+        {
+            updateDraggable(this);
+            updateOptionsOwner();
+        }
     }
 
     void FolderUiElement::dispose()
     {
         _engineFolder = nullptr;
         _isExpanded = true;
+        _isRootFolder = false;
         onExpandStateChanged.unsubscribeAll();
         onDragEnded.unsubscribeAll();
         onDragStarted.unsubscribeAll();

@@ -1,5 +1,4 @@
 ﻿#include "IUiOptionsOwner.h"
-
 #include "editor.h"
 #include "engine.h"
 #include "uiPool.h"
@@ -7,6 +6,7 @@
 namespace BreadEditor {
     void IUiOptionsOwner::updateOptionsOwner()
     {
+        if (_element == nullptr) return;
         if (IsMouseButtonPressed(MOUSE_RIGHT_BUTTON) && Engine::isCollisionPointRec(GetMousePosition(), _element->getBounds()))
         {
             showOptionsDropdown();
@@ -15,6 +15,7 @@ namespace BreadEditor {
 
     void IUiOptionsOwner::showOptionsDropdown()
     {
+        if (_options.empty()) return;
         const auto root = &Editor::getInstance().mainWindow;
         _dropdown = &UiPool::dropdownPool.get().setup(_element->id + "optionsDropdown", root, _options, false);
         _dropdown->setAnchor(UI_LEFT_TOP);

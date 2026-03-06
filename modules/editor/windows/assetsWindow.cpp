@@ -7,6 +7,7 @@
 #include "systems/commands/commandsHandler.h"
 #include "systems/commands/assetsCommands/deleteAssetCommand.h"
 #include "systems/commands/assetsCommands/moveAssetCommand.h"
+#include "systems/commands/assetsCommands/renameAssetCommand.h"
 #include "uitoolkit/uiPool.h"
 
 namespace BreadEditor {
@@ -92,8 +93,8 @@ namespace BreadEditor {
 
         element->onDragStarted.subscribe([this](UiElement *uiElement) { onElementDragStarted(uiElement); });
         element->onDragEnded.subscribe([this](UiElement *uiElement) { onFolderElementDragEnded(uiElement); });
-        element->onDeleteRequested.subscribe([this](std::string &guid) { deleteAsset(guid); });
-        element->onRenameRequested.subscribe([this](FolderUiElement *uiElement) { onFolderRenameRequested(uiElement); });
+        element->onDeleteRequested.subscribe([this](const std::string &guid) { deleteAsset(guid); });
+        element->onRenameRequested.subscribe([this](const FolderUiElement *uiElement) { renameAsset(uiElement->getFolderGuid()); });
         _folderUiElements.emplace_back(element);
         return *element;
     }
@@ -120,8 +121,8 @@ namespace BreadEditor {
 
         element->onDragStarted.subscribe([this](UiElement *uiElement) { onElementDragStarted(uiElement); });
         element->onDragEnded.subscribe([this](UiElement *uiElement) { onFileElementDragEnded(uiElement); });
-        element->onDeleteRequested.subscribe([this](std::string &guid) { deleteAsset(guid); });
-        element->onRenameRequested.subscribe([this](FileUiElement *uiElement) { onFileRenameRequested(uiElement); });
+        element->onDeleteRequested.subscribe([this](const std::string &guid) { deleteAsset(guid); });
+        element->onRenameRequested.subscribe([this](const FileUiElement *uiElement) { renameAsset(uiElement->getFileGuid()); });
         _fileUiElements.emplace_back(element);
         return *element;
     }
@@ -292,15 +293,28 @@ namespace BreadEditor {
         }
     }
 
-    void AssetsWindow::onFileRenameRequested(FileUiElement *element)
+    void AssetsWindow::renameAsset(const std::string &guid)
     {
+        std::string shortName;
+        if (const auto file = _assetConfig.getFileByGuid(guid); file != nullptr)
+        {
+            shortName = file->getShortName();
+        }
+        else if (const auto folder = _assetConfig.getFolderByGuid(guid); folder != nullptr)
+        {
+            shortName = folder->getShortName();
+        }
+
+        auto &renameWindow = UiPool::renameUiElementPool.get().setup(shortName);
+        renameWindow.onApply.subscribe([this, &renameWindow, &guid](std::string &nextText)
+        {
+            CommandsHandler::execute(std::make_unique<RenameAssetCommand>(guid, nextText));
+            renameWindow.getParentElement()->destroyChild(&renameWindow);
+            rebuild();
+        });
     }
 
-    void AssetsWindow::onFolderRenameRequested(FolderUiElement *element)
-    {
-    }
-
-    void AssetsWindow::deleteAsset(std::string &guid)
+    void AssetsWindow::deleteAsset(const std::string &guid)
     {
         CommandsHandler::execute(std::make_unique<DeleteAssetCommand>(guid));
         rebuild();

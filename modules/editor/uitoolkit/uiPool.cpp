@@ -97,4 +97,10 @@ namespace BreadEditor {
         return new FileUiElement();
     };
     ObjectPool<FileUiElement> UiPool::fileUiElementPool(UIFileElementFactory, 10);
+
+    auto UiRenameFactory = []() -> RenameUiElement *
+    {
+        return new RenameUiElement();
+    };
+    ObjectPool<RenameUiElement> UiPool::renameUiElementPool(UiRenameFactory, 1);
 } // BreadEditor

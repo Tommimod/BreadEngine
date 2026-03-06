@@ -43,11 +43,12 @@ namespace BreadEditor {
 
     private:
         AssetsConfig &_assetConfig;
-        bool _isExpanded = false;
         Folder *_engineFolder = nullptr;
         UiLabelButton *_button = nullptr;
         UiButton *_expandButton = nullptr;
         std::string _folderGuid;
+        bool _isRootFolder = false;
+        bool _isExpanded = false;
 
         void updateExpandButtonText() const;
     };
