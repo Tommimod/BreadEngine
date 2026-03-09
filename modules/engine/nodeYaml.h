@@ -14,7 +14,9 @@ namespace YAML {
             const auto idName = NAMEOF(rhs.Id).c_str();
             const auto nameName = NAMEOF(rhs.Name).c_str();
             const auto parentIdName = NAMEOF(rhs.ParentId).c_str();
-            Node compNode;
+            constexpr auto componentsName = "Components";
+            constexpr auto childsName = "Childs";
+            Node compNode(NodeType::Sequence);
             const auto components = BreadEngine::ComponentsProvider::getAllComponents(rhs.Id);
             for (BreadEngine::Component *component: components)
             {
@@ -26,7 +28,7 @@ namespace YAML {
             yamlNode[idName] = rhs.Id;
             yamlNode[nameName] = rhs.Name;
             yamlNode[parentIdName] = rhs.ParentId;
-            yamlNode["Components"] = compNode;
+            yamlNode[componentsName] = compNode;
             std::vector<Node> childNodes;
             for (const auto &childId: rhs.ChildsIds)
             {
@@ -47,23 +49,49 @@ namespace YAML {
                 };
                 childNodes.emplace_back(encode(rawData));
             }
-            yamlNode["Childs"] = childNodes;
+            yamlNode[childsName] = childNodes;
             return yamlNode;
         }
 
         static bool decode(const Node &yamlNode, BreadEngine::NodeRawData &rhs)
         {
-            const auto isActiveName = NAMEOF(rhs.IsActive).c_str();
-            const auto idName = NAMEOF(rhs.Id).c_str();
-            const auto nameName = NAMEOF(rhs.Name).c_str();
-            const auto parentIdName = NAMEOF_FULL(rhs.ParentId).c_str();
-            const auto childsIdName = NAMEOF(rhs.ChildsIds).c_str();
-            rhs.IsActive = yamlNode[isActiveName].as<bool>();
-            rhs.Id = yamlNode[idName].as<unsigned int>();
-            rhs.ParentId = yamlNode[parentIdName].as<unsigned int>();
-            rhs.ChildsIds = yamlNode[childsIdName].as<std::vector<unsigned int> >();
-            rhs.Name = yamlNode[nameName].as<std::string>();
+            unsigned int nodeId = INT_MAX;
+            decodeRecursive(yamlNode, nodeId, nullptr);
+            rhs.Id = nodeId;
             return true;
+        }
+
+        static void decodeRecursive(const Node &yamlNode, unsigned int &nodeId, BreadEngine::Node *parentNode)
+        {
+            const auto isActiveName = NAMEOF(BreadEngine::NodeRawData::IsActive).c_str();
+            const auto idName = NAMEOF(BreadEngine::NodeRawData::Id).c_str();
+            const auto nameName = NAMEOF(BreadEngine::NodeRawData::Name).c_str();
+            constexpr auto componentsName = "Components";
+            constexpr auto childsName = "Childs";
+            auto id = yamlNode[idName].as<unsigned int>();
+            if (parentNode == nullptr)
+            {
+                nodeId = id;
+            }
+
+            auto name = yamlNode[nameName].as<std::string>();
+            auto &nextNode = BreadEngine::Engine::nodePool.get();
+            nextNode = parentNode == nullptr ? nextNode.setupAsRoot(name) : nextNode.setup(name, *parentNode);
+            nextNode.setIsActive(yamlNode[isActiveName].as<bool>());
+            auto componentsNode = yamlNode[componentsName].as<Node>();
+            for (unsigned i = 0; i < componentsNode.size(); i++)
+            {
+                constexpr auto componentTypeName = "ComponentType";
+                auto compNode = componentsNode[i];
+                auto compType = compNode[componentTypeName].as<std::string>();
+                BreadEngine::ComponentsProvider::addDynamic(nextNode.getId(), compType, compNode);
+            }
+
+            auto childsNodeList = yamlNode[childsName].as<std::vector<Node> >();
+            for (auto &childNode: childsNodeList)
+            {
+                decodeRecursive(childNode, nodeId, &nextNode);
+            }
         }
     };
 }

@@ -61,9 +61,9 @@ namespace BreadEngine {
 
         void unparent(Node *node);
 
-        [[nodiscard]] std::string serialize();
+        [[nodiscard]] std::string serialize() const;
 
-        void deserialize();
+        static Node *deserialize(const std::string &filePath);
 
         template<typename T, std::enable_if_t<std::is_base_of_v<Component, T>, int> = 0>
         [[nodiscard]] bool has() const;
@@ -84,7 +84,7 @@ namespace BreadEngine {
 
     private:
         friend class NodeProvider;
-        friend struct YAML::convert<Node>;
+        friend struct YAML::convert<NodeRawData>;
         friend struct NodeRawData;
 
         std::vector<Node *> _childs{};

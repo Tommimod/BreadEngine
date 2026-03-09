@@ -6,15 +6,40 @@
 #include <vector>
 #include "baseComponentChunk.h"
 #include "componentChunk.h"
+#include "componentRegistry.h"
 
 namespace BreadEngine {
-    //forward declaration for ComponentChunk<T>
-    template<typename T, std::enable_if_t<std::is_base_of_v<Component, T>, int> = 0>
+    template<typename T, std::enable_if_t<std::is_base_of_v<Component, T>, int>>
     struct ComponentChunk;
 
     class ComponentsProvider
     {
     public:
+        static void addDynamic(const unsigned int ownerId, const std::string &componentType, const YAML::Node &node)
+        {
+            const auto *entry = ComponentRegistry::GetEntry(componentType);
+            if (!entry)
+            {
+                throw new std::runtime_error("Unable to add dynamic component");
+                return;
+            }
+
+            auto comp = entry->compCreator();
+            comp->deserialize(node);
+
+            auto &chunks = getChunks();
+            auto ti = entry->ti;
+            auto it = chunks.find(ti);
+            if (it == chunks.end())
+            {
+                chunks.emplace(ti, entry->chunkCreator());
+                it = chunks.find(ti);
+            }
+
+            auto &baseChunk = *it->second;
+            baseChunk.addComponent(ownerId, std::move(comp));
+        }
+
         template<typename T, std::enable_if_t<std::is_base_of_v<Component, T>, int> = 0>
         static T &add(const unsigned int ownerId)
         {
@@ -129,15 +154,17 @@ namespace BreadEngine {
         }
 
     private:
-        static std::unordered_map<std::type_index, std::unique_ptr<BaseComponentChunk>>& getChunks() noexcept {
-            thread_local std::unordered_map<std::type_index, std::unique_ptr<BaseComponentChunk>> chunks;
+        static std::unordered_map<std::type_index, std::unique_ptr<BaseComponentChunk> > &getChunks() noexcept
+        {
+            thread_local std::unordered_map<std::type_index, std::unique_ptr<BaseComponentChunk> > chunks;
             return chunks;
         }
 
         template<typename T, std::enable_if_t<std::is_base_of_v<Component, T>, int> = 0>
-        static ComponentChunk<T> &emplaceChunk() {
+        static ComponentChunk<T> &emplaceChunk()
+        {
             auto ti = std::type_index(typeid(T));
-            getChunks().emplace(ti, std::make_unique<ComponentChunk<T>>());
+            getChunks().emplace(ti, std::make_unique<ComponentChunk<T> >());
             return dynamic_cast<ComponentChunk<T> &>(*getChunks().at(ti));
         }
 

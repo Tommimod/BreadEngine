@@ -1,6 +1,7 @@
 #pragma once
 #include <string>
 #include "inspectorObject.h"
+#include "componentInternal.h"
 
 namespace BreadEngine {
     class Node;

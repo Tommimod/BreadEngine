@@ -3,6 +3,7 @@
 
 namespace BreadEngine {
     DEFINE_STATIC_PROPS(Transform)
+    REGISTER_COMPONENT(Transform)
 
     Transform::Transform()
     {

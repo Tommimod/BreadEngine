@@ -1,10 +1,13 @@
 ﻿#pragma once
-#include "component.h"
 
 namespace BreadEngine {
+    struct Component;
+
     struct BaseComponentChunk
     {
         virtual ~BaseComponentChunk() = default;
+
+        virtual void addComponent(unsigned int ownerId, std::unique_ptr<Component> comp) = 0;
 
         [[nodiscard]] virtual bool hasOwner(unsigned int ownerId) const = 0;
 

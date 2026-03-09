@@ -135,7 +135,7 @@ namespace BreadEngine {
         auto folder = _pathToFolder[folderPath];
         if (folder == nullptr) folder = &_rootFolder;
 
-        file->_shortName = std::move(nextName);
+        file->_shortName = nextName;
         file->_fullPath = folder->getFullPath() + "\\" + file->getShortName();
         file->_pathFromRoot = folder->_pathFromRoot + "\\" + file->getShortName();
         buildIndexes();
@@ -151,7 +151,7 @@ namespace BreadEngine {
         auto oldFolder = _pathToFolder[oldFolderPath];
         if (oldFolder == nullptr) oldFolder = &_rootFolder;
 
-        folder->_name = std::move(nextName);
+        folder->_name = nextName;
         if (folder->getDepth() == 0)
         {
             folder->_pathFromRoot = folder->getShortName();
@@ -240,6 +240,12 @@ namespace BreadEngine {
         oldFolder->removeFolder(folder);
         buildIndexes();
         serialize();
+    }
+
+    bool AssetsConfig::isValid()
+    {
+        _rootFolder = Folder(_projectPath, 0, "Project Files", "Project Files", "0");
+        const FilePathList filesProvider = LoadDirectoryFiles(_projectPath.c_str());
     }
 
     void AssetsConfig::updateIncludesAfterFolderChange(Folder *folder)

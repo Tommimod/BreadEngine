@@ -270,6 +270,8 @@ namespace BreadEngine {
         std::string _empty;
         std::string _projectPath;
 
+        [[nodiscard]] bool isValid();
+
         static void updateIncludesAfterFolderChange(Folder *folder);
 
         void buildIndexes();

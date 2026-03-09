@@ -208,7 +208,7 @@ namespace BreadEngine {
         }
     }
 
-    std::string Node::serialize()
+    std::string Node::serialize() const
     {
         std::vector<unsigned int> childIds;
         childIds.reserve(_childs.size());
@@ -245,21 +245,15 @@ namespace BreadEngine {
         return out.c_str();
     }
 
-    void Node::deserialize()
+    Node *Node::deserialize(const std::string &filePath)
     {
-        if (_parent != nullptr) return;
-
-        auto &rootFolder = Engine::getInstance().getAssetsConfig().getRootFolder()->getFullPath();
-        const auto filePath = std::string(rootFolder) + "\\" + _name + ReservedFileNames::MARKER_NODE;
         const auto rawConfig = YAML::LoadFile(filePath);
         if (rawConfig.IsNull())
         {
-            return;
+            return nullptr;
         }
 
         const auto data = rawConfig.as<NodeRawData>();
-        _isActive = data.IsActive;
-        _id = data.Id;
-        _name = data.Name;
+        return NodeProvider::getNode(data.Id);
     }
 } // namespace BreadEngine

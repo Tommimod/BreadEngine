@@ -1,16 +1,15 @@
 #pragma once
-#include <array>
 #include <unordered_map>
 #include <vector>
 #include "baseComponentChunk.h"
-#include "component.h"
 #include "raylib.h"
 #include "../nodeProvider.h"
 
 namespace BreadEngine {
+    struct Component;
     class NodeProvider;
 
-    template<typename T, std::enable_if_t<std::is_base_of_v<Component, T>, int> >
+    template<typename T, std::enable_if_t<std::is_base_of_v<Component, T>, int> = 0>
     struct ComponentChunk final : BaseComponentChunk
     {
         ComponentChunk() = default;
@@ -27,6 +26,12 @@ namespace BreadEngine {
         [[nodiscard]] bool hasOwner(const unsigned int ownerId) const override
         {
             return _ownerIdToIndex.contains(ownerId);
+        }
+
+        void addComponent(const unsigned int ownerId, std::unique_ptr<Component> comp) override
+        {
+            T &tRef = dynamic_cast<T &>(*comp);
+            add(ownerId, std::move(tRef));
         }
 
         [[nodiscard]] Component *getComponent(const unsigned int ownerId) override
