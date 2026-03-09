@@ -35,9 +35,7 @@ namespace BreadEngine {
 
         virtual void setIsActive(bool nextActive);
 
-        virtual std::string serialize();
-
-        virtual void deserialize(const std::string &rawData);
+        YAML::Node serialize() override;
 
     protected:
         Node *_parent = nullptr;

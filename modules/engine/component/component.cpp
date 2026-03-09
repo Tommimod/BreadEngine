@@ -62,12 +62,15 @@ namespace BreadEngine {
         this->_isActive = nextActive;
     }
 
-    std::string Component::serialize()
+    YAML::Node Component::serialize()
     {
-        return "";
-    }
-
-    void Component::deserialize(const std::string &rawData)
-    {
+        YAML::Node node(YAML::NodeType::Map);
+        node["ComponentType"] = getTypeName();
+        for (const auto &prop: getInspectedProperties())
+        {
+            auto val = prop.get(this);
+            node[prop.name] = propertyToYaml(prop, val);
+        }
+        return node;
     }
 } // namespace BreadEngine

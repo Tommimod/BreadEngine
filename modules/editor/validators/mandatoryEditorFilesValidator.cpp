@@ -15,7 +15,7 @@ namespace BreadEditor {
                 outfile.close();
             }
 
-            EditorPrefsConfig(filePath).deserialize();
+            EditorPrefsConfig(filePath).deserializeConfig();
             return true;
         }
         catch (std::exception &ex)

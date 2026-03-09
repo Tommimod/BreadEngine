@@ -12,7 +12,7 @@ namespace BreadEngine {
     DEFINE_STATIC_PROPS(File)
     namespace fs = std::filesystem;
 
-    void AssetsConfig::serialize()
+    void AssetsConfig::serializeConfig()
     {
         const auto filePath = std::string(_projectPath) + "\\" + ReservedFileNames::ASSETS_REGISTRY_NAME;
         std::ofstream process(filePath);
@@ -21,7 +21,7 @@ namespace BreadEngine {
         process.close();
     }
 
-    void AssetsConfig::deserialize(const char *projectPath)
+    void AssetsConfig::deserializeConfig(const char *projectPath)
     {
         _projectPath = projectPath;
         const auto filePath = std::string(projectPath) + "\\" + ReservedFileNames::ASSETS_REGISTRY_NAME;
@@ -39,9 +39,9 @@ namespace BreadEngine {
         buildIndexes();
     }
 
-    void AssetsConfig::deserialize()
+    void AssetsConfig::deserializeConfig()
     {
-        deserialize(TextFormat("%s\\%s", GetWorkingDirectory(), "assets\\game"));
+        deserializeConfig(TextFormat("%s\\%s", GetWorkingDirectory(), "assets\\game"));
     }
 
     void AssetsConfig::findAllAssets(const char *projectPath)

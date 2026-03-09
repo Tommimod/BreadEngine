@@ -41,18 +41,9 @@ namespace BreadEditor {
 
     void NodeUiElement::draw(const float deltaTime)
     {
-        prepareToClick();
-        GuiButton(getBounds(), nullptr);
-        const auto mousePos = GetMousePosition();
-        if (_isPreparedToClick && IsMouseButtonPressed(MOUSE_LEFT_BUTTON) && Engine::isCollisionPointRec(mousePos, getBounds()))
+        if (GuiButton(getBounds(), nullptr))
         {
-            auto parentBounds = _parent->getBounds();
-            parentBounds.height -= RAYGUI_WINDOWBOX_STATUSBAR_HEIGHT;
-            parentBounds.y += RAYGUI_WINDOWBOX_STATUSBAR_HEIGHT;
-            if (!Engine::isCollisionPointRec(mousePos, parentBounds))
-            {
-                onSelected.invoke(this);
-            }
+            onSelected.invoke(this);
         }
 
         const auto buttonText = GuiIconText(ICON_CPU, _engineNode->getName().c_str());
@@ -69,10 +60,7 @@ namespace BreadEditor {
         }
 
         updateOptionsOwner();
-        if (!_isRootNode)
-        {
-            updateDraggable(this);
-        }
+        updateDraggable(this);
     }
 
     void NodeUiElement::dispose()
@@ -80,7 +68,6 @@ namespace BreadEditor {
         _isRootNode = false;
         _isExpanded = true;
         _isMuted = false;
-        _isPreparedToClick = false;
         _localStateBeforeMuted = STATE_NORMAL;
         _localState = STATE_NORMAL;
         _engineNode = nullptr;
@@ -176,14 +163,6 @@ namespace BreadEditor {
         }
         else if (index == 4) //Delete
         {
-        }
-    }
-
-    void NodeUiElement::prepareToClick()
-    {
-        if (IsMouseButtonDown(MOUSE_LEFT_BUTTON))
-        {
-            _isPreparedToClick = Engine::isCollisionPointRec(GetMousePosition(), getBounds());
         }
     }
 

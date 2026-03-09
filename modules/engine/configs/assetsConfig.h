@@ -218,11 +218,11 @@ namespace BreadEngine {
             ConfigUndo.unsubscribeAll();
         }
 
-        void serialize() override;
+        void serializeConfig() override;
 
-        void deserialize(const char *projectPath);
+        void deserializeConfig(const char *projectPath);
 
-        void deserialize() override;
+        void deserializeConfig() override;
 
         void findAllAssets(const char *projectPath);
 

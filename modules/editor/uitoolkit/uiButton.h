@@ -2,13 +2,12 @@
 #include "action.h"
 #include "uiElement.h"
 #include "editorStyle.h"
-using namespace BreadEngine;
 
 namespace BreadEditor {
     class UiButton final : public UiElement
     {
     public:
-        Action<UiButton *> onClick;
+        BreadEngine::Action<UiButton *> onClick;
 
         UiButton();
 

@@ -20,9 +20,9 @@ namespace BreadEditor {
             return LastProjectPath == d.LastProjectPath;
         }
 
-        void serialize() override;
+        void serializeConfig() override;
 
-        void deserialize() override;
+        void deserializeConfig() override;
     };
 } // BreadEditor
 

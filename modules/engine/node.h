@@ -61,7 +61,7 @@ namespace BreadEngine {
 
         void unparent(Node *node);
 
-        std::string serialize() const;
+        [[nodiscard]] std::string serialize();
 
         void deserialize();
 
@@ -97,10 +97,10 @@ namespace BreadEngine {
     struct NodeRawData
     {
         std::vector<unsigned int> ChildsIds{};
-        unsigned int ParentId;
+        unsigned int ParentId = INT_MAX;
         std::string Name;
-        unsigned int Id;
-        bool IsActive;
+        unsigned int Id = 0;
+        bool IsActive = true;
     };
 } // namespace BreadEngine
 

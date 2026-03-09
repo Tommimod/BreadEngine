@@ -13,7 +13,7 @@ namespace BreadEditor {
     {
     }
 
-    void EditorPrefsConfig::serialize()
+    void EditorPrefsConfig::serializeConfig()
     {
         std::ofstream process(_filePath);
         process.clear();
@@ -21,7 +21,7 @@ namespace BreadEditor {
         process.close();
     }
 
-    void EditorPrefsConfig::deserialize()
+    void EditorPrefsConfig::deserializeConfig()
     {
         auto &configProvider = Editor::getInstance().getConfigsProvider();
         if (configProvider.getEditorPrefsConfig() != nullptr)

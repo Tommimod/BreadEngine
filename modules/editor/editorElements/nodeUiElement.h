@@ -66,10 +66,7 @@ namespace BreadEditor {
         GuiState _localState = STATE_NORMAL;
         bool _isExpanded = true;
         bool _isMuted = false;
-        bool _isPreparedToClick = false;
         bool _isRootNode = false;
-
-        void prepareToClick();
 
         void updateExpandButtonText() const;
     };

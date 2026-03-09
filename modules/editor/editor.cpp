@@ -25,7 +25,7 @@ namespace BreadEditor {
 
         _initialized = MandatoryEditorFilesValidator::validate();
         CommandsHandler::execute(std::make_unique<ReopenLastProjectCommand>());
-        Engine::getInstance().getAssetsConfig().deserialize(_configsProvider.getEditorPrefsConfig()->LastProjectPath.c_str());
+        Engine::getInstance().getAssetsConfig().deserializeConfig(_configsProvider.getEditorPrefsConfig()->LastProjectPath.c_str());
 
         GuiLoadStyleDefault();
         loadFont();
@@ -73,6 +73,8 @@ namespace BreadEditor {
         Engine::nodePool.get().setup("33", *rootNode);
         Engine::nodePool.get().setup("34", *rootNode);
         Engine::nodePool.get().setup("35", *rootNode);
+
+        rootNode->serialize();
         return _initialized;
     }
 

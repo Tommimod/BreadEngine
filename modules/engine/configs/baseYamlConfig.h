@@ -12,9 +12,9 @@ namespace BreadEngine {
 
         ~BaseYamlConfig() override;
 
-        virtual void serialize() = 0;
+        virtual void serializeConfig() = 0;
 
-        virtual void deserialize() = 0;
+        virtual void deserializeConfig() = 0;
 
     protected:
         void setPath(const std::string &filePath) { _filePath = filePath; }

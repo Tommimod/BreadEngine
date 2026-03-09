@@ -208,19 +208,19 @@ namespace BreadEngine {
         }
     }
 
-    std::string Node::serialize() const
+    std::string Node::serialize()
     {
         std::vector<unsigned int> childIds;
+        childIds.reserve(_childs.size());
         for (auto child: _childs)
         {
             childIds.emplace_back(child->_id);
         }
 
-        auto pId = _parent != nullptr ? _parent->_id : INT_MAX;
         auto rawData = NodeRawData
         {
             .ChildsIds = std::move(childIds),
-            .ParentId = std::move(pId),
+            .ParentId = _parent != nullptr ? _parent->_id : INT_MAX,
             .Name = _name,
             .Id = _id,
             .IsActive = _isActive,
@@ -260,6 +260,6 @@ namespace BreadEngine {
         const auto data = rawConfig.as<NodeRawData>();
         _isActive = data.IsActive;
         _id = data.Id;
-        _name = std::move(data.Name);
+        _name = data.Name;
     }
 } // namespace BreadEngine
