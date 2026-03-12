@@ -5,10 +5,7 @@
 #include "uitoolkit/uiPool.h"
 
 namespace BreadEditor {
-    NodeUiElement::NodeUiElement() : _expandButton(UiPool::buttonPool.get())
-    {
-        _expandButton.setup(id + "expandButton", this, "");
-    }
+    NodeUiElement::NodeUiElement() = default;
 
     NodeUiElement::~NodeUiElement() = default;
 
@@ -16,19 +13,19 @@ namespace BreadEditor {
     {
         this->_engineNode = node;
         _isRootNode = _engineNode->getParent() == nullptr;
-        updateExpandButtonText();
-        _expandButton.setAnchor(UI_LEFT_TOP);
-        _expandButton.setPivot({1, 0});
-        _expandButton.setPosition({-2, 5});
-        _expandButton.setClickOutside(true);
-        _expandButton.onClick.subscribe([this](UiButton *)
+        _expandButton = &UiPool::buttonPool.get().setup(id + "expandButton", this, "");
+        _expandButton->setAnchor(UI_LEFT_TOP);
+        _expandButton->setPivot({1, 0});
+        _expandButton->setPosition({-2, 5});
+        _expandButton->setClickOutside(true);
+        _expandButton->onClick.subscribe([this](UiButton *)
         {
             _isExpanded = !_isExpanded;
             updateExpandButtonText();
             onExpandStateChanged.invoke(this);
         });
-
-        initializeOptionsOwner(this, _isRootNode ? std::vector{_options[0], _options[1]} : _options);
+        updateExpandButtonText();
+        initializeOptionsOwner(this, _isRootNode ? std::vector{_options[0], _options[1], _options[2]} : _options);
         UiElement::setup(id, parentElement);
         return *this;
     }
@@ -36,7 +33,7 @@ namespace BreadEditor {
     void NodeUiElement::awake()
     {
         const auto size = getSize().y * .5f;
-        _expandButton.setSize({size, size});
+        _expandButton->setSize({size, size});
     }
 
     void NodeUiElement::draw(const float deltaTime)
@@ -53,7 +50,7 @@ namespace BreadEditor {
     void NodeUiElement::update(const float deltaTime)
     {
         const auto childCount = _engineNode->getChildCount();
-        _expandButton.isActive = childCount > 0;
+        _expandButton->isActive = childCount > 0;
         if (childCount == 0)
         {
             _isExpanded = true;
@@ -72,7 +69,7 @@ namespace BreadEditor {
         _localState = STATE_NORMAL;
         _engineNode = nullptr;
         _parentNode = nullptr;
-        _expandButton.onClick.unsubscribeAll();
+        _expandButton = nullptr;
         onCopyRequested.unsubscribeAll();
         onDeleteRequested.unsubscribeAll();
         onDuplicateRequested.unsubscribeAll();
@@ -80,6 +77,7 @@ namespace BreadEditor {
         onPasteRequested.unsubscribeAll();
         onSelected.unsubscribeAll();
         disposeDraggable();
+        disposeOptionsOwner();
         UiElement::dispose();
     }
 
@@ -152,22 +150,28 @@ namespace BreadEditor {
 
     void NodeUiElement::handleSelectedOption(const int index)
     {
-        if (index == 1) //Copy
+        if (index == 1) // Create empty
+        {
+            Engine::nodePool.get().setup("Empty Node", *_engineNode);
+        }
+        else if (index == 2) // Copy
         {
         }
-        else if (index == 2) //Paste
+        else if (index == 3) // Paste
         {
         }
-        else if (index == 3) //Duplicate
+        else if (index == 4) // Duplicate
         {
+            Node::createCopy(*_engineNode);
         }
-        else if (index == 4) //Delete
+        else if (index == 5) // Delete
         {
+            _engineNode->destroy();
         }
     }
 
     void NodeUiElement::updateExpandButtonText() const
     {
-        _expandButton.setText(_isExpanded ? "-" : "+");
+        _expandButton->setText(_isExpanded ? "-" : "+");
     }
 } // BreadEditor

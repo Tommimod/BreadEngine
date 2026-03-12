@@ -22,9 +22,9 @@ namespace BreadEditor {
         void disposeDraggable();
 
     private:
-        bool _isPrepared = false;
         Vector2 _mousePositionBeforeClick{};
         Vector2 _lastMousePosition{};
+        bool _isPrepared = false;
 
         static void dragSelf(UiElement *element);
     };

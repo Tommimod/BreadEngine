@@ -17,18 +17,7 @@ namespace BreadEngine {
         add<Transform>(Transform(this));
     }
 
-    Node::Node(const unsigned int id)
-    {
-        this->_id = id;
-        _childs = std::vector<Node *>();
-        add<Transform>(Transform(this));
-    }
-
-    Node::~Node()
-    {
-        NodeProvider::onNodeDestroyed.invoke(this);
-        dispose();
-    }
+    Node::~Node() = default;
 
     Node &Node::setupAsRoot(const std::string &newName)
     {
@@ -46,6 +35,32 @@ namespace BreadEngine {
         this->_parent->_childs.emplace_back(this);
         NodeProvider::onNodeCreated.invoke(this);
         return *this;
+    }
+
+    void Node::destroy()
+    {
+        NodeProvider::onNodeDestroyed.invoke(this);
+        if (_parent != nullptr)
+        {
+            _parent->unparent(this);
+        }
+
+        for (const auto child: _childs)
+        {
+            destroyChild(child);
+        }
+
+        Engine::nodePool.release(*this);
+    }
+
+    void Node::destroyChild(Node *node)
+    {
+        if (const auto it = std::ranges::find(_childs, node); it != _childs.end())
+        {
+            _childs.erase(it);
+        }
+
+        node->destroy();
     }
 
     void Node::dispose()
@@ -78,16 +93,6 @@ namespace BreadEngine {
         }
 
         _childs.insert(_childs.begin(), node);
-    }
-
-    void Node::destroyChild(Node *node)
-    {
-        if (const auto it = std::ranges::find(_childs, node); it != _childs.end())
-        {
-            _childs.erase(it);
-        }
-
-        Engine::nodePool.release(*node);
     }
 
     void Node::removeAllChildren()
@@ -210,21 +215,8 @@ namespace BreadEngine {
 
     std::string Node::serialize() const
     {
-        std::vector<unsigned int> childIds;
-        childIds.reserve(_childs.size());
-        for (auto child: _childs)
-        {
-            childIds.emplace_back(child->_id);
-        }
-
-        auto rawData = NodeRawData
-        {
-            .ChildsIds = std::move(childIds),
-            .ParentId = _parent != nullptr ? _parent->_id : INT_MAX,
-            .Name = _name,
-            .Id = _id,
-            .IsActive = _isActive,
-        };
+        auto rawData = getRawData();
+        rawData.IsCopyPipeline = false;
         if (_parent == nullptr)
         {
             auto &rootFolder = Engine::getInstance().getAssetsConfig().getRootFolder()->getFullPath();
@@ -255,5 +247,37 @@ namespace BreadEngine {
 
         const auto data = rawConfig.as<NodeRawData>();
         return NodeProvider::getNode(data.Id);
+    }
+
+    Node *Node::createCopy(Node &originalNode)
+    {
+        auto rawData = originalNode.getRawData();
+        rawData.IsCopyPipeline = true;
+        auto yamlData = YAML::Node(rawData);
+        YAML::Emitter out;
+        out << yamlData;
+        auto data = out.c_str();
+        auto yamlConfig = YAML::Load(data);
+        const auto nextData = yamlConfig.as<NodeRawData>();
+        return NodeProvider::getNode(nextData.Id);
+    }
+
+    NodeRawData Node::getRawData() const
+    {
+        std::vector<unsigned int> childIds;
+        childIds.reserve(_childs.size());
+        for (const auto child: _childs)
+        {
+            childIds.emplace_back(child->_id);
+        }
+
+        return NodeRawData
+        {
+            .ChildsIds = std::move(childIds),
+            .ParentId = _parent != nullptr ? _parent->_id : INT_MAX,
+            .Name = _name,
+            .Id = _id,
+            .IsActive = _isActive
+        };
     }
 } // namespace BreadEngine

@@ -20,7 +20,8 @@ namespace BreadEngine {
         static Node *getNode(unsigned int ownerId);
 
     private:
-        static unsigned int _id;
         static std::vector<Node *> _nodes;
+        static std::vector<unsigned int> _freeIds;
+        static unsigned int _id;
     };
 } // BreadEngine

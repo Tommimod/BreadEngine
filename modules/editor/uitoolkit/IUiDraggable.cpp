@@ -61,9 +61,12 @@ namespace BreadEditor {
     {
         dragContainer = nullptr;
         isDragging = false;
+        onlyProvideDragEvents = false;
         _isPrepared = false;
         _mousePositionBeforeClick = Vector2Zero();
         _lastMousePosition = Vector2Zero();
+        onDragEnded.unsubscribeAll();
+        onDragStarted.unsubscribeAll();
     }
 
     void IUiDraggable::dragSelf(UiElement *element)

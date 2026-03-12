@@ -36,15 +36,9 @@ namespace BreadEditor {
         mainWindow.initialize();
         mainWindow.updateInternal(0);
         mainWindow.drawInternal(0);
-        // const auto rootNode = &Engine::getRootNode();
-        // Engine::nodePool.get().setup("1", *rootNode);
-        // auto &two = Engine::nodePool.get().setup("2", *rootNode);
-        // Engine::nodePool.get().setup("3", two);
-        // rootNode->serialize();
         auto &rootFolder = Engine::getInstance().getAssetsConfig().getRootFolder()->getFullPath();
         const auto filePath = std::string(rootFolder) + "\\" + "Root" + ReservedFileNames::MARKER_NODE;
-        const auto rootNode = Node::deserialize(filePath);
-        //TODO Why on root is drawn?
+        Node::deserialize(filePath);
         return _initialized;
     }
 

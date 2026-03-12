@@ -214,7 +214,7 @@ namespace BreadEditor {
         calculateRectForScroll(element);
     }
 
-    void AssetsWindow::onFileSelected(const FileUiElement *fileUiElement)
+    void AssetsWindow::onFileSelected(const FileUiElement *fileUiElement) const
     {
         const auto file = _assetConfig.getFileByGuid(fileUiElement->getFileGuid());
         const auto fileName = file->getShortName().c_str();

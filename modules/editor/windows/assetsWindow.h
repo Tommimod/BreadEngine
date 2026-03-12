@@ -55,7 +55,7 @@ namespace BreadEditor {
 
         void recalculateUiFiles(const File *file, int &nodeOrder, int depth, bool isParentExpanded);
 
-        void onFileSelected(const FileUiElement *fileUiElement);
+        void onFileSelected(const FileUiElement *fileUiElement) const;
 
         void onElementDragStarted(UiElement *uiElement);
 

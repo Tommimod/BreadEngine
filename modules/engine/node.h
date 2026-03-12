@@ -17,21 +17,21 @@ namespace BreadEngine {
     public:
         Node();
 
-        explicit Node(unsigned int id);
-
         ~Node();
 
         Node &setupAsRoot(const std::string &newName);
 
         Node &setup(const std::string &newName, Node &nextParent);
 
+        void destroy();
+
+        void destroyChild(Node *node);
+
         void dispose() override;
 
         void changeParent(Node *nextParent);
 
         void setChildFirst(Node *node);
-
-        void destroyChild(Node *node);
 
         void removeAllChildren();
 
@@ -65,6 +65,8 @@ namespace BreadEngine {
 
         static Node *deserialize(const std::string &filePath);
 
+        static Node *createCopy(Node &originalNode);
+
         template<typename T, std::enable_if_t<std::is_base_of_v<Component, T>, int> = 0>
         [[nodiscard]] bool has() const;
 
@@ -92,6 +94,8 @@ namespace BreadEngine {
         std::string _name;
         unsigned int _id = 0;
         bool _isActive = true;
+
+        NodeRawData getRawData() const;
     };
 
     struct NodeRawData
@@ -101,6 +105,7 @@ namespace BreadEngine {
         std::string Name;
         unsigned int Id = 0;
         bool IsActive = true;
+        bool IsCopyPipeline = false;
     };
 } // namespace BreadEngine
 

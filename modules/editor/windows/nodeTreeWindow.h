@@ -39,6 +39,7 @@ namespace BreadEditor {
         std::vector<SubscriptionHandle> _nodeNotificatorSubscriptions{};
         std::vector<NodeUiElement *> _nodeUiElements{};
         const char *_title = Id.c_str();
+        bool _isDestroyProcessStarted = false;
 
         [[nodiscard]] NodeUiElement *getNodeUiElementByEngineNode(const Node *node) const;
 

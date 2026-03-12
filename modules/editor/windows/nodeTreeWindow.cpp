@@ -1,4 +1,7 @@
 #include "nodeTreeWindow.h"
+
+#include <thread>
+
 #include "editor.h"
 #include "engine.h"
 #include "nodeProvider.h"
@@ -151,7 +154,6 @@ namespace BreadEditor {
         });
         element.onCopyRequested.subscribe([this](NodeUiElement *nodeUiElement)
         {
-
         });
     }
 
@@ -173,11 +175,24 @@ namespace BreadEditor {
     void NodeTreeWindow::onNodeRemoved(const Node *node)
     {
         const auto instance = getNodeUiElementByEngineNode(node);
-        instance->onSelected.unsubscribeAll();
+        if (instance == nullptr) return;
+
+        auto &model = Editor::getInstance().getEditorModel();
+        model.selectNodeUiElement(nullptr);
         destroyChild(instance);
         _nodeUiElements.erase(ranges::find(_nodeUiElements, instance));
-        int i = 0;
-        recalculateUiNodes(Engine::getRootNode(), i);
+        if (_isDestroyProcessStarted) return;
+
+        std::thread workerThread([this]
+        {
+            _isDestroyProcessStarted = true;
+            std::this_thread::sleep_for(std::chrono::milliseconds(16));
+
+            int i = 0;
+            recalculateUiNodes(Engine::getRootNode(), i);
+            _isDestroyProcessStarted = false;
+        });
+        workerThread.detach();
     }
 
     void NodeTreeWindow::onNodeSelected(NodeUiElement *nodeUiElement)

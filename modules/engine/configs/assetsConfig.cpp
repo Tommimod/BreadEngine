@@ -37,6 +37,15 @@ namespace BreadEngine {
         _projectPath = data._projectPath;
         _rootFolder = data._rootFolder;
         buildIndexes();
+
+        const FilePathList filesProvider = LoadDirectoryFiles(_projectPath.c_str());
+        if (!isValid(filesProvider))
+        {
+            findAllAssets(projectPath);
+            serialize();
+        }
+
+        UnloadDirectoryFiles(filesProvider);
     }
 
     void AssetsConfig::deserializeConfig()
@@ -242,12 +251,6 @@ namespace BreadEngine {
         serialize();
     }
 
-    bool AssetsConfig::isValid()
-    {
-        _rootFolder = Folder(_projectPath, 0, "Project Files", "Project Files", "0");
-        const FilePathList filesProvider = LoadDirectoryFiles(_projectPath.c_str());
-    }
-
     void AssetsConfig::updateIncludesAfterFolderChange(Folder *folder)
     {
         for (auto &file: folder->_files)
@@ -287,6 +290,33 @@ namespace BreadEngine {
         {
             indexFolder(subfolder);
         }
+    }
+
+    bool AssetsConfig::isValid(const FilePathList &filePathList)
+    {
+        for (auto i = 0u; i < filePathList.count; i++)
+        {
+            if (const auto path = filePathList.paths[i]; isFolder(path))
+            {
+                auto list = LoadDirectoryFiles(path);
+                if (!isValid(list))
+                {
+                    UnloadDirectoryFiles(list);
+                    return false;
+                }
+
+                UnloadDirectoryFiles(list);
+            }
+            else
+            {
+                if (_pathToFile[path] == nullptr)
+                {
+                    return false;
+                }
+            }
+        }
+
+        return true;
     }
 
     void AssetsConfig::parseFolders(Folder &folder, const FilePathList &filePathList) noexcept

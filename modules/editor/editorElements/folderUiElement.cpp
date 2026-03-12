@@ -76,8 +76,6 @@ namespace BreadEditor {
         _isExpanded = true;
         _isRootFolder = false;
         onExpandStateChanged.unsubscribeAll();
-        onDragEnded.unsubscribeAll();
-        onDragStarted.unsubscribeAll();
         _button = nullptr;
         _expandButton = nullptr;
         _folderGuid.clear();

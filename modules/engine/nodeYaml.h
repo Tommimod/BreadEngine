@@ -50,13 +50,16 @@ namespace YAML {
                 childNodes.emplace_back(encode(rawData));
             }
             yamlNode[childsName] = childNodes;
+            yamlNode["IsNodePrefab"] = !rhs.IsCopyPipeline;
             return yamlNode;
         }
 
         static bool decode(const Node &yamlNode, BreadEngine::NodeRawData &rhs)
         {
             unsigned int nodeId = INT_MAX;
-            decodeRecursive(yamlNode, nodeId, nullptr);
+            const auto idName = NAMEOF(BreadEngine::NodeRawData::Id).c_str();
+            const auto node = yamlNode["IsNodePrefab"].as<bool>() ? nullptr : BreadEngine::NodeProvider::getNode(yamlNode[idName].as<unsigned int>())->getParent();
+            decodeRecursive(yamlNode, nodeId, node);
             rhs.Id = nodeId;
             return true;
         }
@@ -64,19 +67,12 @@ namespace YAML {
         static void decodeRecursive(const Node &yamlNode, unsigned int &nodeId, BreadEngine::Node *parentNode)
         {
             const auto isActiveName = NAMEOF(BreadEngine::NodeRawData::IsActive).c_str();
-            const auto idName = NAMEOF(BreadEngine::NodeRawData::Id).c_str();
             const auto nameName = NAMEOF(BreadEngine::NodeRawData::Name).c_str();
             constexpr auto componentsName = "Components";
             constexpr auto childsName = "Childs";
-            auto id = yamlNode[idName].as<unsigned int>();
-            if (parentNode == nullptr)
-            {
-                nodeId = id;
-            }
 
             auto name = yamlNode[nameName].as<std::string>();
-            auto &nextNode = BreadEngine::Engine::nodePool.get();
-            nextNode = parentNode == nullptr ? nextNode.setupAsRoot(name) : nextNode.setup(name, *parentNode);
+            auto &nextNode = parentNode == nullptr ? BreadEngine::Engine::getRootNode() : BreadEngine::Engine::nodePool.get().setup(name, *parentNode);
             nextNode.setIsActive(yamlNode[isActiveName].as<bool>());
             auto componentsNode = yamlNode[componentsName].as<Node>();
             for (unsigned i = 0; i < componentsNode.size(); i++)
@@ -92,6 +88,8 @@ namespace YAML {
             {
                 decodeRecursive(childNode, nodeId, &nextNode);
             }
+
+            nodeId = nextNode.getId();
         }
     };
 }

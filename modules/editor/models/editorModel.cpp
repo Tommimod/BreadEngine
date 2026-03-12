@@ -4,6 +4,8 @@ namespace BreadEditor {
     void EditorModel::selectNodeUiElement(NodeUiElement *nodeUiElement)
     {
         clearSelections();
+        if (nodeUiElement == nullptr) return;
+
         _selectedNodeUiElement = nodeUiElement;
         onNodeSelected.invoke(_selectedNodeUiElement);
     }
@@ -11,6 +13,8 @@ namespace BreadEditor {
     void EditorModel::selectFileUiElement(FileUiElement *fileUiElement)
     {
         clearSelections();
+        if (fileUiElement == nullptr) return;
+
         _selectedFileUiElement = fileUiElement;
         onFileSelected.invoke(_selectedFileUiElement);
     }

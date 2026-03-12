@@ -48,8 +48,6 @@ namespace BreadEditor {
     void FileUiElement::dispose()
     {
         _file = nullptr;
-        onDragEnded.unsubscribeAll();
-        onDragStarted.unsubscribeAll();
         onClicked.unsubscribeAll();
         _button = nullptr;
         _fileGuid.clear();

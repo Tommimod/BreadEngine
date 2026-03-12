@@ -60,8 +60,8 @@ namespace BreadEditor {
     private:
         Node *_engineNode = nullptr;
         NodeUiElement *_parentNode = nullptr;
-        const std::vector<std::string> _options{"Copy", "Paste", "Duplicate", "Delete"};
-        UiButton &_expandButton;
+        UiButton *_expandButton = nullptr;
+        const std::vector<std::string> _options{"Create empty","Copy", "Paste", "Duplicate", "Delete"};
         GuiState _localStateBeforeMuted = STATE_NORMAL;
         GuiState _localState = STATE_NORMAL;
         bool _isExpanded = true;

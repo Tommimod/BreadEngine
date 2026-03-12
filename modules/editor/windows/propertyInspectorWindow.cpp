@@ -68,7 +68,7 @@ namespace BreadEditor {
             _activeCheckBox->setChecked(_engineNode->getIsActive());
             _nameTextBox->setText(_engineNode->getName());
             _trackedComponents = ComponentsProvider::getAllComponents(_engineNode->getId());
-            if (const int needCreateCount = _trackedComponents.size() - _uiComponentElements.size(); needCreateCount > 0)
+            if (const int needCreateCount = static_cast<int>(_trackedComponents.size() - _uiComponentElements.size()); needCreateCount > 0)
             {
                 for (int i = static_cast<int>(_trackedComponents.size()) - needCreateCount; i < static_cast<int>(_trackedComponents.size()); i++)
                 {
@@ -160,14 +160,15 @@ namespace BreadEditor {
 
         _activeCheckBox = &UiPool::checkBoxPool.get().setup("nodeInspectorActiveCheckBox", this, "Active", false);
         _activeCheckBox->setAnchor(UI_LEFT_TOP);
-        _activeCheckBox->setPosition({horizontalOffset, verticalOffset});
+        _activeCheckBox->setPosition({horizontalOffset, verticalOffset + 5});
         _activeCheckBox->setSize({10, 10});
         _subscriptions.emplace(_activeCheckBox, _activeCheckBox->onValueChanged.subscribe([this](const bool checked) { this->onNodeActiveChanged(checked); }));
 
         _nameTextBox = &UiPool::textBoxPool.get().setup("nodeInspectorNameTextBox", this, "Name");
         _nameTextBox->setAnchor(UI_LEFT_TOP);
         _nameTextBox->setPosition({_activeCheckBox->getSize().x + 50, verticalOffset});
-        _nameTextBox->setSize({100, 20});
+        _nameTextBox->setSize({0, 20});
+        _nameTextBox->setSizePercentPermanent({.75f, -1});
         _subscriptions.emplace(_nameTextBox, _nameTextBox->onValueChanged.subscribe([this](const char *text) { this->onNodeNameChanged(text); }));
 
         resetElementsState(true);

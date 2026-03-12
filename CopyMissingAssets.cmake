@@ -1,0 +1,20 @@
+﻿file(MAKE_DIRECTORY "${DEST_EDITOR}")
+file(MAKE_DIRECTORY "${DEST_GAME}")
+
+function(copy_missing src_dir dest_dir)
+    file(GLOB_RECURSE files RELATIVE "${src_dir}" "${src_dir}/*")
+    foreach(rel IN LISTS files)
+        set(src_file "${src_dir}/${rel}")
+        set(dest_file "${dest_dir}/${rel}")
+
+        if(NOT EXISTS "${dest_file}")
+            get_filename_component(dest_parent "${dest_file}" DIRECTORY)
+            file(MAKE_DIRECTORY "${dest_parent}")
+            file(COPY "${src_file}" DESTINATION "${dest_parent}")
+            message(STATUS "  → Copied: ${rel}")
+        endif()
+    endforeach()
+endfunction()
+
+copy_missing("${SRC_EDITOR}" "${DEST_EDITOR}")
+copy_missing("${SRC_GAME}" "${DEST_GAME}")
