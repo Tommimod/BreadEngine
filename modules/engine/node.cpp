@@ -75,6 +75,7 @@ namespace BreadEngine {
 
     void Node::changeParent(Node *nextParent)
     {
+        if (_parent == nextParent) return;
         if (_parent != nullptr)
         {
             _parent->unparent(this);
@@ -139,11 +140,6 @@ namespace BreadEngine {
         return static_cast<int>(_childs.size());
     }
 
-    std::vector<Node *> Node::getAllChilds()
-    {
-        return {_childs.begin(), _childs.end()};
-    }
-
     Node &Node::getChild(const int index) const
     {
         if (index < 0 || index >= static_cast<int>(_childs.size()))
@@ -152,6 +148,11 @@ namespace BreadEngine {
         }
 
         return *_childs[index];
+    }
+
+    std::vector<Node *> Node::getAllChilds()
+    {
+        return {_childs.begin(), _childs.end()};
     }
 
     Node *Node::getParent() const
@@ -249,17 +250,28 @@ namespace BreadEngine {
         return NodeProvider::getNode(data.Id);
     }
 
-    Node *Node::createCopy(Node &originalNode)
+    Node *Node::createCopyFromNode(const Node &originalNode)
+    {
+        return createCopyFromData(getDataForCopy(originalNode), *originalNode._parent);
+    }
+
+    Node *Node::createCopyFromData(const YAML::Node &dataNode, Node &parent)
+    {
+        YAML::Emitter out;
+        out << dataNode;
+        const auto data = out.c_str();
+        const auto yamlConfig = YAML::Load(data);
+        const auto nextData = yamlConfig.as<NodeRawData>();
+        const auto node = NodeProvider::getNode(nextData.Id);
+        node->changeParent(&parent);
+        return node;
+    }
+
+    YAML::Node Node::getDataForCopy(const Node &originalNode)
     {
         auto rawData = originalNode.getRawData();
         rawData.IsCopyPipeline = true;
-        auto yamlData = YAML::Node(rawData);
-        YAML::Emitter out;
-        out << yamlData;
-        auto data = out.c_str();
-        auto yamlConfig = YAML::Load(data);
-        const auto nextData = yamlConfig.as<NodeRawData>();
-        return NodeProvider::getNode(nextData.Id);
+        return YAML::Node(rawData);
     }
 
     NodeRawData Node::getRawData() const

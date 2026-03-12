@@ -16,7 +16,7 @@ namespace BreadEditor {
         Action<NodeUiElement *> onSelected;
         Action<NodeUiElement *> onExpandStateChanged;
         Action<NodeUiElement *> onDuplicateRequested;
-        Action<NodeUiElement *> onCopyRequested;
+        Action<YAML::Node> onCopyRequested;
         Action<NodeUiElement *> onPasteRequested;
         Action<NodeUiElement *> onDeleteRequested;
 

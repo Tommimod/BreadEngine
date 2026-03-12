@@ -72,7 +72,11 @@ namespace YAML {
             constexpr auto childsName = "Childs";
 
             auto name = yamlNode[nameName].as<std::string>();
-            auto &nextNode = parentNode == nullptr ? BreadEngine::Engine::getRootNode() : BreadEngine::Engine::nodePool.get().setup(name, *parentNode);
+            auto &nextNode = parentNode == nullptr && yamlNode["IsNodePrefab"].as<bool>()
+                                 ? BreadEngine::Engine::getRootNode()
+                                 : parentNode != nullptr
+                                       ? BreadEngine::Engine::nodePool.get().setup(name, *parentNode)
+                                       : BreadEngine::Engine::nodePool.get().setupAsRoot(name);
             nextNode.setIsActive(yamlNode[isActiveName].as<bool>());
             auto componentsNode = yamlNode[componentsName].as<Node>();
             for (unsigned i = 0; i < componentsNode.size(); i++)

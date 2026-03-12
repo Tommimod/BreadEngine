@@ -156,13 +156,15 @@ namespace BreadEditor {
         }
         else if (index == 2) // Copy
         {
+            onCopyRequested.invoke(Node::getDataForCopy(*_engineNode));
         }
         else if (index == 3) // Paste
         {
+            onPasteRequested.invoke(this);
         }
         else if (index == 4) // Duplicate
         {
-            Node::createCopy(*_engineNode);
+            Node::createCopyFromNode(*_engineNode);
         }
         else if (index == 5) // Delete
         {

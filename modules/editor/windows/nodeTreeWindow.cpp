@@ -152,8 +152,15 @@ namespace BreadEditor {
             int ii = 0;
             recalculateUiNodes(Engine::getRootNode(), ii);
         });
-        element.onCopyRequested.subscribe([this](NodeUiElement *nodeUiElement)
+        element.onCopyRequested.subscribe([this](const YAML::Node &yamlData)
         {
+            _copyData = yamlData;
+        });
+        element.onPasteRequested.subscribe([this](const NodeUiElement *nodeUiElement)
+        {
+            if (_copyData.IsNull()) return;
+            Node::createCopyFromData(_copyData, *nodeUiElement->getNode());
+            _copyData = {};
         });
     }
 

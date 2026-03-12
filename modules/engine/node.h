@@ -65,7 +65,11 @@ namespace BreadEngine {
 
         static Node *deserialize(const std::string &filePath);
 
-        static Node *createCopy(Node &originalNode);
+        static Node *createCopyFromNode(const Node &originalNode);
+
+        static Node *createCopyFromData(const YAML::Node &dataNode, Node &parent);
+
+        [[nodiscard]] static YAML::Node getDataForCopy(const Node &originalNode);
 
         template<typename T, std::enable_if_t<std::is_base_of_v<Component, T>, int> = 0>
         [[nodiscard]] bool has() const;
@@ -95,7 +99,7 @@ namespace BreadEngine {
         unsigned int _id = 0;
         bool _isActive = true;
 
-        NodeRawData getRawData() const;
+        [[nodiscard]] NodeRawData getRawData() const;
     };
 
     struct NodeRawData

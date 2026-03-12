@@ -36,6 +36,7 @@ namespace BreadEditor {
     private:
         EditorModel *_editorModel = nullptr;
         NodeUiElement *_draggedNodeUiElementCopy = nullptr;
+        YAML::Node _copyData;
         std::vector<SubscriptionHandle> _nodeNotificatorSubscriptions{};
         std::vector<NodeUiElement *> _nodeUiElements{};
         const char *_title = Id.c_str();
