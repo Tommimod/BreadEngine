@@ -7,6 +7,7 @@
 #include "node.h"
 #include "systems/commands/commandsHandler.h"
 #include "systems/commands/mainToolbarCommands/reopenLastProjectCommand.h"
+#include "systems/commands/mainToolbarCommands/saveProjectCommand.h"
 #include "validators/mandatoryEditorFilesValidator.h"
 
 namespace BreadEditor {
@@ -36,8 +37,7 @@ namespace BreadEditor {
         mainWindow.initialize();
         mainWindow.updateInternal(0);
         mainWindow.drawInternal(0);
-        auto &rootFolder = Engine::getInstance().getAssetsConfig().getRootFolder()->getFullPath();
-        const auto filePath = std::string(rootFolder) + "\\" + "Root" + ReservedFileNames::MARKER_NODE;
+        const auto filePath = _configsProvider.getEditorPrefsConfig()->LastOpenedNodePath;
         Node::deserialize(filePath);
         return _initialized;
     }
@@ -54,12 +54,7 @@ namespace BreadEditor {
     {
         if (!_initialized) return;
 
-        const auto isCtrlPressed = IsKeyDown(KEY_LEFT_CONTROL);
-        if (const auto isZPressedOnce = IsKeyPressed(KEY_Z); isCtrlPressed && isZPressedOnce)
-        {
-            CommandsHandler::undo();
-        }
-
+        processInput();
         _isFrameEnded = false;
         mainWindow.updateInternal(deltaTime);
         CursorSystem::draw();
@@ -163,5 +158,18 @@ namespace BreadEditor {
         _fontLargeSmall = LoadFontEx(path, static_cast<int>(EditorStyle::FontSize::LargeSmall), nullptr, 0);
         _fontLarge = LoadFontEx(path, static_cast<int>(EditorStyle::FontSize::Large), nullptr, 0);
         GuiSetFont(_fontMedium);
+    }
+
+    void Editor::processInput()
+    {
+        const auto isCtrlPressed = IsKeyDown(KEY_LEFT_CONTROL);
+        if (const auto isZPressedOnce = IsKeyPressed(KEY_Z); isCtrlPressed && isZPressedOnce)
+        {
+            CommandsHandler::undo();
+        }
+        else if (const auto isSPressedOnce = IsKeyPressed(KEY_S); isCtrlPressed && isSPressedOnce)
+        {
+            CommandsHandler::execute(std::make_unique<SaveProjectCommand>());
+        }
     }
 } // namespace BreadEditor

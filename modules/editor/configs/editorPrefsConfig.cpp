@@ -3,6 +3,7 @@
 #include "editor.h"
 #include <yaml-cpp/yaml.h>
 #include <yaml-cpp/node/parse.h>
+#include "models/reservedFileNames.h"
 
 namespace BreadEditor {
     EditorPrefsConfig::EditorPrefsConfig() : BaseYamlConfig()
@@ -33,7 +34,10 @@ namespace BreadEditor {
         if (rawConfig.IsNull())
         {
             LastProjectPath = TextFormat("%s\\%s", GetWorkingDirectory(), "assets\\game");
-            serialize();
+            LastOpenedNodePath = LastProjectPath + "\\" + "Root" + ReservedFileNames::MARKER_NODE;
+            serializeConfig();
+            deserializeConfig();
+            return;
         }
 
         auto data = rawConfig.as<EditorPrefsConfig>();

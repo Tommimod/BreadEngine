@@ -7,7 +7,10 @@ namespace BreadEngine {
     {
         virtual ~BaseComponentChunk() = default;
 
-        virtual void addComponent(unsigned int ownerId, std::unique_ptr<Component> comp) = 0;
+    private:
+        friend class ComponentsProvider;
+
+        virtual void addComponent(unsigned int ownerId, std::unique_ptr<Component> comp, bool override = false) = 0;
 
         [[nodiscard]] virtual bool hasOwner(unsigned int ownerId) const = 0;
 

@@ -31,7 +31,7 @@ namespace BreadEditor {
 
         [[nodiscard]] NodeTreeWindow &getNodeTree() const;
 
-        [[nodiscard]] PropertyInspectorWindow &getNodeInspector() const;
+        [[nodiscard]] PropertyInspectorWindow &getPropertyInspector() const;
 
         [[nodiscard]] GizmoSystem &getGizmoSystem();
 

@@ -8,6 +8,7 @@ namespace BreadEditor {
     struct EditorPrefsConfig : BreadEngine::BaseYamlConfig
     {
         std::string LastProjectPath;
+        std::string LastOpenedNodePath;
 
         EditorPrefsConfig();
 
@@ -35,15 +36,19 @@ namespace YAML {
         static Node encode(const BreadEditor::EditorPrefsConfig &rhs)
         {
             Node node;
-            const auto name = NAMEOF(rhs.LastProjectPath).c_str();
-            node[name] = rhs.LastProjectPath;
+            const auto projectPathName = NAMEOF(rhs.LastProjectPath).c_str();
+            const auto openedNodeName = NAMEOF(rhs.LastOpenedNodePath).c_str();
+            node[projectPathName] = rhs.LastProjectPath;
+            node[openedNodeName] = rhs.LastOpenedNodePath;
             return node;
         }
 
         static bool decode(const Node &node, BreadEditor::EditorPrefsConfig &rhs)
         {
-            const auto name = NAMEOF(rhs.LastProjectPath).c_str();
-            rhs.LastProjectPath = node[name].as<std::string>();
+            const auto projectPathName = NAMEOF(rhs.LastProjectPath).c_str();
+            const auto openedNodeName = NAMEOF(rhs.LastOpenedNodePath).c_str();
+            rhs.LastProjectPath = node[projectPathName].as<std::string>();
+            rhs.LastOpenedNodePath = node[openedNodeName].as<std::string>();
             return true;
         }
     };

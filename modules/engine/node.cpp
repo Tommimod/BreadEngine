@@ -214,14 +214,12 @@ namespace BreadEngine {
         }
     }
 
-    std::string Node::serialize() const
+    std::string Node::serialize(const std::string &filePath) const
     {
         auto rawData = getRawData();
         rawData.IsCopyPipeline = false;
         if (_parent == nullptr)
         {
-            auto &rootFolder = Engine::getInstance().getAssetsConfig().getRootFolder()->getFullPath();
-            const auto filePath = std::string(rootFolder) + "\\" + _name + ReservedFileNames::MARKER_NODE;
             auto data = YAML::Node(rawData);
             std::ofstream process(filePath);
             process.clear();

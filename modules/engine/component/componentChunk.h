@@ -16,6 +16,9 @@ namespace BreadEngine {
 
         ~ComponentChunk() override = default;
 
+    private:
+        friend class ComponentsProvider;
+
         T &get(unsigned int ownerId);
 
         [[nodiscard]] bool isEmpty() const override
@@ -28,10 +31,10 @@ namespace BreadEngine {
             return _ownerIdToIndex.contains(ownerId);
         }
 
-        void addComponent(const unsigned int ownerId, std::unique_ptr<Component> comp) override
+        void addComponent(const unsigned int ownerId, std::unique_ptr<Component> comp, const bool override) override
         {
             T &tRef = dynamic_cast<T &>(*comp);
-            add(ownerId, std::move(tRef));
+            add(ownerId, std::move(tRef), override);
         }
 
         [[nodiscard]] Component *getComponent(const unsigned int ownerId) override
@@ -45,10 +48,16 @@ namespace BreadEngine {
             return static_cast<Component *>(&_components[it->second]);
         }
 
-        T &add(const unsigned int ownerId, T component)
+        T &add(const unsigned int ownerId, T component, const bool override)
         {
             if (_ownerIdToIndex.contains(ownerId))
             {
+                if (override)
+                {
+                    _components[_ownerIdToIndex[ownerId]] = std::move(component);
+                    return _components[_ownerIdToIndex[ownerId]];
+                }
+
                 TraceLog(LOG_ERROR, "Component %s already exists for node &i", typeid(T).name(), ownerId);
                 return _components[_ownerIdToIndex[ownerId]];
             }
@@ -85,7 +94,6 @@ namespace BreadEngine {
             _ownerIdToIndex.erase(ownerId);
         }
 
-    private:
         std::unordered_map<unsigned int, int> _ownerIdToIndex{};
         std::vector<T> _components{};
         std::vector<unsigned int> _ownerIds{};

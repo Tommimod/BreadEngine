@@ -102,7 +102,7 @@ namespace BreadEditor {
         return dynamic_cast<NodeTreeWindow &>(*findUiElementById(NodeTreeWindow::Id));
     }
 
-    PropertyInspectorWindow &MainWindow::getNodeInspector() const
+    PropertyInspectorWindow &MainWindow::getPropertyInspector() const
     {
         return dynamic_cast<PropertyInspectorWindow &>(*findUiElementById(PropertyInspectorWindow::Id));
     }

@@ -21,7 +21,6 @@ namespace BreadEngine {
             if (!entry)
             {
                 throw new std::runtime_error("Unable to add dynamic component");
-                return;
             }
 
             auto comp = entry->compCreator();
@@ -37,7 +36,7 @@ namespace BreadEngine {
             }
 
             auto &baseChunk = *it->second;
-            baseChunk.addComponent(ownerId, std::move(comp));
+            baseChunk.addComponent(ownerId, std::move(comp), true);
         }
 
         template<typename T, std::enable_if_t<std::is_base_of_v<Component, T>, int> = 0>
@@ -172,7 +171,7 @@ namespace BreadEngine {
         static T &addImpl(unsigned int ownerId, T component)
         {
             auto &chunk = emplaceChunk<T>();
-            return chunk.add(ownerId, std::move(component));
+            return chunk.add(ownerId, std::move(component), false);
         }
     };
 } // BreadEngine

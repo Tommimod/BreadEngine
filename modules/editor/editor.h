@@ -43,6 +43,10 @@ namespace BreadEditor {
 
         void stopGame();
 
+        [[nodiscard]] bool isPlayMode() const { return _isPlayMode; }
+
+        [[nodiscard]] bool isEditorMode() const { return !_isPlayMode; }
+
         [[nodiscard]] bool isProjectOpen() const { return !_currentProjectPath.empty(); }
 
         [[nodiscard]] const std::string &getCurrentProjectPath() const { return _currentProjectPath; }
@@ -62,6 +66,7 @@ namespace BreadEditor {
     private:
         static std::unique_ptr<Editor> _instance;
 
+        bool _isPlayMode = false;
         bool _isFrameEnded = false;
         bool _initialized = false;
         std::string _currentProjectPath;
@@ -78,5 +83,7 @@ namespace BreadEditor {
         ConfigsProvider _configsProvider;
 
         void loadFont();
+
+        static void processInput();
     };
 } // namespace BreadEditor

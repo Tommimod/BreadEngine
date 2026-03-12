@@ -218,7 +218,7 @@ namespace BreadEditor {
     {
         const auto file = _assetConfig.getFileByGuid(fileUiElement->getFileGuid());
         const auto fileName = file->getShortName().c_str();
-        const auto inspectorWindow = &Editor::getInstance().mainWindow.getNodeInspector();
+        const auto inspectorWindow = &Editor::getInstance().mainWindow.getPropertyInspector();
         if (strcmp(fileName, ReservedFileNames::ASSETS_REGISTRY_NAME) == 0)
         {
             inspectorWindow->lookupStruct(&Engine::getInstance().getAssetsConfig());

@@ -61,7 +61,7 @@ namespace BreadEngine {
 
         void unparent(Node *node);
 
-        [[nodiscard]] std::string serialize() const;
+        std::string serialize(const std::string &filePath) const;
 
         static Node *deserialize(const std::string &filePath);
 

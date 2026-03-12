@@ -33,7 +33,8 @@ namespace BreadEditor {
     {
         Editor::getInstance().setFontSize(static_cast<int>(EditorStyle::FontSize::MediumLarge));
         GuiSetStyle(DEFAULT, TEXT_SIZE, static_cast<int>(EditorStyle::FontSize::MediumLarge));
-        if (GuiScrollPanel(_bounds, _title, _contentView, &_scrollPos, &_scrollView))
+        const auto nextTitle = _isDirty ? TextFormat("%s (*)", _title) : _title;
+        if (GuiScrollPanel(_bounds, nextTitle, _contentView, &_scrollPos, &_scrollView))
         {
             setDirty();
         }
@@ -96,6 +97,15 @@ namespace BreadEditor {
         {
             rebuildByNode(child);
         }
+    }
+
+    void NodeTreeWindow::save()
+    {
+        if (!_isDirty) return;
+
+        const auto filePath = Editor::getInstance().getConfigsProvider().getEditorPrefsConfig()->LastOpenedNodePath;
+        auto _ = Engine::getRootNode().serialize(filePath);
+        _isDirty = false;
     }
 
     void NodeTreeWindow::subscribe()
@@ -162,6 +172,11 @@ namespace BreadEditor {
             Node::createCopyFromData(_copyData, *nodeUiElement->getNode());
             _copyData = {};
         });
+
+        if (Editor::getInstance().isEditorMode())
+        {
+            _isDirty = true;
+        }
     }
 
     void NodeTreeWindow::onNodeChangedParent(const Node *node)
@@ -171,12 +186,22 @@ namespace BreadEditor {
 
         int i = 0;
         recalculateUiNodes(Engine::getRootNode(), i);
+
+        if (Editor::getInstance().isEditorMode())
+        {
+            _isDirty = true;
+        }
     }
 
-    void NodeTreeWindow::onNodeChangedActive(const Node *node) const
+    void NodeTreeWindow::onNodeChangedActive(const Node *node)
     {
         const auto instance = getNodeUiElementByEngineNode(node);
         instance->setState(node->getIsActive() ? STATE_NORMAL : STATE_DISABLED);
+
+        if (Editor::getInstance().isEditorMode())
+        {
+            _isDirty = true;
+        }
     }
 
     void NodeTreeWindow::onNodeRemoved(const Node *node)
@@ -198,6 +223,11 @@ namespace BreadEditor {
             int i = 0;
             recalculateUiNodes(Engine::getRootNode(), i);
             _isDestroyProcessStarted = false;
+
+            if (Editor::getInstance().isEditorMode())
+            {
+                _isDirty = true;
+            }
         });
         workerThread.detach();
     }
@@ -213,7 +243,7 @@ namespace BreadEditor {
             Editor::getInstance().mainWindow.getGizmoSystem().recalculateGizmo(node->get<BreadEngine::Transform>());
         }
 
-        PropertyInspectorWindow &nodeInspector = Editor::getInstance().mainWindow.getNodeInspector();
+        PropertyInspectorWindow &nodeInspector = Editor::getInstance().mainWindow.getPropertyInspector();
         nodeInspector.lookupNode(node);
     }
 

@@ -28,6 +28,8 @@ namespace BreadEditor {
 
         const char *getTitle() override { return _title; }
 
+        void save();
+
     protected:
         void subscribe() override;
 
@@ -41,6 +43,7 @@ namespace BreadEditor {
         std::vector<NodeUiElement *> _nodeUiElements{};
         const char *_title = Id.c_str();
         bool _isDestroyProcessStarted = false;
+        bool _isDirty = false;
 
         [[nodiscard]] NodeUiElement *getNodeUiElementByEngineNode(const Node *node) const;
 
@@ -52,7 +55,7 @@ namespace BreadEditor {
 
         void onNodeChangedParent(const Node *node);
 
-        void onNodeChangedActive(const Node *node) const;
+        void onNodeChangedActive(const Node *node);
 
         void onNodeRemoved(const Node *node);
 
