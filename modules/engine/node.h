@@ -19,7 +19,7 @@ namespace BreadEngine {
 
         ~Node();
 
-        Node &setupAsRoot(const std::string &newName);
+        Node &setup(const std::string &newName);
 
         Node &setup(const std::string &newName, Node &nextParent);
 

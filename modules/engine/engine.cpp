@@ -22,7 +22,7 @@ namespace BreadEngine {
     Node &Engine::getRootNode()
     {
         static Node _rootNode;
-        if (_rootNode.getName().empty()) _rootNode = _rootNode.setupAsRoot("Root");
+        if (_rootNode.getName().empty()) _rootNode = _rootNode.setup("Root");
         return _rootNode;
     }
 

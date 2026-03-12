@@ -76,7 +76,7 @@ namespace YAML {
                                  ? BreadEngine::Engine::getRootNode()
                                  : parentNode != nullptr
                                        ? BreadEngine::Engine::nodePool.get().setup(name, *parentNode)
-                                       : BreadEngine::Engine::nodePool.get().setupAsRoot(name);
+                                       : BreadEngine::Engine::nodePool.get().setup(name);
             nextNode.setIsActive(yamlNode[isActiveName].as<bool>());
             auto componentsNode = yamlNode[componentsName].as<Node>();
             for (unsigned i = 0; i < componentsNode.size(); i++)

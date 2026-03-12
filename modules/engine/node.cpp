@@ -19,7 +19,7 @@ namespace BreadEngine {
 
     Node::~Node() = default;
 
-    Node &Node::setupAsRoot(const std::string &newName)
+    Node &Node::setup(const std::string &newName)
     {
         this->_name = newName;
         _childs = std::vector<Node *>();
