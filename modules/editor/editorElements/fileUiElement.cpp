@@ -14,7 +14,7 @@ namespace BreadEditor {
         _fileGuid = fileGuid;
         _file = _assetConfig.getFileByGuid(_fileGuid);
         _button = &UiPool::labelButtonPool.get().setup(id + "button", this, "");
-        _button->setText(GuiIconText(ICON_FILE, _file->getShortName().c_str()));
+        _button->setText(GuiIconText(getIconByFileType(), _file->getShortName().c_str()));
         _button->setTextAlignment(TEXT_ALIGN_LEFT);
         _button->setSizePercentPermanent({1, 1});
         _button->onClick.subscribe([this](const UiLabelButton *)
@@ -87,5 +87,36 @@ namespace BreadEditor {
         {
             onDeleteRequested.invoke(_fileGuid);
         }
+    }
+
+    GuiIconName FileUiElement::getIconByFileType() const
+    {
+        auto icon = ICON_FILE;
+        if (_file->isImage())
+        {
+            icon = ICON_FILETYPE_IMAGE;
+        }
+        else if (_file->isAudio())
+        {
+            icon = ICON_FILETYPE_AUDIO;
+        }
+        else if (_file->isVideo())
+        {
+            icon = ICON_FILETYPE_VIDEO;
+        }
+        else if (_file->isText())
+        {
+            icon = ICON_FILETYPE_TEXT;
+        }
+        else if (_file->isConfig())
+        {
+            icon = ICON_FILETYPE_INFO;
+        }
+        else if (_file->isNode())
+        {
+            icon = ICON_CPU;
+        }
+
+        return icon;
     }
 } // BreadEditor

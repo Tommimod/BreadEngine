@@ -9,7 +9,7 @@
 #include "componentRegistry.h"
 
 namespace BreadEngine {
-    template<typename T, std::enable_if_t<std::is_base_of_v<Component, T>, int>>
+    template<typename T, std::enable_if_t<std::is_base_of_v<Component, T>, int> >
     struct ComponentChunk;
 
     class ComponentsProvider
@@ -20,7 +20,7 @@ namespace BreadEngine {
             const auto *entry = ComponentRegistry::GetEntry(componentType);
             if (!entry)
             {
-                throw new std::runtime_error("Unable to add dynamic component");
+                throw std::runtime_error("Unable to add dynamic component");
             }
 
             auto comp = entry->compCreator();
@@ -146,16 +146,25 @@ namespace BreadEngine {
 
         static void clearOwner(const unsigned int ownerId)
         {
+            if (isDisposed)
+            {
+                return;
+            }
+
             for (const auto &val: getChunks() | std::views::values)
             {
                 val->remove(ownerId);
             }
         }
 
+        static void setDisposed() { isDisposed = true; }
+
     private:
+        static bool isDisposed;
+
         static std::unordered_map<std::type_index, std::unique_ptr<BaseComponentChunk> > &getChunks() noexcept
         {
-            thread_local std::unordered_map<std::type_index, std::unique_ptr<BaseComponentChunk> > chunks;
+            static std::unordered_map<std::type_index, std::unique_ptr<BaseComponentChunk> > chunks{};
             return chunks;
         }
 

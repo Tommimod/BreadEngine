@@ -46,6 +46,7 @@ namespace BreadEngine {
 
     void Engine::shutdown()
     {
+        ComponentsProvider::setDisposed();
         unloadGameModule();
         R3D_Close();
         CloseWindow();

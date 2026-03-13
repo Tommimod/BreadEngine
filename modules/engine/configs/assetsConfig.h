@@ -9,6 +9,7 @@
 #include <unordered_map>
 #include <string_view>
 #include "action.h"
+#include "models/reservedFileNames.h"
 
 namespace BreadEngine {
     struct File : InspectorStruct
@@ -51,6 +52,54 @@ namespace BreadEngine {
         [[nodiscard]] const std::string &getPathFromRoot() const { return _pathFromRoot; }
         [[nodiscard]] const std::string &getExtension() const { return _extension; }
         [[nodiscard]] const std::string &getShortName() const { return _shortName; }
+
+        //File types
+        [[nodiscard]] bool isImage() const
+        {
+            constexpr auto jpg = ".jpg";
+            constexpr auto jpeg = ".jpeg";
+            constexpr auto png = ".png";
+            constexpr auto ico = ".ico";
+            return _extension == jpg || _extension == jpeg || _extension == png || _extension == ico;
+        }
+
+        [[nodiscard]] bool isAudio() const
+        {
+            constexpr auto mp3 = ".mp3";
+            constexpr auto wav = ".wav";
+            constexpr auto ogg = ".ogg";
+            constexpr auto m4a = ".m4a";
+            return _extension == mp3 || _extension == wav || _extension == ogg || _extension == m4a;
+        }
+
+        [[nodiscard]] bool isVideo() const
+        {
+            constexpr auto mp4 = ".mp4";
+            constexpr auto mov = ".mov";
+            constexpr auto avi = ".avi";
+            return _extension == mp4 || _extension == mov || _extension == avi;
+        }
+
+        [[nodiscard]] bool isText() const
+        {
+            constexpr auto txt = ".txt";
+            constexpr auto json = ".json";
+            constexpr auto xml = ".xml";
+            constexpr auto yaml = ".yaml";
+            return _extension == txt || _extension == json || _extension == xml || _extension == yaml;
+        }
+
+        [[nodiscard]] bool isConfig() const
+        {
+            constexpr auto cnf = ".cnf";
+            return _extension == cnf;
+        }
+
+        [[nodiscard]] bool isNode() const
+        {
+            constexpr auto node = ReservedFileNames::MARKER_NODE;
+            return _extension == node;
+        }
 
     private:
         friend struct YAML::convert<File>;

@@ -51,5 +51,7 @@ namespace BreadEditor {
         File *_file = nullptr;
         UiLabelButton *_button = nullptr;
         std::string _fileGuid;
+
+        GuiIconName getIconByFileType() const;
     };
 } // BreadEditor
