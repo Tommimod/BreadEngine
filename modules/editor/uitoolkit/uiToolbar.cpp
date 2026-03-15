@@ -1,10 +1,9 @@
 #include "uiToolbar.h"
-
+#include "editor.h"
 #include "editorStyle.h"
 #include "../windows/mainWindow.h"
 #include "raygui.h"
 #include "uiPool.h"
-#include "raymath.h"
 
 namespace BreadEditor {
     UiToolbar::UiToolbar() = default;
@@ -20,6 +19,7 @@ namespace BreadEditor {
 
     void UiToolbar::dispose()
     {
+        _buttons.clear();
         onButtonPressed.unsubscribeAll();
         onButtonRequestedToRemove.unsubscribeAll();
         UiElement::dispose();
@@ -36,39 +36,52 @@ namespace BreadEditor {
 
     void UiToolbar::replaceButtons(const vector<string> &buttonNames)
     {
-        destroyAllChilds();
+        for (const auto button: _buttons)
+        {
+            button->changeParent(&Editor::getInstance().mainWindow); // CRASH
+            button->getParentElement()->destroyChild(button);
+        }
 
-        float lastX = 0;
+        _buttons.clear();
+
+        auto lastX = 0.0f;
+        auto index = 0;
         for (const auto &buttonName: buttonNames)
         {
             constexpr float offset = 5;
-            auto tag = id + buttonName;
-            const auto textWidth = fmax(55.0f, static_cast<float>(GuiGetTextWidth(buttonName.c_str())) * 1.2f);
+            auto tag = id + buttonName + std::to_string(index);
+            index++;
+            const auto textWidth = static_cast<float>(GuiGetTextWidth(buttonName.c_str())) * 1.7f;
             auto size = Vector2{static_cast<float>(textWidth), .0f};
             if (_isVisualAsLabel)
             {
-                const auto button = &UiPool::labelButtonPool.get().setup(id + tag, this, buttonName);
+                const auto button = &UiPool::labelButtonPool.get().setup(tag, this, buttonName);
                 auto position = Vector2{lastX + offset, 0};
                 button->setSizePercentPermanent({-1, 1});
                 button->setBounds(position, size);
                 button->setTextAlignment(TEXT_ALIGN_CENTER);
+                button->setTextSize(static_cast<int>(EditorStyle::FontSize::SmallMedium));
                 lastX += offset + size.x;
-                button->onClick.subscribe([this](const UiLabelButton *a) { this->invokeButtonClicked(a); });
+                button->onClick.subscribe([this](UiLabelButton *a) { this->invokeButtonClicked(a); });
+                _buttons.emplace_back(button);
             }
             else
             {
-                const auto button = &UiPool::buttonPool.get().setup(id + tag, this, buttonName);
+                auto button = &UiPool::buttonPool.get();
+                button = &button->setup(tag, this, buttonName);
                 auto position = Vector2{lastX + offset, 0};
                 button->setSizePercentPermanent({-1, 1});
                 button->setBounds(position, size);
                 button->setTextAlignment(TEXT_ALIGN_LEFT);
+                button->setTextSize(static_cast<int>(EditorStyle::FontSize::SmallMedium));
                 lastX += offset + size.x;
-                button->onClick.subscribe([this](const UiButton *a) { this->invokeButtonClicked(a); });
+                button->onClick.subscribe([this](UiButton *a) { this->invokeButtonClicked(a); });
+                _buttons.emplace_back(button);
 
-                const auto closeButton = &UiPool::labelButtonPool.get().setup(id + tag, button, "X");
+                const auto closeButton = &UiPool::labelButtonPool.get().setup(tag, button, "X");
                 closeButton->setAnchor(UI_RIGHT_CENTER);
-                closeButton->setPivot({1,.5f});
-                closeButton->setSize({10,10});
+                closeButton->setPivot({1, .5f});
+                closeButton->setSize({10, 10});
                 closeButton->setPosition({-5, 0});
                 closeButton->setTextSize(static_cast<int>(EditorStyle::FontSize::SmallMedium));
                 closeButton->onClick.subscribe([this](const UiLabelButton *a) { this->invokeButtonRequestedToRemove(a); });
@@ -76,21 +89,21 @@ namespace BreadEditor {
         }
     }
 
-    void UiToolbar::invokeButtonClicked(const UiButton *button)
+    void UiToolbar::invokeButtonClicked(UiButton *button)
     {
         TraceLog(LOG_INFO, "Button clicked: %s", button->id.c_str());
-        onButtonPressed.invoke(button->getIndex());
+        onButtonPressed.invoke(button);
     }
 
-    void UiToolbar::invokeButtonClicked(const UiLabelButton *button)
+    void UiToolbar::invokeButtonClicked(UiLabelButton *button)
     {
         TraceLog(LOG_INFO, "Button clicked: %s", button->id.c_str());
-        onButtonPressed.invoke(button->getIndex());
+        onButtonPressed.invoke(button);
     }
 
     void UiToolbar::invokeButtonRequestedToRemove(const UiLabelButton *button)
     {
-        onButtonRequestedToRemove.invoke(button->getParentElement()->getIndex());
+        onButtonRequestedToRemove.invoke(button->getParentElement());
     }
 
     bool UiToolbar::tryDeleteSelf()

@@ -1,6 +1,5 @@
 ﻿#include "assetsWindow.h"
 #include <filesystem>
-#include <thread>
 
 #include "editor.h"
 #include "models/reservedFileNames.h"
@@ -161,7 +160,7 @@ namespace BreadEditor {
         element->update(0);
         constexpr float nodeHorizontalPadding = 15.0f;
         constexpr float nodeVerticalPadding = 5.0f;
-        constexpr float startYPosition = RAYGUI_WINDOWBOX_STATUSBAR_HEIGHT + 10;
+        constexpr float startYPosition = 10;
 
         const auto nodeHeight = element->getSize().y;
         const auto deepLevel = static_cast<float>(folder->getDepth() - 1);
@@ -202,7 +201,7 @@ namespace BreadEditor {
         element->update(0);
         constexpr float nodeHorizontalPadding = 15.0f;
         constexpr float nodeVerticalPadding = 5.0f;
-        constexpr float startYPosition = RAYGUI_WINDOWBOX_STATUSBAR_HEIGHT + 10;
+        constexpr float startYPosition = 10;
 
         const auto nodeHeight = element->getSize().y;
         const auto deepLevel = static_cast<float>(depth);
@@ -330,24 +329,15 @@ namespace BreadEditor {
         _fileUiElements.clear();
         _folderUiElements.clear();
         destroyAllChilds();
-        std::thread workerThread([this]
-        {
-            while (this->getChildCount() != 0)
-            {
-                std::this_thread::sleep_for(std::chrono::milliseconds(16));
-            }
-
-            auto i = 0;
-            recalculateUiFolders(_assetConfig.getRootFolder(), i);
-        });
-        workerThread.detach();
+        auto i = 0;
+        recalculateUiFolders(_assetConfig.getRootFolder(), i);
     }
 
     void AssetsWindow::draw(const float deltaTime)
     {
         Editor::getInstance().setFontSize(static_cast<int>(EditorStyle::FontSize::MediumLarge));
         GuiSetStyle(DEFAULT, TEXT_SIZE, static_cast<int>(EditorStyle::FontSize::MediumLarge));
-        GuiScrollPanel(_bounds, _title, _contentView, &_scrollPos, &_scrollView);
+        GuiScrollPanel(_bounds, nullptr, _contentView, &_scrollPos, &_scrollView);
         UiWindow::draw(deltaTime);
     }
 

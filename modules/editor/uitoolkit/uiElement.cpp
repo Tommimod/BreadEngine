@@ -1,4 +1,4 @@
-﻿#include "uiElement.h"
+#include "uiElement.h"
 #include <algorithm>
 #include <ranges>
 
@@ -30,7 +30,7 @@ namespace BreadEditor {
 
     std::vector<UiElement *> UiElement::getChildsSorterByHorizontal(const bool reverse) const
     {
-        std::vector<UiElement *> sortedChilds = _childs;
+        std::vector<UiElement *> sortedChilds = getAllChilds();
         if (!reverse)
         {
             std::ranges::sort(sortedChilds, [](UiElement *a, UiElement *b)
@@ -50,7 +50,7 @@ namespace BreadEditor {
 
     std::vector<UiElement *> UiElement::getChildsSorterByVertical(const bool reverse) const
     {
-        std::vector<UiElement *> sortedChilds = _childs;
+        std::vector<UiElement *> sortedChilds = getAllChilds();
         if (!reverse)
         {
             std::ranges::sort(sortedChilds, [](UiElement *a, UiElement *b)
@@ -119,7 +119,7 @@ namespace BreadEditor {
         return _localSize;
     }
 
-    void UiElement::setState(GuiState nextState)
+    void UiElement::setState(const GuiState nextState)
     {
         _state = nextState;
     }
@@ -133,56 +133,17 @@ namespace BreadEditor {
 
     void UiElement::setSize(const Vector2 &size)
     {
-        if (isStatic) return;
-        _localSize = size;
-        setDirty();
+        setSizeInternal(size, true);
     }
 
     void UiElement::setSizePercentOneTime(const Vector2 &percent)
     {
-        if (isStatic) return;
-        if (percent.x >= 0 && percent.y >= 0)
-        {
-            setSize(getSizeInPixByPercent(percent));
-        }
-        else if (percent.x >= 0 && percent.y < 0)
-        {
-            const auto ySize = _localSize.y;
-            _localSize.x = getSizeInPixByPercentOnlyX(percent);
-            setSize({_localSize.x, ySize});
-        }
-        else if (percent.x < 0 && percent.y >= 0)
-        {
-            const auto xSize = _localSize.x;
-            _localSize.y = getSizeInPixByPercentOnlyY(percent);
-            setSize({xSize, _localSize.y});
-        }
-
-        setDirty();
+        setSizePercentOneTimeInternal(percent, true);
     }
 
     void UiElement::setSizePercentPermanent(const Vector2 &percent)
     {
-        if (isStatic) return;
-        if (percent.x >= 0 && percent.y >= 0)
-        {
-            setSize(getSizeInPixByPercent(percent));
-        }
-        else if (percent.x >= 0 && percent.y < 0)
-        {
-            const auto ySize = _localSize.y;
-            _localSize.x = getSizeInPixByPercentOnlyX(percent);
-            setSize({_localSize.x, ySize});
-        }
-        else if (percent.x < 0 && percent.y >= 0)
-        {
-            const auto xSize = _localSize.x;
-            _localSize.y = getSizeInPixByPercentOnlyY(percent);
-            setSize({xSize, _localSize.y});
-        }
-
-        _sizeInPercents = percent;
-        setDirty();
+        setSizePercentPermanentInternal(percent, true);
     }
 
     void UiElement::setSizeMax(const Vector2 &maxSize)
@@ -221,6 +182,11 @@ namespace BreadEditor {
         if (_parent)
         {
             effectiveParentBounds = _parent->getBounds();
+            if (!_ignoreScrollLayout)
+            {
+                effectiveParentBounds.x += _parent->getScrollOffset().x;
+                effectiveParentBounds.y += _parent->getScrollOffset().y;
+            }
         }
         else
         {
@@ -249,7 +215,7 @@ namespace BreadEditor {
     {
         std::vector<UiElement *> result;
         std::ranges::copy_if(_childs, std::back_inserter(result),
-                             [](const UiElement *child) { return !child->_isDeleted; });
+                             [](const UiElement *child) { return child != nullptr && !child->_isDeleted; });
         return result;
     }
 
@@ -297,7 +263,7 @@ namespace BreadEditor {
 
     void UiElement::destroyChild(const std::string &childId)
     {
-        for (const auto child: _childs)
+        for (const auto child: getAllChilds())
         {
             if (child->id == childId)
             {
@@ -477,7 +443,8 @@ namespace BreadEditor {
     int UiElement::getIndex() const
     {
         if (_parent == nullptr) return -1;
-        return std::ranges::find(_parent->_childs, this) - _parent->_childs.begin();
+        auto parentChilds = _parent->getAllChilds();
+        return std::ranges::find(parentChilds, this) - parentChilds.begin();
     }
 
     void UiElement::setLayoutType(const LAYOUT_TYPE layout)
@@ -617,11 +584,11 @@ namespace BreadEditor {
     {
         if (_sizeInPercents.x >= 0 || _sizeInPercents.y >= 0)
         {
-            setSizePercentPermanent(_sizeInPercents);
+            setSizePercentPermanentInternal(_sizeInPercents, false);
         }
 
         Rectangle effectiveParentBounds;
-        if (_parent)
+        if (_parent != nullptr)
         {
             effectiveParentBounds = _parent->getBounds();
             if (!_ignoreScrollLayout)
@@ -661,14 +628,15 @@ namespace BreadEditor {
         Vector2 currPos = {parentBounds.x + parentScrollOffset.x, parentBounds.y + parentScrollOffset.y};
 
         auto totalProp = 0.0f;
-        for (const auto child: _childs)
+        const auto allChilds = getAllChilds();
+        for (const auto child: allChilds)
         {
             totalProp += (_layoutType == LAYOUT_HORIZONTAL ? child->_sizeInPercents.x : child->_sizeInPercents.y);
         }
 
         if (totalProp == 0.0f) totalProp = 1.0f; // Avoid div0
 
-        for (const auto child: _childs)
+        for (const auto child: allChilds)
         {
             const auto prop = (_layoutType == LAYOUT_HORIZONTAL ? child->_sizeInPercents.x : child->_sizeInPercents.y) / totalProp;
             const auto childSize = (_layoutType == LAYOUT_HORIZONTAL ? Vector2{parentBounds.width * prop, parentBounds.height} : Vector2{parentBounds.width, parentBounds.height * prop});
@@ -682,7 +650,7 @@ namespace BreadEditor {
     void UiElement::setDirty()
     {
         _isDirty = true;
-        for (const auto child: _childs)
+        for (const auto child: getAllChilds())
         {
             child->setDirty();
         }
@@ -812,7 +780,7 @@ namespace BreadEditor {
 
         for (const auto child: _childs)
         {
-            if (child == nullptr) continue;
+            if (child == nullptr || child->_isDeleted) continue;
             if (child->_onOverlayLayer || child->_isRenderOnEndOfFrame)
             {
                 continue;
@@ -825,8 +793,8 @@ namespace BreadEditor {
         {
             for (const auto child: _overlayChilds)
             {
-                if (child == nullptr) continue;
-                if (child == nullptr || !child->_onOverlayLayer)
+                if (child == nullptr || child->_isDeleted) continue;
+                if (!child->_onOverlayLayer)
                 {
                     _overlayChilds.erase(std::ranges::find(_overlayChilds, child));
                     continue;
@@ -839,7 +807,7 @@ namespace BreadEditor {
         onFrameEnd(deltaTime);
         for (const auto child: _childs)
         {
-            if (child == nullptr) continue;
+            if (child == nullptr || child->_isDeleted) continue;
             if (child->_onOverlayLayer || !child->_isRenderOnEndOfFrame)
             {
                 continue;
@@ -851,11 +819,9 @@ namespace BreadEditor {
 
     void UiElement::updateInternal(const float deltaTime)
     {
-        if (!isActive || _isDeleted)
-        {
-            return;
-        }
+        if (!isActive || _isDeleted) return;
 
+        destroyChildsInternal();
         if (_isDirty)
         {
             computeBounds();
@@ -869,7 +835,6 @@ namespace BreadEditor {
         }
 
         update(deltaTime);
-        destroyChildsInternal();
         for (const auto child: _childs)
         {
             if (child == nullptr) continue;
@@ -882,19 +847,78 @@ namespace BreadEditor {
         const auto size = static_cast<int>(_childs.size());
         for (int i = size - 1; i >= 0; --i)
         {
-            auto child = _childs[i];
-            if (child == nullptr) continue;
+            const auto child = _childs[i];
+            if (child == nullptr)
+            {
+                _childs.erase(_childs.begin() + i);
+                continue;
+            }
+
             if (!child->_isDeleted)
             {
                 continue;
             }
 
-            _childs.erase(std::ranges::find(_childs, child));
+            _childs.erase(_childs.begin() + i);
             if (!child->tryDeleteSelf())
             {
                 child->dispose();
                 delete child;
             }
         }
+    }
+
+    void UiElement::setSizeInternal(const Vector2 &size, const bool withDirty)
+    {
+        if (isStatic) return;
+        _localSize = size;
+        if (withDirty) setDirty();
+    }
+
+    void UiElement::setSizePercentOneTimeInternal(const Vector2 &percent, const bool withDirty)
+    {
+        if (isStatic) return;
+        if (percent.x >= 0 && percent.y >= 0)
+        {
+            setSize(getSizeInPixByPercent(percent));
+        }
+        else if (percent.x >= 0 && percent.y < 0)
+        {
+            const auto ySize = _localSize.y;
+            _localSize.x = getSizeInPixByPercentOnlyX(percent);
+            setSize({_localSize.x, ySize});
+        }
+        else if (percent.x < 0 && percent.y >= 0)
+        {
+            const auto xSize = _localSize.x;
+            _localSize.y = getSizeInPixByPercentOnlyY(percent);
+            setSize({xSize, _localSize.y});
+        }
+
+        if (withDirty) setDirty();
+    }
+
+    void UiElement::setSizePercentPermanentInternal(const Vector2 &percent, const bool withDirty)
+    {
+        if (isStatic) return;
+        if (percent.x >= 0 && percent.y >= 0)
+        {
+            setSizeInternal(getSizeInPixByPercent(percent), withDirty);
+        }
+        else if (percent.x >= 0 && percent.y < 0)
+        {
+            const auto ySize = _localSize.y;
+            _localSize.x = getSizeInPixByPercentOnlyX(percent);
+            setSizeInternal({_localSize.x, ySize}, withDirty);
+        }
+        else if (percent.x < 0 && percent.y >= 0)
+        {
+            const auto xSize = _localSize.x;
+            _localSize.y = getSizeInPixByPercentOnlyY(percent);
+            setSizeInternal({xSize, _localSize.y}, withDirty);
+        }
+
+        _sizeInPercents = percent;
+        if (withDirty) setDirty();
     }
 } // namespace BreadEditor

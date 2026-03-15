@@ -24,7 +24,7 @@ namespace BreadEditor {
     {
         Editor::getInstance().setFontSize(static_cast<int>(EditorStyle::FontSize::MediumLarge));
         GuiSetStyle(DEFAULT, TEXT_SIZE, static_cast<int>(EditorStyle::FontSize::MediumLarge));
-        GuiScrollPanel(_bounds, _title, _contentView, &_scrollPos, &_scrollView);
+        GuiScrollPanel(_bounds, nullptr, _contentView, &_scrollPos, &_scrollView);
         UiWindow::draw(deltaTime);
     }
 

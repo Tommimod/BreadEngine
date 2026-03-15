@@ -1,6 +1,4 @@
 #include "uiInspector.h"
-#include <thread>
-
 #include "editor.h"
 #include "uiPool.h"
 using namespace BreadEngine;

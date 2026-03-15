@@ -23,8 +23,6 @@ namespace BreadEditor {
 
         [[nodiscard]] const std::string &getFileGuid() const { return _fileGuid; }
 
-        void awake() override;
-
         void draw(float deltaTime) override;
 
         void update(float deltaTime) override;

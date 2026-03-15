@@ -27,10 +27,6 @@ namespace BreadEditor {
         return *this;
     }
 
-    void FileUiElement::awake()
-    {
-    }
-
     void FileUiElement::draw(const float deltaTime)
     {
         if (Engine::isCollisionPointRec(GetMousePosition(), getBounds()) || isDragging)

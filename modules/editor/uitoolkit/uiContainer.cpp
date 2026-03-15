@@ -4,15 +4,17 @@
 #include "../windows/mainWindow.h"
 
 namespace BreadEditor {
-    UiContainer::UiContainer(const LAYOUT_TYPE layoutType) : _toolbar(UiPool::toolbarPool.get())
+    UiContainer::UiContainer(const LAYOUT_TYPE layoutType)
     {
         _layoutType = layoutType;
-        _toolbar.onButtonPressed.subscribe([this](const int index) { this->onTabChanged(index); });
-        addTab();
     }
 
-    UiContainer::~UiContainer()
-    = default;
+    void UiContainer::dispose()
+    {
+        _tabs.clear();
+        _toolbar = nullptr;
+        UiElement::dispose();
+    }
 
     UiContainer *UiContainer::setup(const std::string &id)
     {
@@ -41,40 +43,28 @@ namespace BreadEditor {
     {
         UiElement::addChild(child);
         if (getChildCount() == 1) return;
-        _tabToWindowIds[_activeTab].emplace_back(child->id);
 
+        _tabs.emplace_back(child->id);
+        _toolbar->replaceButtons(_tabs);
         recalculateChilds();
     }
 
     void UiContainer::destroyChild(UiElement *child)
     {
-        _tabToWindowIds[_activeTab].erase(ranges::remove(_tabToWindowIds[_activeTab], child->id).begin());
+        _tabs.erase(std::ranges::remove(_tabs, child->id).begin());
+        _toolbar->replaceButtons(_tabs);
         UiElement::destroyChild(child);
         if (getChildCount() == 1) return;
 
         recalculateChilds();
     }
 
-    void UiContainer::onTabChanged(const int index)
+    void UiContainer::onTabChanged(UiElement *uiElement)
     {
-        if (index == _activeTab) return;
+    }
 
-        for (const auto previousTabWindows = &_tabToWindowIds[_activeTab]; const auto &windowId: *previousTabWindows)
-        {
-            if (const auto child = getChildById(windowId); child != nullptr)
-            {
-                child->isActive = false;
-            }
-        }
-        _activeTab = index;
-
-        for (const auto currentTabWindows = &_tabToWindowIds[_activeTab]; const auto &windowId: *currentTabWindows)
-        {
-            if (const auto child = getChildById(windowId); child != nullptr)
-            {
-                child->isActive = true;
-            }
-        }
+    void UiContainer::onTabClosed(UiElement *uiElement)
+    {
     }
 
     bool UiContainer::tryDeleteSelf()
@@ -84,33 +74,35 @@ namespace BreadEditor {
 
     void UiContainer::initialize()
     {
-        _toolbar.setup(id + "toolbar", this, _tabs);
-        _toolbar.setAnchor(UI_FIT_TOP_HORIZONTAL);
-        _toolbar.setPivot({0, 0});
-        _toolbar.setSize({0, 20});
-        _toolbar.computeBounds();
-        _toolbar.isStatic = true;
+        _toolbar = &UiPool::toolbarPool.get().setup(id + "toolbar", this, _tabs);
+        _toolbar->setAnchor(UI_FIT_TOP_HORIZONTAL);
+        _toolbar->setPivot({0, 0});
+        _toolbar->setSize({0, 20});
+        _toolbar->computeBounds();
+        _toolbar->onButtonPressed.subscribe([this](UiElement *uiElement) { onTabChanged(uiElement); });
+        _toolbar->onButtonRequestedToRemove.subscribe([this](UiElement *uiElement) { onTabClosed(uiElement); });
+        _toolbar->isStatic = true;
 
-        auto &toolbarOptButton = UiPool::labelButtonPool.get().setup(id + "toolbarOptButton", &_toolbar, GuiIconText(ICON_BURGER_MENU, nullptr));
-        toolbarOptButton.setTextAlignment(TEXT_ALIGN_CENTER);
-        toolbarOptButton.setAnchor(UI_RIGHT_CENTER);
-        toolbarOptButton.setPivot({1, .5f});
-        toolbarOptButton.setSize({20, 20});
-        toolbarOptButton.setPosition({-5, 0});
-        toolbarOptButton.onClick.subscribe([this](UiLabelButton *)
+        const auto toolbarOptButton = &UiPool::labelButtonPool.get().setup(id + "toolbarOptButton", _toolbar, GuiIconText(ICON_BURGER_MENU, nullptr));
+        toolbarOptButton->setTextAlignment(TEXT_ALIGN_CENTER);
+        toolbarOptButton->setAnchor(UI_RIGHT_CENTER);
+        toolbarOptButton->setPivot({1, .5f});
+        toolbarOptButton->setSize({20, 20});
+        toolbarOptButton->setPosition({-5, 0});
+        toolbarOptButton->onClick.subscribe([this](UiLabelButton *)
         {
             auto model = Editor::getInstance().getEditorModel().getWindowsModel();
             auto windowsNames = model->getNotOpenedWindowsNames();
-            auto &dropdown = UiPool::dropdownPool.get().setup(id + "toolbarDropdown", &_toolbar, windowsNames, false);
-            dropdown.setAnchor(UI_RIGHT_CENTER);
-            dropdown.setPivot({1, 0});
-            dropdown.setSize({80, 15});
-            dropdown.setPosition({-5, 0});
-            dropdown.setTextAlignment(TEXT_ALIGN_LEFT);
-            dropdown.setOnOverlayLayer();
-            dropdown.onOptionSelected.subscribe([this, &dropdown, model, windowsNames](const int value)
+            auto dropdown = &UiPool::dropdownPool.get().setup(id + "toolbarDropdown", _toolbar, windowsNames, false);
+            dropdown->setAnchor(UI_RIGHT_CENTER);
+            dropdown->setPivot({1, 0});
+            dropdown->setSize({80, 15});
+            dropdown->setPosition({-5, 0});
+            dropdown->setTextAlignment(TEXT_ALIGN_LEFT);
+            dropdown->setOnOverlayLayer();
+            dropdown->onOptionSelected.subscribe([this, &dropdown, model, windowsNames](const int value)
             {
-                _toolbar.destroyChild(&dropdown);
+                _toolbar->destroyChild(dropdown);
                 if (value >= 1)
                 {
                     auto factory = model->getWindowFactory(windowsNames[value - 1]);
@@ -125,8 +117,7 @@ namespace BreadEditor {
     {
         const auto isSingleChild = getChildCount() == 2; //1. toolbar + 2. child
         int i = 0;
-        float lastPosition = _toolbar.getSize().y;
-        _tabToWindowIds[_activeTab].clear();
+        float lastPosition = _toolbar->getSize().y;
 
         for (const auto &childElement: getAllChilds())
         {
@@ -172,21 +163,8 @@ namespace BreadEditor {
             childElement->setPosition({0, lastPosition});
             lastPosition += childElement->getSize().y;
             i++;
-
-            if (const auto window = dynamic_cast<UiWindow *>(childElement); window != nullptr)
-            {
-                window->setIsCloseable(!isSingleChild);
-            }
-
-            _tabToWindowIds[_activeTab].emplace_back(childElement->id);
         }
 
-        setChildLast(&_toolbar);
-    }
-
-    void UiContainer::addTab()
-    {
-        constexpr std::string tabName = "Tab %i";
-        _tabs.emplace_back(TextFormat(tabName.c_str(), _tabs.size() + 1));
+        setChildLast(_toolbar);
     }
 } // BreadEditor

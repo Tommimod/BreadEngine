@@ -8,8 +8,8 @@ namespace BreadEditor {
     class UiToolbar final : public UiElement
     {
     public:
-        Action<int> onButtonPressed;
-        Action<int> onButtonRequestedToRemove;
+        Action<UiElement *> onButtonPressed;
+        Action<UiElement *> onButtonRequestedToRemove;
 
         UiToolbar();
 
@@ -29,11 +29,12 @@ namespace BreadEditor {
         bool tryDeleteSelf() override;
 
     private:
+        std::vector<UiElement *> _buttons {};
         bool _isVisualAsLabel = false;
 
-        void invokeButtonClicked(const UiButton *button);
+        void invokeButtonClicked(UiButton *button);
 
-        void invokeButtonClicked(const UiLabelButton *button);
+        void invokeButtonClicked(UiLabelButton *button);
 
         void invokeButtonRequestedToRemove(const UiLabelButton *button);
     };

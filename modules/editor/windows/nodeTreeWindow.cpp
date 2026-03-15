@@ -31,10 +31,10 @@ namespace BreadEditor {
 
     void NodeTreeWindow::draw(const float deltaTime)
     {
+        TraceLog(LOG_INFO, ("Size" + std::to_string(_bounds.width) + "x" + std::to_string(_bounds.height)).c_str());
         Editor::getInstance().setFontSize(static_cast<int>(EditorStyle::FontSize::MediumLarge));
         GuiSetStyle(DEFAULT, TEXT_SIZE, static_cast<int>(EditorStyle::FontSize::MediumLarge));
-        const auto nextTitle = _isDirty ? TextFormat("%s (*)", _title) : _title;
-        if (GuiScrollPanel(_bounds, nextTitle, _contentView, &_scrollPos, &_scrollView))
+        if (GuiScrollPanel(_bounds, nullptr, _contentView, &_scrollPos, &_scrollView)) //TODO Dirty*
         {
             setDirty();
         }
@@ -215,21 +215,15 @@ namespace BreadEditor {
         _nodeUiElements.erase(ranges::find(_nodeUiElements, instance));
         if (_isDestroyProcessStarted) return;
 
-        std::thread workerThread([this]
+        _isDestroyProcessStarted = true;
+        int i = 0;
+        recalculateUiNodes(Engine::getRootNode(), i);
+        _isDestroyProcessStarted = false;
+
+        if (Editor::getInstance().isEditorMode())
         {
-            _isDestroyProcessStarted = true;
-            std::this_thread::sleep_for(std::chrono::milliseconds(16));
-
-            int i = 0;
-            recalculateUiNodes(Engine::getRootNode(), i);
-            _isDestroyProcessStarted = false;
-
-            if (Editor::getInstance().isEditorMode())
-            {
-                _isDirty = true;
-            }
-        });
-        workerThread.detach();
+            _isDirty = true;
+        }
     }
 
     void NodeTreeWindow::onNodeSelected(NodeUiElement *nodeUiElement)
@@ -316,7 +310,7 @@ namespace BreadEditor {
         element->update(0);
         constexpr float nodeHorizontalPadding = 15.0f;
         constexpr float nodeVerticalPadding = 5.0f;
-        constexpr float startYPosition = RAYGUI_WINDOWBOX_STATUSBAR_HEIGHT + 10;
+        constexpr float startYPosition = 10;
 
         const auto nodeHeight = element->getSize().y;
         const auto deepLevel = static_cast<float>(startNode.getDeepLevel());

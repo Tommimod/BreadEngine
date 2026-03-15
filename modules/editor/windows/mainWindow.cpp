@@ -34,7 +34,7 @@ namespace BreadEditor {
         _leftContainer->computeBounds();
         _leftContainer->setup("leftContainer", this);
 
-        _leftContainer->addChild(new AssetsWindow(AssetsWindow::Id, _leftContainer.get()));
+        _leftContainer->addChild(new AssetsWindow(AssetsWindow::Id));
 
         _centerContainer = std::make_unique<UiContainer>(LAYOUT_VERTICAL);
         _centerContainer->setPivot({.5f, 0});
@@ -44,7 +44,7 @@ namespace BreadEditor {
         _centerContainer->computeBounds();
         _centerContainer->setup("centerContainer", this);
 
-        _centerContainer->addChild(new ViewportWindow(ViewportWindow::Id, _centerContainer.get()));
+        _centerContainer->addChild(new ViewportWindow(ViewportWindow::Id));
 
         _bottomContainer = std::make_unique<UiContainer>(LAYOUT_HORIZONTAL);
         _bottomContainer->setPivot({.5f, 1});
@@ -55,31 +55,43 @@ namespace BreadEditor {
         _bottomContainer->computeBounds();
         _bottomContainer->setup("bottomContainer", this);
 
-        _bottomContainer->addChild(new ConsoleWindow(ConsoleWindow::Id, _bottomContainer.get()));
+        _bottomContainer->addChild(new ConsoleWindow(ConsoleWindow::Id));
 
-        _rightContainer = std::make_unique<UiContainer>(LAYOUT_VERTICAL);
-        _rightContainer->setPivot({1, 0});
-        _rightContainer->setAnchor(UI_FIT_RIGHT_VERTICAL);
-        _rightContainer->setSizePercentOneTime({.15f, .5f});
-        _rightContainer->setPosition({0, toolbar.getSize().y - 1});
-        _rightContainer->setHorizontalResized(true);
-        _rightContainer->computeBounds();
-        _rightContainer->setup("rightContainer", this);
+        _topRightContainer = std::make_unique<UiContainer>(LAYOUT_VERTICAL);
+        _topRightContainer->setPivot({1, 0});
+        _topRightContainer->setAnchor(UI_RIGHT_TOP);
+        _topRightContainer->setSizePercentOneTime({.15f, .5f});
+        _topRightContainer->setPosition({0, toolbar.getSize().y - 1});
+        _topRightContainer->setHorizontalResized(true);
+        _topRightContainer->computeBounds();
+        _topRightContainer->setup("topRightContainer", this);
 
-        _rightContainer->addChild(new NodeTreeWindow(NodeTreeWindow::Id, _rightContainer.get()));
-        _rightContainer->addChild(new PropertyInspectorWindow(PropertyInspectorWindow::Id, _rightContainer.get()));
+        _topRightContainer->addChild(new NodeTreeWindow(NodeTreeWindow::Id));
+
+        //TODO Merge with _topRightContainer
+        _bottomRightContainer = std::make_unique<UiContainer>(LAYOUT_VERTICAL);
+        _bottomRightContainer->setPivot({1, 1});
+        _bottomRightContainer->setAnchor(UI_RIGHT_BOTTOM);
+        _bottomRightContainer->setSizePercentOneTime({.15f, .5f});
+        _bottomRightContainer->setPosition({0, toolbar.getSize().y - 1});
+        _bottomRightContainer->setHorizontalResized(true);
+        _bottomRightContainer->computeBounds();
+        _bottomRightContainer->setup("bottomRightContainer", this);
+
+        _bottomRightContainer->addChild(new PropertyInspectorWindow(PropertyInspectorWindow::Id));
     }
 
     void MainWindow::awake()
     {
         std::thread workerThread([this]
         {
-            while (!Engine::getInstance().shouldClose())
+            constexpr auto time = std::chrono::milliseconds(1);
+            while (!Engine::shouldClose())
             {
-                std::this_thread::sleep_for(std::chrono::milliseconds(32));
-                if (IsWindowResized() || IsWindowMinimized() || IsWindowMaximized())
+                std::this_thread::sleep_for(time);
+                if (IsWindowResized())
                 {
-                    setDirty();
+                    resize();
                 }
             }
         });
@@ -158,7 +170,10 @@ namespace BreadEditor {
         UiElement *element = _leftContainer->getChildById(id);
         if (element != nullptr) return element;
 
-        element = _rightContainer->getChildById(id);
+        element = _topRightContainer->getChildById(id);
+        if (element != nullptr) return element;
+
+        element = _bottomRightContainer->getChildById(id);
         if (element != nullptr) return element;
 
         element = _bottomContainer->getChildById(id);
@@ -181,8 +196,9 @@ namespace BreadEditor {
         toolbar.setOnOverlayLayer();
         toolbar.isStatic = true;
 
-        toolbar.onButtonPressed.subscribe([this, &toolbar, &categories](int index)
+        toolbar.onButtonPressed.subscribe([this, &toolbar, &categories](const UiElement *uiElement)
         {
+            auto index = uiElement->getIndex();
             const auto &nextOptions = _mainToolbarSystem.getOptions(categories[index]);
             std::vector<std::string> options{};
             options.reserve(nextOptions.size());
@@ -207,5 +223,17 @@ namespace BreadEditor {
             });
         });
         return toolbar;
+    }
+
+    void MainWindow::resize()
+    {
+        setSizePercentPermanent({1, 1});
+        computeBounds();
+
+        _leftContainer->setSizePercentOneTime({.15f, .5f});
+        _centerContainer->setSizePercentOneTime({.7f, .65f});
+        _bottomContainer->setSizePercentOneTime({.7f, .35f});
+        _topRightContainer->setSizePercentOneTime({.15f, .5f});
+        _bottomRightContainer->setSizePercentOneTime({.15f, .5f});
     }
 } // namespace BreadEditor

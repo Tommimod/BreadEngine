@@ -39,7 +39,7 @@ namespace BreadEditor {
     {
         Editor::getInstance().setFontSize(static_cast<int>(EditorStyle::FontSize::MediumLarge));
         GuiSetStyle(DEFAULT, TEXT_SIZE, static_cast<int>(EditorStyle::FontSize::MediumLarge));
-        GuiScrollPanel(_bounds, _title, _contentView, &_scrollPos, &_scrollView);
+        GuiScrollPanel(_bounds, nullptr, _contentView, &_scrollPos, &_scrollView);
         UiWindow::draw(deltaTime);
     }
 
@@ -155,7 +155,7 @@ namespace BreadEditor {
 
     void PropertyInspectorWindow::initialize()
     {
-        constexpr int verticalOffset = RAYGUI_WINDOWBOX_STATUSBAR_HEIGHT + 10;
+        constexpr int verticalOffset = 10;
         constexpr int horizontalOffset = 5;
 
         _activeCheckBox = &UiPool::checkBoxPool.get().setup("nodeInspectorActiveCheckBox", this, "Active", false);
@@ -208,7 +208,7 @@ namespace BreadEditor {
         uiComponentElement->setAnchor(UI_LEFT_TOP);
         uiComponentElement->setSize({0, 50});
         uiComponentElement->setSizePercentPermanent({.955f, -1});
-        auto yPosition = RAYGUI_WINDOWBOX_STATUSBAR_HEIGHT + 10.0f;
+        auto yPosition = 10.0f;
         if (_activeCheckBox->isActive)
         {
             yPosition = _nameTextBox->getPosition().y + _nameTextBox->getSize().y + 10;

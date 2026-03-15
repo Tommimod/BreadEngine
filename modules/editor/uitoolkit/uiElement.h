@@ -1,4 +1,6 @@
 ﻿#pragma once
+#include <queue>
+
 #include "raygui.h"
 #include "raylib.h"
 #include <string>
@@ -186,15 +188,21 @@ namespace BreadEditor {
 
     private:
         friend class Editor;
-        bool _isDirty = true;
-        bool _onOverlayLayer = false;
         std::vector<UiElement *> _childs{};
         Vector2 _scrollOffset{0, 0};
+        bool _isDirty = true;
+        bool _onOverlayLayer = false;
 
         void drawInternal(float deltaTime, GuiState state = STATE_NORMAL);
 
         void updateInternal(float deltaTime);
 
         void destroyChildsInternal();
+
+        void setSizeInternal(const Vector2 &size, bool withDirty);
+
+        void setSizePercentOneTimeInternal(const Vector2 &percent, bool withDirty);
+
+        void setSizePercentPermanentInternal(const Vector2 &percent, bool withDirty);
     };
 } // namespace BreadEditor

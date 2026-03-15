@@ -36,7 +36,7 @@ namespace BreadEngine {
         SetConfigFlags(FLAG_WINDOW_RESIZABLE | FLAG_WINDOW_ALWAYS_RUN | FLAG_WINDOW_HIGHDPI);
         InitWindow(width, height, title);
         MaximizeWindow();
-        R3D_Init(width, height, R3D_FLAG_FXAA);
+        R3D_Init(GetScreenWidth(), GetScreenHeight(), R3D_FLAG_FXAA);
         SetTargetFPS(60);
         setupDefaultCamera();
         NodeProvider::init();

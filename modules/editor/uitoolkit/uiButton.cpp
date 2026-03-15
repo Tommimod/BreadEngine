@@ -11,13 +11,15 @@ namespace BreadEditor {
     UiButton &UiButton::setup(const std::string &id, const std::string &newText)
     {
         this->_text = newText;
-        return dynamic_cast<UiButton &>(UiElement::setup(id));
+        UiElement::setup(id);
+        return *this;
     }
 
     UiButton &UiButton::setup(const std::string &id, UiElement *parentElement, const std::string &newText)
     {
         this->_text = newText;
-        return dynamic_cast<UiButton &>(UiElement::setup(id, parentElement));
+        UiElement::setup(id, parentElement);
+        return *this;
     }
 
     void UiButton::dispose()
@@ -41,7 +43,7 @@ namespace BreadEditor {
             auto isNeedIgnore = !Engine::isCollisionPointRec(mousePos, _parent->getBounds()) && !_canClickOutside;
             if (const auto childsCount = getChildCount(); !isNeedIgnore && childsCount > 0)
             {
-                for (const auto child : getAllChilds())
+                for (const auto child: getAllChilds())
                 {
                     if (Engine::isCollisionPointRec(mousePos, child->getBounds()))
                     {

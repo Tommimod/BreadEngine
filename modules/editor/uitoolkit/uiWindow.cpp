@@ -1,15 +1,14 @@
 ﻿#include "uiWindow.h"
 #include "editor.h"
-#include "uiPool.h"
 
 namespace BreadEditor {
-    UiWindow::UiWindow(const std::string &id) : _closeButton(UiPool::buttonPool.get())
+    UiWindow::UiWindow(const std::string &id)
     {
         setup(id);
         UiWindow::initialize();
     }
 
-    UiWindow::UiWindow(const std::string &id, UiElement *parentElement) : _closeButton(UiPool::buttonPool.get())
+    UiWindow::UiWindow(const std::string &id, UiElement *parentElement)
     {
         setup(id, parentElement);
         UiWindow::initialize();
@@ -43,25 +42,19 @@ namespace BreadEditor {
         _isAwake = false;
     }
 
+    void UiWindow::close()
+    {
+        _parent->destroyChild(this);
+        getRootElement()->setDirty();
+        Editor::getInstance().getEditorModel().getWindowsModel()->addWindowToAllowList(id);
+    }
+
     void UiWindow::subscribe()
     {
-        _closeButton.onClick.subscribe([this](UiButton *_)
-        {
-            if (!_closeButton.isActive)
-            {
-                return;
-            }
-
-            _closeButton.isActive = false;
-            _parent->destroyChild(this);
-            getRootElement()->setDirty();
-            Editor::getInstance().getEditorModel().getWindowsModel()->addWindowToAllowList(id);
-        });
     }
 
     void UiWindow::unsubscribe()
     {
-        _closeButton.onClick.unsubscribeAll();
     }
 
     bool UiWindow::tryDeleteSelf()
@@ -88,15 +81,6 @@ namespace BreadEditor {
 
     void UiWindow::initialize()
     {
-        _closeButton.setup(id + "closeButton", this, "X");
-        _closeButton.setSize({15, 15});
-        _closeButton.setAnchor(UI_RIGHT_TOP);
-        _closeButton.setPivot({1, 1});
-        _closeButton.setPosition({-5, 20});
-        _closeButton.setTextSize(static_cast<int>(EditorStyle::FontSize::SmallMedium));
-        _closeButton.setRenderOnEndOfFrame();
-        _closeButton.setIgnoreScrollLayout();
-
         Editor::getInstance().getEditorModel().getWindowsModel()->removeWindowFromAllowList(id);
     }
 

@@ -23,7 +23,7 @@ namespace BreadEditor {
         _textBox = &UiPool::textBoxPool.get().setup(id + "text", this, _text, static_cast<int>(EditorStyle::FontSize::MediumLarge), true);
         _textBox->setAnchor(UI_CENTER_TOP);
         _textBox->setPivot({.5f, 0});
-        _textBox->setPosition({0, RAYGUI_WINDOWBOX_STATUSBAR_HEIGHT + 5});
+        _textBox->setPosition({0, 5});
         _textBox->setSize({0, 20});
         _textBox->setSizePercentPermanent({.9f, -1});
         _textBox->onValueChanged.subscribe([this](const char *text)
@@ -42,7 +42,7 @@ namespace BreadEditor {
         _applyButton = &UiPool::buttonPool.get().setup(id + "applyButton", this, "Apply");
         _applyButton->setAnchor(UI_CENTER_TOP);
         _applyButton->setPivot({.5f, 0});
-        _applyButton->setPosition({0, RAYGUI_WINDOWBOX_STATUSBAR_HEIGHT + 30});
+        _applyButton->setPosition({0, 30});
         _applyButton->setSize({0, 18});
         _applyButton->setSizePercentPermanent({.3f, -1});
         _applyButton->onClick.subscribe([this](UiButton *)

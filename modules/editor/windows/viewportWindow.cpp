@@ -24,7 +24,7 @@ namespace BreadEditor {
     {
         Editor::getInstance().setFontSize(static_cast<int>(EditorStyle::FontSize::MediumLarge));
         GuiSetStyle(DEFAULT, TEXT_SIZE, static_cast<int>(EditorStyle::FontSize::MediumLarge));
-        GuiScrollPanel(_bounds, _title, _contentView, &_scrollPos, &_scrollView);
+        GuiScrollPanel(_bounds, nullptr, _contentView, &_scrollPos, &_scrollView);
         const auto texture = Editor::getInstance().getViewportRenderTexture();
         if (!texture) return;
 
@@ -115,10 +115,7 @@ namespace BreadEditor {
 
     Rectangle ViewportWindow::getViewportSize() const
     {
-        auto bounds = _bounds;
-        bounds.height -= RAYGUI_WINDOWBOX_STATUSBAR_HEIGHT;
-        bounds.y += RAYGUI_WINDOWBOX_STATUSBAR_HEIGHT;
-        return bounds;
+        return _bounds;
     }
 
     void ViewportWindow::subscribe()

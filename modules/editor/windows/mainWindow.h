@@ -54,7 +54,8 @@ namespace BreadEditor {
 
     private:
         unique_ptr<UiContainer> _leftContainer;
-        unique_ptr<UiContainer> _rightContainer;
+        unique_ptr<UiContainer> _topRightContainer;
+        unique_ptr<UiContainer> _bottomRightContainer;
         unique_ptr<UiContainer> _bottomContainer;
         unique_ptr<UiContainer> _centerContainer;
 
@@ -65,5 +66,7 @@ namespace BreadEditor {
         [[nodiscard]] UiElement *findUiElementById(const std::string &id) const;
 
         [[nodiscard]] UiToolbar &getToolbar();
+
+        void resize();
     };
 } // namespace BreadEditor

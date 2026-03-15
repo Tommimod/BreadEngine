@@ -10,12 +10,9 @@ namespace BreadEditor {
     public:
         explicit UiContainer(LAYOUT_TYPE layoutType);
 
-        ~UiContainer() override;
+        ~UiContainer() override = default;
 
-        void dispose() override
-        {
-            UiElement::dispose();
-        }
+        void dispose() override;
 
         UiContainer *setup(const std::string &id);
 
@@ -29,19 +26,20 @@ namespace BreadEditor {
 
         void destroyChild(UiElement *child) override;
 
-        void onTabChanged(int index);
-
     protected:
         bool tryDeleteSelf() override;
 
     private:
-        UiToolbar &_toolbar;
-        vector<std::string> _tabs {};
-        int _activeTab = 0;
-        std::unordered_map<int, std::vector<std::string>> _tabToWindowIds {};
+        UiToolbar *_toolbar = nullptr;
+        std::unordered_map<std::string, std::string> _tabIdToWindowId{};
+        vector<std::string> _tabs{};
 
         void initialize();
+
         void recalculateChilds();
-        void addTab();
+
+        void onTabChanged(UiElement *uiElement);
+
+        void onTabClosed(UiElement *uiElement);
     };
 } // BreadEditor

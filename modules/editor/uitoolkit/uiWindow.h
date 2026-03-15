@@ -21,16 +21,15 @@ namespace BreadEditor {
 
         void dispose() override;
 
-        void setIsCloseable(const bool value) const { _closeButton.isActive = value; }
+        virtual const char *getTitle() { return ""; }
 
-        virtual const char *getTitle() = 0;
+        void close();
 
     protected:
         Vector2 _scrollPos = {0.0f, 0.0f};
         Rectangle _contentView = {0.0f, 0.0f, 0.0f, 0.0f};
         Rectangle _scrollView = {0.0f, 0.0f, 0.0f, 0.0f};
         Vector2 _contentSize{0, 0};
-        UiButton &_closeButton;
 
         virtual void initialize();
 
