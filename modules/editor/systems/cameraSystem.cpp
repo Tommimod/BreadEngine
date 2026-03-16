@@ -1,5 +1,4 @@
 #include "cameraSystem.h"
-
 #include "cursorSystem.h"
 #include "editor.h"
 #include "engine.h"
@@ -8,7 +7,7 @@
 #define PI 3.141592653589793f
 
 namespace BreadEditor {
-    CameraSystem::CameraSystem() : _camera(BreadEngine::Engine::getInstance().getCamera())
+    CameraSystem::CameraSystem() : _camera(Engine::getInstance().getCamera())
     {
         _yaw = PI;
         _pitch = -PI / 4.0f;
