@@ -207,7 +207,7 @@ namespace BreadEditor {
                 options.push_back(nextOption.optionName);
             }
 
-            auto &dropdown = UiPool::dropdownPool.get().setup(toolbar.id + "toolbarDropdown", &toolbar, options, false);
+            auto &dropdown = UiPool::dropdownPool.get().setup(TextFormat("%s_toolbarDropdown", id), &toolbar, options, false);
             dropdown.setAnchor(UI_LEFT_CENTER);
             dropdown.setPivot({0, 0});
             dropdown.setSize({80, 15});

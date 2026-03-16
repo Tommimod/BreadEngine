@@ -24,7 +24,7 @@ namespace BreadEditor {
     MainToolbarSystem::~MainToolbarSystem()
     = default;
 
-    void MainToolbarSystem::addOption(const std::string &categoryKey, const ToolbarOption &option)
+    void MainToolbarSystem::addOption(const std::string_view &categoryKey, const ToolbarOption &option)
     {
         if (!categoryKey.contains(categoryKey))
         {
@@ -34,7 +34,7 @@ namespace BreadEditor {
         _categoryToOptions[categoryKey].emplace(option);
     }
 
-    void MainToolbarSystem::addOptions(const std::string &categoryKey, const std::set<ToolbarOption> &options)
+    void MainToolbarSystem::addOptions(const std::string_view &categoryKey, const std::set<ToolbarOption> &options)
     {
         if (!categoryKey.contains(categoryKey))
         {
@@ -47,7 +47,7 @@ namespace BreadEditor {
         }
     }
 
-    void MainToolbarSystem::processCommand(const std::string &categoryKey, const int &optionIndex)
+    void MainToolbarSystem::processCommand(const std::string_view &categoryKey, const int &optionIndex)
     {
         if (_categoryToOptions.contains(categoryKey))
         {
@@ -55,7 +55,7 @@ namespace BreadEditor {
         }
     }
 
-    std::set<MainToolbarSystem::ToolbarOption> &MainToolbarSystem::getOptions(const std::string &categoryKey)
+    std::set<MainToolbarSystem::ToolbarOption> &MainToolbarSystem::getOptions(const std::string_view &categoryKey)
     {
         if (_categoryToOptions.contains(categoryKey))
         {
@@ -65,7 +65,7 @@ namespace BreadEditor {
         return empty;
     }
 
-    std::vector<std::string> &MainToolbarSystem::getCategories()
+    std::vector<std::string_view> &MainToolbarSystem::getCategories()
     {
         _keys.clear();
         for (const auto &key: _categoryToOptions | std::views::keys)

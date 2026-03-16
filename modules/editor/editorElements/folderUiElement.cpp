@@ -9,13 +9,13 @@ namespace BreadEditor {
 
     FolderUiElement::~FolderUiElement() = default;
 
-    FolderUiElement &FolderUiElement::setup(const std::string &id, UiElement *parentElement, const std::string &folderGuid)
+    FolderUiElement &FolderUiElement::setup(const std::string_view &id, UiElement *parentElement, const std::string &folderGuid)
     {
         _isExpanded = true;
         _folderGuid = folderGuid;
         _engineFolder = _assetConfig.getFolderByGuid(_folderGuid);
 
-        _button = &UiPool::labelButtonPool.get().setup(id + "button", this, "");
+        _button = &UiPool::labelButtonPool.get().setup(TextFormat("%s_button", id), this, "");
         _button->setText(GuiIconText(ICON_FOLDER, _engineFolder->getShortName().c_str()));
         _button->setTextAlignment(TEXT_ALIGN_LEFT);
         _button->setSizePercentPermanent({1, 1});
@@ -23,7 +23,7 @@ namespace BreadEditor {
         _isRootFolder = _folderGuid == _assetConfig.getRootFolder()->getGUID();
         if (!_isRootFolder)
         {
-            _expandButton = &UiPool::buttonPool.get().setup(id + "expandButton", this, "");
+            _expandButton = &UiPool::buttonPool.get().setup(TextFormat("%s_expandButton", id), this, "");
             updateExpandButtonText();
             _expandButton->setAnchor(UI_LEFT_TOP);
             _expandButton->setPivot({1, 0});
@@ -86,7 +86,7 @@ namespace BreadEditor {
 
     FolderUiElement *FolderUiElement::copy()
     {
-        const auto copyElement = &UiPool::folderUiElementPool.get().setup(id.append("_copy"), nullptr, _folderGuid);
+        const auto copyElement = &UiPool::folderUiElementPool.get().setup(TextFormat("%s_copy", id), nullptr, _folderGuid);
         copyElement->setAnchor(_anchor);
         copyElement->setPivot(_pivot);
         copyElement->setBounds(_localPosition, _localSize);

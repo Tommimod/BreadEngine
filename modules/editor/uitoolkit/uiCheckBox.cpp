@@ -9,7 +9,7 @@
 namespace BreadEditor {
     UiCheckBox::UiCheckBox() = default;
 
-    UiCheckBox &UiCheckBox::setup(const std::string &id, std::string checkBoxText, const bool checked)
+    UiCheckBox &UiCheckBox::setup(const std::string_view &id, std::string checkBoxText, const bool checked)
     {
         this->_text = std::move(checkBoxText);
         this->_internalChecked = checked;
@@ -18,7 +18,7 @@ namespace BreadEditor {
         return *this;
     }
 
-    UiCheckBox &UiCheckBox::setup(const std::string &id, UiElement *parentElement, std::string checkBoxText, const bool checked)
+    UiCheckBox &UiCheckBox::setup(const std::string_view &id, UiElement *parentElement, std::string checkBoxText, const bool checked)
     {
         this->_text = std::move(checkBoxText);
         this->_internalChecked = checked;
@@ -27,7 +27,7 @@ namespace BreadEditor {
         return *this;
     }
 
-    UiCheckBox &UiCheckBox::setup(const std::string &id, UiElement *parentElement, std::string checkBoxText, std::function<bool()> getFunc)
+    UiCheckBox &UiCheckBox::setup(const std::string_view &id, UiElement *parentElement, std::string checkBoxText, std::function<bool()> getFunc)
     {
         this->_text = std::move(checkBoxText);
         _getFunc = std::move(getFunc);

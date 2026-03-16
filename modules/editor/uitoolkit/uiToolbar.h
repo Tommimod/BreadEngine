@@ -17,13 +17,13 @@ namespace BreadEditor {
 
         void dispose() override;
 
-        UiToolbar &setup(const string &id, UiElement *parentElement, const vector<string> &buttonNames, bool isVisualAsLabel = false);
+        UiToolbar &setup(const string_view &id, UiElement *parentElement, const vector<string_view> &buttonNames, bool isVisualAsLabel = false);
 
         void draw(float deltaTime) override;
 
         void update(float deltaTime) override;
 
-        void replaceButtons(const vector<string> &buttonNames);
+        void replaceButtons(const vector<string_view> &buttonNames);
 
     protected:
         bool tryDeleteSelf() override;

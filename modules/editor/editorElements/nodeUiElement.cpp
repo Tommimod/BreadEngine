@@ -9,11 +9,11 @@ namespace BreadEditor {
 
     NodeUiElement::~NodeUiElement() = default;
 
-    NodeUiElement &NodeUiElement::setup(const std::string &id, UiElement *parentElement, Node *node)
+    NodeUiElement &NodeUiElement::setup(const std::string_view &id, UiElement *parentElement, Node *node)
     {
         this->_engineNode = node;
         _isRootNode = _engineNode->getParent() == nullptr;
-        _expandButton = &UiPool::buttonPool.get().setup(id + "expandButton", this, "");
+        _expandButton = &UiPool::buttonPool.get().setup(TextFormat("%s_expandButton", id), this, "");
         _expandButton->setAnchor(UI_LEFT_TOP);
         _expandButton->setPivot({1, 0});
         _expandButton->setPosition({-2, 5});
@@ -108,9 +108,9 @@ namespace BreadEditor {
         _localState = nextState;
     }
 
-    NodeUiElement *NodeUiElement::copySingle()
+    NodeUiElement *NodeUiElement::copySingle() const
     {
-        auto *copyElement = &UiPool::nodeUiElementPool.get().setup(id.append("_copy"), _parent, _engineNode);
+        auto *copyElement = &UiPool::nodeUiElementPool.get().setup(TextFormat("%s_copy", id), _parent, _engineNode);
         copyElement->setAnchor(_anchor);
         copyElement->setBounds(_localPosition, _localSize);
         return copyElement;

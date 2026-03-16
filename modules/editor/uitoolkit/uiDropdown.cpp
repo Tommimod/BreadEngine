@@ -10,7 +10,7 @@ namespace BreadEditor {
         delete[] _optionsForGui;
     }
 
-    UiDropdown &UiDropdown::setup(const std::string &id, const std::vector<std::string> &options, const bool isPermanent)
+    UiDropdown &UiDropdown::setup(const std::string_view &id, const std::vector<std::string> &options, const bool isPermanent)
     {
         changeOptions(options);
         _isEditMode = !isPermanent;
@@ -18,7 +18,7 @@ namespace BreadEditor {
         return *this;
     }
 
-    UiDropdown &UiDropdown::setup(const std::string &id, UiElement *parentElement, const std::vector<std::string> &options, const bool isPermanent)
+    UiDropdown &UiDropdown::setup(const std::string_view &id, UiElement *parentElement, const std::vector<std::string> &options, const bool isPermanent)
     {
         changeOptions(options);
         _isEditMode = !isPermanent;

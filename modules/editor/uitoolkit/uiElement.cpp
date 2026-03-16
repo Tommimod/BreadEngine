@@ -6,13 +6,13 @@
 #include "editorStyle.h"
 
 namespace BreadEditor {
-    UiElement &UiElement::setup(const std::string &newId)
+    UiElement &UiElement::setup(const std::string_view &newId)
     {
         this->id = newId;
         return *this;
     }
 
-    UiElement &UiElement::setup(const std::string &newId, UiElement *parentElement)
+    UiElement &UiElement::setup(const std::string_view &newId, UiElement *parentElement)
     {
         this->id = newId;
         if (parentElement)
@@ -490,7 +490,7 @@ namespace BreadEditor {
             return;
         }
 
-        TraceLog(LOG_ERROR, "UiElement: Element %s not a child of %s", child->id.c_str(), id.c_str());
+        TraceLog(LOG_ERROR, "UiElement: Element %s not a child of %s", child->id, id);
     }
 
     void UiElement::setChildLast(UiElement *child)
@@ -503,7 +503,7 @@ namespace BreadEditor {
             return;
         }
 
-        TraceLog(LOG_ERROR, "UiElement: Element %s not a child of %s", child->id.c_str(), id.c_str());
+        TraceLog(LOG_ERROR, "UiElement: Element %s not a child of %s", child->id, id);
     }
 
     void UiElement::dispose()
@@ -901,24 +901,7 @@ namespace BreadEditor {
     void UiElement::setSizePercentPermanentInternal(const Vector2 &percent, const bool withDirty)
     {
         if (isStatic) return;
-        if (percent.x >= 0 && percent.y >= 0)
-        {
-            setSizeInternal(getSizeInPixByPercent(percent), withDirty);
-        }
-        else if (percent.x >= 0 && percent.y < 0)
-        {
-            const auto ySize = _localSize.y;
-            _localSize.x = getSizeInPixByPercentOnlyX(percent);
-            setSizeInternal({_localSize.x, ySize}, withDirty);
-        }
-        else if (percent.x < 0 && percent.y >= 0)
-        {
-            const auto xSize = _localSize.x;
-            _localSize.y = getSizeInPixByPercentOnlyY(percent);
-            setSizeInternal({xSize, _localSize.y}, withDirty);
-        }
-
+        setSizePercentOneTimeInternal(percent, withDirty);
         _sizeInPercents = percent;
-        if (withDirty) setDirty();
     }
 } // namespace BreadEditor

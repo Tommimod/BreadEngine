@@ -17,7 +17,7 @@ namespace BreadEditor {
         UiElement::dispose();
     }
 
-    UiVector4D *UiVector4D::setup(const std::string &id, UiElement *parentElement, const Vector4 initialValue)
+    UiVector4D *UiVector4D::setup(const std::string_view &id, UiElement *parentElement, const Vector4 initialValue)
     {
         UiElement::setup(id, parentElement);
         _value = initialValue;
@@ -28,7 +28,7 @@ namespace BreadEditor {
         return this;
     }
 
-    UiVector4D *UiVector4D::setup(const std::string &id, UiElement *parentElement, const Vector4 initialValue, const std::string_view xName, const std::string_view yName, const std::string_view zName, const std::string_view wName)
+    UiVector4D *UiVector4D::setup(const std::string_view &id, UiElement *parentElement, const Vector4 initialValue, const std::string_view xName, const std::string_view yName, const std::string_view zName, const std::string_view wName)
     {
         UiElement::setup(id, parentElement);
         _value = initialValue;
@@ -39,7 +39,7 @@ namespace BreadEditor {
         return this;
     }
 
-    UiVector4D *UiVector4D::setup(const std::string &id, UiElement *parentElement, std::function<Vector4()> getFunc)
+    UiVector4D *UiVector4D::setup(const std::string_view &id, UiElement *parentElement, std::function<Vector4()> getFunc)
     {
         UiElement::setup(id, parentElement);
         _getFunc = std::move(getFunc);
@@ -51,7 +51,7 @@ namespace BreadEditor {
         return this;
     }
 
-    UiVector4D *UiVector4D::setup(const std::string &id, UiElement *parentElement, std::function<Vector4()> getFunc, const std::string_view xName, const std::string_view yName, const std::string_view zName, const std::string_view wName)
+    UiVector4D *UiVector4D::setup(const std::string_view &id, UiElement *parentElement, std::function<Vector4()> getFunc, const std::string_view xName, const std::string_view yName, const std::string_view zName, const std::string_view wName)
     {
         UiElement::setup(id, parentElement);
         _getFunc = std::move(getFunc);
@@ -116,7 +116,7 @@ namespace BreadEditor {
                 value = _value.w;
             }
 
-            const auto field = &UiPool::numberBoxPool.get().setup(TextFormat("Vector4D%s_Field%i", id.c_str(), i), this, _names[i], value);
+            const auto field = &UiPool::numberBoxPool.get().setup(TextFormat("Vector4D%s_Field%i", id, i), this, _names[i], value);
             _fields[i] = field;
             field->onValueChangedWithSender.subscribe([this](const float floatValue, UiNumberBox *thisField)
             {

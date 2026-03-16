@@ -12,11 +12,11 @@ namespace BreadEditor {
 
         UiCheckBox();
 
-        UiCheckBox &setup(const std::string &id, std::string checkBoxText, bool checked);
+        UiCheckBox &setup(const std::string_view &id, std::string checkBoxText, bool checked);
 
-        UiCheckBox &setup(const std::string &id, UiElement *parentElement, std::string checkBoxText, bool checked);
+        UiCheckBox &setup(const std::string_view &id, UiElement *parentElement, std::string checkBoxText, bool checked);
 
-        UiCheckBox &setup(const std::string &id, UiElement *parentElement, std::string checkBoxText, std::function<bool()> getFunc);
+        UiCheckBox &setup(const std::string_view &id, UiElement *parentElement, std::string checkBoxText, std::function<bool()> getFunc);
 
         ~UiCheckBox() override;
 

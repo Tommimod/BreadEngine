@@ -9,11 +9,11 @@ namespace BreadEditor {
 
     FileUiElement::~FileUiElement() = default;
 
-    FileUiElement &FileUiElement::setup(const std::string &id, UiElement *parentElement, const std::string &fileGuid)
+    FileUiElement &FileUiElement::setup(const std::string_view &id, UiElement *parentElement, const std::string &fileGuid)
     {
         _fileGuid = fileGuid;
         _file = _assetConfig.getFileByGuid(_fileGuid);
-        _button = &UiPool::labelButtonPool.get().setup(id + "button", this, "");
+        _button = &UiPool::labelButtonPool.get().setup(TextFormat("%s_button", id), this, "");
         _button->setText(GuiIconText(getIconByFileType(), _file->getShortName().c_str()));
         _button->setTextAlignment(TEXT_ALIGN_LEFT);
         _button->setSizePercentPermanent({1, 1});
@@ -59,7 +59,7 @@ namespace BreadEditor {
 
     FileUiElement *FileUiElement::copy()
     {
-        const auto copyElement = &UiPool::fileUiElementPool.get().setup(id.append("_copy"), nullptr, _fileGuid);
+        const auto copyElement = &UiPool::fileUiElementPool.get().setup(TextFormat("%s_copy", id), nullptr, _fileGuid);
         copyElement->setAnchor(_anchor);
         copyElement->setPivot(_pivot);
         copyElement->setBounds(_localPosition, _localSize);

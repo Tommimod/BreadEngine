@@ -8,7 +8,7 @@
 namespace BreadEditor {
     UiToolbar::UiToolbar() = default;
 
-    UiToolbar &UiToolbar::setup(const string &id, UiElement *parentElement, const vector<string> &buttonNames, const bool isVisualAsLabel)
+    UiToolbar &UiToolbar::setup(const string_view &id, UiElement *parentElement, const vector<string_view> &buttonNames, const bool isVisualAsLabel)
     {
         _isVisualAsLabel = isVisualAsLabel;
         replaceButtons(buttonNames);
@@ -34,7 +34,7 @@ namespace BreadEditor {
     {
     }
 
-    void UiToolbar::replaceButtons(const vector<string> &buttonNames)
+    void UiToolbar::replaceButtons(const vector<string_view> &buttonNames)
     {
         for (const auto button: _buttons)
         {
@@ -49,13 +49,13 @@ namespace BreadEditor {
         for (const auto &buttonName: buttonNames)
         {
             constexpr float offset = 5;
-            auto tag = id + buttonName + std::to_string(index);
+            const auto tag = TextFormat("%s_%s_%d", id, buttonName, index);
             index++;
-            const auto textWidth = static_cast<float>(GuiGetTextWidth(buttonName.c_str())) * 1.7f;
+            const auto textWidth = static_cast<float>(GuiGetTextWidth(buttonName.data())) * 1.7f;
             auto size = Vector2{static_cast<float>(textWidth), .0f};
             if (_isVisualAsLabel)
             {
-                const auto button = &UiPool::labelButtonPool.get().setup(tag, this, buttonName);
+                const auto button = &UiPool::labelButtonPool.get().setup(tag, this, buttonName.data());
                 auto position = Vector2{lastX + offset, 0};
                 button->setSizePercentPermanent({-1, 1});
                 button->setBounds(position, size);
@@ -68,7 +68,7 @@ namespace BreadEditor {
             else
             {
                 auto button = &UiPool::buttonPool.get();
-                button = &button->setup(tag, this, buttonName);
+                button = &button->setup(tag, this, buttonName.data());
                 auto position = Vector2{lastX + offset, 0};
                 button->setSizePercentPermanent({-1, 1});
                 button->setBounds(position, size);
@@ -91,13 +91,13 @@ namespace BreadEditor {
 
     void UiToolbar::invokeButtonClicked(UiButton *button)
     {
-        TraceLog(LOG_INFO, "Button clicked: %s", button->id.c_str());
+        TraceLog(LOG_INFO, "Button clicked: %s", button->id);
         onButtonPressed.invoke(button);
     }
 
     void UiToolbar::invokeButtonClicked(UiLabelButton *button)
     {
-        TraceLog(LOG_INFO, "Button clicked: %s", button->id.c_str());
+        TraceLog(LOG_INFO, "Button clicked: %s", button->id);
         onButtonPressed.invoke(button);
     }
 

@@ -12,9 +12,9 @@ namespace BreadEditor {
 
         UiLabelButton();
 
-        UiLabelButton &setup(const std::string &id, const std::string &newText);
+        UiLabelButton &setup(const std::string_view &id, const std::string &newText);
 
-        UiLabelButton &setup(const std::string &id, UiElement *parentElement, const std::string &newText);
+        UiLabelButton &setup(const std::string_view &id, UiElement *parentElement, const std::string &newText);
 
         ~UiLabelButton() override;
 

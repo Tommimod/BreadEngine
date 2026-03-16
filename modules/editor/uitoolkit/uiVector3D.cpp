@@ -17,7 +17,7 @@ namespace BreadEditor {
         UiElement::dispose();
     }
 
-    UiVector3D *UiVector3D::setup(const std::string &id, UiElement *parentElement, const Vector3 initialValue)
+    UiVector3D *UiVector3D::setup(const std::string_view &id, UiElement *parentElement, const Vector3 initialValue)
     {
         UiElement::setup(id, parentElement);
         _value = initialValue;
@@ -27,7 +27,7 @@ namespace BreadEditor {
         return this;
     }
 
-    UiVector3D *UiVector3D::setup(const std::string &id, UiElement *parentElement, const Vector3 initialValue, const std::string_view xName, const std::string_view yName, const std::string_view zName)
+    UiVector3D *UiVector3D::setup(const std::string_view &id, UiElement *parentElement, const Vector3 initialValue, const std::string_view xName, const std::string_view yName, const std::string_view zName)
     {
         UiElement::setup(id, parentElement);
         _value = initialValue;
@@ -37,7 +37,7 @@ namespace BreadEditor {
         return this;
     }
 
-    UiVector3D * UiVector3D::setup(const std::string &id, UiElement *parentElement, std::function<Vector3()> getFunc)
+    UiVector3D * UiVector3D::setup(const std::string_view &id, UiElement *parentElement, std::function<Vector3()> getFunc)
     {
         UiElement::setup(id, parentElement);
         _getFunc = std::move(getFunc);
@@ -48,7 +48,7 @@ namespace BreadEditor {
         return this;
     }
 
-    UiVector3D * UiVector3D::setup(const std::string &id, UiElement *parentElement, std::function<Vector3()> getFunc, const std::string_view xName, const std::string_view yName, const std::string_view zName)
+    UiVector3D * UiVector3D::setup(const std::string_view &id, UiElement *parentElement, std::function<Vector3()> getFunc, const std::string_view xName, const std::string_view yName, const std::string_view zName)
     {
         UiElement::setup(id, parentElement);
         _getFunc = std::move(getFunc);
@@ -107,7 +107,7 @@ namespace BreadEditor {
                 value = _value.z;
             }
 
-            const auto field = &UiPool::numberBoxPool.get().setup(TextFormat("Vector3D%s_Field%i", id.c_str(), i), this, _names[i], value);
+            const auto field = &UiPool::numberBoxPool.get().setup(TextFormat("Vector3D%s_Field%i", id, i), this, _names[i], value);
             _fields[i] = field;
             field->onValueChangedWithSender.subscribe([this](const float floatValue, UiNumberBox *thisField)
             {

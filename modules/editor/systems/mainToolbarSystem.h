@@ -38,18 +38,18 @@ namespace BreadEditor {
 
         ~MainToolbarSystem();
 
-        void addOption(const std::string &categoryKey, const ToolbarOption &option);
+        void addOption(const std::string_view &categoryKey, const ToolbarOption &option);
 
-        void addOptions(const std::string &categoryKey, const std::set<ToolbarOption> &options);
+        void addOptions(const std::string_view &categoryKey, const std::set<ToolbarOption> &options);
 
-        void processCommand(const std::string &categoryKey, const int &optionIndex);
+        void processCommand(const std::string_view &categoryKey, const int &optionIndex);
 
-        [[nodiscard]] std::set<ToolbarOption> &getOptions(const std::string &categoryKey);
+        [[nodiscard]] std::set<ToolbarOption> &getOptions(const std::string_view &categoryKey);
 
-        [[nodiscard]] std::vector<std::string> &getCategories();
+        [[nodiscard]] std::vector<std::string_view> &getCategories();
 
     private:
-        std::vector<std::string> _keys;
-        std::map<std::string, std::set<ToolbarOption> > _categoryToOptions;
+        std::vector<std::string_view> _keys;
+        std::map<std::string_view, std::set<ToolbarOption> > _categoryToOptions;
     };
 } // BreadEditor

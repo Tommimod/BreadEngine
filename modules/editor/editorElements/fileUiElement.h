@@ -19,7 +19,7 @@ namespace BreadEditor {
 
         ~FileUiElement() override;
 
-        [[nodiscard]] FileUiElement &setup(const std::string &id, UiElement *parentElement, const std::string &fileGuid);
+        [[nodiscard]] FileUiElement &setup(const std::string_view &id, UiElement *parentElement, const std::string &fileGuid);
 
         [[nodiscard]] const std::string &getFileGuid() const { return _fileGuid; }
 

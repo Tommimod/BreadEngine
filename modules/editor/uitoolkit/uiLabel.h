@@ -12,7 +12,7 @@ namespace BreadEditor {
 
         void dispose() override;
 
-        UiLabel &setup(const std::string &id, UiElement *parentElement, const std::string &text);
+        UiLabel &setup(const std::string_view &id, UiElement *parentElement, const std::string &text);
 
         void draw(float deltaTime) override;
 

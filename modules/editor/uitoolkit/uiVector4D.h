@@ -17,13 +17,13 @@ namespace BreadEditor {
 
         void dispose() override;
 
-        UiVector4D *setup(const std::string &id, UiElement *parentElement, Vector4 initialValue);
+        UiVector4D *setup(const std::string_view &id, UiElement *parentElement, Vector4 initialValue);
 
-        UiVector4D *setup(const std::string &id, UiElement *parentElement, Vector4 initialValue, std::string_view xName, std::string_view yName, std::string_view zName, std::string_view wName);
+        UiVector4D *setup(const std::string_view &id, UiElement *parentElement, Vector4 initialValue, std::string_view xName, std::string_view yName, std::string_view zName, std::string_view wName);
 
-        UiVector4D *setup(const std::string &id, UiElement *parentElement, std::function<Vector4()> getFunc);
+        UiVector4D *setup(const std::string_view &id, UiElement *parentElement, std::function<Vector4()> getFunc);
 
-        UiVector4D *setup(const std::string &id, UiElement *parentElement, std::function<Vector4()> getFunc, std::string_view xName, std::string_view yName, std::string_view zName, std::string_view wName);
+        UiVector4D *setup(const std::string_view &id, UiElement *parentElement, std::function<Vector4()> getFunc, std::string_view xName, std::string_view yName, std::string_view zName, std::string_view wName);
 
         void draw(float deltaTime) override;
 

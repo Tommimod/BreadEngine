@@ -1,5 +1,4 @@
 #include "uiTextBox.h"
-
 #include "editor.h"
 #include "editorStyle.h"
 #include "engine.h"
@@ -9,7 +8,7 @@ namespace BreadEditor {
     constexpr int BUFFER_SIZE = 127;
     UiTextBox::UiTextBox() = default;
 
-    UiTextBox &UiTextBox::setup(const std::string &id, const std::string &defaultText, const int defaultTextSize, const bool defaultEditMode)
+    UiTextBox &UiTextBox::setup(const std::string_view &id, const std::string &defaultText, const int defaultTextSize, const bool defaultEditMode)
     {
         _internalText = defaultText;
         _textSize = defaultTextSize;
@@ -22,7 +21,7 @@ namespace BreadEditor {
         return *this;
     }
 
-    UiTextBox &UiTextBox::setup(const std::string &id, UiElement *parentElement, const std::string &defaultText, const int defaultTextSize, const bool defaultEditMode)
+    UiTextBox &UiTextBox::setup(const std::string_view &id, UiElement *parentElement, const std::string &defaultText, const int defaultTextSize, const bool defaultEditMode)
     {
         _internalText = defaultText;
         _textSize = defaultTextSize;
@@ -35,7 +34,7 @@ namespace BreadEditor {
         return *this;
     }
 
-    UiTextBox &UiTextBox::setup(const std::string &id, UiElement *parentElement, std::function<std::string()> getFunc, const int defaultTextSize, const bool defaultEditMode)
+    UiTextBox &UiTextBox::setup(const std::string_view &id, UiElement *parentElement, std::function<std::string()> getFunc, const int defaultTextSize, const bool defaultEditMode)
     {
         _getFunc = std::move(getFunc);
         _internalText = _getFunc();

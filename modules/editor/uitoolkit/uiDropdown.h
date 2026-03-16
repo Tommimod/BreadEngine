@@ -13,9 +13,9 @@ namespace BreadEditor {
 
         ~UiDropdown() override;
 
-        UiDropdown &setup(const std::string &id, const std::vector<std::string> &options, bool isPermanent);
+        UiDropdown &setup(const std::string_view &id, const std::vector<std::string> &options, bool isPermanent);
 
-        UiDropdown &setup(const std::string &id, UiElement *parentElement, const std::vector<std::string> &options, bool isPermanent);
+        UiDropdown &setup(const std::string_view &id, UiElement *parentElement, const std::vector<std::string> &options, bool isPermanent);
 
         void draw(float deltaTime) override;
 

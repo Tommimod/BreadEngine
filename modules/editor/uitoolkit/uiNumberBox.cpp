@@ -25,7 +25,7 @@ namespace BreadEditor {
         UiElement::dispose();
     }
 
-    UiNumberBox &UiNumberBox::setup(const std::string &id, const std::string &label, const float defaultValue, const bool defaultEditMode)
+    UiNumberBox &UiNumberBox::setup(const std::string_view &id, const std::string &label, const float defaultValue, const bool defaultEditMode)
     {
         _floatLabel = label;
         _floatValue = defaultValue;
@@ -43,7 +43,7 @@ namespace BreadEditor {
         return *this;
     }
 
-    UiNumberBox &UiNumberBox::setup(const std::string &id, UiElement *parentElement, const std::string &label, const float defaultValue, const bool defaultEditMode)
+    UiNumberBox &UiNumberBox::setup(const std::string_view &id, UiElement *parentElement, const std::string &label, const float defaultValue, const bool defaultEditMode)
     {
         _floatLabel = label;
         _floatValue = defaultValue;
@@ -61,7 +61,7 @@ namespace BreadEditor {
         return *this;
     }
 
-    UiNumberBox &UiNumberBox::setup(const std::string &id, const std::string &label, const int defaultValue, const bool defaultEditMode)
+    UiNumberBox &UiNumberBox::setup(const std::string_view &id, const std::string &label, const int defaultValue, const bool defaultEditMode)
     {
         _intMode = true;
         _label = label;
@@ -72,7 +72,7 @@ namespace BreadEditor {
         return *this;
     }
 
-    UiNumberBox &UiNumberBox::setup(const std::string &id, UiElement *parentElement, const std::string &label, const int defaultValue, const bool defaultEditMode)
+    UiNumberBox &UiNumberBox::setup(const std::string_view &id, UiElement *parentElement, const std::string &label, const int defaultValue, const bool defaultEditMode)
     {
         _intMode = true;
         _label = label;
@@ -83,7 +83,7 @@ namespace BreadEditor {
         return *this;
     }
 
-    UiNumberBox &UiNumberBox::setup(const std::string &id, UiElement *parentElement, const std::string &label, std::function<std::variant<int, float, long>()> getFunc, const bool defaultEditMode)
+    UiNumberBox &UiNumberBox::setup(const std::string_view &id, UiElement *parentElement, const std::string &label, std::function<std::variant<int, float, long>()> getFunc, const bool defaultEditMode)
     {
         _intMode = true;
         _label = label;

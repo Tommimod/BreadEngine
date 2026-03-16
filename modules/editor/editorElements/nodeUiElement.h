@@ -24,7 +24,7 @@ namespace BreadEditor {
 
         ~NodeUiElement() override;
 
-        NodeUiElement &setup(const std::string &id, UiElement *parentElement, Node *node);
+        NodeUiElement &setup(const std::string_view &id, UiElement *parentElement, Node *node);
 
         void awake() override;
 
@@ -44,7 +44,7 @@ namespace BreadEditor {
 
         void setState(GuiState nextState) override;
 
-        NodeUiElement *copySingle();
+        NodeUiElement *copySingle() const;
 
         void switchMuteState();
 

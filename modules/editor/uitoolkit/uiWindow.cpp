@@ -2,13 +2,13 @@
 #include "editor.h"
 
 namespace BreadEditor {
-    UiWindow::UiWindow(const std::string &id)
+    UiWindow::UiWindow(const std::string_view &id)
     {
         setup(id);
         UiWindow::initialize();
     }
 
-    UiWindow::UiWindow(const std::string &id, UiElement *parentElement)
+    UiWindow::UiWindow(const std::string_view &id, UiElement *parentElement)
     {
         setup(id, parentElement);
         UiWindow::initialize();
@@ -46,7 +46,7 @@ namespace BreadEditor {
     {
         _parent->destroyChild(this);
         getRootElement()->setDirty();
-        Editor::getInstance().getEditorModel().getWindowsModel()->addWindowToAllowList(id);
+        Editor::getInstance().getEditorModel().getWindowsModel()->addWindowToAllowList(id.data());
     }
 
     void UiWindow::subscribe()
@@ -81,7 +81,7 @@ namespace BreadEditor {
 
     void UiWindow::initialize()
     {
-        Editor::getInstance().getEditorModel().getWindowsModel()->removeWindowFromAllowList(id);
+        Editor::getInstance().getEditorModel().getWindowsModel()->removeWindowFromAllowList(id.data());
     }
 
     void UiWindow::calculateRectForScroll(UiElement *element)

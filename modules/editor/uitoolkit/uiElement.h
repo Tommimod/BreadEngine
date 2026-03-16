@@ -43,7 +43,7 @@ namespace BreadEditor {
     class UiElement : public BreadEngine::IDisposable
     {
     public:
-        std::string id;
+        std::string_view id;
         bool isActive = true;
         bool isStatic = false;
         bool isDebugRectVisible = false;
@@ -147,26 +147,26 @@ namespace BreadEditor {
         void setIgnoreScrollLayout();
 
     protected:
-        bool _isAwake = false;
-        bool _isRenderOnEndOfFrame = false;
-        bool _isDeleted = false;
-        bool _ignoreScrollLayout = false;
-        GuiState _state = STATE_NORMAL;
+        std::vector<UiElement *> _overlayChilds{};
+        UiElement *_parent = nullptr;
+        Rectangle _bounds{0, 0, 1, 1};
         Vector2 _pivot{};
         Vector2 _localPosition{0.0f, 0.0f};
         Vector2 _localSize{1.0f, 1.0f};
         Vector2 _sizeInPercents{-1, -1};
         Vector2 _maxSize{0, 0};
-        UiElement *_parent = nullptr;
-        Rectangle _bounds{0, 0, 1, 1};
-        Color _bgColor = RAYWHITE;
         UI_ANCHOR_TYPE _anchor = UI_LEFT_TOP;
         LAYOUT_TYPE _layoutType = LAYOUT_NONE;
-        std::vector<UiElement *> _overlayChilds{};
+        GuiState _state = STATE_NORMAL;
+        Color _bgColor = RAYWHITE;
+        bool _isAwake = false;
+        bool _isRenderOnEndOfFrame = false;
+        bool _isDeleted = false;
+        bool _ignoreScrollLayout = false;
 
-        UiElement &setup(const std::string &newId);
+        UiElement &setup(const std::string_view &newId);
 
-        UiElement &setup(const std::string &newId, UiElement *parentElement);
+        UiElement &setup(const std::string_view &newId, UiElement *parentElement);
 
         virtual void awake();
 

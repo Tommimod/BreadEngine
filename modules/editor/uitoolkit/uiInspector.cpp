@@ -8,7 +8,7 @@ namespace BreadEditor {
 
     UiInspector::~UiInspector() = default;
 
-    UiInspector &UiInspector::setup(const std::string &id, UiElement *parentElement, const bool isStatic)
+    UiInspector &UiInspector::setup(const std::string_view &id, UiElement *parentElement, const bool isStatic)
     {
         _isStatic = isStatic;
         UiElement::setup(id, parentElement);

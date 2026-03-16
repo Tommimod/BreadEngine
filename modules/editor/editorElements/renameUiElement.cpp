@@ -20,7 +20,7 @@ namespace BreadEditor {
 
     void RenameUiElement::awake()
     {
-        _textBox = &UiPool::textBoxPool.get().setup(id + "text", this, _text, static_cast<int>(EditorStyle::FontSize::MediumLarge), true);
+        _textBox = &UiPool::textBoxPool.get().setup(TextFormat("%s_text", id), this, _text, static_cast<int>(EditorStyle::FontSize::MediumLarge), true);
         _textBox->setAnchor(UI_CENTER_TOP);
         _textBox->setPivot({.5f, 0});
         _textBox->setPosition({0, 5});
@@ -39,7 +39,7 @@ namespace BreadEditor {
             }
         });
 
-        _applyButton = &UiPool::buttonPool.get().setup(id + "applyButton", this, "Apply");
+        _applyButton = &UiPool::buttonPool.get().setup(TextFormat("%s_applyButton", id), this, "Apply");
         _applyButton->setAnchor(UI_CENTER_TOP);
         _applyButton->setPivot({.5f, 0});
         _applyButton->setPosition({0, 30});

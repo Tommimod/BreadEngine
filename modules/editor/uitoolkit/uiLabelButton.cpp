@@ -9,13 +9,13 @@ namespace BreadEditor {
 
     UiLabelButton::~UiLabelButton() = default;
 
-    UiLabelButton &UiLabelButton::setup(const std::string &id, const std::string &newText)
+    UiLabelButton &UiLabelButton::setup(const std::string_view &id, const std::string &newText)
     {
         this->_text = newText;
         return dynamic_cast<UiLabelButton &>(UiElement::setup(id));
     }
 
-    UiLabelButton &UiLabelButton::setup(const std::string &id, UiElement *parentElement, const std::string &newText)
+    UiLabelButton &UiLabelButton::setup(const std::string_view &id, UiElement *parentElement, const std::string &newText)
     {
         this->_text = newText;
         return dynamic_cast<UiLabelButton &>(UiElement::setup(id, parentElement));

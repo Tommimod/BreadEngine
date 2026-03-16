@@ -14,9 +14,9 @@ namespace BreadEditor {
 
         void dispose() override;
 
-        UiContainer *setup(const std::string &id);
+        UiContainer *setup(const std::string_view &id);
 
-        UiContainer *setup(const std::string &id, UiElement *parentElement);
+        UiContainer *setup(const std::string_view &id, UiElement *parentElement);
 
         void draw(float deltaTime) override;
 
@@ -31,8 +31,8 @@ namespace BreadEditor {
 
     private:
         UiToolbar *_toolbar = nullptr;
-        std::unordered_map<std::string, std::string> _tabIdToWindowId{};
-        vector<std::string> _tabs{};
+        std::unordered_map<std::string_view, UiWindow *> _tabIdToWindow{};
+        vector<std::string_view> _tabs{};
 
         void initialize();
 
@@ -40,6 +40,6 @@ namespace BreadEditor {
 
         void onTabChanged(UiElement *uiElement);
 
-        void onTabClosed(UiElement *uiElement);
+        void onTabClosed(const UiElement *uiElement);
     };
 } // BreadEditor

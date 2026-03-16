@@ -17,13 +17,13 @@ namespace BreadEditor {
 
         void dispose() override;
 
-        UiVector3D *setup(const std::string &id, UiElement *parentElement, Vector3 initialValue);
+        UiVector3D *setup(const std::string_view &id, UiElement *parentElement, Vector3 initialValue);
 
-        UiVector3D *setup(const std::string &id, UiElement *parentElement, Vector3 initialValue, std::string_view xName, std::string_view yName, std::string_view zName);
+        UiVector3D *setup(const std::string_view &id, UiElement *parentElement, Vector3 initialValue, std::string_view xName, std::string_view yName, std::string_view zName);
 
-        UiVector3D *setup(const std::string &id, UiElement *parentElement, std::function<Vector3()> getFunc);
+        UiVector3D *setup(const std::string_view &id, UiElement *parentElement, std::function<Vector3()> getFunc);
 
-        UiVector3D *setup(const std::string &id, UiElement *parentElement, std::function<Vector3()> getFunc, std::string_view xName, std::string_view yName, std::string_view zName);
+        UiVector3D *setup(const std::string_view &id, UiElement *parentElement, std::function<Vector3()> getFunc, std::string_view xName, std::string_view yName, std::string_view zName);
 
         void draw(float deltaTime) override;
 

@@ -14,7 +14,7 @@ namespace BreadEditor {
         UiElement::dispose();
     }
 
-    UiLabel &UiLabel::setup(const std::string &id, UiElement *parentElement, const std::string &text)
+    UiLabel &UiLabel::setup(const std::string_view &id, UiElement *parentElement, const std::string &text)
     {
         UiElement::setup(id, parentElement);
         _text = text;

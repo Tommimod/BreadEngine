@@ -8,9 +8,9 @@ namespace BreadEditor {
     public:
         UiPanel();
 
-        UiPanel &setup(const std::string &id);
+        UiPanel &setup(const std::string_view &id);
 
-        UiPanel &setup(const std::string &id, UiElement *parentElement);
+        UiPanel &setup(const std::string_view &id, UiElement *parentElement);
 
         ~UiPanel() override;
 

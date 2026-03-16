@@ -18,15 +18,15 @@ namespace BreadEditor {
 
         void dispose() override;
 
-        UiNumberBox &setup(const std::string &id, const std::string &label, float defaultValue, bool defaultEditMode = false);
+        UiNumberBox &setup(const std::string_view &id, const std::string &label, float defaultValue, bool defaultEditMode = false);
 
-        UiNumberBox &setup(const std::string &id, UiElement *parentElement, const std::string &label, float defaultValue, bool defaultEditMode = false);
+        UiNumberBox &setup(const std::string_view &id, UiElement *parentElement, const std::string &label, float defaultValue, bool defaultEditMode = false);
 
-        UiNumberBox &setup(const std::string &id, const std::string &label, int defaultValue, bool defaultEditMode = false);
+        UiNumberBox &setup(const std::string_view &id, const std::string &label, int defaultValue, bool defaultEditMode = false);
 
-        UiNumberBox &setup(const std::string &id, UiElement *parentElement, const std::string &label, int defaultValue, bool defaultEditMode = false);
+        UiNumberBox &setup(const std::string_view &id, UiElement *parentElement, const std::string &label, int defaultValue, bool defaultEditMode = false);
 
-        UiNumberBox &setup(const std::string &id, UiElement *parentElement, const std::string &label, std::function<std::variant<int, float, long>()> getFunc, bool defaultEditMode = false);
+        UiNumberBox &setup(const std::string_view &id, UiElement *parentElement, const std::string &label, std::function<std::variant<int, float, long>()> getFunc, bool defaultEditMode = false);
 
         void draw(float deltaTime) override;
 

@@ -1,5 +1,4 @@
 ﻿#pragma once
-#include "uiButton.h"
 #include "uitoolkit/IUiResizable.h"
 #include "uitoolkit/uiElement.h"
 
@@ -7,9 +6,9 @@ namespace BreadEditor {
     class UiWindow : public UiElement, public IUiResizable
     {
     public:
-        explicit UiWindow(const std::string &id);
+        explicit UiWindow(const std::string_view &id);
 
-        explicit UiWindow(const std::string &id, UiElement *parentElement);
+        explicit UiWindow(const std::string_view &id, UiElement *parentElement);
 
         ~UiWindow() override;
 
