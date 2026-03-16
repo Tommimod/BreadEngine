@@ -5,6 +5,7 @@
 #include "editorStyle.h"
 #include "configs/infrastructure/configsProvider.h"
 #include "models/editorModel.h"
+#include "systems/cameraSystem.h"
 using namespace BreadEngine;
 #if !defined(RAYGUI_WINDOWBOX_STATUSBAR_HEIGHT)
 #define RAYGUI_WINDOWBOX_STATUSBAR_HEIGHT        24
@@ -81,6 +82,7 @@ namespace BreadEditor {
 
         EditorModel _editorModel;
         ConfigsProvider _configsProvider;
+        CameraSystem _cameraSystem;
 
         void loadFont();
 

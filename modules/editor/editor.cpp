@@ -57,6 +57,7 @@ namespace BreadEditor {
         processInput();
         _isFrameEnded = false;
         mainWindow.updateInternal(deltaTime);
+        _cameraSystem.update(deltaTime);
         CursorSystem::draw();
     }
 

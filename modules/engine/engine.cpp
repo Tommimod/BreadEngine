@@ -76,9 +76,9 @@ namespace BreadEngine {
 
     void Engine::setupDefaultCamera()
     {
-        _camera.position = (Vector3){0.0f, 10.0f, 10.0f};
-        _camera.target = (Vector3){0.0f, 0.0f, 0.0f};
-        _camera.up = (Vector3){0.0f, 1.0f, 0.0f};
+        _camera.position = {0.0f, 10.0f, 10.0f};
+        _camera.target = {0.0f, 0.0f, 0.0f};
+        _camera.up = {0.0f, 1.0f, 0.0f};
         _camera.fovy = 45.0f;
         _camera.projection = CAMERA_PERSPECTIVE;
     }
