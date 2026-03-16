@@ -46,7 +46,7 @@ namespace BreadEditor {
     {
         _parent->destroyChild(this);
         getRootElement()->setDirty();
-        Editor::getInstance().getEditorModel().getWindowsModel()->addWindowToAllowList(id.data());
+        Editor::getInstance().getEditorModel().getWindowsModel()->addWindowToAllowList(id);
     }
 
     void UiWindow::subscribe()

@@ -44,6 +44,7 @@ namespace BreadEditor {
 
         _buttons.clear();
 
+        computeBounds();
         auto lastX = 0.0f;
         auto index = 0;
         for (const auto &buttonName: buttonNames)
@@ -52,13 +53,13 @@ namespace BreadEditor {
             const std::string_view tag = TextFormat("%s_%s_%d", id.c_str(), buttonName, index);
             index++;
             const auto textWidth = static_cast<float>(GuiGetTextWidth(buttonName.data())) * 1.7f;
-            auto size = Vector2{static_cast<float>(textWidth), .0f};
+            auto size = Vector2{textWidth, 0};
             if (_isVisualAsLabel)
             {
                 const auto button = &UiPool::labelButtonPool.get().setup(tag, this, buttonName.data());
-                auto position = Vector2{lastX + offset, 0};
                 button->setSizePercentPermanent({-1, 1});
-                button->setBounds(position, size);
+                button->setPosition({lastX + offset, 0});
+                button->setSize(std::move(size));
                 button->setTextAlignment(TEXT_ALIGN_CENTER);
                 button->setTextSize(static_cast<int>(EditorStyle::FontSize::SmallMedium));
                 lastX += offset + size.x;
@@ -69,9 +70,9 @@ namespace BreadEditor {
             {
                 auto button = &UiPool::buttonPool.get();
                 button = &button->setup(tag, this, buttonName.data());
-                auto position = Vector2{lastX + offset, 0};
                 button->setSizePercentPermanent({-1, 1});
-                button->setBounds(position, size);
+                button->setPosition({lastX + offset, 0});
+                button->setSize(std::move(size));
                 button->setTextAlignment(TEXT_ALIGN_LEFT);
                 button->setTextSize(static_cast<int>(EditorStyle::FontSize::SmallMedium));
                 lastX += offset + size.x;

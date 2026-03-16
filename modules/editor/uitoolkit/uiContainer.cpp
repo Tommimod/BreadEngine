@@ -32,6 +32,10 @@ namespace BreadEditor {
 
     void UiContainer::draw(const float deltaTime)
     {
+        if (getChildCount() == 1)
+        {
+            GuiPanel(_bounds, nullptr);
+        }
     }
 
     void UiContainer::update(const float deltaTime)
@@ -69,8 +73,8 @@ namespace BreadEditor {
     void UiContainer::onTabClosed(const UiElement *uiElement)
     {
         const auto window = _tabIdToWindow[uiElement->id];
+        _tabIdToWindow.erase(uiElement->id);
         window->close();
-        _tabIdToWindow[uiElement->id] = nullptr;
     }
 
     bool UiContainer::tryDeleteSelf()
@@ -106,7 +110,7 @@ namespace BreadEditor {
             dropdown->setPosition({-5, 0});
             dropdown->setTextAlignment(TEXT_ALIGN_LEFT);
             dropdown->setOnOverlayLayer();
-            dropdown->onOptionSelected.subscribe([this, &dropdown, model, windowsNames](const int value)
+            dropdown->onOptionSelected.subscribe([this, dropdown, model, windowsNames](const int value)
             {
                 _toolbar->destroyChild(dropdown);
                 if (value >= 1)
@@ -121,6 +125,7 @@ namespace BreadEditor {
 
     void UiContainer::recalculateChilds()
     {
+        if (getChildCount() == 1) return;
         const auto isSingleChild = getChildCount() == 2; //1. toolbar + 2. child
         int i = 0;
         float lastPosition = _toolbar->getSize().y;
@@ -128,7 +133,6 @@ namespace BreadEditor {
         for (const auto &childElement: getAllChilds())
         {
             if (childElement->isStatic) continue;
-
             if (_layoutType == LAYOUT_HORIZONTAL)
             {
                 if (isSingleChild)

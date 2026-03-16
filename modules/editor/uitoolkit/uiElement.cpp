@@ -221,9 +221,9 @@ namespace BreadEditor {
 
     UiElement *UiElement::getChildById(const std::string &childId) const
     {
-        for (const auto child: _childs)
+        for (const auto child: getAllChilds())
         {
-            if (child->id == childId && !child->_isDeleted)
+            if (child->id == childId)
             {
                 return child;
             }
@@ -234,14 +234,7 @@ namespace BreadEditor {
 
     int UiElement::getChildCount() const
     {
-        int i = 0;
-        for (const auto child: _childs)
-        {
-            if (child->_isDeleted) continue;
-            i++;
-        }
-
-        return i;
+        return getAllChilds().size();
     }
 
     void UiElement::addChild(UiElement *child)
@@ -758,14 +751,14 @@ namespace BreadEditor {
 
     void UiElement::drawInternal(const float deltaTime, const GuiState state)
     {
-        if (!isActive || _isDeleted)
+        if (_isDeleted)
         {
             return;
         }
 
         const auto nextState = std::max(_state, state);
         GuiSetState(nextState);
-        draw(deltaTime);
+        if (isActive) draw(deltaTime);
         GuiSetState(STATE_NORMAL);
 
         GuiSetStyle(LABEL, TEXT_ALIGNMENT, 0);
@@ -777,6 +770,8 @@ namespace BreadEditor {
         {
             drawDebugRect();
         }
+
+        if (!isActive) return;
 
         for (const auto child: _childs)
         {
@@ -819,7 +814,7 @@ namespace BreadEditor {
 
     void UiElement::updateInternal(const float deltaTime)
     {
-        if (!isActive || _isDeleted) return;
+        if (_isDeleted) return;
 
         destroyChildsInternal();
         if (_isDirty)
@@ -827,6 +822,8 @@ namespace BreadEditor {
             computeBounds();
             _isDirty = false;
         }
+
+        if (!isActive) return;
 
         if (!_isAwake)
         {
