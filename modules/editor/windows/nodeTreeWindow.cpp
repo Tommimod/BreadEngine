@@ -31,7 +31,6 @@ namespace BreadEditor {
 
     void NodeTreeWindow::draw(const float deltaTime)
     {
-        TraceLog(LOG_INFO, ("Size" + std::to_string(_bounds.width) + "x" + std::to_string(_bounds.height)).c_str());
         Editor::getInstance().setFontSize(static_cast<int>(EditorStyle::FontSize::MediumLarge));
         GuiSetStyle(DEFAULT, TEXT_SIZE, static_cast<int>(EditorStyle::FontSize::MediumLarge));
         if (GuiScrollPanel(_bounds, nullptr, _contentView, &_scrollPos, &_scrollView)) //TODO Dirty*

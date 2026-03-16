@@ -17,7 +17,7 @@ namespace BreadEditor {
     {
         if (_options.empty()) return;
         const auto root = &Editor::getInstance().mainWindow;
-        _dropdown = &UiPool::dropdownPool.get().setup(TextFormat("%s_optionsDropdown", _element->id), root, _options, false);
+        _dropdown = &UiPool::dropdownPool.get().setup(_element->id + "_optionsDropdown", root, _options, false);
         _dropdown->setAnchor(UI_LEFT_TOP);
         _dropdown->setPivot({0, 0});
         _dropdown->setSize({80, 15});

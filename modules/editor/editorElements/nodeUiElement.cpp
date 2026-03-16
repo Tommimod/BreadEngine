@@ -110,7 +110,7 @@ namespace BreadEditor {
 
     NodeUiElement *NodeUiElement::copySingle() const
     {
-        auto *copyElement = &UiPool::nodeUiElementPool.get().setup(TextFormat("%s_copy", id), _parent, _engineNode);
+        auto *copyElement = &UiPool::nodeUiElementPool.get().setup(id + "_copy", _parent, _engineNode);
         copyElement->setAnchor(_anchor);
         copyElement->setBounds(_localPosition, _localSize);
         return copyElement;

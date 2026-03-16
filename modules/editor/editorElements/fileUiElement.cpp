@@ -57,9 +57,9 @@ namespace BreadEditor {
         setState(isSelected ? STATE_PRESSED : STATE_NORMAL);
     }
 
-    FileUiElement *FileUiElement::copy()
+    FileUiElement *FileUiElement::copy() const
     {
-        const auto copyElement = &UiPool::fileUiElementPool.get().setup(TextFormat("%s_copy", id), nullptr, _fileGuid);
+        const auto copyElement = &UiPool::fileUiElementPool.get().setup(id + "_copy", nullptr, _fileGuid);
         copyElement->setAnchor(_anchor);
         copyElement->setPivot(_pivot);
         copyElement->setBounds(_localPosition, _localSize);

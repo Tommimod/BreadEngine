@@ -38,7 +38,7 @@ namespace BreadEditor {
     {
         for (const auto button: _buttons)
         {
-            button->changeParent(&Editor::getInstance().mainWindow); // CRASH
+            button->changeParent(&Editor::getInstance().mainWindow);
             button->getParentElement()->destroyChild(button);
         }
 
@@ -49,7 +49,7 @@ namespace BreadEditor {
         for (const auto &buttonName: buttonNames)
         {
             constexpr float offset = 5;
-            const auto tag = TextFormat("%s_%s_%d", id, buttonName, index);
+            const std::string_view tag = TextFormat("%s_%s_%d", id.c_str(), buttonName, index);
             index++;
             const auto textWidth = static_cast<float>(GuiGetTextWidth(buttonName.data())) * 1.7f;
             auto size = Vector2{static_cast<float>(textWidth), .0f};
@@ -78,7 +78,7 @@ namespace BreadEditor {
                 button->onClick.subscribe([this](UiButton *a) { this->invokeButtonClicked(a); });
                 _buttons.emplace_back(button);
 
-                const auto closeButton = &UiPool::labelButtonPool.get().setup(tag, button, "X");
+                const auto closeButton = &UiPool::labelButtonPool.get().setup(TextFormat("%s_closeB", tag), button, "X");
                 closeButton->setAnchor(UI_RIGHT_CENTER);
                 closeButton->setPivot({1, .5f});
                 closeButton->setSize({10, 10});
@@ -91,18 +91,19 @@ namespace BreadEditor {
 
     void UiToolbar::invokeButtonClicked(UiButton *button)
     {
-        TraceLog(LOG_INFO, "Button clicked: %s", button->id);
+        TraceLog(LOG_INFO, "Button clicked: %s", button->id.c_str());
         onButtonPressed.invoke(button);
     }
 
     void UiToolbar::invokeButtonClicked(UiLabelButton *button)
     {
-        TraceLog(LOG_INFO, "Button clicked: %s", button->id);
+        TraceLog(LOG_INFO, "Button clicked: %s", button->id.c_str());
         onButtonPressed.invoke(button);
     }
 
     void UiToolbar::invokeButtonRequestedToRemove(const UiLabelButton *button)
     {
+        TraceLog(LOG_INFO, "Tab closed: %s", button->getParentElement()->id.c_str());
         onButtonRequestedToRemove.invoke(button->getParentElement());
     }
 

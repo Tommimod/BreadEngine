@@ -84,9 +84,9 @@ namespace BreadEditor {
         UiElement::dispose();
     }
 
-    FolderUiElement *FolderUiElement::copy()
+    FolderUiElement *FolderUiElement::copy() const
     {
-        const auto copyElement = &UiPool::folderUiElementPool.get().setup(TextFormat("%s_copy", id), nullptr, _folderGuid);
+        const auto copyElement = &UiPool::folderUiElementPool.get().setup(id + "_copy", nullptr, _folderGuid);
         copyElement->setAnchor(_anchor);
         copyElement->setPivot(_pivot);
         copyElement->setBounds(_localPosition, _localSize);

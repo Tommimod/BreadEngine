@@ -34,7 +34,7 @@ namespace BreadEditor {
 
         void dispose() override;
 
-        FolderUiElement *copy();
+        FolderUiElement *copy() const;
 
     protected:
         bool tryDeleteSelf() override;

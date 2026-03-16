@@ -116,7 +116,7 @@ namespace BreadEditor {
                 value = _value.w;
             }
 
-            const auto field = &UiPool::numberBoxPool.get().setup(TextFormat("Vector4D%s_Field%i", id, i), this, _names[i], value);
+            const auto field = &UiPool::numberBoxPool.get().setup(TextFormat("Vector4D%s_Field%i", id.c_str(), i), this, _names[i], value);
             _fields[i] = field;
             field->onValueChangedWithSender.subscribe([this](const float floatValue, UiNumberBox *thisField)
             {

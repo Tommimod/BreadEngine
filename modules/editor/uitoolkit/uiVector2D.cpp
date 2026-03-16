@@ -97,7 +97,7 @@ namespace BreadEditor {
                 value = _value.y;
             }
 
-            UiNumberBox *field = &UiPool::numberBoxPool.get().setup(TextFormat("Vector2D%s_Field%i", id, i), this, _names[i], value);
+            UiNumberBox *field = &UiPool::numberBoxPool.get().setup(TextFormat("Vector2D%s_Field%i", id.c_str(), i), this, _names[i], value);
             _fields[i] = field;
             field->onValueChangedWithSender.subscribe([this](const float floatValue, UiNumberBox *thisField)
             {

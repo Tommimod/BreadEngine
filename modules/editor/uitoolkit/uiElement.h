@@ -43,7 +43,7 @@ namespace BreadEditor {
     class UiElement : public BreadEngine::IDisposable
     {
     public:
-        std::string_view id;
+        std::string id;
         bool isActive = true;
         bool isStatic = false;
         bool isDebugRectVisible = false;

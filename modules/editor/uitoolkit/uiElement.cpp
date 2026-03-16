@@ -490,7 +490,7 @@ namespace BreadEditor {
             return;
         }
 
-        TraceLog(LOG_ERROR, "UiElement: Element %s not a child of %s", child->id, id);
+        TraceLog(LOG_ERROR, "UiElement: Element %s not a child of %s", child->id.c_str(), id.c_str());
     }
 
     void UiElement::setChildLast(UiElement *child)
@@ -503,7 +503,7 @@ namespace BreadEditor {
             return;
         }
 
-        TraceLog(LOG_ERROR, "UiElement: Element %s not a child of %s", child->id, id);
+        TraceLog(LOG_ERROR, "UiElement: Element %s not a child of %s", child->id.c_str(), id.c_str());
     }
 
     void UiElement::dispose()

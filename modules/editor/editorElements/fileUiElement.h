@@ -31,7 +31,7 @@ namespace BreadEditor {
 
         void setIsSelected(bool isSelected);
 
-        FileUiElement *copy();
+        FileUiElement *copy() const;
 
         [[nodiscard]] virtual const std::vector<std::string> &getOptions()
         {

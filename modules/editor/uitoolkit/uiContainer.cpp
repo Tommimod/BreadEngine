@@ -46,7 +46,7 @@ namespace BreadEditor {
 
         _tabs.emplace_back(child->id);
         _toolbar->replaceButtons(_tabs);
-        const auto index = getChildCount() - 2;
+        const auto index = getChildCount() - 1;
         const auto &id = _toolbar->getAllChilds()[index]->id;
         _tabIdToWindow[id] = dynamic_cast<UiWindow *>(child);
         recalculateChilds();
@@ -80,7 +80,7 @@ namespace BreadEditor {
 
     void UiContainer::initialize()
     {
-        _toolbar = &UiPool::toolbarPool.get().setup(TextFormat("%s_toolbar", id), this, _tabs);
+        _toolbar = &UiPool::toolbarPool.get().setup(id + "_toolbar", this, _tabs);
         _toolbar->setAnchor(UI_FIT_TOP_HORIZONTAL);
         _toolbar->setPivot({0, 0});
         _toolbar->setSize({0, 20});
@@ -89,7 +89,7 @@ namespace BreadEditor {
         _toolbar->onButtonRequestedToRemove.subscribe([this](const UiElement *uiElement) { onTabClosed(uiElement); });
         _toolbar->isStatic = true;
 
-        const auto toolbarOptButton = &UiPool::labelButtonPool.get().setup(TextFormat("%s_optButton", id), _toolbar, GuiIconText(ICON_BURGER_MENU, nullptr));
+        const auto toolbarOptButton = &UiPool::labelButtonPool.get().setup(id + "_optButton", _toolbar, GuiIconText(ICON_BURGER_MENU, nullptr));
         toolbarOptButton->setTextAlignment(TEXT_ALIGN_CENTER);
         toolbarOptButton->setAnchor(UI_RIGHT_CENTER);
         toolbarOptButton->setPivot({1, .5f});
@@ -99,7 +99,7 @@ namespace BreadEditor {
         {
             auto model = Editor::getInstance().getEditorModel().getWindowsModel();
             auto windowsNames = model->getNotOpenedWindowsNames();
-            auto dropdown = &UiPool::dropdownPool.get().setup(TextFormat("%s_dropdown", id), _toolbar, windowsNames, false);
+            auto dropdown = &UiPool::dropdownPool.get().setup(id + "_dropdown", _toolbar, windowsNames, false);
             dropdown->setAnchor(UI_RIGHT_CENTER);
             dropdown->setPivot({1, 0});
             dropdown->setSize({80, 15});
