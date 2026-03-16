@@ -32,7 +32,7 @@ namespace BreadEditor {
 
     void UiContainer::draw(const float deltaTime)
     {
-        if (getChildCount() == 1)
+        if (_tabs.empty())
         {
             GuiPanel(_bounds, nullptr);
         }
@@ -46,22 +46,30 @@ namespace BreadEditor {
     void UiContainer::addChild(UiElement *child)
     {
         UiElement::addChild(child);
+        const auto window = dynamic_cast<UiWindow *>(child);
+        if (window == nullptr) return;
         if (getChildCount() == 1) return;
 
         _tabs.emplace_back(child->id);
         _toolbar->replaceButtons(_tabs);
         const auto index = getChildCount() - 1;
         const auto &id = _toolbar->getAllChilds()[index]->id;
-        _tabIdToWindow[id] = dynamic_cast<UiWindow *>(child);
+        _tabIdToWindow[id] = window;
         recalculateChilds();
     }
 
     void UiContainer::destroyChild(UiElement *child)
     {
+        if (dynamic_cast<UiWindow *>(child) == nullptr)
+        {
+            UiElement::destroyChild(child);
+            return;
+        }
+
         _tabs.erase(std::ranges::remove(_tabs, child->id).begin());
         _toolbar->replaceButtons(_tabs);
         UiElement::destroyChild(child);
-        if (getChildCount() == 1) return;
+        if (_tabs.empty()) return;
 
         recalculateChilds();
     }

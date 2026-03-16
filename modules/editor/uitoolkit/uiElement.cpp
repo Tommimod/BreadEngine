@@ -733,6 +733,7 @@ namespace BreadEditor {
 
     void UiElement::setScrollOffset(const Vector2 &scrollOffset)
     {
+        if (_scrollOffset.x != scrollOffset.x || _scrollOffset.y != scrollOffset.y) setDirty();
         _scrollOffset = scrollOffset;
     }
 

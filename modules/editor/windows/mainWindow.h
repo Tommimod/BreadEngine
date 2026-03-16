@@ -53,7 +53,8 @@ namespace BreadEditor {
         bool tryDeleteSelf() override;
 
     private:
-        unique_ptr<UiContainer> _leftContainer;
+        unique_ptr<UiContainer> _topLeftContainer;
+        unique_ptr<UiContainer> _bottomLeftContainer;
         unique_ptr<UiContainer> _topRightContainer;
         unique_ptr<UiContainer> _bottomRightContainer;
         unique_ptr<UiContainer> _bottomContainer;

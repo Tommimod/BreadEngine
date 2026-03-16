@@ -25,16 +25,26 @@ namespace BreadEditor {
 
         const auto &toolbar = getToolbar();
 
-        _leftContainer = std::make_unique<UiContainer>(LAYOUT_VERTICAL);
-        _leftContainer->setPivot({0, 0});
-        _leftContainer->setAnchor(UI_FIT_LEFT_VERTICAL);
-        _leftContainer->setSizePercentOneTime({.15f, .5f});
-        _leftContainer->setPosition({0, toolbar.getSize().y - 1});
-        _leftContainer->setHorizontalResized(true);
-        _leftContainer->computeBounds();
-        _leftContainer->setup("leftContainer", this);
+        _topLeftContainer = std::make_unique<UiContainer>(LAYOUT_VERTICAL);
+        _topLeftContainer->setPivot({0, 0});
+        _topLeftContainer->setAnchor(UI_FIT_LEFT_VERTICAL);
+        _topLeftContainer->setSizePercentOneTime({.15f, 1});
+        _topLeftContainer->setPosition({0, toolbar.getSize().y - 1});
+        _topLeftContainer->setHorizontalResized(true);
+        _topLeftContainer->computeBounds();
+        _topLeftContainer->setup("topLeftContainer", this);
 
-        _leftContainer->addChild(new AssetsWindow(AssetsWindow::Id));
+        _topLeftContainer->addChild(new AssetsWindow(AssetsWindow::Id));
+
+        _bottomLeftContainer = std::make_unique<UiContainer>(LAYOUT_VERTICAL);
+        _bottomLeftContainer->setPivot({1, 1});
+        _bottomLeftContainer->setAnchor(UI_FIT_BOTTOM_HORIZONTAL);
+        _bottomLeftContainer->setSizePercentPermanent({1, -1});
+        _bottomLeftContainer->setSizePercentOneTime({-1, .5f});
+        _bottomLeftContainer->setPosition({0, toolbar.getSize().y - 1});
+        _bottomLeftContainer->setVerticalResized(true);
+        _bottomLeftContainer->computeBounds();
+        _bottomLeftContainer->setup("bottomLeftContainer", _topLeftContainer.get());
 
         _centerContainer = std::make_unique<UiContainer>(LAYOUT_VERTICAL);
         _centerContainer->setPivot({.5f, 0});
@@ -59,8 +69,8 @@ namespace BreadEditor {
 
         _topRightContainer = std::make_unique<UiContainer>(LAYOUT_VERTICAL);
         _topRightContainer->setPivot({1, 0});
-        _topRightContainer->setAnchor(UI_RIGHT_TOP);
-        _topRightContainer->setSizePercentOneTime({.15f, .5f});
+        _topRightContainer->setAnchor(UI_FIT_RIGHT_VERTICAL);
+        _topRightContainer->setSizePercentOneTime({.15f, 1});
         _topRightContainer->setPosition({0, toolbar.getSize().y - 1});
         _topRightContainer->setHorizontalResized(true);
         _topRightContainer->computeBounds();
@@ -68,15 +78,15 @@ namespace BreadEditor {
 
         _topRightContainer->addChild(new NodeTreeWindow(NodeTreeWindow::Id));
 
-        //TODO Merge with _topRightContainer
         _bottomRightContainer = std::make_unique<UiContainer>(LAYOUT_VERTICAL);
         _bottomRightContainer->setPivot({1, 1});
-        _bottomRightContainer->setAnchor(UI_RIGHT_BOTTOM);
-        _bottomRightContainer->setSizePercentOneTime({.15f, .5f});
+        _bottomRightContainer->setAnchor(UI_FIT_BOTTOM_HORIZONTAL);
+        _bottomRightContainer->setSizePercentPermanent({1, -1});
+        _bottomRightContainer->setSizePercentOneTime({-1, .5f});
         _bottomRightContainer->setPosition({0, toolbar.getSize().y - 1});
-        _bottomRightContainer->setHorizontalResized(true);
+        _bottomRightContainer->setVerticalResized(true);
         _bottomRightContainer->computeBounds();
-        _bottomRightContainer->setup("bottomRightContainer", this);
+        _bottomRightContainer->setup("bottomRightContainer", _topRightContainer.get());
 
         _bottomRightContainer->addChild(new PropertyInspectorWindow(PropertyInspectorWindow::Id));
     }
@@ -167,7 +177,10 @@ namespace BreadEditor {
 
     UiElement *MainWindow::findUiElementById(const std::string &id) const
     {
-        UiElement *element = _leftContainer->getChildById(id);
+        UiElement *element = _topLeftContainer->getChildById(id);
+        if (element != nullptr) return element;
+
+        element = _bottomLeftContainer->getChildById(id);
         if (element != nullptr) return element;
 
         element = _topRightContainer->getChildById(id);
@@ -230,10 +243,11 @@ namespace BreadEditor {
         setSizePercentPermanent({1, 1});
         computeBounds();
 
-        _leftContainer->setSizePercentOneTime({.15f, .5f});
+        _topLeftContainer->setSizePercentOneTime({.15f, 1});
+        _bottomLeftContainer->setSizePercentOneTime({1, .5f});
         _centerContainer->setSizePercentOneTime({.7f, .65f});
         _bottomContainer->setSizePercentOneTime({.7f, .35f});
-        _topRightContainer->setSizePercentOneTime({.15f, .5f});
-        _bottomRightContainer->setSizePercentOneTime({.15f, .5f});
+        _topRightContainer->setSizePercentOneTime({.15f, 1});
+        _bottomRightContainer->setSizePercentOneTime({1, .5f});
     }
 } // namespace BreadEditor
