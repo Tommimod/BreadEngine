@@ -18,7 +18,7 @@ namespace BreadEngine {
     {
         if (!owner)
         {
-            TraceLog(LOG_FATAL, "Transform: parent is null");
+            Logger::LogError("Transform: parent is null");
         }
 
         setOwner(owner);

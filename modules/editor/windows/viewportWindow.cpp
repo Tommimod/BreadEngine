@@ -6,13 +6,13 @@
 namespace BreadEditor {
     std::string ViewportWindow::Id = "Viewport";
 
-    ViewportWindow::ViewportWindow(const std::string &id) : UiWindow(id)
+    ViewportWindow::ViewportWindow(const std::string_view &id) : UiWindow(id)
     {
         setup(id);
         subscribe();
     }
 
-    ViewportWindow::ViewportWindow(const std::string &id, UiElement *parentElement) : UiWindow(id, parentElement)
+    ViewportWindow::ViewportWindow(const std::string_view &id, UiElement *parentElement) : UiWindow(id, parentElement)
     {
         setup(id, parentElement);
         subscribe();

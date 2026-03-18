@@ -5,6 +5,7 @@
 #include <yaml-cpp/yaml.h>
 #include <yaml-cpp/node/parse.h>
 #include "assetsConfigYaml.h"
+#include "logger.h"
 
 namespace BreadEngine {
     DEFINE_STATIC_PROPS(AssetsConfig)
@@ -327,7 +328,7 @@ namespace BreadEngine {
             const auto isFolder = AssetsConfig::isFolder(path);
             if (strncmp(path, _projectPath.c_str(), _projectPath.size()) != 0)
             {
-                TraceLog(LOG_ERROR, "Path does not start with project path");
+                Logger::LogError("Path does not start with project path");
                 throw std::runtime_error("Path does not start with project path");
             }
 
@@ -364,7 +365,7 @@ namespace BreadEngine {
         }
         catch (const fs::filesystem_error &err)
         {
-            TraceLog(LOG_ERROR, err.what());
+            Logger::LogError(err.what());
         }
     }
 
@@ -376,7 +377,7 @@ namespace BreadEngine {
         }
         catch (const fs::filesystem_error &err)
         {
-            TraceLog(LOG_ERROR, err.what());
+            Logger::LogError(err.what());
         }
     }
 
@@ -388,7 +389,7 @@ namespace BreadEngine {
         }
         catch (const fs::filesystem_error &err)
         {
-            TraceLog(LOG_ERROR, err.what());
+            Logger::LogError(err.what());
         }
     }
 
@@ -400,7 +401,7 @@ namespace BreadEngine {
         }
         catch (const fs::filesystem_error &err)
         {
-            TraceLog(LOG_ERROR, err.what());
+            Logger::LogError(err.what());
         }
     }
 
@@ -412,7 +413,7 @@ namespace BreadEngine {
         }
         catch (const fs::filesystem_error &err)
         {
-            TraceLog(LOG_ERROR, err.what());
+            Logger::LogError(err.what());
         }
     }
 
@@ -424,7 +425,7 @@ namespace BreadEngine {
         }
         catch (const fs::filesystem_error &err)
         {
-            TraceLog(LOG_ERROR, err.what());
+            Logger::LogError(err.what());
         }
     }
 } // BreadEngine

@@ -100,7 +100,7 @@ namespace BreadEngine {
         {
             delete _gameModuleLoader;
             _gameModuleLoader = nullptr;
-            TraceLog(LOG_ERROR, "Failed to load module: {0}", path);
+            Logger::LogError(TextFormat("Failed to load module: %s", path));
             return;
         }
 

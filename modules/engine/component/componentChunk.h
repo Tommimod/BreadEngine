@@ -2,6 +2,7 @@
 #include <unordered_map>
 #include <vector>
 #include "baseComponentChunk.h"
+#include "logger.h"
 #include "raylib.h"
 #include "../nodeProvider.h"
 
@@ -58,7 +59,7 @@ namespace BreadEngine {
                     return _components[_ownerIdToIndex[ownerId]];
                 }
 
-                TraceLog(LOG_ERROR, "Component %s already exists for node &i", typeid(T).name(), ownerId);
+                Logger::LogError(TextFormat("Component %s already exists for node &i", typeid(T).name(), ownerId));
                 return _components[_ownerIdToIndex[ownerId]];
             }
 

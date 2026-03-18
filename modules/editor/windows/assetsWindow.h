@@ -12,9 +12,9 @@ namespace BreadEditor {
     public:
         static std::string Id;
 
-        explicit AssetsWindow(const std::string &id);
+        explicit AssetsWindow(const std::string_view &id);
 
-        explicit AssetsWindow(const std::string &id, UiElement *parentElement);
+        explicit AssetsWindow(const std::string_view &id, UiElement *parentElement);
 
         ~AssetsWindow() override;
 

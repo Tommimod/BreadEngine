@@ -6,7 +6,7 @@
 namespace BreadEditor {
     std::string PropertyInspectorWindow::Id = "Inspector";
 
-    PropertyInspectorWindow::PropertyInspectorWindow(const std::string &id) : UiWindow(id)
+    PropertyInspectorWindow::PropertyInspectorWindow(const std::string_view &id) : UiWindow(id)
     {
         setup(id);
         initialize();
@@ -14,7 +14,7 @@ namespace BreadEditor {
         rebuild();
     }
 
-    PropertyInspectorWindow::PropertyInspectorWindow(const std::string &id, UiElement *parentElement) : UiWindow(id, parentElement)
+    PropertyInspectorWindow::PropertyInspectorWindow(const std::string_view &id, UiElement *parentElement) : UiWindow(id, parentElement)
     {
         setup(id, parentElement);
         initialize();

@@ -1,4 +1,5 @@
 ﻿#pragma once
+#include "logger.h"
 #include "uitoolkit/uiElement.h"
 #include "uitoolkit/uiWindow.h"
 
@@ -8,9 +9,9 @@ namespace BreadEditor {
     public:
         static std::string Id;
 
-        explicit ConsoleWindow(const std::string &id);
+        explicit ConsoleWindow(const std::string_view &id);
 
-        explicit ConsoleWindow(const std::string &id, UiElement *parentElement);
+        explicit ConsoleWindow(const std::string_view &id, UiElement *parentElement);
 
         ~ConsoleWindow() override;
 
@@ -29,5 +30,8 @@ namespace BreadEditor {
 
     private:
         const char *_title = Id.c_str();
+        BreadEngine::SubscriptionHandle _logSubscription;
+
+        void onNewLogCreated(BreadEngine::Logger::LogLevel level, std::string_view message);
     };
 } // BreadEditor

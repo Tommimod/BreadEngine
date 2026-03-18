@@ -8,9 +8,9 @@ namespace BreadEditor {
     public:
         static std::string Id;
 
-        explicit ViewportWindow(const std::string &id);
+        explicit ViewportWindow(const std::string_view &id);
 
-        explicit ViewportWindow(const std::string &id, UiElement *parentElement);
+        explicit ViewportWindow(const std::string_view &id, UiElement *parentElement);
 
         ~ViewportWindow() override;
 

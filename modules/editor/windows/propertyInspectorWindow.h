@@ -14,9 +14,9 @@ namespace BreadEditor {
     public:
         static std::string Id;
 
-        explicit PropertyInspectorWindow(const std::string &id);
+        explicit PropertyInspectorWindow(const std::string_view &id);
 
-        explicit PropertyInspectorWindow(const std::string &id, UiElement *parentElement);
+        explicit PropertyInspectorWindow(const std::string_view &id, UiElement *parentElement);
 
         ~PropertyInspectorWindow() override;
 

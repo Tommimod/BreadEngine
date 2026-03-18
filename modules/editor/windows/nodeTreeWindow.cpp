@@ -11,7 +11,7 @@
 namespace BreadEditor {
     std::string NodeTreeWindow::Id = "Node Tree";
 
-    NodeTreeWindow::NodeTreeWindow(const std::string &id) : UiWindow(id)
+    NodeTreeWindow::NodeTreeWindow(const std::string_view &id) : UiWindow(id)
     {
         _editorModel = &Editor::getInstance().getEditorModel();
         setup(id);
@@ -19,7 +19,7 @@ namespace BreadEditor {
         rebuild();
     }
 
-    NodeTreeWindow::NodeTreeWindow(const std::string &id, UiElement *parentElement) : UiWindow(id, parentElement)
+    NodeTreeWindow::NodeTreeWindow(const std::string_view &id, UiElement *parentElement) : UiWindow(id, parentElement)
     {
         _editorModel = &Editor::getInstance().getEditorModel();
         setup(id, parentElement);

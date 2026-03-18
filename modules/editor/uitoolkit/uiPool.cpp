@@ -103,4 +103,10 @@ namespace BreadEditor {
         return new RenameUiElement();
     };
     ObjectPool<RenameUiElement> UiPool::renameUiElementPool(UiRenameFactory, 1);
+
+    auto MessageUiElementFactory = []() -> MessageUiElement *
+    {
+        return new MessageUiElement();
+    };
+    ObjectPool<MessageUiElement> UiPool::messageUiElementPool(MessageUiElementFactory, 1);
 } // BreadEditor

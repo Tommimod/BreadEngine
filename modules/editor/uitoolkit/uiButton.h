@@ -4,7 +4,7 @@
 #include "editorStyle.h"
 
 namespace BreadEditor {
-    class UiButton final : public UiElement
+    class UiButton : public UiElement
     {
     public:
         BreadEngine::Action<UiButton *> onClick;

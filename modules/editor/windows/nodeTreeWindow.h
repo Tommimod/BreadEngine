@@ -12,9 +12,9 @@ namespace BreadEditor {
     public:
         static std::string Id;
 
-        explicit NodeTreeWindow(const std::string &id);
+        explicit NodeTreeWindow(const std::string_view &id);
 
-        explicit NodeTreeWindow(const std::string &id, UiElement *parentElement);
+        explicit NodeTreeWindow(const std::string_view &id, UiElement *parentElement);
 
         ~NodeTreeWindow() override;
 
