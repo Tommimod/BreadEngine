@@ -10,10 +10,10 @@ namespace BreadEngine {
     {
         RegistryEntry() = default;
 
-        RegistryEntry(std::type_index ti,
+        RegistryEntry(const std::type_index ti,
                       std::function<std::unique_ptr<Component>()> compCreator,
                       std::function<std::unique_ptr<BaseComponentChunk>()> chunkCreator)
-            : ti(std::move(ti)), compCreator(std::move(compCreator)), chunkCreator(std::move(chunkCreator))
+            : ti(ti), compCreator(std::move(compCreator)), chunkCreator(std::move(chunkCreator))
         {
         }
 

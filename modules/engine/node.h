@@ -61,7 +61,7 @@ namespace BreadEngine {
 
         void unparent(Node *node);
 
-        std::string serialize(const std::string &filePath) const;
+        [[nodiscard]] std::string serialize(const std::string &filePath) const;
 
         static Node *deserialize(const std::string &filePath);
 
@@ -87,6 +87,8 @@ namespace BreadEngine {
         {
             ComponentsProvider::remove(_id, type);
         }
+
+        [[nodiscard]] ComponentsProvider::ComponentMaskArray getComponentMasks(int maskCount) const;
 
     private:
         friend class NodeProvider;

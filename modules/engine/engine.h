@@ -1,5 +1,4 @@
 #pragma once
-
 #include "../../lib/engine/raylib.h"
 #include "moduleLoader.h"
 #include <string>
@@ -7,6 +6,7 @@
 #include "node.h"
 #include "objectPool.h"
 #include "configs/assetsConfig.h"
+#include "systems/core/systemsRegistry.h"
 
 namespace BreadEngine {
     class Engine
@@ -32,7 +32,7 @@ namespace BreadEngine {
 
         void beginFrame() const;
 
-        void endFrame();
+        void endFrame() const;
 
         void setupDefaultCamera();
 
@@ -49,10 +49,6 @@ namespace BreadEngine {
 
         void callGameRender3D() const;
 
-        static std::string getAssetPath(const std::string &relativePath, const std::string &module = "");
-
-        static bool isFileExists(const std::string &path);
-
         // Check if point is inside rectangle
         static bool isCollisionPointRec(Vector2 point, Rectangle rec);
 
@@ -64,9 +60,10 @@ namespace BreadEngine {
     private:
         static std::unique_ptr<Engine> _instance;
 
-        Camera3D _camera{};
-        ModuleLoader *_gameModuleLoader = nullptr;
         AssetsConfig _fileSystem;
+        SystemsRegistry _systems;
+        Camera3D _camera;
+        ModuleLoader *_gameModuleLoader = nullptr;
 
         typedef void (*GameInitFunc)();
 
@@ -83,6 +80,8 @@ namespace BreadEngine {
         GameRender2DFunc _gameRender2D = nullptr;
         GameRender3DFunc _gameRender3D = nullptr;
         GameShutdownFunc _gameShutdown = nullptr;
+
+        void initializeSystems();
     };
 
     namespace Input {

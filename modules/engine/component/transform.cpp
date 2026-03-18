@@ -1,4 +1,5 @@
 #include "transform.h"
+#include "node.h"
 #include "raymath.h"
 
 namespace BreadEngine {
@@ -8,50 +9,101 @@ namespace BreadEngine {
     Transform::Transform()
     {
         _isActive = true;
-        _transformMatrix = {0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 1, 1, 0, 0, 0, 0};
-        updateProperties();
+        _localPosition = {0.0f, 0.0f, 0.0f};
+        _localRotation = QuaternionIdentity();
+        _localScale = {1.0f, 1.0f, 1.0f};
     }
 
-    Transform::Transform(Node *parent)
+    Transform::Transform(Node *owner)
     {
-        if (!parent)
+        if (!owner)
         {
             TraceLog(LOG_FATAL, "Transform: parent is null");
         }
 
-        setOwner(parent);
+        setOwner(owner);
         _isActive = true;
-        _transformMatrix = {0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 1, 1, 0, 0, 0, 0};
-        updateProperties();
+        _localPosition = {0.0f, 0.0f, 0.0f};
+        _localRotation = QuaternionIdentity();
+        _localScale = {1.0f, 1.0f, 1.0f};
     }
 
     Transform::~Transform() = default;
 
-    void Transform::setIsActive(bool isActive)
+    void Transform::setIsActive(const bool isActive)
     {
-        Component::setIsActive(true);
+        Component::setIsActive(true); // only for transform
     }
 
     std::string Transform::toString() const
     {
-        const auto position = "position : x:" + std::to_string(_position.x) + " y:" + std::to_string(_position.y) + " z:" + std::to_string(_position.z);
-        const auto rotation = "rotation : x:" + std::to_string(_rotation.x) + " y:" + std::to_string(_rotation.y) + " z:" + std::to_string(_rotation.z) + " w:" + std::to_string(_rotation.w);
-        const auto scale = "scale x:" + std::to_string(_scale.x) + " y:" + std::to_string(_scale.y) + " z:" + std::to_string(_scale.z);
-        const auto result = "\n" + position + "\n" + rotation + "\n" + scale;
+        const Vector3 worldPosV = getPosition();
+        const auto worldPos = "world position : x:" + std::to_string(worldPosV.x) + " y:" + std::to_string(worldPosV.y) + " z:" + std::to_string(worldPosV.z);
+
+        const Quaternion worldRotQ = getRotationQuaternion();
+        const auto worldRot = "world rotation : x:" + std::to_string(worldRotQ.x) + " y:" + std::to_string(worldRotQ.y) + " z:" + std::to_string(worldRotQ.z) + " w:" + std::to_string(worldRotQ.w);
+
+        const Vector3 worldScaleV = getScale();
+        const auto worldScale = "world scale : x:" + std::to_string(worldScaleV.x) + " y:" + std::to_string(worldScaleV.y) + " z:" + std::to_string(worldScaleV.z);
+
+        const Vector3 localPosV = getLocalPosition();
+        const auto localPos = "local position : x:" + std::to_string(localPosV.x) + " y:" + std::to_string(localPosV.y) + " z:" + std::to_string(localPosV.z);
+
+        const Quaternion localRotQ = getLocalRotationQuaternion();
+        const auto localRot = "local rotation : x:" + std::to_string(localRotQ.x) + " y:" + std::to_string(localRotQ.y) + " z:" + std::to_string(localRotQ.z) + " w:" + std::to_string(localRotQ.w);
+
+        const Vector3 localScaleV = getLocalScale();
+        const auto localScale = "local scale : x:" + std::to_string(localScaleV.x) + " y:" + std::to_string(localScaleV.y) + " z:" + std::to_string(localScaleV.z);
+
+        const auto result = "\n" + worldPos + "\n" + worldRot + "\n" + worldScale +
+                            "\n--- Local ---\n" + localPos + "\n" + localRot + "\n" + localScale;
         return Component::toString().append(result);
     }
 
     Vector3 Transform::getPosition() const
     {
-        return _position;
+        const Transform *parent = getParentTransform();
+        if (!parent)
+        {
+            return _localPosition;
+        }
+
+        const Vector3 parentPos = parent->getPosition();
+        const Vector3 parentScale = parent->getScale();
+        const Quaternion parentRot = parent->getRotationQuaternion();
+
+        const Vector3 scaledOffset = {
+            _localPosition.x * parentScale.x,
+            _localPosition.y * parentScale.y,
+            _localPosition.z * parentScale.z
+        };
+        const Vector3 rotatedOffset = Vector3RotateByQuaternion(scaledOffset, parentRot);
+
+        return Vector3Add(parentPos, rotatedOffset);
     }
 
     void Transform::setPosition(const Vector3 &position)
     {
-        _transformMatrix.m0 = position.x;
-        _transformMatrix.m4 = position.y;
-        _transformMatrix.m8 = position.z;
-        updateProperties();
+        const Transform *parent = getParentTransform();
+        if (!parent)
+        {
+            _localPosition = position;
+            return;
+        }
+
+        const Vector3 parentPos = parent->getPosition();
+        const Quaternion parentRot = parent->getRotationQuaternion();
+        const Vector3 parentScale = parent->getScale();
+
+        const Vector3 delta = Vector3Subtract(position, parentPos);
+        const Quaternion invRot = QuaternionInvert(parentRot);
+        const Vector3 unrotated = Vector3RotateByQuaternion(delta, invRot);
+
+        _localPosition = {
+            (parentScale.x != 0.0f) ? unrotated.x / parentScale.x : 0.0f,
+            (parentScale.y != 0.0f) ? unrotated.y / parentScale.y : 0.0f,
+            (parentScale.z != 0.0f) ? unrotated.z / parentScale.z : 0.0f
+        };
     }
 
     Vector3 Transform::getRotationVector() const
@@ -61,52 +113,105 @@ namespace BreadEngine {
 
     Quaternion Transform::getRotationQuaternion() const
     {
-        return _rotation;
+        const Transform *parent = getParentTransform();
+        if (!parent)
+        {
+            return _localRotation;
+        }
+        return QuaternionMultiply(parent->getRotationQuaternion(), _localRotation);
     }
 
     void Transform::setRotation(const Vector3 &rotation)
     {
         setRotation(QuaternionFromEuler(rotation.z, rotation.y, rotation.x));
-        updateProperties();
     }
 
     void Transform::setRotation(const Quaternion &rotation)
     {
-        _transformMatrix.m1 = rotation.x;
-        _transformMatrix.m5 = rotation.y;
-        _transformMatrix.m9 = rotation.z;
-        _transformMatrix.m13 = rotation.w;
-        updateProperties();
+        const Transform *parent = getParentTransform();
+        if (!parent)
+        {
+            _localRotation = rotation;
+            return;
+        }
+
+        const Quaternion parentRot = parent->getRotationQuaternion();
+        const Quaternion invParent = QuaternionInvert(parentRot);
+        _localRotation = QuaternionMultiply(invParent, rotation);
     }
 
     Vector3 Transform::getScale() const
     {
-        return _scale;
+        const Transform *parent = getParentTransform();
+        if (!parent)
+        {
+            return _localScale;
+        }
+
+        const Vector3 parentScale = parent->getScale();
+        return {
+            parentScale.x * _localScale.x,
+            parentScale.y * _localScale.y,
+            parentScale.z * _localScale.z
+        };
     }
 
     void Transform::setScale(const Vector3 &scale)
     {
-        _transformMatrix.m2 = scale.x;
-        _transformMatrix.m6 = scale.y;
-        _transformMatrix.m10 = scale.z;
-        updateProperties();
+        const Transform *parent = getParentTransform();
+        if (!parent)
+        {
+            _localScale = scale;
+            return;
+        }
+
+        const Vector3 parentScale = parent->getScale();
+        _localScale = {
+            (parentScale.x != 0.0f) ? scale.x / parentScale.x : 0.0f,
+            (parentScale.y != 0.0f) ? scale.y / parentScale.y : 0.0f,
+            (parentScale.z != 0.0f) ? scale.z / parentScale.z : 0.0f
+        };
     }
 
-    Matrix Transform::getTransformMatrix() const
+    Vector3 Transform::getLocalPosition() const { return _localPosition; }
+
+    void Transform::setLocalPosition(const Vector3 &localPosition)
     {
-        return _transformMatrix;
+        _localPosition = localPosition;
     }
 
-    void Transform::setTransformMatrix(const Matrix &nextTransformMatrix)
+    Vector3 Transform::getLocalRotationVector() const
     {
-        this->_transformMatrix = nextTransformMatrix;
-        updateProperties();
+        return QuaternionToEuler(getLocalRotationQuaternion());
     }
 
-    void Transform::updateProperties()
+    Quaternion Transform::getLocalRotationQuaternion() const { return _localRotation; }
+
+    void Transform::setLocalRotation(const Vector3 &localRotation)
     {
-        _position = Vector3{_transformMatrix.m0, _transformMatrix.m4, _transformMatrix.m8};
-        _rotation = Quaternion{_transformMatrix.m1, _transformMatrix.m5, _transformMatrix.m9, _transformMatrix.m13};
-        _scale = Vector3{_transformMatrix.m2, _transformMatrix.m6, _transformMatrix.m10};
+        setLocalRotation(QuaternionFromEuler(localRotation.z, localRotation.y, localRotation.x));
+    }
+
+    void Transform::setLocalRotation(const Quaternion &localRotation)
+    {
+        _localRotation = localRotation;
+    }
+
+    Vector3 Transform::getLocalScale() const { return _localScale; }
+
+    void Transform::setLocalScale(const Vector3 &localScale)
+    {
+        _localScale = localScale;
+    }
+
+    Transform *Transform::getParentTransform() const
+    {
+        const Node *ownerNode = getOwner();
+        if (!ownerNode) return nullptr;
+
+        Node *parentNode = ownerNode->getParent();
+        if (!parentNode) return nullptr;
+
+        return &parentNode->get<Transform>();
     }
 } // namespace BreadEngine

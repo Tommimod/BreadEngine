@@ -7,7 +7,7 @@ namespace BreadEngine {
     {
         Transform();
 
-        explicit Transform(Node *parent);
+        explicit Transform(Node *owner);
 
         ~Transform() override;
 
@@ -31,22 +31,33 @@ namespace BreadEngine {
 
         void setScale(const Vector3 &scale);
 
-        [[nodiscard]] Matrix getTransformMatrix() const;
+        [[nodiscard]] Vector3 getLocalPosition() const;
 
-        void setTransformMatrix(const Matrix &nextTransformMatrix);
+        void setLocalPosition(const Vector3 &localPosition);
+
+        [[nodiscard]] Vector3 getLocalRotationVector() const;
+
+        [[nodiscard]] Quaternion getLocalRotationQuaternion() const;
+
+        void setLocalRotation(const Vector3 &localRotation);
+
+        void setLocalRotation(const Quaternion &localRotation);
+
+        [[nodiscard]] Vector3 getLocalScale() const;
+
+        void setLocalScale(const Vector3 &localScale);
 
     private:
-        Matrix _transformMatrix{};
-        Quaternion _rotation{};
-        Vector3 _position{};
-        Vector3 _scale{};
+        Vector3 _localPosition{};
+        Quaternion _localRotation{};
+        Vector3 _localScale{};
 
         INSPECTOR_BEGIN(Transform)
-            INSPECT_FIELD(_position);
-            INSPECT_FIELD(_rotation);
-            INSPECT_FIELD(_scale);
+            INSPECT_FIELD(_localPosition);
+            INSPECT_FIELD(_localRotation);
+            INSPECT_FIELD(_localScale);
         INSPECTOR_END()
 
-        void updateProperties();
+        [[nodiscard]] Transform *getParentTransform() const;
     };
 } // namespace BreadEngine

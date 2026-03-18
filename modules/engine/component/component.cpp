@@ -6,9 +6,9 @@ namespace BreadEngine {
 #define DEFINE_STATIC_PROPS(ClassName) \
     std::vector<Property> ClassName::inspectorProps_;
 
-    void Component::setOwner(Node *parent)
+    void Component::setOwner(Node *owner)
     {
-        this->_parent = parent;
+        this->_owner = owner;
     }
 
     Component::~Component() = default;
@@ -47,14 +47,14 @@ namespace BreadEngine {
         return name->name();
     }
 
-    Node *Component::getParent() const
+    Node *Component::getOwner() const
     {
-        return _parent;
+        return _owner;
     }
 
     bool Component::getIsActive() const
     {
-        return _isActive && _parent->getIsActive();
+        return _isActive && _owner->getIsActive();
     }
 
     void Component::setIsActive(const bool nextActive)

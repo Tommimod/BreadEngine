@@ -47,4 +47,9 @@ namespace BreadEngine {
 
         return nullptr;
     }
+
+    const std::vector<Node *> &NodeProvider::getAllNodes()
+    {
+        return _nodes;
+    }
 }

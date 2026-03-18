@@ -19,6 +19,8 @@ namespace BreadEngine {
 
         static Node *getNode(unsigned int ownerId);
 
+        static const std::vector<Node *> &getAllNodes();
+
     private:
         static std::vector<Node *> _nodes;
         static std::vector<unsigned int> _freeIds;

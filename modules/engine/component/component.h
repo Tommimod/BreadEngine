@@ -10,7 +10,7 @@ namespace BreadEngine {
     {
         Component() = default;
 
-        void setOwner(Node *parent);
+        void setOwner(Node *owner);
 
         ~Component() override;
 
@@ -30,7 +30,7 @@ namespace BreadEngine {
 
         [[nodiscard]] virtual std::string toString() const;
 
-        [[nodiscard]] Node *getParent() const;
+        [[nodiscard]] Node *getOwner() const;
 
         [[nodiscard]] bool getIsActive() const;
 
@@ -39,7 +39,7 @@ namespace BreadEngine {
         YAML::Node serialize() override;
 
     protected:
-        Node *_parent = nullptr;
+        Node *_owner = nullptr;
         bool _isActive = true;
     };
 } // namespace BreadEngine

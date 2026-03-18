@@ -12,6 +12,10 @@ namespace BreadEngine {
     ObjectPool<Node> Engine::nodePool(nodeFactory, 10);
     std::unique_ptr<Engine> Engine::_instance = std::make_unique<Engine>();
 
+    void Engine::initializeSystems()
+    {
+    }
+
     Engine::Engine() = default;
 
     Engine &Engine::getInstance()
@@ -40,7 +44,9 @@ namespace BreadEngine {
         SetTargetFPS(60);
         setupDefaultCamera();
         NodeProvider::init();
+        initializeSystems();
 
+        _systems.initialize();
         return true;
     }
 
@@ -66,12 +72,14 @@ namespace BreadEngine {
         {
             _gameUpdate();
         }
+
+        _systems.update(getDeltaTime());
     }
 
-    // ReSharper disable once CppMemberFunctionMayBeStatic
-    void Engine::endFrame()
+    void Engine::endFrame() const
     {
         EndDrawing();
+        _systems.endFrame(getDeltaTime());
     }
 
     void Engine::setupDefaultCamera()
@@ -142,24 +150,6 @@ namespace BreadEngine {
         {
             _gameRender3D();
         }
-    }
-
-    std::string Engine::getAssetPath(const std::string &relativePath, const std::string &module)
-    {
-        std::string basePath = "assets/";
-
-        if (!module.empty())
-        {
-            basePath += module + "/";
-        }
-
-        return basePath + relativePath;
-    }
-
-    bool Engine::isFileExists(const std::string &path)
-    {
-        const std::ifstream file(path);
-        return file.good();
     }
 
     bool Engine::isCollisionPointRec(const Vector2 point, const Rectangle rec)

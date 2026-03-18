@@ -15,6 +15,43 @@ namespace BreadEngine {
     class ComponentsProvider
     {
     public:
+        static constexpr size_t MAX_COMPONENTS = 512;
+        static constexpr size_t MAX_MASK_COUNT = (MAX_COMPONENTS + 63) / 64;
+        using ComponentMaskArray = std::array<uint64_t, MAX_MASK_COUNT>;
+
+        static ComponentMaskArray GetComponentMasks(const unsigned int ownerId, const int maskCount)
+        {
+            ComponentMaskArray masks{};
+
+            if (maskCount > static_cast<int>(MAX_MASK_COUNT))
+            {
+                throw std::runtime_error("maskCount is low. Increase MAX_MASK_COUNT.");
+            }
+
+            for (const auto &[ti, chunkPtr]: getChunks())
+            {
+                if (chunkPtr->hasOwner(ownerId))
+                {
+                    const size_t compID = GetComponentID(ti);
+                    const size_t arrayIndex = compID / 64;
+                    const size_t bitIndex = compID % 64;
+
+                    if (arrayIndex < static_cast<size_t>(maskCount))
+                    {
+                        masks[arrayIndex] |= (1ULL << bitIndex);
+                    }
+                }
+            }
+
+            return masks;
+        }
+
+        template<typename T, std::enable_if_t<std::is_base_of_v<Component, T>, int> = 0>
+        static size_t GetComponentIndex()
+        {
+            return GetComponentID(std::type_index(typeid(T)));
+        }
+
         static void addDynamic(const unsigned int ownerId, const std::string &componentType, const YAML::Node &node)
         {
             const auto *entry = ComponentRegistry::GetEntry(componentType);
@@ -181,6 +218,28 @@ namespace BreadEngine {
         {
             auto &chunk = emplaceChunk<T>();
             return chunk.add(ownerId, std::move(component), false);
+        }
+
+        static size_t &GetNextComponentID() noexcept
+        {
+            static size_t counter = 0;
+            return counter;
+        }
+
+        static std::unordered_map<std::type_index, size_t> &getComponentIDs() noexcept
+        {
+            static std::unordered_map<std::type_index, size_t> ids{};
+            return ids;
+        }
+
+        static size_t GetComponentID(const std::type_index &ti)
+        {
+            auto &map = getComponentIDs();
+            if (const auto it = map.find(ti); it != map.end()) return it->second;
+
+            const size_t id = GetNextComponentID()++;
+            map[ti] = id;
+            return id;
         }
     };
 } // BreadEngine

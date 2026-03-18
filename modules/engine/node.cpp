@@ -272,6 +272,11 @@ namespace BreadEngine {
         return YAML::Node(rawData);
     }
 
+    ComponentsProvider::ComponentMaskArray Node::getComponentMasks(const int maskCount) const
+    {
+        return ComponentsProvider::GetComponentMasks(_id, maskCount);
+    }
+
     NodeRawData Node::getRawData() const
     {
         std::vector<unsigned int> childIds;

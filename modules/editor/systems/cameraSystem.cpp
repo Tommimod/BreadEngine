@@ -13,9 +13,7 @@ namespace BreadEditor {
         _pitch = -PI / 4.0f;
     }
 
-    CameraSystem::~CameraSystem()
-    {
-    }
+    CameraSystem::~CameraSystem() = default;
 
     void CameraSystem::update(const float deltaTime)
     {
