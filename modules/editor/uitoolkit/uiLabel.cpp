@@ -9,7 +9,9 @@ namespace BreadEditor {
     void UiLabel::dispose()
     {
         _text.clear();
-        _textAlignment = TEXT_ALIGN_CENTER;
+        _textAlignment = TEXT_ALIGN_LEFT;
+        _verticalAlignment = TEXT_ALIGN_MIDDLE;
+        _wrapMode = TEXT_WRAP_NONE;
         _textSize = static_cast<int>(EditorStyle::FontSize::Medium);
         UiElement::dispose();
     }
@@ -26,6 +28,8 @@ namespace BreadEditor {
         Editor::getInstance().setFontSize(_textSize);
         GuiSetStyle(DEFAULT, TEXT_SIZE, _textSize);
         GuiSetStyle(LABEL, TEXT_ALIGNMENT, _textAlignment);
+        GuiSetStyle(DEFAULT, TEXT_ALIGNMENT_VERTICAL, _verticalAlignment);
+        GuiSetStyle(DEFAULT, TEXT_WRAP_MODE, _wrapMode);
         GuiLabel(_bounds, _text.c_str());
     }
 

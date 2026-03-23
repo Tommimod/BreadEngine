@@ -1,6 +1,5 @@
 #include "nodeProvider.h"
 #include "node.h"
-#include "raylib.h"
 
 namespace BreadEngine {
     Action<Node *> NodeProvider::onNodeCreated{};

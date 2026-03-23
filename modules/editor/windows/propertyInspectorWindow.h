@@ -34,6 +34,8 @@ namespace BreadEditor {
 
         [[nodiscard]] const char *getTitle() override { return _title; }
 
+        void awake() override;
+
     protected:
         void subscribe() override;
 
@@ -49,8 +51,6 @@ namespace BreadEditor {
         UiTextBox *_nameTextBox = nullptr;
         std::vector<Component *> _trackedComponents{};
         std::vector<UiInspector *> _uiComponentElements{};
-
-        void initialize() override;
 
         void resetElementsState(bool withGlobalSettings);
 

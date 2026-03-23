@@ -1,5 +1,7 @@
 ﻿#pragma once
 #include "logger.h"
+#include "editorElements/messageUiElement.h"
+#include "uitoolkit/uiButton.h"
 #include "uitoolkit/uiElement.h"
 #include "uitoolkit/uiWindow.h"
 
@@ -14,6 +16,8 @@ namespace BreadEditor {
         explicit ConsoleWindow(const std::string_view &id, UiElement *parentElement);
 
         ~ConsoleWindow() override;
+
+        void awake() override;
 
         void draw(float deltaTime) override;
 
@@ -30,8 +34,22 @@ namespace BreadEditor {
 
     private:
         const char *_title = Id.c_str();
-        BreadEngine::SubscriptionHandle _logSubscription;
+        SubscriptionHandle _logSubscription;
+        std::vector<MessageUiElement *> _messages;
+        bool _infoLogsVisible = true;
+        bool _warningLogsVisible = true;
+        bool _errorLogsVisible = true;
 
-        void onNewLogCreated(BreadEngine::Logger::LogLevel level, std::string_view message);
+        void rebuild();
+
+        void onNewLogCreated(const Logger::LogEntity &entity);
+
+        void clearLogs();
+
+        void switchInfoLogsVisibility(UiButton *switchButton);
+
+        void switchWarningLogsVisibility(UiButton *switchButton);
+
+        void switchErrorLogsVisibility(UiButton *switchButton);
     };
 } // BreadEditor

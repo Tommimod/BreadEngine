@@ -1,23 +1,27 @@
 ﻿#pragma once
-#include "uitoolkit/uiButton.h"
+#include "logger.h"
+#include "uitoolkit/uiLabelButton.h"
 
 namespace BreadEditor {
-    class MessageUiElement : public UiButton
+    class MessageUiElement : public UiElement
     {
     public:
+        Action<Logger::LogEntity &> onClick;
         MessageUiElement();
 
         ~MessageUiElement() override;
 
-        [[nodiscard]] MessageUiElement &setup(const std::string_view &id, UiElement *parentElement, const std::string_view &messageText);
+        [[nodiscard]] MessageUiElement &setup(const std::string_view &id, UiElement *parentElement, const Logger::LogEntity &logEntity);
 
         void draw(float deltaTime) override;
 
         void dispose() override;
 
     protected:
+        UiLabelButton *_button = nullptr;
+        Logger::LogEntity _logEntity;
+        std::string _text;
         bool tryDeleteSelf() override;
 
-        std::string _messageText;
     };
 } // BreadEditor

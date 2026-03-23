@@ -1,9 +1,10 @@
 ﻿#pragma once
+#include "uiScrollPanel.h"
 #include "uitoolkit/IUiResizable.h"
 #include "uitoolkit/uiElement.h"
 
 namespace BreadEditor {
-    class UiWindow : public UiElement, public IUiResizable
+    class UiWindow : public UiScrollPanel, public IUiResizable
     {
     public:
         explicit UiWindow(const std::string_view &id);
@@ -12,11 +13,7 @@ namespace BreadEditor {
 
         ~UiWindow() override;
 
-        void draw(float deltaTime) override;
-
         void update(float deltaTime) override;
-
-        void onFrameEnd(float deltaTime) override;
 
         void dispose() override;
 
@@ -24,22 +21,13 @@ namespace BreadEditor {
 
         void close();
 
+        void awake() override;
+
     protected:
-        Vector2 _scrollPos = {0.0f, 0.0f};
-        Rectangle _contentView = {0.0f, 0.0f, 0.0f, 0.0f};
-        Rectangle _scrollView = {0.0f, 0.0f, 0.0f, 0.0f};
-        Vector2 _contentSize{0, 0};
-
-        virtual void initialize();
-
         virtual void subscribe();
 
         virtual void unsubscribe();
 
         bool tryDeleteSelf() override;
-
-        virtual void updateScrollView();
-
-        void calculateRectForScroll(UiElement *element);
     };
 } // BreadEditor

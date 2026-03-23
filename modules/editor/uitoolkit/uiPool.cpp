@@ -92,6 +92,12 @@ namespace BreadEditor {
     };
     ObjectPool<FolderUiElement> UiPool::folderUiElementPool(UIFolderElementFactory, 10);
 
+    auto UiScrollPanelFactory = []() -> UiScrollPanel *
+    {
+        return new UiScrollPanel();
+    };
+    ObjectPool<UiScrollPanel> UiPool::scrollPanelPool(UiScrollPanelFactory, 1);
+
     auto UIFileElementFactory = []() -> FileUiElement *
     {
         return new FileUiElement();

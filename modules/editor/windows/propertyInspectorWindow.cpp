@@ -9,7 +9,6 @@ namespace BreadEditor {
     PropertyInspectorWindow::PropertyInspectorWindow(const std::string_view &id) : UiWindow(id)
     {
         setup(id);
-        initialize();
         subscribe();
         rebuild();
     }
@@ -17,7 +16,6 @@ namespace BreadEditor {
     PropertyInspectorWindow::PropertyInspectorWindow(const std::string_view &id, UiElement *parentElement) : UiWindow(id, parentElement)
     {
         setup(id, parentElement);
-        initialize();
         subscribe();
         rebuild();
     }
@@ -130,6 +128,28 @@ namespace BreadEditor {
         _inspectorStruct = nullptr;
     }
 
+    void PropertyInspectorWindow::awake()
+    {
+        UiWindow::awake();
+        constexpr int verticalOffset = 10;
+        constexpr int horizontalOffset = 5;
+
+        _activeCheckBox = &UiPool::checkBoxPool.get().setup("nodeInspectorActiveCheckBox", this, "Active", false);
+        _activeCheckBox->setAnchor(UI_LEFT_TOP);
+        _activeCheckBox->setPosition({horizontalOffset, verticalOffset + 5});
+        _activeCheckBox->setSize({10, 10});
+        _subscriptions.emplace(_activeCheckBox, _activeCheckBox->onValueChanged.subscribe([this](const bool checked) { this->onNodeActiveChanged(checked); }));
+
+        _nameTextBox = &UiPool::textBoxPool.get().setup("nodeInspectorNameTextBox", this, "Name");
+        _nameTextBox->setAnchor(UI_LEFT_TOP);
+        _nameTextBox->setPosition({_activeCheckBox->getSize().x + 50, verticalOffset});
+        _nameTextBox->setSize({0, 20});
+        _nameTextBox->setSizePercentPermanent({.75f, -1});
+        _subscriptions.emplace(_nameTextBox, _nameTextBox->onValueChanged.subscribe([this](const char *text) { this->onNodeNameChanged(text); }));
+
+        resetElementsState(false);
+    }
+
     void PropertyInspectorWindow::subscribe()
     {
         Editor::getInstance().getEditorModel().onClearSelection.subscribe([this]
@@ -151,27 +171,6 @@ namespace BreadEditor {
     void PropertyInspectorWindow::unsubscribe()
     {
         UiWindow::unsubscribe();
-    }
-
-    void PropertyInspectorWindow::initialize()
-    {
-        constexpr int verticalOffset = 10;
-        constexpr int horizontalOffset = 5;
-
-        _activeCheckBox = &UiPool::checkBoxPool.get().setup("nodeInspectorActiveCheckBox", this, "Active", false);
-        _activeCheckBox->setAnchor(UI_LEFT_TOP);
-        _activeCheckBox->setPosition({horizontalOffset, verticalOffset + 5});
-        _activeCheckBox->setSize({10, 10});
-        _subscriptions.emplace(_activeCheckBox, _activeCheckBox->onValueChanged.subscribe([this](const bool checked) { this->onNodeActiveChanged(checked); }));
-
-        _nameTextBox = &UiPool::textBoxPool.get().setup("nodeInspectorNameTextBox", this, "Name");
-        _nameTextBox->setAnchor(UI_LEFT_TOP);
-        _nameTextBox->setPosition({_activeCheckBox->getSize().x + 50, verticalOffset});
-        _nameTextBox->setSize({0, 20});
-        _nameTextBox->setSizePercentPermanent({.75f, -1});
-        _subscriptions.emplace(_nameTextBox, _nameTextBox->onValueChanged.subscribe([this](const char *text) { this->onNodeNameChanged(text); }));
-
-        resetElementsState(true);
     }
 
     void PropertyInspectorWindow::resetElementsState(const bool withGlobalSettings)

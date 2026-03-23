@@ -9,7 +9,13 @@ namespace BreadEngine {
     public:
         enum LogLevel { Info, Warning, Error };
 
-        static Action<LogLevel, std::string_view> OnLog;
+        struct LogEntity
+        {
+            LogLevel level;
+            std::string_view message;
+        };
+
+        static Action<LogEntity &> OnLog;
 
         static void LogInfo(std::string_view message);
 
@@ -17,7 +23,13 @@ namespace BreadEngine {
 
         static void LogError(std::string_view message);
 
+        static const std::vector<LogEntity> &getLogs();
+
+        static void clear();
+
     private:
+        static std::vector<LogEntity> _logs;
+
         static void Log(const LogLevel &level, std::string_view message);
     };
 } // BreadEngine

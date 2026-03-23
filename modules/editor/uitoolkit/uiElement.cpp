@@ -766,6 +766,8 @@ namespace BreadEditor {
         GuiSetStyle(DROPDOWNBOX, TEXT_ALIGNMENT, 1);
         GuiSetStyle(BUTTON, TEXT_ALIGNMENT, 0);
         GuiSetStyle(DEFAULT, TEXT_SIZE, static_cast<int>(EditorStyle::FontSize::Medium));
+        GuiSetStyle(DEFAULT, TEXT_ALIGNMENT_VERTICAL, 1);
+        GuiSetStyle(DEFAULT, TEXT_WRAP_MODE, 0);
         Editor::getInstance().setFontSize(EditorStyle::FontSize::Medium);
         if (isDebugRectVisible)
         {

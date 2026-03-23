@@ -1,6 +1,8 @@
 ﻿#include "consoleWindow.h"
 #include "editor.h"
 #include "editorStyle.h"
+#include "logger.h"
+#include "uitoolkit/uiPool.h"
 
 namespace BreadEditor {
     std::string ConsoleWindow::Id = "Console";
@@ -8,16 +10,72 @@ namespace BreadEditor {
     ConsoleWindow::ConsoleWindow(const std::string_view &id) : UiWindow(id)
     {
         setup(id);
-        subscribe();
     }
 
     ConsoleWindow::ConsoleWindow(const std::string_view &id, UiElement *parentElement) : UiWindow(id, parentElement)
     {
         setup(id, parentElement);
-        subscribe();
     }
 
     ConsoleWindow::~ConsoleWindow() = default;
+
+    void ConsoleWindow::awake()
+    {
+        float offset = 1;
+
+        auto &panel = UiPool::panelPool.get().setup(id + "_panel", this);
+        panel.setSize({-1, 20});
+        panel.setSizePercentPermanent({1, -1});
+        panel.isStatic = true;
+        panel.setOnOverlayLayer();
+
+        auto &clearButton = UiPool::buttonPool.get().setup(id + "_clear_button", &panel, "Clear");
+        clearButton.setTextSize(static_cast<int>(EditorStyle::FontSize::SmallMedium));
+        clearButton.setSize({35, -1});
+        clearButton.setSizePercentPermanent({-1, 1});
+        clearButton.onClick.subscribe([this](UiButton *)
+        {
+            clearLogs();
+        });
+        offset += clearButton.getSize().x;
+
+        auto &infoLogsButton = UiPool::buttonPool.get().setup(id + "_info_button", &panel, GuiIconText(ICON_INFO, nullptr));
+        infoLogsButton.setTextSize(static_cast<int>(EditorStyle::FontSize::SmallMedium));
+        infoLogsButton.setSize({20, -1});
+        infoLogsButton.setSizePercentPermanent({-1, 1});
+        infoLogsButton.setPosition({offset, 0});
+        infoLogsButton.onClick.subscribe([this](UiButton *button)
+        {
+            switchInfoLogsVisibility(button);
+        });
+        infoLogsButton.setState(STATE_FOCUSED);
+        offset += infoLogsButton.getSize().x;
+
+        auto &warningLogsButton = UiPool::buttonPool.get().setup(id + "_warning_button", &panel, GuiIconText(ICON_WARNING, nullptr));
+        warningLogsButton.setTextSize(static_cast<int>(EditorStyle::FontSize::SmallMedium));
+        warningLogsButton.setSize({20, -1});
+        warningLogsButton.setSizePercentPermanent({-1, 1});
+        warningLogsButton.setPosition({offset, 0});
+        warningLogsButton.onClick.subscribe([this](UiButton *button)
+        {
+            switchWarningLogsVisibility(button);
+        });
+        warningLogsButton.setState(STATE_FOCUSED);
+        offset += warningLogsButton.getSize().x;
+
+        auto &errorLogsButton = UiPool::buttonPool.get().setup(id + "_error_button", &panel, GuiIconText(ICON_DEMON, nullptr));
+        errorLogsButton.setTextSize(static_cast<int>(EditorStyle::FontSize::SmallMedium));
+        errorLogsButton.setSize({20, -1});
+        errorLogsButton.setSizePercentPermanent({-1, 1});
+        errorLogsButton.setPosition({offset, 0});
+        errorLogsButton.onClick.subscribe([this](UiButton *button)
+        {
+            switchErrorLogsVisibility(button);
+        });
+        errorLogsButton.setState(STATE_FOCUSED);
+
+        subscribe();
+    }
 
     void ConsoleWindow::draw(const float deltaTime)
     {
@@ -34,13 +92,19 @@ namespace BreadEditor {
 
     void ConsoleWindow::dispose()
     {
+        _errorLogsVisible = true;
+        _warningLogsVisible = true;
+        _infoLogsVisible = true;
+        _messages.clear();
         UiWindow::dispose();
     }
 
     void ConsoleWindow::subscribe()
     {
-        _logSubscription = Logger::OnLog.subscribe([this](const Logger::LogLevel level, const std::string_view message) { onNewLogCreated(level, message); });
+        _logSubscription = Logger::OnLog.subscribe([this](const Logger::LogEntity &entity) { onNewLogCreated(entity); });
         UiWindow::subscribe();
+
+        Logger::LogInfo("test");
     }
 
     void ConsoleWindow::unsubscribe()
@@ -49,7 +113,75 @@ namespace BreadEditor {
         UiWindow::unsubscribe();
     }
 
-    void ConsoleWindow::onNewLogCreated(Logger::LogLevel level, std::string_view message)
+    void ConsoleWindow::rebuild()
     {
+        for (const auto messageUiElement: _messages)
+        {
+            destroyChild(messageUiElement);
+        }
+
+        _messages.clear();
+        for (auto &allLogs = Logger::getLogs(); const auto &log: allLogs)
+        {
+            onNewLogCreated(log);
+        }
+    }
+
+    void ConsoleWindow::onNewLogCreated(const Logger::LogEntity &entity)
+    {
+        if (entity.level == Logger::Info && !_infoLogsVisible) return;
+        if (entity.level == Logger::Warning && !_warningLogsVisible) return;
+        if (entity.level == Logger::Error && !_errorLogsVisible) return;
+
+        constexpr float size = 35;
+        float offset = 0;
+        if (_messages.empty())
+        {
+            offset = getChildById(id + "_panel")->getSize().y;
+        }
+        else
+        {
+            offset = _messages.back()->getPosition().y + size;
+        }
+
+        auto &messageUiElement = UiPool::messageUiElementPool.get().setup(id + "_message", this, entity);
+        messageUiElement.setSize({-1, size});
+        messageUiElement.setSizePercentPermanent({.99f, -1});
+        messageUiElement.setPosition({2, offset});
+
+        _messages.emplace_back(&messageUiElement);
+        calculateRectForScroll(&messageUiElement);
+    }
+
+    void ConsoleWindow::clearLogs()
+    {
+        for (const auto messageUiElement: _messages)
+        {
+            destroyChild(messageUiElement);
+        }
+
+        _messages.clear();
+        Logger::clear();
+    }
+
+    void ConsoleWindow::switchInfoLogsVisibility(UiButton *switchButton)
+    {
+        _infoLogsVisible = !_infoLogsVisible;
+        switchButton->setState(_infoLogsVisible ? STATE_FOCUSED : STATE_NORMAL);
+        rebuild();
+    }
+
+    void ConsoleWindow::switchWarningLogsVisibility(UiButton *switchButton)
+    {
+        _warningLogsVisible = !_warningLogsVisible;
+        switchButton->setState(_warningLogsVisible ? STATE_FOCUSED : STATE_NORMAL);
+        rebuild();
+    }
+
+    void ConsoleWindow::switchErrorLogsVisibility(UiButton *switchButton)
+    {
+        _errorLogsVisible = !_errorLogsVisible;
+        switchButton->setState(_errorLogsVisible ? STATE_FOCUSED : STATE_NORMAL);
+        rebuild();
     }
 } // BreadEditor

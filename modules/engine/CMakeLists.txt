@@ -6,9 +6,21 @@ FetchContent_Declare(
         GIT_TAG master
 )
 FetchContent_MakeAvailable(yaml-cpp)
+FetchContent_Declare(
+        backward
+        GIT_REPOSITORY https://github.com/bombela/backward-cpp.git
+        GIT_TAG master
+)
+
+FetchContent_MakeAvailable(backward)
+
 target_compile_options(yaml-cpp PRIVATE -stdlib=libc++)
 target_link_options(yaml-cpp PRIVATE -stdlib=libc++)
 set_target_properties(yaml-cpp PROPERTIES CXX_STANDARD 23 CXX_STANDARD_REQUIRED ON)
+
+target_compile_options(backward PRIVATE -stdlib=libc++)
+target_link_options(backward PRIVATE -stdlib=libc++)
+set_target_properties(backward PROPERTIES CXX_STANDARD 23 CXX_STANDARD_REQUIRED ON)
 
 # For engine sources
 file(GLOB_RECURSE ENGINE_SOURCES
@@ -99,6 +111,7 @@ target_link_libraries(BreadEngine PUBLIC
         ${ASSIMP_DLL}
         ${ASSIMP_LIB}
         yaml-cpp::yaml-cpp
+        Backward::Interface
 )
 
 message(STATUS "R3D_INCLUDE_DIRS: ${R3D_DLL}")

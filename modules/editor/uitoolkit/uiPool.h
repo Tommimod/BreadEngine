@@ -10,6 +10,7 @@
 #include "uiDropdown.h"
 #include "uiLabel.h"
 #include "uiNumberBox.h"
+#include "uiScrollPanel.h"
 #include "uiTextBox.h"
 #include "uiVector2D.h"
 #include "uiVector3D.h"
@@ -38,6 +39,7 @@ namespace BreadEditor {
         static ObjectPool<UiVector3D> vector3DPool;
         static ObjectPool<UiVector4D> vector4DPool;
         static ObjectPool<UiDropdown> dropdownPool;
+        static ObjectPool<UiScrollPanel> scrollPanelPool;
         static ObjectPool<FolderUiElement> folderUiElementPool;
         static ObjectPool<FileUiElement> fileUiElementPool;
         static ObjectPool<RenameUiElement> renameUiElementPool;
