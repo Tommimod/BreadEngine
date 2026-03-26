@@ -196,6 +196,26 @@ namespace BreadEditor {
         return {clampedPercent.x * effectiveParentBounds.width, clampedPercent.y * effectiveParentBounds.height};
     }
 
+    Vector2 UiElement::getSizeInPercent() const
+    {
+        Rectangle effectiveParentBounds;
+        if (_parent)
+        {
+            effectiveParentBounds = _parent->getBounds();
+            if (!_ignoreScrollLayout)
+            {
+                effectiveParentBounds.x += _parent->getScrollOffset().x;
+                effectiveParentBounds.y += _parent->getScrollOffset().y;
+            }
+        }
+        else
+        {
+            effectiveParentBounds = {0.0f, 0.0f, static_cast<float>(GetScreenWidth()), static_cast<float>(GetScreenHeight())};
+        }
+
+        return {std::clamp(_bounds.width / effectiveParentBounds.width, 0.0f, 1.0f), std::clamp(_bounds.height / effectiveParentBounds.height, 0.0f, 1.0f)};
+    }
+
     UiElement *UiElement::getRootElement()
     {
         if (!_parent)

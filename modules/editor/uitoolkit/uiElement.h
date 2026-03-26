@@ -84,6 +84,8 @@ namespace BreadEditor {
 
         [[nodiscard]] Vector2 getSizeInPixByPercent(const Vector2 &percent) const;
 
+        [[nodiscard]] Vector2 getSizeInPercent() const;
+
         [[nodiscard]] UiElement *getRootElement();
 
         [[nodiscard]] UiElement *getParentElement() const;

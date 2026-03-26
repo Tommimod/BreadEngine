@@ -32,10 +32,7 @@ namespace BreadEditor {
 
     void UiContainer::draw(const float deltaTime)
     {
-        if (_tabs.empty())
-        {
-            GuiPanel(_bounds, nullptr);
-        }
+        GuiPanel(_bounds, nullptr);
     }
 
     void UiContainer::update(const float deltaTime)
@@ -52,7 +49,7 @@ namespace BreadEditor {
 
         _tabs.emplace_back(child->id);
         _toolbar->replaceButtons(_tabs);
-        const auto index = getChildCount() - 1;
+        const auto index = _tabs.size();
         const auto &id = _toolbar->getAllChilds()[index]->id;
         _tabIdToWindow[id] = window;
         recalculateChilds();

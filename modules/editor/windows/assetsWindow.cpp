@@ -45,6 +45,8 @@ namespace BreadEditor {
     {
         auto i = 0;
         recalculateUiFolders(_assetConfig.getRootFolder(), i);
+
+        UiWindow::awake();
     }
 
     FolderUiElement *AssetsWindow::getFolderUiElementByEngineFolder(const Folder *folder) const

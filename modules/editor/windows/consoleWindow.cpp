@@ -75,6 +75,7 @@ namespace BreadEditor {
         errorLogsButton.setState(STATE_FOCUSED);
 
         subscribe();
+        UiWindow::awake();
     }
 
     void ConsoleWindow::draw(const float deltaTime)

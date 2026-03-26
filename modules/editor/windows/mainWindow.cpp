@@ -243,11 +243,11 @@ namespace BreadEditor {
         setSizePercentPermanent({1, 1});
         computeBounds();
 
-        _topLeftContainer->setSizePercentOneTime({.15f, 1});
-        _bottomLeftContainer->setSizePercentOneTime({1, .5f});
-        _centerContainer->setSizePercentOneTime({.7f, .65f});
-        _bottomContainer->setSizePercentOneTime({.7f, .35f});
-        _topRightContainer->setSizePercentOneTime({.15f, 1});
-        _bottomRightContainer->setSizePercentOneTime({1, .5f});
+        _topLeftContainer->setSizePercentOneTime(_topLeftContainer->getSizeInPercent());
+        _bottomLeftContainer->setSizePercentOneTime(_bottomLeftContainer->getSizeInPercent());
+        _centerContainer->setSizePercentOneTime(_centerContainer->getSizeInPercent());
+        _bottomContainer->setSizePercentOneTime(_bottomContainer->getSizeInPercent());
+        _topRightContainer->setSizePercentOneTime(_topRightContainer->getSizeInPercent());
+        _bottomRightContainer->setSizePercentOneTime(_bottomRightContainer->getSizeInPercent());
     }
 } // namespace BreadEditor
