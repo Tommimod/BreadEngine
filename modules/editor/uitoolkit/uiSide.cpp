@@ -50,10 +50,15 @@ namespace BreadEditor {
         UiScrollPanel::addChild(child);
         if (auto slot = dynamic_cast<UiWindow *>(child); slot != nullptr)
         {
+            slot->isActive = true;
+            slot->open();
             _slots.emplace_back(slot);
+            slot->onClose.subscribe([this](UiWindow *slotForRemove)
+            {
+                destroyChild(slotForRemove);
+            });
+            recalculateChilds();
         }
-
-        recalculateChilds();
     }
 
     void UiSide::destroyChild(UiElement *child)
@@ -61,11 +66,15 @@ namespace BreadEditor {
         if (const auto slot = dynamic_cast<UiWindow *>(child); slot != nullptr)
         {
             std::erase(_slots, slot);
+            slot->isActive = false;
+            slot->onClose.unsubscribeAll();
+            recalculateChilds();
+            if (_slots.empty()) _contentSize = {0, 0};
         }
-
-        UiScrollPanel::destroyChild(child);
-        recalculateChilds();
-        if (_slots.empty()) _contentSize = {0, 0};
+        else
+        {
+            UiScrollPanel::destroyChild(child);
+        }
     }
 
     bool UiSide::tryDeleteSelf()
@@ -80,29 +89,31 @@ namespace BreadEditor {
         _topPanel->setSize({-1, 18});
         _topPanel->setIgnoreScrollLayout();
         _topPanel->setOnOverlayLayer();
+        _topPanel->computeBounds();
 
         const auto addSlotButton = &UiPool::labelButtonPool.get().setup(id + "_addSlotButton", _topPanel, GuiIconText(ICON_BURGER_MENU, nullptr));
         addSlotButton->setTextSize(static_cast<int>(EditorStyle::FontSize::MediumLarge));
-        addSlotButton->setPivot({0, 1});
-        addSlotButton->setPosition({10, 10});
-        addSlotButton->setOnOverlayLayer();
-        addSlotButton->onClick.subscribe([this, addSlotButton](UiLabelButton *)
+        addSlotButton->setPivot({1, 0});
+        addSlotButton->setAnchor(UI_RIGHT_TOP);
+        addSlotButton->setSize({10, 10});
+        addSlotButton->setPosition({-10, 4});
+        addSlotButton->onClick.subscribe([this](UiLabelButton *button)
         {
-            auto model = Editor::getInstance().getEditorModel().getWindowsModel();
-            auto windowsNames = model->getNotOpenedWindowsNames();
-            auto dropdown = &UiPool::dropdownPool.get().setup(id + "_dropdown", addSlotButton, windowsNames, false);
+            auto &model = Editor::getInstance().getEditorModel().getWindowsModel();
+            auto &windowsNames = model.getNotOpenedWindowsNames();
+            auto dropdown = &UiPool::dropdownPool.get().setup(id + "_dropdown", button, windowsNames, false);
             dropdown->setAnchor(UI_RIGHT_CENTER);
             dropdown->setPivot({1, 0});
             dropdown->setSize({80, 15});
             dropdown->setPosition({-5, 0});
             dropdown->setTextAlignment(TEXT_ALIGN_LEFT);
             dropdown->setOnOverlayLayer();
-            dropdown->onOptionSelected.subscribe([this, dropdown, model, windowsNames, addSlotButton](const int value)
+            dropdown->onOptionSelected.subscribe([this, dropdown, &model, windowsNames, button](const int value)
             {
-                addSlotButton->destroyChild(dropdown);
+                button->destroyChild(dropdown);
                 if (value >= 1)
                 {
-                    auto factory = model->getWindowFactory(windowsNames[value - 1]);
+                    auto factory = model.getWindowFactory(windowsNames[value - 1]);
                     const auto window = std::invoke(factory);
                     addChild(window);
                 }
@@ -124,8 +135,9 @@ namespace BreadEditor {
             if (_layoutType == LAYOUT_HORIZONTAL)
             {
                 slot->setLayoutType(LAYOUT_HORIZONTAL);
-                slot->setSizePercentPermanent({isSingle ? .97f : -1.0f, 1});
+                slot->setSizePercentPermanent({isSingle ? 1 : -1.0f, 1});
                 slot->setSizePercentOneTime({1.0f / static_cast<float>(_slots.size()), -1});
+                slot->setSizeMin({150, -1});
                 slot->setVerticalResized(false);
                 auto side = ANY;
                 if (isFirst) side = RIGHT;
@@ -137,8 +149,9 @@ namespace BreadEditor {
             else if (_layoutType == LAYOUT_VERTICAL)
             {
                 slot->setLayoutType(LAYOUT_VERTICAL);
-                slot->setSizePercentPermanent({.97f, isSingle ? 1.0f : -1.0f});
+                slot->setSizePercentPermanent({1, isSingle ? 1.0f : -1.0f});
                 slot->setSizePercentOneTime({-1, 1.0f / static_cast<float>(_slots.size())});
+                slot->setSizeMin({-1, 150});
                 slot->setHorizontalResized(false);
                 auto side = ANY;
                 if (isFirst) side = BOTTOM;
@@ -149,6 +162,7 @@ namespace BreadEditor {
             }
 
             calculateRectForScroll(slot);
+            setChildLast(slot);
         }
     }
 } // BreadEditor

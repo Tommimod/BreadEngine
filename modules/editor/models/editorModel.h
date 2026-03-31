@@ -30,7 +30,7 @@ namespace BreadEditor {
 
         void selectFileUiElement(FileUiElement *fileUiElement);
 
-        [[nodiscard]] WindowsModel *getWindowsModel() const { return _windowsModel.get(); }
+        [[nodiscard]] WindowsModel &getWindowsModel() const { return *_windowsModel; }
 
         [[nodiscard]] std::string &getProjectPath() { return _projectPath; }
 

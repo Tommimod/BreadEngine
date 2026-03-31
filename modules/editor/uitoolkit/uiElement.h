@@ -72,9 +72,13 @@ namespace BreadEditor {
 
         void setSizePercentPermanent(const Vector2 &percent);
 
+        void setSizeMin(const Vector2 &minSize);
+
         void setSizeMax(const Vector2 &maxSize);
 
         void setBounds(const Vector2 &position, const Vector2 &size);
+
+        [[nodiscard]] Vector2& getMinSize();
 
         [[nodiscard]] Vector2 &getPivot();
 
@@ -113,6 +117,8 @@ namespace BreadEditor {
         [[nodiscard]] std::vector<UiElement *> getPrevSiblingsByEqualVertical() const;
 
         [[nodiscard]] int getIndex() const;
+
+        [[nodiscard]] bool getIsIgnoreScrollLayout() const;
 
         void setLayoutType(LAYOUT_TYPE layout);
 
@@ -157,6 +163,7 @@ namespace BreadEditor {
         Vector2 _localSize{1.0f, 1.0f};
         Vector2 _sizeInPercents{-1, -1};
         Vector2 _maxSize{0, 0};
+        Vector2 _minSize{0, 0};
         UI_ANCHOR_TYPE _anchor = UI_LEFT_TOP;
         LAYOUT_TYPE _layoutType = LAYOUT_NONE;
         GuiState _state = STATE_NORMAL;

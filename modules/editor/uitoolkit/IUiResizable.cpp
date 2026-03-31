@@ -72,17 +72,35 @@ namespace BreadEditor {
             auto isDragDownSide = false;
             auto isDragLeftSide = false;
             auto isDragRightSide = false;
+            const auto layoutType = uiElement.getLayoutType();
             if (isHorizontalResized)
             {
-                isDragLeftSide = prevMousePos.x >= bounds.x && prevMousePos.x <= subBounds.x;
-                isDragRightSide = prevMousePos.x <= bounds.x + bounds.width && prevMousePos.x >= subBounds.x + subBounds.width;
+                auto hasLeftSibling = true;
+                auto hasRightSibling = true;
+                if (layoutType != LAYOUT_NONE)
+                {
+                    hasRightSibling = uiElement.getPrevSiblingsByEqualHorizontal().empty();
+                    hasLeftSibling = uiElement.getNextSiblingsByEqualHorizontal().empty();
+                }
+
+                isDragLeftSide = prevMousePos.x >= bounds.x && prevMousePos.x <= subBounds.x && hasLeftSibling;
+                isDragRightSide = prevMousePos.x <= bounds.x + bounds.width && prevMousePos.x >= subBounds.x + subBounds.width && hasRightSibling;
                 isHorizontalResize = isDragRightSide || isDragLeftSide;
             }
 
             if (isVerticalResized)
             {
-                isDragUpperSide = prevMousePos.y >= bounds.y && prevMousePos.y <= subBounds.y;
-                isDragDownSide = prevMousePos.y <= bounds.y + bounds.height && prevMousePos.y >= subBounds.y + subBounds.height;
+                auto hasUpperSibling = true;
+                auto hasBottomSibling = true;
+                if (layoutType != LAYOUT_NONE)
+                {
+                    auto test = uiElement.getPrevSiblingsByEqualVertical();
+                    hasUpperSibling = !uiElement.getPrevSiblingsByEqualVertical().empty();
+                    hasBottomSibling = !uiElement.getNextSiblingsByEqualVertical().empty();
+                }
+
+                isDragUpperSide = prevMousePos.y >= bounds.y && prevMousePos.y <= subBounds.y && hasUpperSibling;
+                isDragDownSide = prevMousePos.y <= bounds.y + bounds.height && prevMousePos.y >= subBounds.y + subBounds.height && hasBottomSibling;
                 isVerticalResize = isDragUpperSide || isDragDownSide;
             }
 
@@ -171,7 +189,7 @@ namespace BreadEditor {
         prevMousePos = mousePos;
     }
 
-    void IUiResizable::changeVerticalSize(UiElement &uiElement, const bool isDragUpperSide, const bool isDragDownSide, const float mouseYDelta) const
+    void IUiResizable::changeVerticalSize(UiElement &uiElement, const bool isDragUpperSide, const bool isDragDownSide, const float mouseYDelta)
     {
         const auto &pivot = uiElement.getPivot();
         const bool isBottomSidePivot = pivot.y > .5f;
@@ -218,12 +236,12 @@ namespace BreadEditor {
         const auto parentBounds = uiElement.getParentElement() == nullptr
                                       ? Rectangle{0, 0, static_cast<float>(GetScreenWidth()), static_cast<float>(GetScreenHeight())}
                                       : uiElement.getParentElement()->getBounds();
-        size.y = Clamp(size.y, 100, parentBounds.height);
+        size.y = Clamp(size.y, std::max(100.0f, uiElement.getMinSize().y), parentBounds.height);
         uiElement.setSize(size);
         Editor::getInstance().mainWindow.setDirty();
     }
 
-    void IUiResizable::changeHorizontalSize(UiElement &uiElement, const bool isDragLeftSide, const bool isDragRightSide, const float mouseXDelta) const
+    void IUiResizable::changeHorizontalSize(UiElement &uiElement, const bool isDragLeftSide, const bool isDragRightSide, const float mouseXDelta)
     {
         const auto &pivot = uiElement.getPivot();
         const bool isRightSidePivot = pivot.x > .5f;
@@ -269,7 +287,7 @@ namespace BreadEditor {
         const auto &parentBounds = uiElement.getParentElement() == nullptr
                                        ? Rectangle{0, 0, static_cast<float>(GetScreenWidth()), static_cast<float>(GetScreenHeight())}
                                        : uiElement.getParentElement()->getBounds();
-        size.x = Clamp(size.x, 50, parentBounds.width);
+        size.x = Clamp(size.x, std::max(50.0f, uiElement.getMinSize().x), parentBounds.width);
         uiElement.setSize(size);
         Editor::getInstance().mainWindow.setDirty();
     }

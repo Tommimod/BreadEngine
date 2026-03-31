@@ -21,9 +21,9 @@ namespace BreadEditor {
 
     UiWindow::~UiWindow() = default;
 
-    void UiWindow::awake()
+    void UiWindow::open() const
     {
-        Editor::getInstance().getEditorModel().getWindowsModel()->removeWindowFromAllowList(id);
+        Editor::getInstance().getEditorModel().getWindowsModel().removeWindowFromAllowList(id);
     }
 
     void UiWindow::draw(const float deltaTime)
@@ -42,6 +42,7 @@ namespace BreadEditor {
     void UiWindow::dispose()
     {
         _content = nullptr;
+        onClose.unsubscribeAll();
         UiWindow::unsubscribe();
         setVerticalResized(false);
         setHorizontalResized(false);
@@ -49,9 +50,8 @@ namespace BreadEditor {
 
     void UiWindow::close()
     {
-        _parent->destroyChild(this);
-        getRootElement()->setDirty();
-        Editor::getInstance().getEditorModel().getWindowsModel()->addWindowToAllowList(id);
+        Editor::getInstance().getEditorModel().getWindowsModel().addWindowToAllowList(id);
+        onClose.invoke(this);
     }
 
     void UiWindow::subscribe()

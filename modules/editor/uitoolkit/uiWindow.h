@@ -1,4 +1,5 @@
 ﻿#pragma once
+#include "action.h"
 #include "uiScrollPanel.h"
 #include "uitoolkit/IUiResizable.h"
 #include "uitoolkit/uiElement.h"
@@ -7,13 +8,15 @@ namespace BreadEditor {
     class UiWindow : public UiElement, public IUiResizable
     {
     public:
+        BreadEngine::Action<UiWindow *> onClose;
+
         explicit UiWindow(const std::string_view &id);
 
         explicit UiWindow(const std::string_view &id, UiElement *parentElement);
 
         ~UiWindow() override;
 
-        void awake() override;
+        void open() const;
 
         void draw(float deltaTime) override;
 

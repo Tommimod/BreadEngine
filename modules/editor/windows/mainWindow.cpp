@@ -21,6 +21,8 @@ namespace BreadEditor {
         computeBounds();
 
         const auto &toolbar = getToolbar();
+        auto &windowsModel = Editor::getInstance().getEditorModel().getWindowsModel();
+        windowsModel.initialize();
 
         _leftSide = std::make_unique<UiSide>(LAYOUT_VERTICAL);
         _leftSide->setPivot({0, 0});
@@ -30,7 +32,7 @@ namespace BreadEditor {
         _leftSide->setHorizontalResized(true, IUiResizable::RIGHT);
         _leftSide->computeBounds();
         _leftSide->setup("leftSide", this);
-        _leftSide->addChild(new AssetsWindow(AssetsWindow::Id));
+        _leftSide->addChild(windowsModel.getWindowFactory(AssetsWindow::Id)());
 
         _centerSide = std::make_unique<UiSide>(LAYOUT_VERTICAL);
         _centerSide->setPivot({.5f, 0});
@@ -39,7 +41,7 @@ namespace BreadEditor {
         _centerSide->setPosition({0, toolbar.getSize().y - 1});
         _centerSide->computeBounds();
         _centerSide->setup("topSide", this);
-        _centerSide->addChild(new ViewportWindow(ViewportWindow::Id));
+        _centerSide->addChild(windowsModel.getWindowFactory(ViewportWindow::Id)());
 
         _bottomSide = std::make_unique<UiSide>(LAYOUT_HORIZONTAL);
         _bottomSide->setPivot({.5f, 1});
@@ -49,7 +51,7 @@ namespace BreadEditor {
         _bottomSide->setVerticalResized(true, IUiResizable::TOP);
         _bottomSide->computeBounds();
         _bottomSide->setup("bottomSide", this);
-        _bottomSide->addChild(new ConsoleWindow(ConsoleWindow::Id));
+        _bottomSide->addChild(windowsModel.getWindowFactory(ConsoleWindow::Id)());
 
         _rightSide = std::make_unique<UiSide>(LAYOUT_VERTICAL);
         _rightSide->setPivot({1, 0});
@@ -59,8 +61,8 @@ namespace BreadEditor {
         _rightSide->setHorizontalResized(true, IUiResizable::LEFT);
         _rightSide->computeBounds();
         _rightSide->setup("rightSide", this);
-        _rightSide->addChild(new NodeTreeWindow(NodeTreeWindow::Id));
-        _rightSide->addChild(new PropertyInspectorWindow(PropertyInspectorWindow::Id));
+        _rightSide->addChild(windowsModel.getWindowFactory(NodeTreeWindow::Id)());
+        _rightSide->addChild(windowsModel.getWindowFactory(PropertyInspectorWindow::Id)());
     }
 
     void MainWindow::awake()
@@ -180,6 +182,7 @@ namespace BreadEditor {
             dropdown.setSize({80, 15});
             dropdown.setPosition({toolbar.getAllChilds()[index]->getPosition().x, 0});
             dropdown.setTextAlignment(TEXT_ALIGN_LEFT);
+            dropdown.setOnOverlayLayer();
             dropdown.onOptionSelected.subscribe([&dropdown, &toolbar, this, &index, &categories](const int value)
             {
                 toolbar.destroyChild(&dropdown);

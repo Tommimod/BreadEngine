@@ -146,6 +146,12 @@ namespace BreadEditor {
         setSizePercentPermanentInternal(percent, true);
     }
 
+    void UiElement::setSizeMin(const Vector2 &minSize)
+    {
+        _minSize = minSize;
+        setDirty();
+    }
+
     void UiElement::setSizeMax(const Vector2 &maxSize)
     {
         _maxSize = maxSize;
@@ -158,6 +164,11 @@ namespace BreadEditor {
         _localPosition = position;
         _localSize = size;
         setDirty();
+    }
+
+    Vector2 & UiElement::getMinSize()
+    {
+        return _minSize;
     }
 
     Vector2 &UiElement::getPivot()
@@ -340,7 +351,7 @@ namespace BreadEditor {
         auto foundedX = 0.0f;
         for (const auto childs = _parent->getChildsSorterByHorizontal(false); auto child: childs)
         {
-            if (child->isStatic) continue;
+            if (child->isStatic || child->getIsIgnoreScrollLayout()) continue;
             const auto childBounds = child->getBounds();
             const auto childLastPoint = childBounds.y + childBounds.height;
             if ((childBounds.y < fromY && childLastPoint < fromY) || (childBounds.y > toY && childLastPoint > toY)) continue;
@@ -371,7 +382,7 @@ namespace BreadEditor {
         auto foundedX = 0.0f;
         for (const auto childs = _parent->getChildsSorterByHorizontal(true); auto child: childs)
         {
-            if (child->isStatic) continue;
+            if (child->isStatic || child->getIsIgnoreScrollLayout()) continue;
             const auto childBounds = child->getBounds();
             const auto childLastPoint = childBounds.y + childBounds.height;
             if ((childBounds.y < fromY && childLastPoint < fromY) || (childBounds.y > toY && childLastPoint > toY)) continue;
@@ -402,7 +413,7 @@ namespace BreadEditor {
         auto foundedY = 0.0f;
         for (const auto childs = _parent->getChildsSorterByVertical(false); auto child: childs)
         {
-            if (child->isStatic) continue;
+            if (child->isStatic || child->getIsIgnoreScrollLayout()) continue;
             const auto childBounds = child->getBounds();
             const auto childLastPoint = childBounds.x + childBounds.width;
             if ((childBounds.x < fromX && childLastPoint < fromX) || (childBounds.x > toX && childLastPoint > toX)) continue;
@@ -433,7 +444,7 @@ namespace BreadEditor {
         auto foundedY = 0.0f;
         for (const auto childs = _parent->getChildsSorterByVertical(true); auto child: childs)
         {
-            if (child->isStatic) continue;
+            if (child->isStatic || child->getIsIgnoreScrollLayout()) continue;
             const auto childBounds = child->getBounds();
             const auto childLastPoint = childBounds.x + childBounds.width;
             if ((childBounds.x < fromX && childLastPoint < fromX) || (childBounds.x > toX && childLastPoint > toX)) continue;
@@ -458,6 +469,11 @@ namespace BreadEditor {
         if (_parent == nullptr) return -1;
         auto parentChilds = _parent->getAllChilds();
         return std::ranges::find(parentChilds, this) - parentChilds.begin();
+    }
+
+    bool UiElement::getIsIgnoreScrollLayout() const
+    {
+        return _ignoreScrollLayout;
     }
 
     void UiElement::setLayoutType(const LAYOUT_TYPE layout)
@@ -548,6 +564,7 @@ namespace BreadEditor {
         _localPosition = {0.0f, 0.0f};
         _localSize = {1.0f, 1.0f};
         _sizeInPercents = {-1, -1};
+        _minSize = {0, 0};
         _maxSize = {0, 0};
         _bgColor = RAYWHITE;
         _anchor = UI_LEFT_TOP;
@@ -620,6 +637,17 @@ namespace BreadEditor {
         const Vector2 pivotOffset = {_pivot.x * _localSize.x, _pivot.y * _localSize.y};
         const Vector2 prelimPosition = {anchorPoint.x + _localPosition.x - pivotOffset.x + parentScrollOffset.x, anchorPoint.y + _localPosition.y - pivotOffset.y + parentScrollOffset.y};
         Vector2 computedSize = getComputedSize(effectiveParentBounds, prelimPosition);
+
+        if (_minSize.x > 0)
+        {
+            computedSize.x = std::max(computedSize.x, _minSize.x);
+        }
+
+        if (_minSize.y > 0)
+        {
+            computedSize.y = std::max(computedSize.y, _minSize.y);
+        }
+
         if (_maxSize.x > 0)
         {
             computedSize.x = std::min(computedSize.x, _maxSize.x);

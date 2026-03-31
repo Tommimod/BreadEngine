@@ -14,15 +14,22 @@ namespace BreadEditor {
         Action<std::string> onWindowOpened;
         Action<std::string> onWindowClosed;
 
+        void initialize();
+
         [[nodiscard]] const std::vector<std::string> &getNotOpenedWindowsNames() const { return _notOpenedWindowsNames; }
 
-        void addWindowToAllowList(const std::string& id);
+        void addWindowToAllowList(const std::string &id);
+
         void removeWindowFromAllowList(const std::string &id);
+
         std::function<UiWindow *()> getWindowFactory(const std::string &id);
 
     private:
-        std::vector<std::string> _allWindows;
+        std::vector<std::string> _allWindowsIds;
         std::vector<std::string> _notOpenedWindowsNames;
-        std::vector<std::function<UiWindow *()>> _act;
+        std::vector<std::function<UiWindow *()> > _act;
+        std::vector<UiWindow *> _windows;
+
+        UiWindow *getWindow(const std::string &id);
     };
 } // BreadEditor

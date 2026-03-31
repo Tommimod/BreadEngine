@@ -6,9 +6,17 @@
 #include "../windows/viewportWindow.h"
 
 namespace BreadEditor {
-    WindowsModel::WindowsModel()
+    WindowsModel::WindowsModel() = default;
+
+    WindowsModel::~WindowsModel()
     {
-        _allWindows = {
+        onWindowOpened.unsubscribeAll();
+        onWindowClosed.unsubscribeAll();
+    }
+
+    void WindowsModel::initialize()
+    {
+        _allWindowsIds = {
             AssetsWindow::Id,
             ConsoleWindow::Id,
             NodeTreeWindow::Id,
@@ -16,20 +24,22 @@ namespace BreadEditor {
             ViewportWindow::Id
         };
 
-        _notOpenedWindowsNames = _allWindows;
+        _notOpenedWindowsNames = _allWindowsIds;
         _act = {
-            [] { return new AssetsWindow(AssetsWindow::Id); },
-            [] { return new ConsoleWindow(ConsoleWindow::Id); },
-            [] { return new NodeTreeWindow(NodeTreeWindow::Id); },
-            [] { return new PropertyInspectorWindow(PropertyInspectorWindow::Id); },
-            [] { return new ViewportWindow(ViewportWindow::Id); }
+            [this] { return getWindow(AssetsWindow::Id); },
+            [this] { return getWindow(ConsoleWindow::Id); },
+            [this] { return getWindow(NodeTreeWindow::Id); },
+            [this] { return getWindow(PropertyInspectorWindow::Id); },
+            [this] { return getWindow(ViewportWindow::Id); }
         };
-    }
 
-    WindowsModel::~WindowsModel()
-    {
-        onWindowOpened.unsubscribeAll();
-        onWindowClosed.unsubscribeAll();
+        _windows = {
+            new AssetsWindow(AssetsWindow::Id),
+            new ConsoleWindow(ConsoleWindow::Id),
+            new NodeTreeWindow(NodeTreeWindow::Id),
+            new PropertyInspectorWindow(PropertyInspectorWindow::Id),
+            new ViewportWindow(ViewportWindow::Id)
+        };
     }
 
     void WindowsModel::addWindowToAllowList(const std::string &id)
@@ -46,7 +56,13 @@ namespace BreadEditor {
 
     std::function<UiWindow *()> WindowsModel::getWindowFactory(const std::string &id)
     {
-        const auto index = std::ranges::find(_allWindows, id) - _allWindows.begin();
+        const auto index = std::ranges::find(_allWindowsIds, id) - _allWindowsIds.begin();
         return _act[static_cast<int>(index)];
+    }
+
+    UiWindow *WindowsModel::getWindow(const std::string &id)
+    {
+        const auto index = std::ranges::find(_allWindowsIds, id) - _allWindowsIds.begin();
+        return _windows[static_cast<int>(index)];
     }
 } // BreadEditor
