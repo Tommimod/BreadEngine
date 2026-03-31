@@ -216,7 +216,7 @@ namespace BreadEditor {
         else if (isDragDownSide)
         {
             size.y -= mouseYDelta;
-            const auto currentPos = uiElement.getPosition();
+            const auto &currentPos = uiElement.getPosition();
             if (isBottomSidePivot)
             {
                 size.y -= mouseYDelta;
@@ -234,9 +234,9 @@ namespace BreadEditor {
         }
 
         const auto parentBounds = uiElement.getParentElement() == nullptr
-                                      ? Rectangle{0, 0, static_cast<float>(GetScreenWidth()), static_cast<float>(GetScreenHeight())}
+                                      ? Rectangle{0, 0, static_cast<float>(GetScreenWidth()) - 100, static_cast<float>(GetScreenHeight()) - 100}
                                       : uiElement.getParentElement()->getBounds();
-        size.y = Clamp(size.y, std::max(100.0f, uiElement.getMinSize().y), parentBounds.height);
+        size.y = Clamp(size.y, std::max(static_cast<float>(RAYGUI_WINDOWBOX_STATUSBAR_HEIGHT), uiElement.getMinSize().y), parentBounds.height);
         uiElement.setSize(size);
         Editor::getInstance().mainWindow.setDirty();
     }
@@ -267,7 +267,7 @@ namespace BreadEditor {
         }
         else if (isDragLeftSide)
         {
-            const auto currentPos = uiElement.getPosition();
+            const auto &currentPos = uiElement.getPosition();
             if (isLeftSidePivot)
             {
                 size.x += mouseXDelta;
@@ -285,9 +285,9 @@ namespace BreadEditor {
         }
 
         const auto &parentBounds = uiElement.getParentElement() == nullptr
-                                       ? Rectangle{0, 0, static_cast<float>(GetScreenWidth()), static_cast<float>(GetScreenHeight())}
+                                       ? Rectangle{0, 0, static_cast<float>(GetScreenWidth()) - 100, static_cast<float>(GetScreenHeight()) - 100}
                                        : uiElement.getParentElement()->getBounds();
-        size.x = Clamp(size.x, std::max(50.0f, uiElement.getMinSize().x), parentBounds.width);
+        size.x = Clamp(size.x, std::max(static_cast<float>(RAYGUI_WINDOWBOX_STATUSBAR_HEIGHT), uiElement.getMinSize().x), parentBounds.width);
         uiElement.setSize(size);
         Editor::getInstance().mainWindow.setDirty();
     }
