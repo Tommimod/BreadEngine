@@ -13,7 +13,7 @@ namespace BreadEditor {
             ConsoleWindow::Id,
             NodeTreeWindow::Id,
             PropertyInspectorWindow::Id,
-            ViewportWindow::Id,
+            ViewportWindow::Id
         };
 
         _notOpenedWindowsNames = _allWindows;
@@ -22,7 +22,7 @@ namespace BreadEditor {
             [] { return new ConsoleWindow(ConsoleWindow::Id); },
             [] { return new NodeTreeWindow(NodeTreeWindow::Id); },
             [] { return new PropertyInspectorWindow(PropertyInspectorWindow::Id); },
-            [] { return new ViewportWindow(ViewportWindow::Id); },
+            [] { return new ViewportWindow(ViewportWindow::Id); }
         };
     }
 
@@ -46,7 +46,7 @@ namespace BreadEditor {
 
     std::function<UiWindow *()> WindowsModel::getWindowFactory(const std::string &id)
     {
-        const int index = std::ranges::find(_allWindows, id) - _allWindows.begin();
-        return _act[index];
+        const auto index = std::ranges::find(_allWindows, id) - _allWindows.begin();
+        return _act[static_cast<int>(index)];
     }
 } // BreadEditor

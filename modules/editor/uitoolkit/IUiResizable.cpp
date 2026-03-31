@@ -6,6 +6,18 @@
 #include "uiToolbar.h"
 
 namespace BreadEditor {
+    void IUiResizable::setHorizontalResized(const bool resized, const DragSide dragSide)
+    {
+        isHorizontalResized = resized;
+        _dragSide = dragSide;
+    }
+
+    void IUiResizable::setVerticalResized(const bool resized, const DragSide dragSide)
+    {
+        isVerticalResized = resized;
+        _dragSide = dragSide;
+    }
+
     void IUiResizable::updateResizable(UiElement &uiElement)
     {
         if (!isVerticalResized && !isHorizontalResized) return;
@@ -159,7 +171,7 @@ namespace BreadEditor {
         prevMousePos = mousePos;
     }
 
-    void IUiResizable::changeVerticalSize(UiElement &uiElement, const bool isDragUpperSide, const bool isDragDownSide, const float mouseYDelta)
+    void IUiResizable::changeVerticalSize(UiElement &uiElement, const bool isDragUpperSide, const bool isDragDownSide, const float mouseYDelta) const
     {
         const auto &pivot = uiElement.getPivot();
         const bool isBottomSidePivot = pivot.y > .5f;
@@ -211,7 +223,7 @@ namespace BreadEditor {
         Editor::getInstance().mainWindow.setDirty();
     }
 
-    void IUiResizable::changeHorizontalSize(UiElement &uiElement, const bool isDragLeftSide, const bool isDragRightSide, const float mouseXDelta)
+    void IUiResizable::changeHorizontalSize(UiElement &uiElement, const bool isDragLeftSide, const bool isDragRightSide, const float mouseXDelta) const
     {
         const auto &pivot = uiElement.getPivot();
         const bool isRightSidePivot = pivot.x > .5f;

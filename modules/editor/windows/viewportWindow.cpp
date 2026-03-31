@@ -20,11 +20,16 @@ namespace BreadEditor {
 
     ViewportWindow::~ViewportWindow() = default;
 
+    void ViewportWindow::awake()
+    {
+        UiWindow::awake();
+        destroyChild(_content);
+    }
+
     void ViewportWindow::draw(const float deltaTime)
     {
         Editor::getInstance().setFontSize(static_cast<int>(EditorStyle::FontSize::MediumLarge));
         GuiSetStyle(DEFAULT, TEXT_SIZE, static_cast<int>(EditorStyle::FontSize::MediumLarge));
-        GuiScrollPanel(_bounds, nullptr, _contentView, &_scrollPos, &_scrollView);
         const auto texture = Editor::getInstance().getViewportRenderTexture();
         if (!texture) return;
 
@@ -39,8 +44,6 @@ namespace BreadEditor {
         {
             //draw
         }
-
-        UiWindow::draw(deltaTime);
     }
 
     void ViewportWindow::update(const float deltaTime)
@@ -50,6 +53,7 @@ namespace BreadEditor {
 
     void ViewportWindow::dispose()
     {
+        _mousePosition = {};
         UiWindow::dispose();
     }
 
@@ -115,7 +119,9 @@ namespace BreadEditor {
 
     Rectangle ViewportWindow::getViewportSize() const
     {
-        return _bounds;
+        auto size= _bounds;
+        size.width += 40;
+        return size;
     }
 
     void ViewportWindow::subscribe()

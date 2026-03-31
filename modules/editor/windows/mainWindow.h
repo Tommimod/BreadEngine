@@ -8,7 +8,7 @@
 #include "raylib.h"
 #include "viewportWindow.h"
 #include "systems/mainToolbarSystem.h"
-#include "uitoolkit/uiContainer.h"
+#include "uitoolkit/uiSide.h"
 using namespace BreadEngine;
 
 namespace BreadEditor {
@@ -41,24 +41,16 @@ namespace BreadEditor {
 
         [[nodiscard]] ViewportWindow &getViewportWindow() const;
 
-        void draw(float deltaTime) override;
-
-        void update(float deltaTime) override;
-
         void render3D(float deltaTime);
-
-        void dispose() override;
 
     protected:
         bool tryDeleteSelf() override;
 
     private:
-        unique_ptr<UiContainer> _topLeftContainer;
-        unique_ptr<UiContainer> _bottomLeftContainer;
-        unique_ptr<UiContainer> _topRightContainer;
-        unique_ptr<UiContainer> _bottomRightContainer;
-        unique_ptr<UiContainer> _bottomContainer;
-        unique_ptr<UiContainer> _centerContainer;
+        unique_ptr<UiSide> _leftSide;
+        unique_ptr<UiSide> _rightSide;
+        unique_ptr<UiSide> _bottomSide;
+        unique_ptr<UiSide> _centerSide;
 
         GizmoSystem _gizmoSystem;
         MainToolbarSystem _mainToolbarSystem;

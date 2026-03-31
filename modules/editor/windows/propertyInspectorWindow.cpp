@@ -37,7 +37,6 @@ namespace BreadEditor {
     {
         Editor::getInstance().setFontSize(static_cast<int>(EditorStyle::FontSize::MediumLarge));
         GuiSetStyle(DEFAULT, TEXT_SIZE, static_cast<int>(EditorStyle::FontSize::MediumLarge));
-        GuiScrollPanel(_bounds, nullptr, _contentView, &_scrollPos, &_scrollView);
         UiWindow::draw(deltaTime);
     }
 
@@ -70,7 +69,7 @@ namespace BreadEditor {
             {
                 for (int i = static_cast<int>(_trackedComponents.size()) - needCreateCount; i < static_cast<int>(_trackedComponents.size()); i++)
                 {
-                    auto element = &UiPool::componentPool.get().setup("UiComponent_" + std::to_string(_uiComponentElements.size()), this, false);
+                    auto element = &UiPool::componentPool.get().setup("UiComponent_" + std::to_string(_uiComponentElements.size()), _content, false);
                     _uiComponentElements.push_back(element);
                     setupUiComponent(element);
                     _subscriptions.emplace(element, element->onDelete.subscribe([this](const std::type_index type) { this->onUiComponentDeleted(type); }));
@@ -83,7 +82,7 @@ namespace BreadEditor {
                     const auto element = _uiComponentElements.back();
                     _uiComponentElements.pop_back();
                     element->onDelete.unsubscribe(_subscriptions[element]);
-                    destroyChild(element);
+                    _content->destroyChild(element);
                 }
             }
 
@@ -113,10 +112,10 @@ namespace BreadEditor {
             const auto element = _uiComponentElements.back();
             _uiComponentElements.pop_back();
             element->onDelete.unsubscribe(_subscriptions[element]);
-            destroyChild(element);
+            _content->destroyChild(element);
         }
 
-        const auto element = &UiPool::componentPool.get().setup("UiStruct_0", this, true);
+        const auto element = &UiPool::componentPool.get().setup("UiStruct_0", _content, true);
         _uiComponentElements.push_back(element);
         setupUiComponent(element);
         element->track(inspectorStruct);
@@ -131,16 +130,16 @@ namespace BreadEditor {
     void PropertyInspectorWindow::awake()
     {
         UiWindow::awake();
-        constexpr int verticalOffset = 10;
+        auto verticalOffset = _content->getPosition().y + 5;
         constexpr int horizontalOffset = 5;
 
-        _activeCheckBox = &UiPool::checkBoxPool.get().setup("nodeInspectorActiveCheckBox", this, "Active", false);
+        _activeCheckBox = &UiPool::checkBoxPool.get().setup(id + "_activeCheckBox", this, "Active", false);
         _activeCheckBox->setAnchor(UI_LEFT_TOP);
         _activeCheckBox->setPosition({horizontalOffset, verticalOffset + 5});
         _activeCheckBox->setSize({10, 10});
         _subscriptions.emplace(_activeCheckBox, _activeCheckBox->onValueChanged.subscribe([this](const bool checked) { this->onNodeActiveChanged(checked); }));
 
-        _nameTextBox = &UiPool::textBoxPool.get().setup("nodeInspectorNameTextBox", this, "Name");
+        _nameTextBox = &UiPool::textBoxPool.get().setup(id + "_nameTextBox", this, "Name");
         _nameTextBox->setAnchor(UI_LEFT_TOP);
         _nameTextBox->setPosition({_activeCheckBox->getSize().x + 50, verticalOffset});
         _nameTextBox->setSize({0, 20});
@@ -161,7 +160,7 @@ namespace BreadEditor {
                 const auto element = _uiComponentElements.back();
                 _uiComponentElements.pop_back();
                 element->onDelete.unsubscribe(_subscriptions[element]);
-                destroyChild(element);
+                _content->destroyChild(element);
             }
         });
 
@@ -202,7 +201,7 @@ namespace BreadEditor {
         _nameTextBox->setText(_engineNode->getName());
     }
 
-    void PropertyInspectorWindow::setupUiComponent(UiInspector *uiComponentElement)
+    void PropertyInspectorWindow::setupUiComponent(UiInspector *uiComponentElement) const
     {
         uiComponentElement->setAnchor(UI_LEFT_TOP);
         uiComponentElement->setSize({0, 50});
@@ -210,13 +209,13 @@ namespace BreadEditor {
         auto yPosition = 10.0f;
         if (_activeCheckBox->isActive)
         {
-            yPosition = _nameTextBox->getPosition().y + _nameTextBox->getSize().y + 10;
+            yPosition += _nameTextBox->getSize().y;
         }
 
         uiComponentElement->setPosition(Vector2{5, yPosition});
         uiComponentElement->onUpdated += [this](UiInspector *inspector)
         {
-            calculateRectForScroll(inspector);
+            _content->calculateRectForScroll(inspector);
         };
     }
 

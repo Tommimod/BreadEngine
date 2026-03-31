@@ -21,6 +21,8 @@ namespace BreadEditor {
 
         void onFrameEnd(float deltaTime) override;
 
+        void calculateRectForScroll(UiElement *element);
+
     protected:
         Rectangle _contentView = {0.0f, 0.0f, 0.0f, 0.0f};
         Rectangle _scrollView = {0.0f, 0.0f, 0.0f, 0.0f};
@@ -31,7 +33,5 @@ namespace BreadEditor {
         bool tryDeleteSelf() override;
 
         virtual void updateScrollView();
-
-        void calculateRectForScroll(UiElement *element);
     };
 } // BreadEditor

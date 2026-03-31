@@ -4,7 +4,7 @@
 #include "uitoolkit/uiElement.h"
 
 namespace BreadEditor {
-    class UiWindow : public UiScrollPanel, public IUiResizable
+    class UiWindow : public UiElement, public IUiResizable
     {
     public:
         explicit UiWindow(const std::string_view &id);
@@ -12,6 +12,10 @@ namespace BreadEditor {
         explicit UiWindow(const std::string_view &id, UiElement *parentElement);
 
         ~UiWindow() override;
+
+        void awake() override;
+
+        void draw(float deltaTime) override;
 
         void update(float deltaTime) override;
 
@@ -21,9 +25,9 @@ namespace BreadEditor {
 
         void close();
 
-        void awake() override;
-
     protected:
+        UiScrollPanel *_content = nullptr;
+
         virtual void subscribe();
 
         virtual void unsubscribe();

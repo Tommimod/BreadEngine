@@ -33,11 +33,6 @@ namespace BreadEditor {
     {
         Editor::getInstance().setFontSize(static_cast<int>(EditorStyle::FontSize::MediumLarge));
         GuiSetStyle(DEFAULT, TEXT_SIZE, static_cast<int>(EditorStyle::FontSize::MediumLarge));
-        if (GuiScrollPanel(_bounds, nullptr, _contentView, &_scrollPos, &_scrollView)) //TODO Dirty*
-        {
-            setDirty();
-        }
-
         UiWindow::draw(deltaTime);
         drawLines(Engine::getRootNode());
     }
@@ -65,7 +60,7 @@ namespace BreadEditor {
 
     NodeUiElement *NodeTreeWindow::getNodeUiElementByEngineNode(const Node *node) const
     {
-        for (const auto child: getAllChilds())
+        for (const auto child: _content->getAllChilds())
         {
             if (const auto nodeInstance = dynamic_cast<NodeUiElement *>(child); nodeInstance && nodeInstance->getNode() == node)
             {
@@ -140,7 +135,7 @@ namespace BreadEditor {
         update(0);
 
         const auto id = TextFormat(NodeUiElement::elementIdFormat, node->getName().c_str(), getChildCount());
-        auto &element = UiPool::nodeUiElementPool.get().setup(id, this, node);
+        auto &element = UiPool::nodeUiElementPool.get().setup(id, _content, node);
 
         element.setParentNode(getNodeUiElementByEngineNode(node->getParent()));
         element.setAnchor(UI_LEFT_TOP);
@@ -210,7 +205,7 @@ namespace BreadEditor {
 
         auto &model = Editor::getInstance().getEditorModel();
         model.selectNodeUiElement(nullptr);
-        destroyChild(instance);
+        _content->destroyChild(instance);
         _nodeUiElements.erase(ranges::find(_nodeUiElements, instance));
         if (_isDestroyProcessStarted) return;
 
@@ -252,7 +247,7 @@ namespace BreadEditor {
     {
         if (_draggedNodeUiElementCopy == nullptr) return;
 
-        destroyChild(_draggedNodeUiElementCopy);
+        _content->destroyChild(_draggedNodeUiElementCopy);
         _draggedNodeUiElementCopy = nullptr;
         const auto originalElement = dynamic_cast<NodeUiElement *>(uiElement);
         originalElement->switchMuteState();
@@ -318,7 +313,7 @@ namespace BreadEditor {
         const auto verticalPadding = (nodeVerticalPadding + nodeHeight) * static_cast<float>(nodeOrder);
         element->setPosition({nodeHorizontalPadding + horizontalOffset, startYPosition + verticalPadding});
         nodeOrder++;
-        calculateRectForScroll(element);
+        _content->calculateRectForScroll(element);
         if (startNode.getChildCount() == 0)
         {
             return;

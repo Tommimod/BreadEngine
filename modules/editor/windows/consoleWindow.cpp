@@ -21,13 +21,13 @@ namespace BreadEditor {
 
     void ConsoleWindow::awake()
     {
+        UiWindow::awake();
         float offset = 1;
 
         auto &panel = UiPool::panelPool.get().setup(id + "_panel", this);
-        panel.setSize({-1, 20});
         panel.setSizePercentPermanent({1, -1});
-        panel.isStatic = true;
-        panel.setOnOverlayLayer();
+        panel.setSize({-1, 20});
+        panel.setPosition({0, RAYGUI_WINDOWBOX_STATUSBAR_HEIGHT});
 
         auto &clearButton = UiPool::buttonPool.get().setup(id + "_clear_button", &panel, "Clear");
         clearButton.setTextSize(static_cast<int>(EditorStyle::FontSize::SmallMedium));
@@ -75,14 +75,12 @@ namespace BreadEditor {
         errorLogsButton.setState(STATE_FOCUSED);
 
         subscribe();
-        UiWindow::awake();
     }
 
     void ConsoleWindow::draw(const float deltaTime)
     {
         Editor::getInstance().setFontSize(static_cast<int>(EditorStyle::FontSize::MediumLarge));
         GuiSetStyle(DEFAULT, TEXT_SIZE, static_cast<int>(EditorStyle::FontSize::MediumLarge));
-        GuiScrollPanel(_bounds, nullptr, _contentView, &_scrollPos, &_scrollView);
         UiWindow::draw(deltaTime);
     }
 
@@ -118,7 +116,7 @@ namespace BreadEditor {
     {
         for (const auto messageUiElement: _messages)
         {
-            destroyChild(messageUiElement);
+            _content->destroyChild(messageUiElement);
         }
 
         _messages.clear();
@@ -145,20 +143,20 @@ namespace BreadEditor {
             offset = _messages.back()->getPosition().y + size;
         }
 
-        auto &messageUiElement = UiPool::messageUiElementPool.get().setup(id + "_message", this, entity);
+        auto &messageUiElement = UiPool::messageUiElementPool.get().setup(id + "_message", _content, entity);
         messageUiElement.setSize({-1, size});
         messageUiElement.setSizePercentPermanent({.99f, -1});
         messageUiElement.setPosition({2, offset});
 
         _messages.emplace_back(&messageUiElement);
-        calculateRectForScroll(&messageUiElement);
+        _content->calculateRectForScroll(&messageUiElement);
     }
 
     void ConsoleWindow::clearLogs()
     {
         for (const auto messageUiElement: _messages)
         {
-            destroyChild(messageUiElement);
+            _content->destroyChild(messageUiElement);
         }
 
         _messages.clear();

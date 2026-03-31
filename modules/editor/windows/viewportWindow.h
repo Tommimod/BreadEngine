@@ -14,6 +14,8 @@ namespace BreadEditor {
 
         ~ViewportWindow() override;
 
+        void awake() override;
+
         void draw(float deltaTime) override;
 
         void update(float deltaTime) override;

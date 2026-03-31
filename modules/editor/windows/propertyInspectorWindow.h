@@ -60,7 +60,7 @@ namespace BreadEditor {
 
         void onNodeNameChanged(const char *name) const;
 
-        void setupUiComponent(UiInspector *uiComponentElement);
+        void setupUiComponent(UiInspector *uiComponentElement) const;
 
         void onUiComponentDeleted(std::type_index type);
     };

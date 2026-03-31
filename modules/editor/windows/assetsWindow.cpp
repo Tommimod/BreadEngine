@@ -1,6 +1,5 @@
 ﻿#include "assetsWindow.h"
 #include <filesystem>
-
 #include "editor.h"
 #include "models/reservedFileNames.h"
 #include "systems/commands/commandsHandler.h"
@@ -43,10 +42,10 @@ namespace BreadEditor {
 
     void AssetsWindow::awake()
     {
+        UiWindow::awake();
+
         auto i = 0;
         recalculateUiFolders(_assetConfig.getRootFolder(), i);
-
-        UiWindow::awake();
     }
 
     FolderUiElement *AssetsWindow::getFolderUiElementByEngineFolder(const Folder *folder) const
@@ -83,7 +82,7 @@ namespace BreadEditor {
         update(0);
 
         const auto id = TextFormat(FolderUiElement::elementIdFormat, folder->getPathFromRoot().c_str(), getChildCount());
-        auto element = &UiPool::folderUiElementPool.get().setup(id, this, folder->getGUID());
+        auto element = &UiPool::folderUiElementPool.get().setup(id, _content, folder->getGUID());
 
         element->setAnchor(UI_LEFT_TOP);
         element->setSize({0, elementHeight});
@@ -112,7 +111,7 @@ namespace BreadEditor {
         update(0);
 
         const auto id = TextFormat(FileUiElement::elementIdFormat, file->getPathFromRoot().c_str(), getChildCount());
-        auto element = &UiPool::fileUiElementPool.get().setup(id, this, file->getGUID());
+        auto element = &UiPool::fileUiElementPool.get().setup(id, _content, file->getGUID());
 
         element->setAnchor(UI_LEFT_TOP);
         element->setSize({0, elementHeight});
@@ -171,7 +170,7 @@ namespace BreadEditor {
         const auto verticalPadding = (nodeVerticalPadding + nodeHeight) * static_cast<float>(nodeOrder);
         element->setPosition({nodeHorizontalPadding + horizontalOffset, startYPosition + verticalPadding});
         nodeOrder++;
-        calculateRectForScroll(element);
+        _content->calculateRectForScroll(element);
         const auto isExpanded = element->getIsExpanded();
         for (auto &file: folder->getFiles())
         {
@@ -212,7 +211,7 @@ namespace BreadEditor {
         const auto verticalPadding = (nodeVerticalPadding + nodeHeight) * static_cast<float>(nodeOrder);
         element->setPosition({nodeHorizontalPadding + horizontalOffset, startYPosition + verticalPadding});
         nodeOrder++;
-        calculateRectForScroll(element);
+        _content->calculateRectForScroll(element);
     }
 
     void AssetsWindow::onFileSelected(const FileUiElement *fileUiElement) const
@@ -244,7 +243,7 @@ namespace BreadEditor {
     {
         if (_draggedFolderUiElementCopy == nullptr) return;
 
-        destroyChild(_draggedFolderUiElementCopy);
+        _content->destroyChild(_draggedFolderUiElementCopy);
         _draggedFolderUiElementCopy = nullptr;
         const auto originalElement = dynamic_cast<FolderUiElement *>(uiElement);
         for (const auto folderElement: _folderUiElements)
@@ -279,7 +278,7 @@ namespace BreadEditor {
     {
         if (_draggedFileUiElementCopy == nullptr) return;
 
-        destroyChild(_draggedFileUiElementCopy);
+        _content->destroyChild(_draggedFileUiElementCopy);
         _draggedFileUiElementCopy = nullptr;
         const auto originalElement = dynamic_cast<FileUiElement *>(uiElement);
         for (const auto folderElement: _folderUiElements)
@@ -330,7 +329,7 @@ namespace BreadEditor {
     {
         _fileUiElements.clear();
         _folderUiElements.clear();
-        destroyAllChilds();
+        _content->destroyAllChilds();
         auto i = 0;
         recalculateUiFolders(_assetConfig.getRootFolder(), i);
     }
@@ -339,7 +338,6 @@ namespace BreadEditor {
     {
         Editor::getInstance().setFontSize(static_cast<int>(EditorStyle::FontSize::MediumLarge));
         GuiSetStyle(DEFAULT, TEXT_SIZE, static_cast<int>(EditorStyle::FontSize::MediumLarge));
-        GuiScrollPanel(_bounds, nullptr, _contentView, &_scrollPos, &_scrollView);
         UiWindow::draw(deltaTime);
     }
 

@@ -524,7 +524,7 @@ namespace BreadEditor {
         if (_isDisposed) return;
 
         _isDisposed = true;
-        for (const auto child: _childs)
+        for (const auto child: getAllChilds())
         {
             if (child == nullptr)
             {
@@ -541,7 +541,7 @@ namespace BreadEditor {
         _childs.clear();
         _parent = nullptr;
         _isAwake = false;
-        id = "";
+        id.clear();
         isDebugRectVisible = false;
         _state = STATE_NORMAL;
         _pivot = {0.0f, 0.0f};
@@ -753,7 +753,11 @@ namespace BreadEditor {
 
     void UiElement::setScrollOffset(const Vector2 &scrollOffset)
     {
-        if (_scrollOffset.x != scrollOffset.x || _scrollOffset.y != scrollOffset.y) setDirty();
+        if (_scrollOffset.x != scrollOffset.x || _scrollOffset.y != scrollOffset.y)
+        {
+            setDirty();
+        }
+
         _scrollOffset = scrollOffset;
     }
 

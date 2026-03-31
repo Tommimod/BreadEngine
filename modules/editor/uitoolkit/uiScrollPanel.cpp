@@ -31,6 +31,7 @@ namespace BreadEditor {
     void UiScrollPanel::draw(float deltaTime)
     {
         BeginScissorMode(static_cast<int>(_scrollView.x), static_cast<int>(_scrollView.y), static_cast<int>(_scrollView.width), static_cast<int>(_scrollView.height));
+        GuiScrollPanel(_bounds, nullptr, _contentView, &_scrollPos, &_scrollView);
     }
 
     void UiScrollPanel::update(float deltaTime)
@@ -44,6 +45,14 @@ namespace BreadEditor {
         EndScissorMode();
     }
 
+    void UiScrollPanel::calculateRectForScroll(UiElement *element)
+    {
+        const auto &elementPosition = element->getPosition();
+        const auto &elementSize = element->getSize();
+        _contentSize = Vector2(elementPosition.x + elementSize.x, elementPosition.y + elementSize.y);
+        setDirty();
+    }
+
     bool UiScrollPanel::tryDeleteSelf()
     {
         UiPool::scrollPanelPool.release(*this);
@@ -52,46 +61,19 @@ namespace BreadEditor {
 
     void UiScrollPanel::updateScrollView()
     {
-        _contentView.x = getBounds().x;
-        _contentView.y = getBounds().y;
+        const auto &bounds = getBounds();
+        _contentView.x = bounds.x;
+        _contentView.y = bounds.y;
         _contentView.height = _contentSize.y;
         _contentView.width = _contentSize.x;
-        if (_contentView.height < getBounds().height)
+        if (_contentView.height < bounds.height)
         {
-            _contentView.height = getBounds().height - static_cast<float>(GuiGetStyle(LISTVIEW, SCROLLBAR_WIDTH)) - static_cast<float>(GuiGetStyle(DEFAULT, BORDER_WIDTH)) - 15;
+            _contentView.height = bounds.height - 2 * static_cast<float>(GuiGetStyle(LISTVIEW, SCROLLBAR_WIDTH)) - static_cast<float>(GuiGetStyle(DEFAULT, BORDER_WIDTH));
         }
 
-        if (_contentView.width < getBounds().width)
+        if (_contentView.width < bounds.width)
         {
-            _contentView.width = getBounds().width - static_cast<float>(GuiGetStyle(LISTVIEW, SCROLLBAR_WIDTH)) - static_cast<float>(GuiGetStyle(DEFAULT, BORDER_WIDTH)) - 1;
+            _contentView.width = bounds.width - 2 * static_cast<float>(GuiGetStyle(LISTVIEW, SCROLLBAR_WIDTH)) - static_cast<float>(GuiGetStyle(DEFAULT, BORDER_WIDTH));
         }
-    }
-
-    void UiScrollPanel::calculateRectForScroll(UiElement *element)
-    {
-        _contentSize = {0, 0};
-
-        const auto &elementPosition = element->getPosition();
-        const auto &elementSize = element->getSize();
-        const auto size = Vector2(elementPosition.x + elementSize.x, elementPosition.y + elementSize.y);
-        if (_contentSize.x == 0)
-        {
-            _contentSize.x = size.x;
-        }
-        else
-        {
-            if (_contentSize.x < size.x) _contentSize.x = size.x;
-        }
-
-        if (_contentSize.y == 0)
-        {
-            _contentSize.y = size.y;
-        }
-        else
-        {
-            if (_contentSize.y < size.y) _contentSize.y = size.y;
-        }
-
-        setDirty();
     }
 } // BreadEditor
