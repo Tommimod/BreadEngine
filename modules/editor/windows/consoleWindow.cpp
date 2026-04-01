@@ -98,10 +98,6 @@ namespace BreadEditor {
     void ConsoleWindow::update(const float deltaTime)
     {
         UiWindow::update(deltaTime);
-        if (Input::isKeyDown(KEY_SPACE))
-        {
-            Logger::LogInfo("test");
-        }
     }
 
     void ConsoleWindow::dispose()
