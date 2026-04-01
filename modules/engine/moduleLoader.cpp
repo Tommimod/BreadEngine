@@ -1,6 +1,5 @@
 #include "moduleLoader.h"
 
-// Платформо-зависимые включения
 #ifdef _WIN32
 #include <windows.h>
 #elif defined(__APPLE__) || defined(__linux__)
@@ -44,7 +43,6 @@ void *ModuleLoader::GetFunction(const std::string &functionName)
     return GetProcAddress(_moduleHandle, functionName);
 }
 
-// Платформо-специфичные реализации
 #ifdef _WIN32
 void *ModuleLoader::LoadLibrary(const std::string &path)
 {
@@ -73,7 +71,7 @@ void *ModuleLoader::GetProcAddress(void *handle, const std::string &functionName
 }
 
 #elif defined(__APPLE__) || defined(__linux__)
-// macOS/Linux реализация
+
 void *ModuleLoader::LoadLibrary(const std::string &path)
 {
     void *handle = dlopen(path.c_str(), RTLD_LAZY);
@@ -97,7 +95,6 @@ void *ModuleLoader::GetProcAddress(void *handle, const std::string &functionName
 {
     if (!handle) return nullptr;
 
-    // Очищаем предыдущие ошибки
     dlerror();
 
     void *symbol = dlsym(handle, functionName.c_str());
@@ -112,7 +109,7 @@ void *ModuleLoader::GetProcAddress(void *handle, const std::string &functionName
 }
 
 #else
-// Неподдерживаемая платформа
+
 void *ModuleLoader::LoadLibrary(const std::string &path)
 {
     SetLastError("Dynamic loading not supported on this platform");
@@ -121,7 +118,7 @@ void *ModuleLoader::LoadLibrary(const std::string &path)
 
 void ModuleLoader::FreeLibrary(void *handle)
 {
-    // Ничего не делаем
+
 }
 
 void *ModuleLoader::GetProcAddress(void *handle, const std::string &functionName)

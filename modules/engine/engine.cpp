@@ -166,7 +166,6 @@ namespace BreadEngine {
         return inMainRect && !inSubRect;
     }
 
-    // Реализация утилит движка
     namespace Input {
         bool isKeyPressed(const int key)
         {

@@ -2,7 +2,6 @@
 
 #include <string>
 
-// Кроссплатформенная система загрузки модулей
 class ModuleLoader
 {
 public:
@@ -10,13 +9,10 @@ public:
 
     ~ModuleLoader();
 
-    // Загрузить модуль
     bool LoadModule(const std::string &path);
 
-    // Выгрузить модуль
     void UnloadModule();
 
-    // Получить указатель на функцию
     void *GetFunction(const std::string &functionName);
 
     void *LoadLibraryA(const std::string &path);
