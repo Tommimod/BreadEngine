@@ -40,6 +40,7 @@ namespace BreadEditor {
 
     void MessageUiElement::dispose()
     {
+        onClick.unsubscribeAll();
         _text.clear();
         _logEntity = {};
         _button = nullptr;

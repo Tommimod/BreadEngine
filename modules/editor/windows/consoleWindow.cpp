@@ -74,6 +74,17 @@ namespace BreadEditor {
         });
         errorLogsButton.setState(STATE_FOCUSED);
 
+        _content->setSizePercentPermanent({1, .7f});
+        _textLogPanel = &UiPool::scrollPanelPool.get().setup(id + "_text_log_panel", this);
+        _textLogPanel->setSizePercentPermanent({1, .3});
+        _textLogPanel->setPosition({0, _content->getPosition().y + _content->getSize().y});
+        _logText = &UiPool::labelPool.get().setup(id + "_log_text", _textLogPanel, "");
+        _logText->setSizePercentPermanent({.95f, -1});
+        _logText->setTextAlignment(TEXT_ALIGN_LEFT);
+        _logText->setVerticalAlignment(TEXT_ALIGN_TOP);
+        _logText->setWrapMode(TEXT_WRAP_WORD);
+        _textLogPanel->calculateRectForScroll(_logText);
+
         subscribe();
     }
 
@@ -95,6 +106,7 @@ namespace BreadEditor {
 
     void ConsoleWindow::dispose()
     {
+        _logText = nullptr;
         _errorLogsVisible = true;
         _warningLogsVisible = true;
         _infoLogsVisible = true;
@@ -149,6 +161,13 @@ namespace BreadEditor {
         messageUiElement.setSize({-1, size});
         messageUiElement.setSizePercentPermanent({.99f, -1});
         messageUiElement.setPosition({2, offset});
+        messageUiElement.onClick.subscribe([this](const Logger::LogEntity &logEntity)
+        {
+            _logText->setText(logEntity.message.data());
+            const auto newLines = std::ranges::count(logEntity.message, '\n');
+            _logText->setSize({-1, static_cast<float>(newLines) * static_cast<float>(_logText->getTextSize()) + 30});
+            _textLogPanel->calculateRectForScroll(_logText);
+        });
 
         _messages.emplace_back(&messageUiElement);
         _content->calculateRectForScroll(&messageUiElement);
@@ -162,6 +181,7 @@ namespace BreadEditor {
         }
 
         _messages.clear();
+        _logText->setText("");
         Logger::clear();
     }
 

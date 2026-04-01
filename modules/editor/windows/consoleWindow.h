@@ -3,6 +3,7 @@
 #include "editorElements/messageUiElement.h"
 #include "uitoolkit/uiButton.h"
 #include "uitoolkit/uiElement.h"
+#include "uitoolkit/uiLabel.h"
 #include "uitoolkit/uiWindow.h"
 
 namespace BreadEditor {
@@ -34,6 +35,8 @@ namespace BreadEditor {
 
     private:
         const char *_title = Id.c_str();
+        UiScrollPanel *_textLogPanel = nullptr;
+        UiLabel *_logText = nullptr;
         SubscriptionHandle _logSubscription;
         std::vector<MessageUiElement *> _messages;
         bool _infoLogsVisible = true;

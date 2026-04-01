@@ -26,6 +26,10 @@ namespace BreadEditor {
 
         void setTextSize(const int textSize) { _textSize = textSize; }
 
+        void setText(const std::string &text) { _text = text; }
+
+        [[nodiscard]] int getTextSize() const { return _textSize; }
+
     protected:
         bool tryDeleteSelf() override;
 
