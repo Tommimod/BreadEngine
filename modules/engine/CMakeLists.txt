@@ -6,21 +6,22 @@ FetchContent_Declare(
         GIT_TAG master
 )
 FetchContent_MakeAvailable(yaml-cpp)
-FetchContent_Declare(
-        backward
-        GIT_REPOSITORY https://github.com/bombela/backward-cpp.git
-        GIT_TAG master
-)
 
-FetchContent_MakeAvailable(backward)
+FetchContent_Declare(
+        cpptrace
+        GIT_REPOSITORY https://github.com/jeremy-rifkin/cpptrace.git
+        GIT_TAG v1.0.4
+)
+FetchContent_MakeAvailable(cpptrace)
+if(TARGET dwarf)
+    target_compile_definitions(dwarf PRIVATE
+            PACKAGE_VERSION="2.1.0"
+    )
+endif()
 
 target_compile_options(yaml-cpp PRIVATE -stdlib=libc++)
 target_link_options(yaml-cpp PRIVATE -stdlib=libc++)
 set_target_properties(yaml-cpp PROPERTIES CXX_STANDARD 23 CXX_STANDARD_REQUIRED ON)
-
-target_compile_options(backward PRIVATE -stdlib=libc++)
-target_link_options(backward PRIVATE -stdlib=libc++)
-set_target_properties(backward PROPERTIES CXX_STANDARD 23 CXX_STANDARD_REQUIRED ON)
 
 # For engine sources
 file(GLOB_RECURSE ENGINE_SOURCES
@@ -111,8 +112,25 @@ target_link_libraries(BreadEngine PUBLIC
         ${ASSIMP_DLL}
         ${ASSIMP_LIB}
         yaml-cpp::yaml-cpp
-        Backward::Interface
+        cpptrace::cpptrace
 )
+
+if(TARGET cpptrace)
+    target_compile_definitions(cpptrace INTERFACE
+            CPPTRACE_GET_SYMBOLS_WITH_LIBDWARF=1
+            CPPTRACE_GET_SYMBOLS_WITH_DBGHELP=1
+    )
+endif()
+
+if(WIN32 AND CMAKE_CXX_COMPILER_ID MATCHES "Clang")
+    target_link_libraries(BreadEngine PUBLIC dbghelp)
+endif()
+
+if(CMAKE_BUILD_TYPE MATCHES "Debug|RelWithDebInfo")
+    if(CMAKE_CXX_COMPILER_ID MATCHES "Clang|GNU")
+        target_compile_options(BreadEngine PRIVATE -g -gdwarf-4)
+    endif()
+endif()
 
 message(STATUS "R3D_INCLUDE_DIRS: ${R3D_DLL}")
 message(STATUS "R3D_LIBRARIES: ${R3D_LIB}")

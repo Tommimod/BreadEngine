@@ -5,6 +5,6 @@ namespace BreadEngine {
     class Stacktrace
     {
     public:
-        static std::string get_stacktrace_string(int max_depth = 32, bool with_snippets = false);
+        static std::string get_stacktrace_string(int max_depth = 32);
     };
-} // BreadEngine
+}

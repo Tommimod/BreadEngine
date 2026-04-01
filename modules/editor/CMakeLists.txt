@@ -40,6 +40,24 @@ target_link_libraries(BreadEditor PUBLIC
         ${PLATFORM_LIBS}
 )
 
+if (WIN32 AND CMAKE_CXX_COMPILER_ID MATCHES "Clang|GNU")
+    target_link_libraries(BreadEditor PUBLIC dbghelp)
+endif ()
+
+if (CMAKE_BUILD_TYPE MATCHES "Debug|RelWithDebInfo")
+    if (CMAKE_CXX_COMPILER_ID MATCHES "Clang|GNU")
+        target_compile_options(BreadEditor PRIVATE -g -gdwarf-4)
+    endif ()
+endif ()
+
+if (WIN32 AND TARGET BreadEditor)
+    add_custom_command(TARGET BreadEditor POST_BUILD
+            COMMAND ${CMAKE_COMMAND} -E copy_if_different
+            $<TARGET_FILE:cpptrace::cpptrace>
+            $<TARGET_FILE_DIR:BreadEditor>
+    )
+endif ()
+
 if (CMAKE_CXX_COMPILER_ID MATCHES "Clang|GNU")
     target_compile_options(BreadEditor PRIVATE
             -Wall -Wextra

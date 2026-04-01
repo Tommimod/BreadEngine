@@ -87,6 +87,10 @@ namespace BreadEditor {
     void ConsoleWindow::update(const float deltaTime)
     {
         UiWindow::update(deltaTime);
+        if (Input::isKeyDown(KEY_SPACE))
+        {
+            Logger::LogInfo("test");
+        }
     }
 
     void ConsoleWindow::dispose()
@@ -102,8 +106,6 @@ namespace BreadEditor {
     {
         _logSubscription = Logger::OnLog.subscribe([this](const Logger::LogEntity &entity) { onNewLogCreated(entity); });
         UiWindow::subscribe();
-
-        Logger::LogInfo("test");
     }
 
     void ConsoleWindow::unsubscribe()

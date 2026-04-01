@@ -2,8 +2,8 @@
 #include "raylib.h"
 #include <ctime>
 
-#include "configs/baseYamlConfig.h"
 #include "stacktrace.h"
+#include "configs/baseYamlConfig.h"
 
 namespace BreadEngine {
     Action<Logger::LogEntity &> Logger::OnLog{};
@@ -43,8 +43,10 @@ namespace BreadEngine {
         const auto dateTime = oss.str();
 
         const auto logLevel = level == Info ? LOG_INFO : level == Warning ? LOG_WARNING : LOG_ERROR;
-        const auto text = TextFormat("[%s] %s \n%s", dateTime.c_str(), message.data(), ("       " + Stacktrace::get_stacktrace_string()).c_str());
-        TraceLog(logLevel, text);
+        std::string stack = "       " + Stacktrace::get_stacktrace_string();
+        const auto text = TextFormat("[%s] %s\n%s", dateTime.c_str(), message.data(), stack.c_str());
+        TraceLog(logLevel, "%s", text);
+
         auto entity = LogEntity{.level = level, .message = text};
         OnLog.invoke(entity);
         _logs.emplace_back(std::move(entity));

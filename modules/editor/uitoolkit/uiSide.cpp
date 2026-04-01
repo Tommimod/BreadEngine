@@ -42,7 +42,6 @@ namespace BreadEditor {
     {
         updateResizable(*this);
         UiScrollPanel::update(deltaTime);
-        setDirty();
     }
 
     void UiSide::addChild(UiElement *child)
