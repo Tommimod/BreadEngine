@@ -39,6 +39,8 @@ namespace BreadEditor {
         mainWindow.drawInternal(0);
         const auto filePath = _configsProvider.getEditorPrefsConfig()->LastOpenedNodePath;
         Node::deserialize(filePath);
+
+        runGame();
         return _initialized;
     }
 
@@ -79,21 +81,16 @@ namespace BreadEditor {
 
     bool Editor::createProject(const std::string &name, const std::string &path)
     {
-        // Create project directory structure
-        // Generate basic game template
-        _currentProjectPath = path + "/" + name;
         return true;
     }
 
     bool Editor::openProject(const std::string &path)
     {
-        _currentProjectPath = path;
         return true;
     }
 
     void Editor::closeProject()
     {
-        _currentProjectPath.clear();
         UnloadFont(_fontSmall);
         UnloadFont(_fontSmallMedium);
         UnloadFont(_fontMedium);
@@ -102,11 +99,29 @@ namespace BreadEditor {
         UnloadFont(_fontLarge);
     }
 
-    bool Editor::compileGame() const
+    bool Editor::compileGame()
     {
-        if (!isProjectOpen()) return false;
+        Logger::LogInfo("Compiling game...");
+        std::string projectPath = getEditorModel().getProjectPath();
+        
+        // If path points to cmake-build-debug/bin/, go up 2 levels to get build root
+        std::string buildDir = projectPath;
+        if (projectPath.find("cmake-build-debug") != std::string::npos) {
+            // Already in build directory, use it directly
+            // Remove trailing bin/ if present and use cmake-build-debug as build root
+            size_t pos = projectPath.rfind("bin");
+            if (pos != std::string::npos) {
+                buildDir = projectPath.substr(0, pos);
+            }
+        }
+        
+        // Ensure path ends with cmake-build-debug
+        if (buildDir.find("cmake-build-debug") == std::string::npos) {
+            buildDir = projectPath + "../../cmake-build-debug";
+        }
 
-        std::string buildCommand = "cd " + _currentProjectPath + " && make";
+        std::string buildCommand = "cmake --build " + buildDir + " --target ExampleGameLib -j 14";
+        Logger::LogInfo(buildCommand.c_str());
         return system(buildCommand.c_str()) == 0;
     }
 
@@ -114,7 +129,26 @@ namespace BreadEditor {
     {
         if (!compileGame()) return false;
 
-        std::string gamePath = _currentProjectPath + "/build/libgame.dylib";
+        std::string projectPath = getEditorModel().getProjectPath();
+        std::string buildDir = projectPath;
+        if (projectPath.find("cmake-build-debug") != std::string::npos) {
+            size_t pos = projectPath.rfind("bin");
+            if (pos != std::string::npos) {
+                buildDir = projectPath.substr(0, pos);
+            }
+        }
+        if (buildDir.find("cmake-build-debug") == std::string::npos) {
+            buildDir = projectPath + "../../cmake-build-debug";
+        }
+
+#ifdef _WIN32
+        const std::string gamePath = buildDir + "bin\\libgame.dll";
+#elif defined(__APPLE__)
+        std::string gamePath = buildDir + "bin\\libgame.dylib";
+#else
+        std::string gamePath = buildDir + "bin\\libgame.so";
+#endif
+        Logger::LogInfo(gamePath);
         Engine::getInstance().loadGameModule(gamePath.c_str());
         return true;
     }

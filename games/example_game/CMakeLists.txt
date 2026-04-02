@@ -16,6 +16,19 @@ add_executable(ExampleGame
     ${GAME_HEADERS}
 )
 
+# Create shared library for editor loading
+add_library(ExampleGameLib SHARED
+    ${GAME_SOURCES}
+    ${GAME_HEADERS}
+)
+
+set_target_properties(ExampleGameLib PROPERTIES
+    OUTPUT_NAME "game"
+    RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/bin
+    CXX_STANDARD 23
+    CXX_STANDARD_REQUIRED ON
+)
+
 # Set target properties
 set_target_properties(ExampleGame PROPERTIES
     OUTPUT_NAME "ExampleGame"
@@ -30,8 +43,18 @@ target_include_directories(ExampleGame PRIVATE
     ${CMAKE_SOURCE_DIR}/modules/engine
 )
 
+target_include_directories(ExampleGameLib PRIVATE
+    ${CMAKE_CURRENT_SOURCE_DIR}
+    ${CMAKE_SOURCE_DIR}/modules/engine
+)
+
 # Link with BreadEngine and system libraries
 target_link_libraries(ExampleGame
+    BreadEngine
+    ${PLATFORM_LIBS}
+)
+
+target_link_libraries(ExampleGameLib
     BreadEngine
     ${PLATFORM_LIBS}
 )

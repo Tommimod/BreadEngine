@@ -46,11 +46,34 @@ void *ModuleLoader::GetFunction(const std::string &functionName)
 #ifdef _WIN32
 void *ModuleLoader::LoadLibrary(const std::string &path)
 {
+    // Check if file exists first
+    const DWORD fileAttrs = GetFileAttributesA(path.c_str());
+    if (fileAttrs == INVALID_FILE_ATTRIBUTES)
+    {
+        this->SetLastError("File not found: " + path);
+        return nullptr;
+    }
+
     const HMODULE handle = ::LoadLibraryA(path.c_str());
     if (!handle)
     {
-        const auto error = GetLastError();
-        SetLastError("Failed to load library: " + error);
+        const DWORD errorCode = ::GetLastError();
+        LPSTR messageBuffer = nullptr;
+        const size_t size = FormatMessageA(
+            FORMAT_MESSAGE_ALLOCATE_BUFFER | FORMAT_MESSAGE_FROM_SYSTEM | FORMAT_MESSAGE_IGNORE_INSERTS,
+            nullptr, errorCode, MAKELANGID(LANG_ENGLISH, SUBLANG_DEFAULT), (LPSTR)&messageBuffer, 0, nullptr);
+        
+        std::string errorMsg = "Failed to load library (code " + std::to_string(errorCode) + "): ";
+        if (size > 0 && messageBuffer)
+        {
+            errorMsg += std::string(messageBuffer, size);
+            LocalFree(messageBuffer);
+        }
+        else
+        {
+            errorMsg += "Unknown error";
+        }
+        this->SetLastError(errorMsg);
     }
     return handle;
 }
@@ -65,7 +88,7 @@ void *ModuleLoader::GetProcAddress(void *handle, const std::string &functionName
     const FARPROC proc = ::GetProcAddress(static_cast<HMODULE>(handle), functionName.c_str());
     if (!proc)
     {
-        SetLastError("Function not found: " + functionName);
+        this->SetLastError("Function not found: " + functionName);
     }
     return reinterpret_cast<void *>(proc);
 }

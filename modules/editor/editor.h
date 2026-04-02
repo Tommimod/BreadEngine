@@ -38,7 +38,7 @@ namespace BreadEditor {
 
         void closeProject();
 
-        [[nodiscard]] bool compileGame() const;
+        [[nodiscard]] bool compileGame();
 
         bool runGame();
 
@@ -47,10 +47,6 @@ namespace BreadEditor {
         [[nodiscard]] bool isPlayMode() const { return _isPlayMode; }
 
         [[nodiscard]] bool isEditorMode() const { return !_isPlayMode; }
-
-        [[nodiscard]] bool isProjectOpen() const { return !_currentProjectPath.empty(); }
-
-        [[nodiscard]] const std::string &getCurrentProjectPath() const { return _currentProjectPath; }
 
         [[nodiscard]] EditorModel &getEditorModel() { return _editorModel; }
 
@@ -70,7 +66,6 @@ namespace BreadEditor {
         bool _isPlayMode = false;
         bool _isFrameEnded = false;
         bool _initialized = false;
-        std::string _currentProjectPath;
         RenderTexture2D *_viewportRenderTexture = nullptr;
         UiElement &_uiRoot;
         Font _fontSmall{};
