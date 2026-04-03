@@ -3,7 +3,8 @@ project(ExampleGame_App)
 
 # Collect game source files
 file(GLOB_RECURSE GAME_SOURCES
-        "*.cpp"
+        "*.cpp",
+        "*.c"
 )
 
 file(GLOB_RECURSE GAME_HEADERS
