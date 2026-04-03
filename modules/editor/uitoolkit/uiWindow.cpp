@@ -28,6 +28,7 @@ namespace BreadEditor {
 
     void UiWindow::draw(const float deltaTime)
     {
+        EditorStyle::setFontSize(EditorStyle::FontSize::MediumLarge);
         if (GuiWindowBox(_bounds, id.c_str()))
         {
             close();

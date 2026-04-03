@@ -96,8 +96,7 @@ namespace BreadEditor {
 
     void UiNumberBox::draw(const float deltaTime)
     {
-        Editor::getInstance().setFontSize(_textSize);
-        GuiSetStyle(DEFAULT, TEXT_SIZE, _textSize);
+        EditorStyle::setFontSize(_textSize);
         if (_intMode)
         {
             if (GuiValueBox(_bounds, _label.c_str(), &_intValue, INT_MIN,INT_MAX, _editMode))

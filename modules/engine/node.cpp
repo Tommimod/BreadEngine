@@ -6,8 +6,8 @@
 #include "transform.h"
 #include "engine.h"
 #include "nodeProvider.h"
-#include "models/reservedFileNames.h"
 #include "nodeYaml.h"
+#include "tracy/Tracy.hpp"
 
 namespace BreadEngine {
     Node::Node()
@@ -21,6 +21,7 @@ namespace BreadEngine {
 
     Node &Node::setup(const std::string &newName)
     {
+        ZoneScoped;
         this->_name = newName;
         _childs = std::vector<Node *>();
         NodeProvider::onNodeCreated.invoke(this);
@@ -29,6 +30,7 @@ namespace BreadEngine {
 
     Node &Node::setup(const std::string &newName, Node &nextParent)
     {
+        ZoneScoped;
         this->_name = newName;
         _childs = std::vector<Node *>();
         this->_parent = &nextParent;
@@ -39,6 +41,7 @@ namespace BreadEngine {
 
     void Node::destroy()
     {
+        ZoneScoped;
         NodeProvider::onNodeDestroyed.invoke(this);
         if (_parent != nullptr)
         {
@@ -55,6 +58,7 @@ namespace BreadEngine {
 
     void Node::destroyChild(Node *node)
     {
+        ZoneScoped;
         if (const auto it = std::ranges::find(_childs, node); it != _childs.end())
         {
             _childs.erase(it);
@@ -65,6 +69,7 @@ namespace BreadEngine {
 
     void Node::dispose()
     {
+        ZoneScoped;
         if (_isDisposed) return;
 
         ComponentsProvider::clearOwner(_id);
@@ -75,6 +80,7 @@ namespace BreadEngine {
 
     void Node::changeParent(Node *nextParent)
     {
+        ZoneScoped;
         if (_parent == nextParent) return;
         if (_parent != nullptr)
         {
@@ -88,6 +94,7 @@ namespace BreadEngine {
 
     void Node::setChildFirst(Node *node)
     {
+        ZoneScoped;
         if (const auto it = std::ranges::find(_childs, node); it != _childs.end())
         {
             _childs.erase(it);
@@ -98,6 +105,7 @@ namespace BreadEngine {
 
     void Node::removeAllChildren()
     {
+        ZoneScoped;
         for (const auto &child: _childs)
         {
             if (child)
@@ -121,6 +129,7 @@ namespace BreadEngine {
 
     void Node::setIsActive(bool nextIsActive)
     {
+        ZoneScoped;
         if (_parent != nullptr)
         {
             nextIsActive = _parent->getIsActive() && nextIsActive;
@@ -152,16 +161,19 @@ namespace BreadEngine {
 
     std::vector<Node *> Node::getAllChilds()
     {
+        ZoneScoped;
         return {_childs.begin(), _childs.end()};
     }
 
     Node *Node::getParent() const
     {
+        ZoneScoped;
         return _parent;
     }
 
     Node &Node::getRoot()
     {
+        ZoneScoped;
         if (_parent == nullptr || _parent == this)
         {
             return *this;
@@ -172,17 +184,20 @@ namespace BreadEngine {
 
     const std::string &Node::getName() const
     {
+        ZoneScoped;
         return _name;
     }
 
     void Node::setName(const std::string &nextName)
     {
+        ZoneScoped;
         this->_name = nextName;
         NodeProvider::onNodeRenamed.invoke(this);
     }
 
     int Node::getDeepLevel() const
     {
+        ZoneScoped;
         if (_parent == nullptr)
         {
             return 0;
@@ -193,6 +208,7 @@ namespace BreadEngine {
 
     bool Node::isMyChild(Node *node) const
     {
+        ZoneScoped;
         auto result = std::ranges::find(_childs, node) != _childs.end();
         if (!result)
         {
@@ -208,6 +224,7 @@ namespace BreadEngine {
 
     void Node::unparent(Node *node)
     {
+        ZoneScoped;
         if (const auto it = std::ranges::find(_childs, node); it != _childs.end())
         {
             _childs.erase(it);
@@ -216,6 +233,7 @@ namespace BreadEngine {
 
     std::string Node::serialize(const std::string &filePath) const
     {
+        ZoneScoped;
         auto rawData = getRawData();
         rawData.IsCopyPipeline = false;
         if (_parent == nullptr)
@@ -238,6 +256,7 @@ namespace BreadEngine {
 
     Node *Node::deserialize(const std::string &filePath)
     {
+        ZoneScoped;
         const auto rawConfig = YAML::LoadFile(filePath);
         if (rawConfig.IsNull())
         {
@@ -250,11 +269,13 @@ namespace BreadEngine {
 
     Node *Node::createCopyFromNode(const Node &originalNode)
     {
+        ZoneScoped;
         return createCopyFromData(getDataForCopy(originalNode), *originalNode._parent);
     }
 
     Node *Node::createCopyFromData(const YAML::Node &dataNode, Node &parent)
     {
+        ZoneScoped;
         YAML::Emitter out;
         out << dataNode;
         const auto data = out.c_str();
@@ -267,6 +288,7 @@ namespace BreadEngine {
 
     YAML::Node Node::getDataForCopy(const Node &originalNode)
     {
+        ZoneScoped;
         auto rawData = originalNode.getRawData();
         rawData.IsCopyPipeline = true;
         return YAML::Node(rawData);
@@ -274,11 +296,13 @@ namespace BreadEngine {
 
     ComponentsProvider::ComponentMaskArray Node::getComponentMasks(const int maskCount) const
     {
+        ZoneScoped;
         return ComponentsProvider::GetComponentMasks(_id, maskCount);
     }
 
     NodeRawData Node::getRawData() const
     {
+        ZoneScoped;
         std::vector<unsigned int> childIds;
         childIds.reserve(_childs.size());
         for (const auto child: _childs)

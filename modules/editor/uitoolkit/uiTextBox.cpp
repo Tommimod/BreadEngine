@@ -65,8 +65,7 @@ namespace BreadEditor {
 
     void UiTextBox::draw(const float deltaTime)
     {
-        Editor::getInstance().setFontSize(_textSize);
-        GuiSetStyle(DEFAULT, TEXT_SIZE, _textSize);
+        EditorStyle::setFontSize(_textSize);
         GuiTextBox(_bounds, _text, BUFFER_SIZE, _editMode);
     }
 

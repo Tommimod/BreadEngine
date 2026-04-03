@@ -1,9 +1,7 @@
-# ExampleGame - Sample Game Application
 project(ExampleGame_App)
 
-# Collect game source files
 file(GLOB_RECURSE GAME_SOURCES
-        "*.cpp",
+        "*.cpp"
         "*.c"
 )
 
@@ -11,13 +9,11 @@ file(GLOB_RECURSE GAME_HEADERS
         "*.h"
 )
 
-# Create executable
 add_executable(ExampleGame
     ${GAME_SOURCES}
     ${GAME_HEADERS}
 )
 
-# Create shared library for editor loading
 add_library(ExampleGameLib SHARED
     ${GAME_SOURCES}
     ${GAME_HEADERS}
@@ -30,7 +26,6 @@ set_target_properties(ExampleGameLib PROPERTIES
     CXX_STANDARD_REQUIRED ON
 )
 
-# Set target properties
 set_target_properties(ExampleGame PROPERTIES
     OUTPUT_NAME "ExampleGame"
     RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/bin
@@ -38,7 +33,6 @@ set_target_properties(ExampleGame PROPERTIES
     CXX_STANDARD_REQUIRED ON
 )
 
-# Include directories
 target_include_directories(ExampleGame PRIVATE
     ${CMAKE_CURRENT_SOURCE_DIR}
     ${CMAKE_SOURCE_DIR}/modules/engine
@@ -49,7 +43,6 @@ target_include_directories(ExampleGameLib PRIVATE
     ${CMAKE_SOURCE_DIR}/modules/engine
 )
 
-# Link with BreadEngine and system libraries
 target_link_libraries(ExampleGame
     BreadEngine
     ${PLATFORM_LIBS}
@@ -60,7 +53,6 @@ target_link_libraries(ExampleGameLib
     ${PLATFORM_LIBS}
 )
 
-# Compiler-specific options
 if(CMAKE_CXX_COMPILER_ID MATCHES "Clang|GNU")
     target_compile_options(ExampleGame PRIVATE
         -Wall -Wextra
@@ -68,10 +60,7 @@ if(CMAKE_CXX_COMPILER_ID MATCHES "Clang|GNU")
     )
 endif()
 
-# Create source groups for CLion
 source_group("Game" FILES ${GAME_SOURCES} ${GAME_HEADERS})
-
-# Set working directory for CLion run configurations
 set_target_properties(ExampleGame PROPERTIES
     VS_DEBUGGER_WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}
 )
@@ -80,8 +69,8 @@ add_custom_command(TARGET ExampleGame POST_BUILD
         COMMAND ${CMAKE_COMMAND} -E copy_if_different
         "${CMAKE_SOURCE_DIR}/lib/engine/r3d.dll"
         $<TARGET_FILE_DIR:ExampleGame>
-        COMMAND ${CMAKE_COMMAND} -E copy_if_different  # Копируем engine DLL
-        "$<TARGET_FILE:BreadEngine>"  # ИСПРАВЛЕНО: Target name "BreadEngine", не "libBreadEngine"
+        COMMAND ${CMAKE_COMMAND} -E copy_if_different
+        "$<TARGET_FILE:BreadEngine>"
         $<TARGET_FILE_DIR:ExampleGame>
 )
 

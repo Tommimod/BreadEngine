@@ -88,18 +88,6 @@ namespace BreadEditor {
         subscribe();
     }
 
-    void ConsoleWindow::draw(const float deltaTime)
-    {
-        Editor::getInstance().setFontSize(static_cast<int>(EditorStyle::FontSize::MediumLarge));
-        GuiSetStyle(DEFAULT, TEXT_SIZE, static_cast<int>(EditorStyle::FontSize::MediumLarge));
-        UiWindow::draw(deltaTime);
-    }
-
-    void ConsoleWindow::update(const float deltaTime)
-    {
-        UiWindow::update(deltaTime);
-    }
-
     void ConsoleWindow::dispose()
     {
         _logText = nullptr;

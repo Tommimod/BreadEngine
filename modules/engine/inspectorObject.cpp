@@ -2,9 +2,12 @@
 #include <cstdlib>
 #include <cxxabi.h>
 
+#include "tracy/Tracy.hpp"
+
 namespace BreadEngine {
     std::string InspectorStruct::getTypeName()
     {
+        ZoneScoped;
         int status;
         auto *mangled = abi::__cxa_demangle(typeid(*this).name(), nullptr, nullptr, &status);
         std::string result = status == 0 ? mangled : typeid(*this).name();
@@ -19,6 +22,7 @@ namespace BreadEngine {
 
     std::string InspectorStruct::getNewGUID()
     {
+        ZoneScoped;
         static std::random_device rd;
         static std::mt19937 gen(rd());
         static std::uniform_int_distribution<> dis(0, 15);
@@ -56,6 +60,7 @@ namespace BreadEngine {
 
     YAML::Node InspectorStruct::serialize()
     {
+        ZoneScoped;
         YAML::Node node(YAML::NodeType::Map);
         for (const auto &prop: getInspectedProperties())
         {
@@ -67,6 +72,7 @@ namespace BreadEngine {
 
     void InspectorStruct::deserialize(const YAML::Node &node)
     {
+        ZoneScoped;
         for (const auto &prop: getInspectedProperties())
         {
             if (node[prop.name])
@@ -118,6 +124,7 @@ namespace BreadEngine {
 
     YAML::Node InspectorStruct::propertyToYaml(const Property &prop, const Property::VariantT &val)
     {
+        ZoneScoped;
         switch (prop.type)
         {
             case PropertyType::INT: return YAML::Node(std::any_cast<int>(val));
@@ -247,6 +254,7 @@ namespace BreadEngine {
 
     Property::VariantT InspectorStruct::yamlToVariant(const PropertyType type, const YAML::Node &n)
     {
+        ZoneScoped;
         switch (type)
         {
             case PropertyType::INT: return Property::VariantT{n.as<int>()};

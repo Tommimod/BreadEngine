@@ -13,15 +13,30 @@ FetchContent_Declare(
         GIT_TAG v1.0.4
 )
 FetchContent_MakeAvailable(cpptrace)
-if(TARGET dwarf)
+if (TARGET dwarf)
     target_compile_definitions(dwarf PRIVATE
             PACKAGE_VERSION="2.1.0"
     )
-endif()
+endif ()
 
 target_compile_options(yaml-cpp PRIVATE -stdlib=libc++)
 target_link_options(yaml-cpp PRIVATE -stdlib=libc++)
 set_target_properties(yaml-cpp PROPERTIES CXX_STANDARD 23 CXX_STANDARD_REQUIRED ON)
+
+# Tracy
+option(TRACY_ENABLE "Enable Tracy profiler" ON)
+option(TRACY_ON_DEMAND "On-demand profiling" ON)
+option(TRACY_NO_BROADCAST "Disable broadcast for network" ON)
+add_compile_definitions(TRACY_SAMPLING_HZ=500)
+
+FetchContent_Declare(
+        tracy
+        GIT_REPOSITORY https://github.com/wolfpld/tracy.git
+        GIT_TAG v0.13.1
+        GIT_SHALLOW TRUE
+        GIT_PROGRESS TRUE
+)
+FetchContent_MakeAvailable(tracy)
 
 # For engine sources
 file(GLOB_RECURSE ENGINE_SOURCES
@@ -113,24 +128,25 @@ target_link_libraries(BreadEngine PUBLIC
         ${ASSIMP_LIB}
         yaml-cpp::yaml-cpp
         cpptrace::cpptrace
+        Tracy::TracyClient
 )
 
-if(TARGET cpptrace)
+if (TARGET cpptrace)
     target_compile_definitions(cpptrace INTERFACE
             CPPTRACE_GET_SYMBOLS_WITH_LIBDWARF=1
             CPPTRACE_GET_SYMBOLS_WITH_DBGHELP=1
     )
-endif()
+endif ()
 
-if(WIN32 AND CMAKE_CXX_COMPILER_ID MATCHES "Clang")
+if (WIN32 AND CMAKE_CXX_COMPILER_ID MATCHES "Clang")
     target_link_libraries(BreadEngine PUBLIC dbghelp)
-endif()
+endif ()
 
-if(CMAKE_BUILD_TYPE MATCHES "Debug|RelWithDebInfo")
-    if(CMAKE_CXX_COMPILER_ID MATCHES "Clang|GNU")
+if (CMAKE_BUILD_TYPE MATCHES "Debug|RelWithDebInfo")
+    if (CMAKE_CXX_COMPILER_ID MATCHES "Clang|GNU")
         target_compile_options(BreadEngine PRIVATE -g -gdwarf-4)
-    endif()
-endif()
+    endif ()
+endif ()
 
 message(STATUS "R3D_INCLUDE_DIRS: ${R3D_DLL}")
 message(STATUS "R3D_LIBRARIES: ${R3D_LIB}")

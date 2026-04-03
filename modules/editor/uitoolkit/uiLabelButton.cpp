@@ -32,9 +32,8 @@ namespace BreadEditor {
 
     void UiLabelButton::draw(const float deltaTime)
     {
-        Editor::getInstance().setFontSize(_textSize);
-        GuiSetStyle(DEFAULT, TEXT_SIZE, _textSize);
-        GuiSetStyle(LABEL, TEXT_ALIGNMENT, _textAlignment);
+        EditorStyle::setFontSize(_textSize);
+        EditorStyle::setLabelTextAlignment(_textAlignment);
         if (GuiLabelButton(_bounds, _text.c_str()))
         {
             if (const auto childsCount = getChildCount(); childsCount > 0)

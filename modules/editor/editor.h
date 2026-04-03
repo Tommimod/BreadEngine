@@ -54,10 +54,6 @@ namespace BreadEditor {
 
         [[nodiscard]] ConfigsProvider &getConfigsProvider() { return _configsProvider; }
 
-        void setFontSize(EditorStyle::FontSize size) const;
-
-        void setFontSize(int size) const;
-
         [[nodiscard]] bool isFrameEnded() const { return _isFrameEnded; }
 
     private:
@@ -68,18 +64,10 @@ namespace BreadEditor {
         bool _initialized = false;
         RenderTexture2D *_viewportRenderTexture = nullptr;
         UiElement &_uiRoot;
-        Font _fontSmall{};
-        Font _fontSmallMedium{};
-        Font _fontMedium{};
-        Font _fontMediumLarge{};
-        Font _fontLargeSmall{};
-        Font _fontLarge{};
 
         EditorModel _editorModel;
         ConfigsProvider _configsProvider;
         CameraSystem _cameraSystem;
-
-        void loadFont();
 
         static void processInput();
     };

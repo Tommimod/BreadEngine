@@ -17,8 +17,6 @@ void Game_Initialize()
     gameInitialized = true;
     cubePosition = (Vector3){0.0f, 1.0f, 0.0f};
     playerSpeed = 7.5f;
-
-    BreadEngine::Logger::LogInfo("Game started");
 }
 
 void Game_Update()
@@ -26,7 +24,6 @@ void Game_Update()
     if (!gameInitialized) return;
 
     cubePosition.x = sinf(GetTime()) * 2.0f;
-    BreadEngine::Logger::LogInfo("Game update");
 }
 
 void Game_Render2D()

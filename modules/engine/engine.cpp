@@ -3,6 +3,7 @@
 #include <fstream>
 #include "nodeProvider.h"
 #include <r3d.h>
+#include "tracy/Tracy.hpp"
 
 namespace BreadEngine {
     auto nodeFactory = []() -> Node *
@@ -37,6 +38,7 @@ namespace BreadEngine {
 
     bool Engine::initialize(const int width, const int height, const char *title)
     {
+        ZoneScoped;
         SetConfigFlags(FLAG_WINDOW_RESIZABLE | FLAG_WINDOW_ALWAYS_RUN | FLAG_WINDOW_HIGHDPI);
         InitWindow(width, height, title);
         MaximizeWindow();
@@ -65,6 +67,7 @@ namespace BreadEngine {
 
     void Engine::beginFrame() const
     {
+        ZoneScoped;
         BeginDrawing();
 
         // Call game logic update if loaded
@@ -78,8 +81,10 @@ namespace BreadEngine {
 
     void Engine::endFrame() const
     {
+        ZoneScoped;
         EndDrawing();
         _systems.endFrame(getDeltaTime());
+        FrameMark;
     }
 
     void Engine::setupDefaultCamera()
@@ -93,6 +98,7 @@ namespace BreadEngine {
 
     void Engine::loadGameModule(const char *path)
     {
+        ZoneScoped;
         unloadGameModule();
 
         _gameModuleLoader = new ModuleLoader();
@@ -119,6 +125,7 @@ namespace BreadEngine {
 
     void Engine::unloadGameModule()
     {
+        ZoneScoped;
         if (_gameModuleLoader)
         {
             if (_gameShutdown)
@@ -138,6 +145,7 @@ namespace BreadEngine {
 
     void Engine::callGameRender2D() const
     {
+        ZoneScoped;
         if (_gameRender2D)
         {
             _gameRender2D();
@@ -146,6 +154,7 @@ namespace BreadEngine {
 
     void Engine::callGameRender3D() const
     {
+        ZoneScoped;
         if (_gameRender3D)
         {
             _gameRender3D();
@@ -154,12 +163,14 @@ namespace BreadEngine {
 
     bool Engine::isCollisionPointRec(const Vector2 point, const Rectangle rec)
     {
+        ZoneScoped;
         return point.x >= rec.x && point.x <= rec.x + rec.width &&
                point.y >= rec.y && point.y <= rec.y + rec.height;
     }
 
     bool Engine::isCollisionPointRec(const Vector2 point, const Rectangle rec, const Rectangle subtraction)
     {
+        ZoneScoped;
         const auto inMainRect = isCollisionPointRec(point, rec);
         const auto inSubRect = isCollisionPointRec(point, subtraction);
 

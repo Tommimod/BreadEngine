@@ -424,8 +424,7 @@ namespace BreadEditor {
 
     void UiInspector::draw(const float deltaTime)
     {
-        Editor::getInstance().setFontSize(static_cast<int>(EditorStyle::FontSize::Medium));
-        GuiSetStyle(DEFAULT, TEXT_SIZE, static_cast<int>(EditorStyle::FontSize::Medium));
+        EditorStyle::setFontSize(EditorStyle::FontSize::Medium);
         if (_isPermanent)
         {
             GuiPanel(_bounds, _componentName.c_str());

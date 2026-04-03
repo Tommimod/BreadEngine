@@ -1,6 +1,7 @@
 #include "component.h"
 #include <typeinfo>
 #include "../node.h"
+#include "tracy/Tracy.hpp"
 
 namespace BreadEngine {
 #define DEFINE_STATIC_PROPS(ClassName) \
@@ -64,6 +65,7 @@ namespace BreadEngine {
 
     YAML::Node Component::serialize()
     {
+        ZoneScoped;
         YAML::Node node(YAML::NodeType::Map);
         node["ComponentType"] = getTypeName();
         for (const auto &prop: getInspectedProperties())

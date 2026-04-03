@@ -1,5 +1,6 @@
 ﻿#include "gizmoSystem.h"
 #include "../editor.h"
+#include "tracy/Tracy.hpp"
 
 namespace BreadEditor {
     void GizmoSystem::recalculateGizmo(BreadEngine::Transform &nodeTransform)
@@ -12,6 +13,7 @@ namespace BreadEditor {
 
     void GizmoSystem::render()
     {
+        ZoneScoped;
         if (_viewportWindow == nullptr)
         {
             _viewportWindow = &Editor::getInstance().mainWindow.getViewportWindow();

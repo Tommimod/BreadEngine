@@ -1,13 +1,13 @@
 #include "../engine/engine.h"
 #include "editor.h"
 #include <fstream>
-#include <models/reservedFileNames.h>
 
 #include "systems/cursorSystem.h"
 #include "node.h"
 #include "systems/commands/commandsHandler.h"
 #include "systems/commands/mainToolbarCommands/reopenLastProjectCommand.h"
 #include "systems/commands/mainToolbarCommands/saveProjectCommand.h"
+#include "tracy/Tracy.hpp"
 #include "validators/mandatoryEditorFilesValidator.h"
 
 namespace BreadEditor {
@@ -24,6 +24,7 @@ namespace BreadEditor {
 
     bool Editor::initialize()
     {
+        ZoneScoped;
         if (_initialized) return false;
 
         _initialized = MandatoryEditorFilesValidator::validate();
@@ -31,7 +32,7 @@ namespace BreadEditor {
         Engine::getInstance().getAssetsConfig().deserializeConfig(_configsProvider.getEditorPrefsConfig()->LastProjectPath.c_str());
 
         GuiLoadStyleDefault();
-        loadFont();
+        EditorStyle::loadFont();
         SetTraceLogLevel(LOG_ALL);
 
         mainWindow.initialize();
@@ -40,12 +41,12 @@ namespace BreadEditor {
         const auto filePath = _configsProvider.getEditorPrefsConfig()->LastOpenedNodePath;
         Node::deserialize(filePath);
 
-        runGame();
         return _initialized;
     }
 
     void Editor::shutdown()
     {
+        ZoneScoped;
         if (!_initialized) return;
 
         closeProject();
@@ -54,6 +55,7 @@ namespace BreadEditor {
 
     void Editor::update(const float deltaTime)
     {
+        ZoneScoped;
         if (!_initialized) return;
 
         processInput();
@@ -65,6 +67,7 @@ namespace BreadEditor {
 
     void Editor::render2D(RenderTexture2D &renderTexture, const float deltaTime)
     {
+        ZoneScoped;
         if (!_initialized) return;
 
         _viewportRenderTexture = &renderTexture;
@@ -74,6 +77,7 @@ namespace BreadEditor {
 
     void Editor::render3D(const float deltaTime)
     {
+        ZoneScoped;
         if (!_initialized) return;
 
         mainWindow.render3D(deltaTime);
@@ -91,32 +95,37 @@ namespace BreadEditor {
 
     void Editor::closeProject()
     {
-        UnloadFont(_fontSmall);
-        UnloadFont(_fontSmallMedium);
-        UnloadFont(_fontMedium);
-        UnloadFont(_fontMediumLarge);
-        UnloadFont(_fontLargeSmall);
-        UnloadFont(_fontLarge);
+        ZoneScoped;
+        UnloadFont(EditorStyle::_fontSmall);
+        UnloadFont(EditorStyle::_fontSmallMedium);
+        UnloadFont(EditorStyle::_fontMedium);
+        UnloadFont(EditorStyle::_fontMediumLarge);
+        UnloadFont(EditorStyle::_fontLargeSmall);
+        UnloadFont(EditorStyle::_fontLarge);
     }
 
     bool Editor::compileGame()
     {
+        ZoneScoped;
         Logger::LogInfo("Compiling game...");
         std::string projectPath = getEditorModel().getProjectPath();
-        
+
         // If path points to cmake-build-debug/bin/, go up 2 levels to get build root
         std::string buildDir = projectPath;
-        if (projectPath.find("cmake-build-debug") != std::string::npos) {
+        if (projectPath.find("cmake-build-debug") != std::string::npos)
+        {
             // Already in build directory, use it directly
             // Remove trailing bin/ if present and use cmake-build-debug as build root
             size_t pos = projectPath.rfind("bin");
-            if (pos != std::string::npos) {
+            if (pos != std::string::npos)
+            {
                 buildDir = projectPath.substr(0, pos);
             }
         }
-        
+
         // Ensure path ends with cmake-build-debug
-        if (buildDir.find("cmake-build-debug") == std::string::npos) {
+        if (buildDir.find("cmake-build-debug") == std::string::npos)
+        {
             buildDir = projectPath + "../../cmake-build-debug";
         }
 
@@ -127,17 +136,21 @@ namespace BreadEditor {
 
     bool Editor::runGame()
     {
+        ZoneScoped;
         if (!compileGame()) return false;
 
         std::string projectPath = getEditorModel().getProjectPath();
         std::string buildDir = projectPath;
-        if (projectPath.find("cmake-build-debug") != std::string::npos) {
+        if (projectPath.find("cmake-build-debug") != std::string::npos)
+        {
             size_t pos = projectPath.rfind("bin");
-            if (pos != std::string::npos) {
+            if (pos != std::string::npos)
+            {
                 buildDir = projectPath.substr(0, pos);
             }
         }
-        if (buildDir.find("cmake-build-debug") == std::string::npos) {
+        if (buildDir.find("cmake-build-debug") == std::string::npos)
+        {
             buildDir = projectPath + "../../cmake-build-debug";
         }
 
@@ -155,48 +168,13 @@ namespace BreadEditor {
 
     void Editor::stopGame()
     {
+        ZoneScoped;
         Engine::getInstance().unloadGameModule();
-    }
-
-    void Editor::setFontSize(const EditorStyle::FontSize size) const
-    {
-        switch (size)
-        {
-            case EditorStyle::FontSize::Small: GuiSetFont(_fontSmall);
-                break;
-            case EditorStyle::FontSize::SmallMedium: GuiSetFont(_fontSmallMedium);
-                break;
-            case EditorStyle::FontSize::Medium: GuiSetFont(_fontMedium);
-                break;
-            case EditorStyle::FontSize::MediumLarge: GuiSetFont(_fontMediumLarge);
-                break;
-            case EditorStyle::FontSize::LargeSmall: GuiSetFont(_fontLargeSmall);
-                break;
-            case EditorStyle::FontSize::Large: GuiSetFont(_fontLarge);
-                break;
-            default: throw new std::runtime_error("Invalid font size");
-        }
-    }
-
-    void Editor::setFontSize(const int size) const
-    {
-        setFontSize(static_cast<EditorStyle::FontSize>(size));
-    }
-
-    void Editor::loadFont()
-    {
-        const auto path = TextFormat("%s/%s", GetApplicationDirectory(), R"(assets\editor\fonts\Roboto.ttf)");
-        _fontSmall = LoadFontEx(path, static_cast<int>(EditorStyle::FontSize::Small), nullptr, 0);
-        _fontSmallMedium = LoadFontEx(path, static_cast<int>(EditorStyle::FontSize::SmallMedium), nullptr, 0);
-        _fontMedium = LoadFontEx(path, static_cast<int>(EditorStyle::FontSize::Medium), nullptr, 0);
-        _fontMediumLarge = LoadFontEx(path, static_cast<int>(EditorStyle::FontSize::MediumLarge), nullptr, 0);
-        _fontLargeSmall = LoadFontEx(path, static_cast<int>(EditorStyle::FontSize::LargeSmall), nullptr, 0);
-        _fontLarge = LoadFontEx(path, static_cast<int>(EditorStyle::FontSize::Large), nullptr, 0);
-        GuiSetFont(_fontMedium);
     }
 
     void Editor::processInput()
     {
+        ZoneScoped;
         const auto isCtrlPressed = IsKeyDown(KEY_LEFT_CONTROL);
         if (const auto isZPressedOnce = IsKeyPressed(KEY_Z); isCtrlPressed && isZPressedOnce)
         {

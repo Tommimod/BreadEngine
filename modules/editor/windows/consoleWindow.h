@@ -20,10 +20,6 @@ namespace BreadEditor {
 
         void awake() override;
 
-        void draw(float deltaTime) override;
-
-        void update(float deltaTime) override;
-
         void dispose() override;
 
         const char *getTitle() override { return _title; }

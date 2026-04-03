@@ -33,18 +33,6 @@ namespace BreadEditor {
         _subscriptions.clear();
     }
 
-    void PropertyInspectorWindow::draw(const float deltaTime)
-    {
-        Editor::getInstance().setFontSize(static_cast<int>(EditorStyle::FontSize::MediumLarge));
-        GuiSetStyle(DEFAULT, TEXT_SIZE, static_cast<int>(EditorStyle::FontSize::MediumLarge));
-        UiWindow::draw(deltaTime);
-    }
-
-    void PropertyInspectorWindow::update(const float deltaTime)
-    {
-        UiWindow::update(deltaTime);
-    }
-
     void PropertyInspectorWindow::dispose()
     {
         UiWindow::dispose();

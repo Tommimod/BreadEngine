@@ -213,5 +213,8 @@ namespace BreadEditor {
         void setSizePercentOneTimeInternal(const Vector2 &percent, bool withDirty);
 
         void setSizePercentPermanentInternal(const Vector2 &percent, bool withDirty);
+
+        [[nodiscard]]
+        bool isShouldBeCulled() const;
     };
 } // namespace BreadEditor

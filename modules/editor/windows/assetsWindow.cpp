@@ -1,7 +1,6 @@
 ﻿#include "assetsWindow.h"
 #include <filesystem>
 #include "editor.h"
-#include "models/reservedFileNames.h"
 #include "systems/commands/commandsHandler.h"
 #include "systems/commands/assetsCommands/deleteAssetCommand.h"
 #include "systems/commands/assetsCommands/moveAssetCommand.h"
@@ -334,13 +333,6 @@ namespace BreadEditor {
         recalculateUiFolders(_assetConfig.getRootFolder(), i);
     }
 
-    void AssetsWindow::draw(const float deltaTime)
-    {
-        Editor::getInstance().setFontSize(static_cast<int>(EditorStyle::FontSize::MediumLarge));
-        GuiSetStyle(DEFAULT, TEXT_SIZE, static_cast<int>(EditorStyle::FontSize::MediumLarge));
-        UiWindow::draw(deltaTime);
-    }
-
     void AssetsWindow::update(const float deltaTime)
     {
         const auto selectedFile = _editorModel->getSelectedFileUiElement();
@@ -350,6 +342,11 @@ namespace BreadEditor {
         }
 
         UiWindow::update(deltaTime);
+
+        if (Input::isKeyDown(KEY_SPACE))
+        {
+            Logger::LogInfo("Test message");
+        }
     }
 
     void AssetsWindow::dispose()

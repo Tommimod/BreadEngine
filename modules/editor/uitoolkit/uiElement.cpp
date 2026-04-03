@@ -4,16 +4,19 @@
 
 #include "editor.h"
 #include "editorStyle.h"
+#include "tracy/Tracy.hpp"
 
 namespace BreadEditor {
     UiElement &UiElement::setup(const std::string_view &newId)
     {
+        ZoneScoped;
         this->id = newId;
         return *this;
     }
 
     UiElement &UiElement::setup(const std::string_view &newId, UiElement *parentElement)
     {
+        ZoneScoped;
         this->id = newId;
         if (parentElement)
         {
@@ -26,10 +29,12 @@ namespace BreadEditor {
 
     void UiElement::awake()
     {
+        ZoneScoped;
     }
 
     std::vector<UiElement *> UiElement::getChildsSorterByHorizontal(const bool reverse) const
     {
+        ZoneScoped;
         std::vector<UiElement *> sortedChilds = getAllChilds();
         if (!reverse)
         {
@@ -50,6 +55,7 @@ namespace BreadEditor {
 
     std::vector<UiElement *> UiElement::getChildsSorterByVertical(const bool reverse) const
     {
+        ZoneScoped;
         std::vector<UiElement *> sortedChilds = getAllChilds();
         if (!reverse)
         {
@@ -70,33 +76,40 @@ namespace BreadEditor {
 
     UiElement::~UiElement()
     {
+        ZoneScoped;
         UiElement::dispose();
     }
 
     void UiElement::draw(const float deltaTime)
     {
+        ZoneScoped;
     }
 
     void UiElement::update(const float deltaTime)
     {
+        ZoneScoped;
     }
 
     void UiElement::onFrameEnd(float deltaTime)
     {
+        ZoneScoped;
     }
 
     Rectangle &UiElement::getBounds()
     {
+        ZoneScoped;
         return _bounds;
     }
 
     Vector2 &UiElement::getPosition()
     {
+        ZoneScoped;
         return _localPosition;
     }
 
     Vector2 UiElement::getSize() const
     {
+        ZoneScoped;
         if (_sizeInPercents.x >= 0 && _sizeInPercents.y >= 0)
         {
             return getSizeInPixByPercent(_sizeInPercents);
@@ -121,11 +134,13 @@ namespace BreadEditor {
 
     void UiElement::setState(const GuiState nextState)
     {
+        ZoneScoped;
         _state = nextState;
     }
 
     void UiElement::setPosition(const Vector2 &position)
     {
+        ZoneScoped;
         if (isStatic) return;
         _localPosition = position;
         setDirty();
@@ -133,61 +148,72 @@ namespace BreadEditor {
 
     void UiElement::setSize(const Vector2 &size)
     {
+        ZoneScoped;
         setSizeInternal(size, true);
     }
 
     void UiElement::setSizePercentOneTime(const Vector2 &percent)
     {
+        ZoneScoped;
         setSizePercentOneTimeInternal(percent, true);
     }
 
     void UiElement::setSizePercentPermanent(const Vector2 &percent)
     {
+        ZoneScoped;
         setSizePercentPermanentInternal(percent, true);
     }
 
     void UiElement::setSizeMin(const Vector2 &minSize)
     {
+        ZoneScoped;
         _minSize = minSize;
         setDirty();
     }
 
     void UiElement::setSizeMax(const Vector2 &maxSize)
     {
+        ZoneScoped;
         _maxSize = maxSize;
         setDirty();
     }
 
     void UiElement::setBounds(const Vector2 &position, const Vector2 &size)
     {
+        ZoneScoped;
         if (isStatic) return;
         _localPosition = position;
         _localSize = size;
         setDirty();
     }
 
-    Vector2 & UiElement::getMinSize()
+    Vector2 &UiElement::getMinSize()
     {
+        ZoneScoped;
         return _minSize;
     }
 
     Vector2 &UiElement::getPivot()
     {
+        ZoneScoped;
         return _pivot;
     }
 
     float UiElement::getSizeInPixByPercentOnlyX(const Vector2 &percent) const
     {
+        ZoneScoped;
         return getSizeInPixByPercent(percent).x;
     }
 
     float UiElement::getSizeInPixByPercentOnlyY(const Vector2 &percent) const
     {
+        ZoneScoped;
         return getSizeInPixByPercent(percent).y;
     }
 
     Vector2 UiElement::getSizeInPixByPercent(const Vector2 &percent) const
     {
+        ZoneScoped;
         const Vector2 clampedPercent = {std::clamp(percent.x, 0.0f, 1.0f), std::clamp(percent.y, 0.0f, 1.0f)};
         Rectangle effectiveParentBounds;
         if (_parent)
@@ -209,6 +235,7 @@ namespace BreadEditor {
 
     Vector2 UiElement::getSizeInPercent() const
     {
+        ZoneScoped;
         Rectangle effectiveParentBounds;
         if (_parent)
         {
@@ -229,6 +256,7 @@ namespace BreadEditor {
 
     UiElement *UiElement::getRootElement()
     {
+        ZoneScoped;
         if (!_parent)
         {
             return this;
@@ -239,11 +267,13 @@ namespace BreadEditor {
 
     UiElement *UiElement::getParentElement() const
     {
+        ZoneScoped;
         return this->_parent;
     }
 
     std::vector<UiElement *> UiElement::getAllChilds() const
     {
+        ZoneScoped;
         std::vector<UiElement *> result;
         std::ranges::copy_if(_childs, std::back_inserter(result),
                              [](const UiElement *child) { return child != nullptr && !child->_isDeleted; });
@@ -252,6 +282,7 @@ namespace BreadEditor {
 
     UiElement *UiElement::getChildById(const std::string &childId) const
     {
+        ZoneScoped;
         for (const auto child: getAllChilds())
         {
             if (child->id == childId)
@@ -265,11 +296,13 @@ namespace BreadEditor {
 
     int UiElement::getChildCount() const
     {
+        ZoneScoped;
         return getAllChilds().size();
     }
 
     void UiElement::addChild(UiElement *child)
     {
+        ZoneScoped;
         if (child && std::ranges::find(_childs, child) == _childs.end())
         {
             child->_parent = this;
@@ -281,12 +314,14 @@ namespace BreadEditor {
 
     void UiElement::destroyChild(UiElement *child)
     {
+        ZoneScoped;
         child->_isDeleted = true;
         child->destroyAllChilds();
     }
 
     void UiElement::destroyChild(const std::string &childId)
     {
+        ZoneScoped;
         for (const auto child: getAllChilds())
         {
             if (child->id == childId)
@@ -298,6 +333,7 @@ namespace BreadEditor {
 
     void UiElement::destroyAllChilds()
     {
+        ZoneScoped;
         if (_childs.empty()) return;
 
         const auto childCount = getChildCount();
@@ -309,6 +345,7 @@ namespace BreadEditor {
 
     void UiElement::setAnchor(const UI_ANCHOR_TYPE newAnchor)
     {
+        ZoneScoped;
         if (isStatic) return;
         _anchor = newAnchor;
         setDirty();
@@ -316,16 +353,19 @@ namespace BreadEditor {
 
     UI_ANCHOR_TYPE UiElement::getAnchor() const
     {
+        ZoneScoped;
         return _anchor;
     }
 
     LAYOUT_TYPE UiElement::getLayoutType() const
     {
+        ZoneScoped;
         return _layoutType;
     }
 
     UiElement *UiElement::getNextSibling() const
     {
+        ZoneScoped;
         if (_parent == nullptr) return nullptr;
         const auto it = std::ranges::find(_parent->_childs, this);
         if (it == _parent->_childs.end() || it + 1 == _parent->_childs.end()) return nullptr;
@@ -334,6 +374,7 @@ namespace BreadEditor {
 
     UiElement *UiElement::getPrevSibling() const
     {
+        ZoneScoped;
         if (_parent == nullptr) return nullptr;
         const auto it = std::ranges::find(_parent->_childs, this);
         if (it == _parent->_childs.begin() || it == _parent->_childs.end()) return nullptr;
@@ -342,6 +383,7 @@ namespace BreadEditor {
 
     std::vector<UiElement *> UiElement::getNextSiblingsByEqualHorizontal() const
     {
+        ZoneScoped;
         std::vector<UiElement *> siblings{};
         if (_parent == nullptr) return siblings;
         const auto currentX = _bounds.x;
@@ -373,6 +415,7 @@ namespace BreadEditor {
 
     std::vector<UiElement *> UiElement::getPrevSiblingsByEqualHorizontal() const
     {
+        ZoneScoped;
         std::vector<UiElement *> siblings{};
         if (_parent == nullptr) return siblings;
         const auto currentX = _bounds.x;
@@ -404,6 +447,7 @@ namespace BreadEditor {
 
     std::vector<UiElement *> UiElement::getNextSiblingsByEqualVertical() const
     {
+        ZoneScoped;
         std::vector<UiElement *> siblings{};
         if (_parent == nullptr) return siblings;
         const auto currentY = _bounds.y;
@@ -435,6 +479,7 @@ namespace BreadEditor {
 
     std::vector<UiElement *> UiElement::getPrevSiblingsByEqualVertical() const
     {
+        ZoneScoped;
         std::vector<UiElement *> siblings{};
         if (_parent == nullptr) return siblings;
         const auto currentY = _bounds.y;
@@ -466,6 +511,7 @@ namespace BreadEditor {
 
     int UiElement::getIndex() const
     {
+        ZoneScoped;
         if (_parent == nullptr) return -1;
         auto parentChilds = _parent->getAllChilds();
         return std::ranges::find(parentChilds, this) - parentChilds.begin();
@@ -473,11 +519,13 @@ namespace BreadEditor {
 
     bool UiElement::getIsIgnoreScrollLayout() const
     {
+        ZoneScoped;
         return _ignoreScrollLayout;
     }
 
     void UiElement::setLayoutType(const LAYOUT_TYPE layout)
     {
+        ZoneScoped;
         if (isStatic) return;
         _layoutType = layout;
         setDirty();
@@ -485,6 +533,7 @@ namespace BreadEditor {
 
     void UiElement::setPivot(const Vector2 &newPivot)
     {
+        ZoneScoped;
         if (isStatic) return;
         _pivot = newPivot;
         setDirty();
@@ -492,6 +541,7 @@ namespace BreadEditor {
 
     void UiElement::changeParent(UiElement *newParent)
     {
+        ZoneScoped;
         if (_parent != nullptr)
         {
             _parent->_childs.erase(std::ranges::find(_parent->_childs, this));
@@ -511,6 +561,7 @@ namespace BreadEditor {
 
     void UiElement::setChildFirst(UiElement *child)
     {
+        ZoneScoped;
         if (const auto it = std::ranges::find(_childs, child); it != _childs.end())
         {
             _childs.erase(it);
@@ -524,6 +575,7 @@ namespace BreadEditor {
 
     void UiElement::setChildLast(UiElement *child)
     {
+        ZoneScoped;
         if (const auto it = std::ranges::find(_childs, child); it != _childs.end())
         {
             _childs.erase(it);
@@ -537,6 +589,7 @@ namespace BreadEditor {
 
     void UiElement::dispose()
     {
+        ZoneScoped;
         if (_isDisposed) return;
 
         _isDisposed = true;
@@ -583,6 +636,7 @@ namespace BreadEditor {
 
     void UiElement::drawDebugRect() const
     {
+        ZoneScoped;
         auto x = std::to_string(_bounds.x);
         x.erase(x.find_last_not_of('0') + 1, std::string::npos);
         x.erase(x.find_last_not_of('.') + 1, std::string::npos);
@@ -612,6 +666,7 @@ namespace BreadEditor {
 
     void UiElement::computeBounds()
     {
+        ZoneScoped;
         if (_sizeInPercents.x >= 0 || _sizeInPercents.y >= 0)
         {
             setSizePercentPermanentInternal(_sizeInPercents, false);
@@ -690,6 +745,7 @@ namespace BreadEditor {
 
     void UiElement::setDirty()
     {
+        ZoneScoped;
         _isDirty = true;
         for (const auto child: getAllChilds())
         {
@@ -699,6 +755,7 @@ namespace BreadEditor {
 
     void UiElement::setOnOverlayLayer()
     {
+        ZoneScoped;
         _onOverlayLayer = true;
         const auto root = getRootElement();
         root->_overlayChilds.emplace_back(this);
@@ -706,16 +763,19 @@ namespace BreadEditor {
 
     void UiElement::setRenderOnEndOfFrame()
     {
+        ZoneScoped;
         _isRenderOnEndOfFrame = true;
     }
 
     void UiElement::setIgnoreScrollLayout()
     {
+        ZoneScoped;
         _ignoreScrollLayout = true;
     }
 
     Vector2 UiElement::getAnchorPoint(const Rectangle &effectiveParentBounds) const
     {
+        ZoneScoped;
         switch (_anchor)
         {
             case UI_LEFT_TOP: return {effectiveParentBounds.x, effectiveParentBounds.y};
@@ -743,6 +803,7 @@ namespace BreadEditor {
 
     Vector2 UiElement::getComputedSize(const Rectangle &effectiveParentBounds, const Vector2 &prelimPosition) const
     {
+        ZoneScoped;
         Vector2 size = _localSize;
         bool fitX = false;
         bool fitY = false;
@@ -776,11 +837,13 @@ namespace BreadEditor {
 
     bool UiElement::tryDeleteSelf()
     {
+        ZoneScoped;
         return false;
     }
 
     void UiElement::setScrollOffset(const Vector2 &scrollOffset)
     {
+        ZoneScoped;
         if (_scrollOffset.x != scrollOffset.x || _scrollOffset.y != scrollOffset.y)
         {
             setDirty();
@@ -791,11 +854,13 @@ namespace BreadEditor {
 
     Vector2 &UiElement::getScrollOffset()
     {
+        ZoneScoped;
         return _scrollOffset;
     }
 
     bool UiElement::IsNullRectangle(const Rectangle &rectangle)
     {
+        ZoneScoped;
         return rectangle.x == 0 &&
                rectangle.y == 0 &&
                rectangle.width == 1 &&
@@ -804,23 +869,31 @@ namespace BreadEditor {
 
     void UiElement::drawInternal(const float deltaTime, const GuiState state)
     {
+        ZoneScopedN("UiElement::drawInternal");
+
         if (_isDeleted)
         {
             return;
         }
 
         const auto nextState = std::max(_state, state);
-        GuiSetState(nextState);
-        if (isActive) draw(deltaTime);
-        GuiSetState(STATE_NORMAL);
 
-        GuiSetStyle(LABEL, TEXT_ALIGNMENT, 0);
-        GuiSetStyle(DROPDOWNBOX, TEXT_ALIGNMENT, 1);
-        GuiSetStyle(BUTTON, TEXT_ALIGNMENT, 0);
-        GuiSetStyle(DEFAULT, TEXT_SIZE, static_cast<int>(EditorStyle::FontSize::Medium));
-        GuiSetStyle(DEFAULT, TEXT_ALIGNMENT_VERTICAL, 1);
-        GuiSetStyle(DEFAULT, TEXT_WRAP_MODE, 0);
-        Editor::getInstance().setFontSize(EditorStyle::FontSize::Medium);
+        const auto isCulled = isShouldBeCulled();
+        if (!isCulled)
+        {
+            EditorStyle::setGlobalState(nextState);
+            if (isActive) draw(deltaTime);
+            EditorStyle::setGlobalState(STATE_NORMAL);
+
+            EditorStyle::setLabelTextAlignment(static_cast<GuiTextAlignment>(0));
+            EditorStyle::setDrowDownBoxTextAlignment(static_cast<GuiTextAlignment>(1));
+            EditorStyle::setButtonTextAlignment(static_cast<GuiTextAlignment>(0));
+            EditorStyle::setGlobalTextVerticalAlignment(static_cast<GuiTextAlignmentVertical>(1));
+            EditorStyle::setGlobalTextWrapMode(static_cast<GuiTextWrapMode>(0));
+        }
+
+        EditorStyle::setFontSize(EditorStyle::FontSize::Medium);
+
         if (isDebugRectVisible)
         {
             drawDebugRect();
@@ -828,15 +901,14 @@ namespace BreadEditor {
 
         if (!isActive) return;
 
-        for (const auto child: _childs)
+        if (!isCulled)
         {
-            if (child == nullptr || child->_isDeleted) continue;
-            if (child->_onOverlayLayer || child->_isRenderOnEndOfFrame)
+            for (const auto child: _childs)
             {
-                continue;
+                if (child == nullptr || child->_isDeleted) continue;
+                if (child->_onOverlayLayer || child->_isRenderOnEndOfFrame) continue;
+                child->drawInternal(deltaTime, nextState);
             }
-
-            child->drawInternal(deltaTime, nextState);
         }
 
         if (_parent == nullptr) // only for root
@@ -849,26 +921,16 @@ namespace BreadEditor {
                     _overlayChilds.erase(std::ranges::find(_overlayChilds, child));
                     continue;
                 }
-
                 child->drawInternal(deltaTime, nextState);
             }
         }
 
         onFrameEnd(deltaTime);
-        for (const auto child: _childs)
-        {
-            if (child == nullptr || child->_isDeleted) continue;
-            if (child->_onOverlayLayer || !child->_isRenderOnEndOfFrame)
-            {
-                continue;
-            }
-
-            child->drawInternal(deltaTime, nextState);
-        }
     }
 
     void UiElement::updateInternal(const float deltaTime)
     {
+        ZoneScoped;
         if (_isDeleted) return;
 
         destroyChildsInternal();
@@ -896,6 +958,7 @@ namespace BreadEditor {
 
     void UiElement::destroyChildsInternal()
     {
+        ZoneScoped;
         const auto size = static_cast<int>(_childs.size());
         for (int i = size - 1; i >= 0; --i)
         {
@@ -922,6 +985,7 @@ namespace BreadEditor {
 
     void UiElement::setSizeInternal(const Vector2 &size, const bool withDirty)
     {
+        ZoneScoped;
         if (isStatic) return;
         _localSize = size;
         if (withDirty) setDirty();
@@ -929,6 +993,7 @@ namespace BreadEditor {
 
     void UiElement::setSizePercentOneTimeInternal(const Vector2 &percent, const bool withDirty)
     {
+        ZoneScoped;
         if (isStatic) return;
         if (percent.x >= 0 && percent.y >= 0)
         {
@@ -952,8 +1017,17 @@ namespace BreadEditor {
 
     void UiElement::setSizePercentPermanentInternal(const Vector2 &percent, const bool withDirty)
     {
+        ZoneScoped;
         if (isStatic) return;
         setSizePercentOneTimeInternal(percent, withDirty);
         _sizeInPercents = percent;
+    }
+
+    bool UiElement::isShouldBeCulled() const
+    {
+        if (_onOverlayLayer || _parent == nullptr) return false;
+
+        const auto &parentBounds = _parent->getBounds();
+        return !CheckCollisionRecs(parentBounds, _bounds);
     }
 } // namespace BreadEditor

@@ -1,8 +1,5 @@
 #include "uiCheckBox.h"
-
-#include <any>
 #include <utility>
-
 #include "editor.h"
 #include "uiPool.h"
 
@@ -54,8 +51,7 @@ namespace BreadEditor {
 
     void UiCheckBox::draw(const float deltaTime)
     {
-        GuiSetStyle(DEFAULT, TEXT_SIZE, static_cast<int>(EditorStyle::FontSize::Medium));
-        Editor::getInstance().setFontSize(EditorStyle::FontSize::Medium);
+        EditorStyle::setFontSize(EditorStyle::FontSize::Medium);
         const auto lastState = _internalChecked;
         _externalChecked = &_internalChecked;
         GuiCheckBox(_bounds, _text.c_str(), &_internalChecked);

@@ -3,6 +3,7 @@
 #include "editor.h"
 #include "engine.h"
 #include "raymath.h"
+#include "tracy/Tracy.hpp"
 
 #define PI 3.141592653589793f
 
@@ -17,6 +18,7 @@ namespace BreadEditor {
 
     void CameraSystem::update(const float deltaTime)
     {
+        ZoneScoped;
         tryPrepare();
         if (IsMouseButtonDown(MOUSE_BUTTON_RIGHT) && _isPrepared)
         {
@@ -54,6 +56,7 @@ namespace BreadEditor {
 
     void CameraSystem::tryPrepare()
     {
+        ZoneScoped;
         const auto viewportWindow = &Editor::getInstance().mainWindow.getViewportWindow();
         const auto size = viewportWindow->getViewportSize();
         if (IsMouseButtonPressed(MOUSE_BUTTON_RIGHT) && Engine::isCollisionPointRec(GetMousePosition(), size))

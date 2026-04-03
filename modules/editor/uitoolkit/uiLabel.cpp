@@ -25,11 +25,10 @@ namespace BreadEditor {
 
     void UiLabel::draw(const float deltaTime)
     {
-        Editor::getInstance().setFontSize(_textSize);
-        GuiSetStyle(DEFAULT, TEXT_SIZE, _textSize);
-        GuiSetStyle(LABEL, TEXT_ALIGNMENT, _textAlignment);
-        GuiSetStyle(DEFAULT, TEXT_ALIGNMENT_VERTICAL, _verticalAlignment);
-        GuiSetStyle(DEFAULT, TEXT_WRAP_MODE, _wrapMode);
+        EditorStyle::setFontSize(_textSize);
+        EditorStyle::setLabelTextAlignment(_textAlignment);
+        EditorStyle::setGlobalTextVerticalAlignment(_verticalAlignment);
+        EditorStyle::setGlobalTextWrapMode(_wrapMode);
         GuiLabel(_bounds, _text.c_str());
     }
 

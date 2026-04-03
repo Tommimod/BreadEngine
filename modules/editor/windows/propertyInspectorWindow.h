@@ -20,10 +20,6 @@ namespace BreadEditor {
 
         ~PropertyInspectorWindow() override;
 
-        void draw(float deltaTime) override;
-
-        void update(float deltaTime) override;
-
         void dispose() override;
 
         void lookupNode(Node *node);

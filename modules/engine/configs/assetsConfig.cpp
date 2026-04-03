@@ -6,6 +6,7 @@
 #include <yaml-cpp/node/parse.h>
 #include "assetsConfigYaml.h"
 #include "logger.h"
+#include "tracy/Tracy.hpp"
 
 namespace BreadEngine {
     DEFINE_STATIC_PROPS(AssetsConfig)
@@ -15,6 +16,7 @@ namespace BreadEngine {
 
     void AssetsConfig::serializeConfig()
     {
+        ZoneScoped;
         const auto filePath = std::string(_projectPath) + "\\" + ReservedFileNames::ASSETS_REGISTRY_NAME;
         std::ofstream process(filePath);
         process.clear();
@@ -24,6 +26,7 @@ namespace BreadEngine {
 
     void AssetsConfig::deserializeConfig(const char *projectPath)
     {
+        ZoneScoped;
         _projectPath = projectPath;
         const auto filePath = std::string(projectPath) + "\\" + ReservedFileNames::ASSETS_REGISTRY_NAME;
         const auto rawConfig = YAML::LoadFile(filePath);
@@ -51,11 +54,13 @@ namespace BreadEngine {
 
     void AssetsConfig::deserializeConfig()
     {
+        ZoneScoped;
         deserializeConfig(TextFormat("%s\\%s", GetWorkingDirectory(), "assets\\game"));
     }
 
     void AssetsConfig::findAllAssets(const char *projectPath)
     {
+        ZoneScoped;
         _projectPath = projectPath;
         _rootFolder = Folder(_projectPath, 0, "Project Files", "Project Files", "0");
         const FilePathList filesProvider = LoadDirectoryFiles(projectPath);
@@ -66,6 +71,7 @@ namespace BreadEngine {
 
     bool AssetsConfig::isFolder(const char *path)
     {
+        ZoneScoped;
         const auto paths = LoadDirectoryFiles(path);
         const auto isFolder = paths.count > 0 && GetFileExtension(path) == nullptr;
         UnloadDirectoryFiles(paths);
@@ -74,11 +80,13 @@ namespace BreadEngine {
 
     Folder *AssetsConfig::getRootFolder()
     {
+        ZoneScoped;
         return &_rootFolder;
     }
 
     const std::string &AssetsConfig::getPathByGuid(const std::string &guid)
     {
+        ZoneScoped;
         const auto folder_it = _guidToFolder.find(guid);
         if (folder_it != _guidToFolder.end())
         {
@@ -96,6 +104,7 @@ namespace BreadEngine {
 
     const std::string &AssetsConfig::getGuidByPath(const std::string &path)
     {
+        ZoneScoped;
         const auto folder_it = _pathToFolder.find(path);
         if (folder_it != _pathToFolder.end())
         {
@@ -113,12 +122,14 @@ namespace BreadEngine {
 
     File *AssetsConfig::getFileByGuid(const std::string &guid)
     {
+        ZoneScoped;
         if (!_guidToFile.contains(guid)) return nullptr;
         return _guidToFile[guid];
     }
 
     Folder *AssetsConfig::getFolderByGuid(const std::string &guid)
     {
+        ZoneScoped;
         if (guid == _rootFolder.getGUID()) return &_rootFolder;
         if (!_guidToFolder.contains(guid)) return nullptr;
         return _guidToFolder[guid];
@@ -126,12 +137,14 @@ namespace BreadEngine {
 
     File *AssetsConfig::getFileByPath(const std::string &path)
     {
+        ZoneScoped;
         if (!_pathToFile.contains(path)) return nullptr;
         return _pathToFile[path];
     }
 
     Folder *AssetsConfig::getFolderByPath(const std::string &path)
     {
+        ZoneScoped;
         if (path == _rootFolder.getFullPath()) return &_rootFolder;
         if (!_pathToFolder.contains(path)) return nullptr;
         return _pathToFolder[path];
@@ -139,6 +152,7 @@ namespace BreadEngine {
 
     void AssetsConfig::renameFile(const std::string &fileGuid, const std::string &nextName)
     {
+        ZoneScoped;
         const auto file = _guidToFile[fileGuid];
         const auto oldPath = file->_fullPath;
         const auto folderPath = std::string(GetDirectoryPath(file->getFullPath().c_str()));
@@ -155,6 +169,7 @@ namespace BreadEngine {
 
     void AssetsConfig::renameFolder(const std::string &folderGuid, const std::string &nextName)
     {
+        ZoneScoped;
         const auto folder = _guidToFolder[folderGuid];
         const auto oldPath = folder->_fullPath;
         const auto oldFolderPath = std::string(GetPrevDirectoryPath(folder->getFullPath().c_str()));
@@ -179,6 +194,7 @@ namespace BreadEngine {
 
     void AssetsConfig::moveFile(const std::string &fileGuid, const std::string &nextFolderGuid)
     {
+        ZoneScoped;
         auto file = _guidToFile[fileGuid];
         const auto oldPath = file->_fullPath;
         const auto oldFolderPath = std::string(GetDirectoryPath(file->getFullPath().c_str()));
@@ -198,6 +214,7 @@ namespace BreadEngine {
 
     void AssetsConfig::moveFolder(const std::string &folderGuid, const std::string &nextFolderGuid)
     {
+        ZoneScoped;
         auto folder = _guidToFolder[folderGuid];
         const auto oldPath = folder->_fullPath;
         const auto oldFolderPath = std::string(GetPrevDirectoryPath(folder->getFullPath().c_str()));
@@ -230,6 +247,7 @@ namespace BreadEngine {
 
     void AssetsConfig::deleteFile(const std::string &fileGuid)
     {
+        ZoneScoped;
         const auto file = getFileByGuid(fileGuid);
         const auto oldFolderPath = std::string(GetDirectoryPath(file->getFullPath().c_str()));
         auto oldFolder = _pathToFolder[oldFolderPath];
@@ -242,6 +260,7 @@ namespace BreadEngine {
 
     void AssetsConfig::deleteFolder(const std::string &folderGuid)
     {
+        ZoneScoped;
         const auto folder = getFolderByGuid(folderGuid);
         const auto oldFolderPath = std::string(GetPrevDirectoryPath(folder->getFullPath().c_str()));
         auto oldFolder = _pathToFolder[oldFolderPath];
@@ -254,6 +273,7 @@ namespace BreadEngine {
 
     void AssetsConfig::updateIncludesAfterFolderChange(Folder *folder)
     {
+        ZoneScoped;
         for (auto &file: folder->_files)
         {
             file._fullPath = folder->getFullPath() + "\\" + file.getShortName();
@@ -271,6 +291,7 @@ namespace BreadEngine {
 
     void AssetsConfig::buildIndexes()
     {
+        ZoneScoped;
         _guidToFolder.clear();
         _guidToFile.clear();
         _pathToFolder.clear();
@@ -280,6 +301,7 @@ namespace BreadEngine {
 
     void AssetsConfig::indexFolder(Folder &folder)
     {
+        ZoneScoped;
         _guidToFolder[folder._guid] = &folder;
         _pathToFolder[folder._fullPath] = &folder;
         for (auto &file: folder._files)
@@ -295,6 +317,7 @@ namespace BreadEngine {
 
     bool AssetsConfig::isValid(const FilePathList &filePathList)
     {
+        ZoneScoped;
         for (auto i = 0u; i < filePathList.count; i++)
         {
             if (const auto path = filePathList.paths[i]; isFolder(path))
@@ -322,6 +345,7 @@ namespace BreadEngine {
 
     void AssetsConfig::parseFolders(Folder &folder, const FilePathList &filePathList) noexcept
     {
+        ZoneScoped;
         for (auto i = 0u; i < filePathList.count; i++)
         {
             const auto path = filePathList.paths[i];
@@ -352,6 +376,7 @@ namespace BreadEngine {
 
     void AssetsConfig::moveInternal(const std::string &from, const std::string &to)
     {
+        ZoneScoped;
         try
         {
             if (fs::equivalent(fs::path(from).root_path(), fs::path(to).root_path()))
@@ -371,6 +396,7 @@ namespace BreadEngine {
 
     void AssetsConfig::copyFileInternal(const std::string &from, const std::string &to)
     {
+        ZoneScoped;
         try
         {
             fs::copy(from, to, fs::copy_options::overwrite_existing);
@@ -383,6 +409,7 @@ namespace BreadEngine {
 
     void AssetsConfig::copyFolderInternal(const std::string &from, const std::string &to)
     {
+        ZoneScoped;
         try
         {
             fs::copy(from, to, fs::copy_options::recursive | fs::copy_options::overwrite_existing);
@@ -395,6 +422,7 @@ namespace BreadEngine {
 
     void AssetsConfig::renameInternal(const std::string &from, const std::string &to)
     {
+        ZoneScoped;
         try
         {
             fs::rename(from, to);
@@ -407,6 +435,7 @@ namespace BreadEngine {
 
     void AssetsConfig::deleteFileInternal(const std::string &from)
     {
+        ZoneScoped;
         try
         {
             fs::remove(from);
@@ -419,6 +448,7 @@ namespace BreadEngine {
 
     void AssetsConfig::deleteFolderInternal(const std::string &from)
     {
+        ZoneScoped;
         try
         {
             fs::remove_all(from);

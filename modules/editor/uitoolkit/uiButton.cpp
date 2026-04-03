@@ -34,9 +34,8 @@ namespace BreadEditor {
 
     void UiButton::draw(const float deltaTime)
     {
-        Editor::getInstance().setFontSize(_textSize);
-        GuiSetStyle(DEFAULT, TEXT_SIZE, _textSize);
-        GuiSetStyle(BUTTON, TEXT_ALIGNMENT, _textAlignment);
+        EditorStyle::setFontSize(_textSize);
+        EditorStyle::setButtonTextAlignment(_textAlignment);
         if (GuiButton(_bounds, _text.c_str()))
         {
             const auto mousePos = GetMousePosition();

@@ -18,8 +18,6 @@ namespace BreadEditor {
 
         ~AssetsWindow() override;
 
-        void draw(float deltaTime) override;
-
         void update(float deltaTime) override;
 
         void dispose() override;

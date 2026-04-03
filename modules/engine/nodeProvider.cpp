@@ -1,5 +1,6 @@
 #include "nodeProvider.h"
 #include "node.h"
+#include "tracy/Tracy.hpp"
 
 namespace BreadEngine {
     Action<Node *> NodeProvider::onNodeCreated{};
@@ -14,6 +15,7 @@ namespace BreadEngine {
 
     void NodeProvider::init()
     {
+        ZoneScoped;
         onNodeCreated.subscribe([](Node *node) { _nodes.emplace_back(node); });
         onNodeDestroyed.subscribe([](Node *node)
         {
@@ -24,6 +26,7 @@ namespace BreadEngine {
 
     unsigned int NodeProvider::generateId()
     {
+        ZoneScoped;
         if (!_freeIds.empty())
         {
             const auto nextId = _freeIds[_freeIds.size() - 1];
@@ -36,6 +39,7 @@ namespace BreadEngine {
 
     Node *NodeProvider::getNode(const unsigned int ownerId)
     {
+        ZoneScoped;
         for (const auto node: _nodes)
         {
             if (node->_id == ownerId)

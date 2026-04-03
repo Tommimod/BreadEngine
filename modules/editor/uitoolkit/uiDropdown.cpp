@@ -34,7 +34,7 @@ namespace BreadEditor {
             return;
         }
 
-        GuiSetStyle(DROPDOWNBOX, TEXT_ALIGNMENT, _textAlignment);
+        EditorStyle::setDrowDownBoxTextAlignment(_textAlignment);
         if (GuiDropdownBox(_bounds, _optionsForGui, &_selectedOption, _isEditMode))
         {
             if (!isCollisionPointRec(GetMousePosition()))
