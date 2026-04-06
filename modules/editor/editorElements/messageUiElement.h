@@ -19,7 +19,6 @@ namespace BreadEditor {
         void dispose() override;
 
     protected:
-        UiLabelButton *_button = nullptr;
         Logger::LogEntity _logEntity;
         std::string _text;
 

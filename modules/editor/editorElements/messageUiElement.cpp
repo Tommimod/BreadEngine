@@ -15,20 +15,17 @@ namespace BreadEditor {
         _logEntity = logEntity;
         UiElement::setup(id, parentElement);
 
-        _button = &UiPool::labelButtonPool.get().setup(this->id + "_button", this, empty);
-        _button->setSizePercentPermanent({1, 1});
-        _button->onClick.subscribe([this](UiLabelButton *) { onClick.invoke(_logEntity); });
-
         GuiIconName icon = ICON_NONE;
         if (logEntity.level == Logger::Info) icon = ICON_INFO;
         else if (logEntity.level == Logger::Warning) icon = ICON_WARNING;
         else if (logEntity.level == Logger::Error) icon = ICON_DEMON;
         _text = GuiIconText(icon, GetFirstNLines(_logEntity.message, 2).c_str());
 
-        auto &text = UiPool::labelPool.get().setup(this->id + "_text", this, _text);
-        text.setSizePercentPermanent({1, 1});
-        text.setTextAlignment(TEXT_ALIGN_LEFT);
-        text.setVerticalAlignment(TEXT_ALIGN_TOP);
+        auto &button = UiPool::labelButtonPool.get().setup(this->id + "_labelButton", this, _text);
+        button.setSizePercentPermanent({1, 1});
+        button.onClick.subscribe([this](UiLabelButton *) { onClick.invoke(_logEntity); });
+        button.setTextAlignment(TEXT_ALIGN_LEFT);
+        button.setVerticalAlignment(TEXT_ALIGN_TOP);
         return *this;
     }
 
@@ -42,7 +39,6 @@ namespace BreadEditor {
         onClick.unsubscribeAll();
         _text.clear();
         _logEntity = {};
-        _button = nullptr;
         UiElement::dispose();
     }
 

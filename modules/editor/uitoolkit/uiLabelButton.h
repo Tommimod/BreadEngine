@@ -26,6 +26,8 @@ namespace BreadEditor {
 
         void setTextAlignment(const GuiTextAlignment alignment) { _textAlignment = alignment; }
 
+        void setVerticalAlignment(const GuiTextAlignmentVertical alignment) { _verticalAlignment = alignment; }
+
         void setTextSize(const int textSize) { _textSize = textSize; }
 
         void setText(const std::string &newText) { _text = newText; }
@@ -35,6 +37,7 @@ namespace BreadEditor {
 
     private:
         std::string _text;
+        GuiTextAlignmentVertical _verticalAlignment = TEXT_ALIGN_MIDDLE;
         GuiTextAlignment _textAlignment = TEXT_ALIGN_LEFT;
         int _textSize = static_cast<int>(EditorStyle::FontSize::Medium);
     };

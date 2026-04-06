@@ -25,6 +25,7 @@ namespace BreadEditor {
     {
         onClick.unsubscribeAll();
         _text.clear();
+        _verticalAlignment = TEXT_ALIGN_MIDDLE;
         _textAlignment = TEXT_ALIGN_LEFT;
         _textSize = static_cast<int>(EditorStyle::FontSize::Medium);
         UiElement::dispose();
@@ -34,6 +35,7 @@ namespace BreadEditor {
     {
         EditorStyle::setFontSize(_textSize);
         EditorStyle::setLabelTextAlignment(_textAlignment);
+        EditorStyle::setGlobalTextVerticalAlignment(_verticalAlignment);
         if (GuiLabelButton(_bounds, _text.c_str()))
         {
             if (const auto childsCount = getChildCount(); childsCount > 0)
