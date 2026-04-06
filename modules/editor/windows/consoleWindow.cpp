@@ -73,6 +73,13 @@ namespace BreadEditor {
             switchErrorLogsVisibility(button);
         });
         errorLogsButton.setState(STATE_FOCUSED);
+        offset += errorLogsButton.getSize().x;
+
+        _logsCountLabel = &UiPool::labelPool.get().setup(id + "_logs_count_label", &panel, "");
+        _logsCountLabel->setSizePercentPermanent({-1, 1});
+        _logsCountLabel->setSize({60, -1});
+        _logsCountLabel->setPosition({offset, 0});
+        _logsCountLabel->setText("0");
 
         _content->setSizePercentPermanent({1, .7f});
         _textLogPanel = &UiPool::scrollPanelPool.get().setup(id + "_text_log_panel", this);
@@ -90,6 +97,7 @@ namespace BreadEditor {
 
     void ConsoleWindow::dispose()
     {
+        _logsCountLabel = nullptr;
         _logText = nullptr;
         _errorLogsVisible = true;
         _warningLogsVisible = true;
@@ -155,6 +163,7 @@ namespace BreadEditor {
 
         _messages.emplace_back(&messageUiElement);
         _content->calculateRectForScroll(&messageUiElement);
+        _logsCountLabel->setText(TextFormat("%d", _messages.size()));
     }
 
     void ConsoleWindow::clearLogs()
@@ -164,6 +173,7 @@ namespace BreadEditor {
             _content->destroyChild(messageUiElement);
         }
 
+        _logsCountLabel->setText("");
         _messages.clear();
         _logText->setText("");
         Logger::clear();

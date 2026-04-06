@@ -22,6 +22,7 @@ namespace BreadEditor {
 
     void EditorStyle::setFontSize(FontSize size)
     {
+        ZoneScoped;
         if (_lastFontSize == static_cast<int>(size)) return;
         _lastFontSize = static_cast<int>(size);
         switch (size)
@@ -46,7 +47,6 @@ namespace BreadEditor {
 
     void EditorStyle::setFontSize(int size)
     {
-        ZoneScoped;
         if (_lastFontSize == size) return;
         _lastFontSize = size;
         setFontSize(static_cast<FontSize>(size));
@@ -54,6 +54,7 @@ namespace BreadEditor {
 
     void EditorStyle::setGlobalState(const GuiState state)
     {
+        ZoneScoped;
         if (_lastGuiState == state) return;
         _lastGuiState = state;
         GuiSetState(state);
@@ -61,6 +62,7 @@ namespace BreadEditor {
 
     void EditorStyle::setLabelTextAlignment(const GuiTextAlignment alignment)
     {
+        ZoneScoped;
         if (_lastLabelTextAlignment == alignment) return;
         _lastLabelTextAlignment = alignment;
         GuiSetStyle(LABEL, TEXT_ALIGNMENT, alignment);
@@ -68,6 +70,7 @@ namespace BreadEditor {
 
     void EditorStyle::setDrowDownBoxTextAlignment(const GuiTextAlignment alignment)
     {
+        ZoneScoped;
         if (_lastDrowDownBoxTextAlignment == alignment) return;
         _lastDrowDownBoxTextAlignment = alignment;
         GuiSetStyle(DROPDOWNBOX, TEXT_ALIGNMENT, alignment);
@@ -75,6 +78,7 @@ namespace BreadEditor {
 
     void EditorStyle::setButtonTextAlignment(const GuiTextAlignment alignment)
     {
+        ZoneScoped;
         if (_lastButtonTextAlignment == alignment) return;
         _lastButtonTextAlignment = alignment;
         GuiSetStyle(BUTTON, TEXT_ALIGNMENT, alignment);
@@ -82,13 +86,16 @@ namespace BreadEditor {
 
     void EditorStyle::setGlobalTextVerticalAlignment(const GuiTextAlignmentVertical alignment)
     {
+        ZoneScoped;
         if (_lastGlobalTextVerticalAlignment == alignment) return;
         _lastGlobalTextVerticalAlignment = alignment;
         GuiSetStyle(DEFAULT, TEXT_ALIGNMENT_VERTICAL, alignment);
     }
 
+    //Super heavy function
     void EditorStyle::setGlobalTextWrapMode(const GuiTextWrapMode mode)
     {
+        ZoneScoped;
         if (_lastGlobalTextWrapMode == mode) return;
         _lastGlobalTextWrapMode = mode;
         GuiSetStyle(DEFAULT, TEXT_WRAP_MODE, mode);

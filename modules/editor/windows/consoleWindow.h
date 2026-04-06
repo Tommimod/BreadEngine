@@ -32,6 +32,7 @@ namespace BreadEditor {
     private:
         const char *_title = Id.c_str();
         UiScrollPanel *_textLogPanel = nullptr;
+        UiLabel *_logsCountLabel = nullptr;
         UiLabel *_logText = nullptr;
         SubscriptionHandle _logSubscription;
         std::vector<MessageUiElement *> _messages;

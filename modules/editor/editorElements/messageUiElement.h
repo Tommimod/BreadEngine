@@ -7,6 +7,7 @@ namespace BreadEditor {
     {
     public:
         Action<Logger::LogEntity &> onClick;
+
         MessageUiElement();
 
         ~MessageUiElement() override;
@@ -21,7 +22,10 @@ namespace BreadEditor {
         UiLabelButton *_button = nullptr;
         Logger::LogEntity _logEntity;
         std::string _text;
+
         bool tryDeleteSelf() override;
 
+    private:
+        static std::string GetFirstNLines(std::string_view text, size_t maxLines = 2);
     };
 } // BreadEditor

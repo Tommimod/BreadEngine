@@ -43,7 +43,6 @@ namespace BreadEngine {
         InitWindow(width, height, title);
         MaximizeWindow();
         R3D_Init(GetScreenWidth(), GetScreenHeight(), R3D_FLAG_FXAA);
-        SetTargetFPS(60);
         setupDefaultCamera();
         NodeProvider::init();
         initializeSystems();

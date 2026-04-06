@@ -297,7 +297,7 @@ namespace BreadEditor {
     int UiElement::getChildCount() const
     {
         ZoneScoped;
-        return getAllChilds().size();
+        return static_cast<int>(getAllChilds().size());
     }
 
     void UiElement::addChild(UiElement *child)
@@ -747,8 +747,9 @@ namespace BreadEditor {
     {
         ZoneScoped;
         _isDirty = true;
-        for (const auto child: getAllChilds())
+        for (const auto child: _childs)
         {
+            if (child == nullptr || child->_isDeleted) continue;
             child->setDirty();
         }
     }
