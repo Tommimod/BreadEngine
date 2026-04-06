@@ -342,11 +342,6 @@ namespace BreadEditor {
         }
 
         UiWindow::update(deltaTime);
-
-        if (Input::isKeyDown(KEY_SPACE))
-        {
-            Logger::LogInfo("Test message");
-        }
     }
 
     void AssetsWindow::dispose()
