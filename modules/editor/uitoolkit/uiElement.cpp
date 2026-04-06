@@ -110,22 +110,22 @@ namespace BreadEditor {
     Vector2 UiElement::getSize() const
     {
         ZoneScoped;
-        if (_sizeInPercents.x >= 0 && _sizeInPercents.y >= 0)
+        if (_sizeInPercentsWithOffset.x >= 0 && _sizeInPercentsWithOffset.y >= 0)
         {
-            return getSizeInPixByPercent(_sizeInPercents);
+            return getSizeInPixByPercentInternal(_sizeInPercentsWithOffset);
         }
 
-        if (_sizeInPercents.x >= 0 && _sizeInPercents.y < 0)
+        if (_sizeInPercentsWithOffset.x >= 0 && _sizeInPercentsWithOffset.y < 0)
         {
             const auto ySize = _localSize.y;
-            const auto xSize = getSizeInPixByPercentOnlyX(_sizeInPercents);
+            const auto xSize = getSizeInPixByPercentInternal(_sizeInPercentsWithOffset).x;
             return {xSize, ySize};
         }
 
-        if (_sizeInPercents.x < 0 && _sizeInPercents.y >= 0)
+        if (_sizeInPercentsWithOffset.x < 0 && _sizeInPercentsWithOffset.y >= 0)
         {
             const auto xSize = _localSize.x;
-            const auto ySize = getSizeInPixByPercentOnlyY(_sizeInPercents);
+            const auto ySize = getSizeInPixByPercentInternal(_sizeInPercentsWithOffset).y;
             return {xSize, ySize};
         }
 
@@ -152,16 +152,16 @@ namespace BreadEditor {
         setSizeInternal(size, true);
     }
 
-    void UiElement::setSizePercentOneTime(const Vector2 &percent)
+    void UiElement::setSizePercentOneTime(const Vector2 &percent, const Vector2 offset)
     {
         ZoneScoped;
-        setSizePercentOneTimeInternal(percent, true);
+        setSizePercentOneTimeInternal({percent.x, percent.y, offset.x, offset.y}, true);
     }
 
-    void UiElement::setSizePercentPermanent(const Vector2 &percent)
+    void UiElement::setSizePercentPermanent(const Vector2 &percent, const Vector2 offset)
     {
         ZoneScoped;
-        setSizePercentPermanentInternal(percent, true);
+        setSizePercentPermanentInternal({percent.x, percent.y, offset.x, offset.y}, true);
     }
 
     void UiElement::setSizeMin(const Vector2 &minSize)
@@ -214,23 +214,7 @@ namespace BreadEditor {
     Vector2 UiElement::getSizeInPixByPercent(const Vector2 &percent) const
     {
         ZoneScoped;
-        const Vector2 clampedPercent = {std::clamp(percent.x, 0.0f, 1.0f), std::clamp(percent.y, 0.0f, 1.0f)};
-        Rectangle effectiveParentBounds;
-        if (_parent)
-        {
-            effectiveParentBounds = _parent->getBounds();
-            if (!_ignoreScrollLayout)
-            {
-                effectiveParentBounds.x += _parent->getScrollOffset().x;
-                effectiveParentBounds.y += _parent->getScrollOffset().y;
-            }
-        }
-        else
-        {
-            effectiveParentBounds = {0.0f, 0.0f, static_cast<float>(GetScreenWidth()), static_cast<float>(GetScreenHeight())};
-        }
-
-        return {clampedPercent.x * effectiveParentBounds.width, clampedPercent.y * effectiveParentBounds.height};
+        return getSizeInPixByPercentInternal(Vector4{percent.x, percent.y, 0, 0});
     }
 
     Vector2 UiElement::getSizeInPercent() const
@@ -616,7 +600,7 @@ namespace BreadEditor {
         _pivot = {0.0f, 0.0f};
         _localPosition = {0.0f, 0.0f};
         _localSize = {1.0f, 1.0f};
-        _sizeInPercents = {-1, -1};
+        _sizeInPercentsWithOffset = {-1, -1, 0, 0};
         _minSize = {0, 0};
         _maxSize = {0, 0};
         _bgColor = RAYWHITE;
@@ -667,9 +651,9 @@ namespace BreadEditor {
     void UiElement::computeBounds()
     {
         ZoneScoped;
-        if (_sizeInPercents.x >= 0 || _sizeInPercents.y >= 0)
+        if (_sizeInPercentsWithOffset.x >= 0 || _sizeInPercentsWithOffset.y >= 0)
         {
-            setSizePercentPermanentInternal(_sizeInPercents, false);
+            setSizePercentPermanentInternal(_sizeInPercentsWithOffset, false);
         }
 
         Rectangle effectiveParentBounds;
@@ -727,14 +711,14 @@ namespace BreadEditor {
         const auto allChilds = getAllChilds();
         for (const auto child: allChilds)
         {
-            totalProp += (_layoutType == LAYOUT_HORIZONTAL ? child->_sizeInPercents.x : child->_sizeInPercents.y);
+            totalProp += (_layoutType == LAYOUT_HORIZONTAL ? child->_sizeInPercentsWithOffset.x : child->_sizeInPercentsWithOffset.y);
         }
 
         if (totalProp == 0.0f) totalProp = 1.0f; // Avoid div0
 
         for (const auto child: allChilds)
         {
-            const auto prop = (_layoutType == LAYOUT_HORIZONTAL ? child->_sizeInPercents.x : child->_sizeInPercents.y) / totalProp;
+            const auto prop = (_layoutType == LAYOUT_HORIZONTAL ? child->_sizeInPercentsWithOffset.x : child->_sizeInPercentsWithOffset.y) / totalProp;
             const auto childSize = (_layoutType == LAYOUT_HORIZONTAL ? Vector2{parentBounds.width * prop, parentBounds.height} : Vector2{parentBounds.width, parentBounds.height * prop});
 
             child->_bounds = {currPos.x, currPos.y, childSize.x, childSize.y};
@@ -984,6 +968,31 @@ namespace BreadEditor {
         }
     }
 
+    Vector2 UiElement::getSizeInPixByPercentInternal(const Vector4 &percent) const
+    {
+        ZoneScoped;
+        const Vector2 clampedPercent = {std::clamp(percent.x, 0.0f, 1.0f), std::clamp(percent.y, 0.0f, 1.0f)};
+        Rectangle effectiveParentBounds;
+        if (_parent)
+        {
+            effectiveParentBounds = _parent->getBounds();
+            if (!_ignoreScrollLayout)
+            {
+                effectiveParentBounds.x += _parent->getScrollOffset().x;
+                effectiveParentBounds.y += _parent->getScrollOffset().y;
+            }
+        }
+        else
+        {
+            effectiveParentBounds = {0.0f, 0.0f, static_cast<float>(GetScreenWidth()), static_cast<float>(GetScreenHeight())};
+        }
+
+        auto size = Vector2{clampedPercent.x * effectiveParentBounds.width, clampedPercent.y * effectiveParentBounds.height};
+        size.x -= percent.z;
+        size.y -= percent.w;
+        return size;
+    }
+
     void UiElement::setSizeInternal(const Vector2 &size, const bool withDirty)
     {
         ZoneScoped;
@@ -992,36 +1001,36 @@ namespace BreadEditor {
         if (withDirty) setDirty();
     }
 
-    void UiElement::setSizePercentOneTimeInternal(const Vector2 &percent, const bool withDirty)
+    void UiElement::setSizePercentOneTimeInternal(const Vector4 &percent, const bool withDirty)
     {
         ZoneScoped;
         if (isStatic) return;
         if (percent.x >= 0 && percent.y >= 0)
         {
-            setSize(getSizeInPixByPercent(percent));
+            setSize(getSizeInPixByPercentInternal(percent));
         }
         else if (percent.x >= 0 && percent.y < 0)
         {
             const auto ySize = _localSize.y;
-            _localSize.x = getSizeInPixByPercentOnlyX(percent);
+            _localSize.x = getSizeInPixByPercentInternal(percent).x;
             setSize({_localSize.x, ySize});
         }
         else if (percent.x < 0 && percent.y >= 0)
         {
             const auto xSize = _localSize.x;
-            _localSize.y = getSizeInPixByPercentOnlyY(percent);
+            _localSize.y = getSizeInPixByPercentInternal(percent).y;
             setSize({xSize, _localSize.y});
         }
 
         if (withDirty) setDirty();
     }
 
-    void UiElement::setSizePercentPermanentInternal(const Vector2 &percent, const bool withDirty)
+    void UiElement::setSizePercentPermanentInternal(const Vector4 &percent, const bool withDirty)
     {
         ZoneScoped;
         if (isStatic) return;
         setSizePercentOneTimeInternal(percent, withDirty);
-        _sizeInPercents = percent;
+        _sizeInPercentsWithOffset = percent;
     }
 
     bool UiElement::isShouldBeCulled() const

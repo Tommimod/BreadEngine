@@ -68,9 +68,9 @@ namespace BreadEditor {
 
         void setSize(const Vector2 &size);
 
-        void setSizePercentOneTime(const Vector2 &percent);
+        void setSizePercentOneTime(const Vector2 &percent, Vector2 offset = {0, 0});
 
-        void setSizePercentPermanent(const Vector2 &percent);
+        void setSizePercentPermanent(const Vector2 &percent, Vector2 offset = {0, 0});
 
         void setSizeMin(const Vector2 &minSize);
 
@@ -78,7 +78,7 @@ namespace BreadEditor {
 
         void setBounds(const Vector2 &position, const Vector2 &size);
 
-        [[nodiscard]] Vector2& getMinSize();
+        [[nodiscard]] Vector2 &getMinSize();
 
         [[nodiscard]] Vector2 &getPivot();
 
@@ -161,7 +161,7 @@ namespace BreadEditor {
         Vector2 _pivot{};
         Vector2 _localPosition{0.0f, 0.0f};
         Vector2 _localSize{1.0f, 1.0f};
-        Vector2 _sizeInPercents{-1, -1};
+        Vector4 _sizeInPercentsWithOffset{-1, -1, 0, 0};
         Vector2 _maxSize{0, 0};
         Vector2 _minSize{0, 0};
         UI_ANCHOR_TYPE _anchor = UI_LEFT_TOP;
@@ -208,11 +208,13 @@ namespace BreadEditor {
 
         void destroyChildsInternal();
 
+        [[nodiscard]] Vector2 getSizeInPixByPercentInternal(const Vector4 &percent) const;
+
         void setSizeInternal(const Vector2 &size, bool withDirty);
 
-        void setSizePercentOneTimeInternal(const Vector2 &percent, bool withDirty);
+        void setSizePercentOneTimeInternal(const Vector4 &percent, bool withDirty);
 
-        void setSizePercentPermanentInternal(const Vector2 &percent, bool withDirty);
+        void setSizePercentPermanentInternal(const Vector4 &percent, bool withDirty);
 
         [[nodiscard]]
         bool isShouldBeCulled() const;

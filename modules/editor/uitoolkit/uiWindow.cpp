@@ -6,24 +6,21 @@ namespace BreadEditor {
     UiWindow::UiWindow(const std::string_view &id)
     {
         setup(id);
-        _content = &UiPool::scrollPanelPool.get().setup(UiWindow::id + "_content", this);
-        _content->setSizePercentPermanent({1,.995f});
-        _content->setPosition({0, RAYGUI_WINDOWBOX_STATUSBAR_HEIGHT});
+        initializeWindow();
     }
 
     UiWindow::UiWindow(const std::string_view &id, UiElement *parentElement)
     {
         setup(id, parentElement);
-        _content = &UiPool::scrollPanelPool.get().setup(UiWindow::id + "_content", this);
-        _content->setSizePercentPermanent({1,.995f});
-        _content->setPosition({0, RAYGUI_WINDOWBOX_STATUSBAR_HEIGHT});
+        initializeWindow();
     }
 
     UiWindow::~UiWindow() = default;
 
-    void UiWindow::open() const
+    void UiWindow::open()
     {
         Editor::getInstance().getEditorModel().getWindowsModel().removeWindowFromAllowList(id);
+        initializePanel();
     }
 
     void UiWindow::draw(const float deltaTime)
@@ -42,6 +39,7 @@ namespace BreadEditor {
 
     void UiWindow::dispose()
     {
+        _topPanel = nullptr;
         _content = nullptr;
         onClose.unsubscribeAll();
         UiWindow::unsubscribe();
@@ -51,6 +49,12 @@ namespace BreadEditor {
 
     void UiWindow::close()
     {
+        if (_topPanel != nullptr)
+        {
+            cleanupPanel();
+            _topPanel = nullptr;
+        }
+
         Editor::getInstance().getEditorModel().getWindowsModel().addWindowToAllowList(id);
         onClose.invoke(this);
     }
@@ -66,5 +70,33 @@ namespace BreadEditor {
     bool UiWindow::tryDeleteSelf()
     {
         return false;
+    }
+
+    UiEmpty *UiWindow::getWindowPanel() const
+    {
+        return _topPanel;
+    }
+
+    void UiWindow::initializeWindow()
+    {
+        _content = &UiPool::scrollPanelPool.get().setup(id + "_content", this);
+        _content->setSizePercentPermanent({1, .995f});
+        _content->setPosition({0, RAYGUI_WINDOWBOX_STATUSBAR_HEIGHT});
+
+        EditorStyle::setFontSize(EditorStyle::FontSize::MediumLarge);
+        _topPanel = &UiPool::emptyElementPool.get().setup(id + "_topPanel", this);
+        _topPanel->setAnchor(UI_RIGHT_TOP);
+        _topPanel->setPivot({1, 0});
+        _topPanel->setSizePercentPermanent({1, -1}, {static_cast<float>(GuiGetTextWidth(id.c_str())) + 45, 0});
+        _topPanel->setSize({-1, RAYGUI_WINDOWBOX_STATUSBAR_HEIGHT});
+        _topPanel->setPosition({-30, 0});
+    }
+
+    void UiWindow::initializePanel()
+    {
+    }
+
+    void UiWindow::cleanupPanel()
+    {
     }
 } // BreadEditor

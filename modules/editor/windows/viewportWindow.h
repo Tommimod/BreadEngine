@@ -38,7 +38,18 @@ namespace BreadEditor {
         void unsubscribe() override;
 
     private:
-        const char *_title = Id.c_str();
+        enum ViewportMode
+        {
+            Scene,
+            Game
+        };
+
         Vector2 _mousePosition{0, 0};
+        const char *_title = Id.c_str();
+        ViewportMode _mode = Scene;
+
+        void initializePanel() override;
+
+        void cleanupPanel() override;
     };
 } // BreadEditor

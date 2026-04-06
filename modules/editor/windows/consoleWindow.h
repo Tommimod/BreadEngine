@@ -51,5 +51,9 @@ namespace BreadEditor {
         void switchWarningLogsVisibility(UiButton *switchButton);
 
         void switchErrorLogsVisibility(UiButton *switchButton);
+
+        void initializePanel() override;
+
+        void cleanupPanel() override;
     };
 } // BreadEditor

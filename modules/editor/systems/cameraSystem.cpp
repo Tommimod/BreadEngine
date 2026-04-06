@@ -58,6 +58,12 @@ namespace BreadEditor {
     {
         ZoneScoped;
         const auto viewportWindow = &Editor::getInstance().mainWindow.getViewportWindow();
+        if (!viewportWindow->isActive)
+        {
+            _isPrepared = false;
+            return;
+        }
+
         const auto size = viewportWindow->getViewportSize();
         if (IsMouseButtonPressed(MOUSE_BUTTON_RIGHT) && Engine::isCollisionPointRec(GetMousePosition(), size))
         {

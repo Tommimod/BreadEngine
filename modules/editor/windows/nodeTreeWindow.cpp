@@ -367,4 +367,12 @@ namespace BreadEditor {
             drawLines(*child, isExpanded);
         }
     }
+
+    void NodeTreeWindow::initializePanel()
+    {
+    }
+
+    void NodeTreeWindow::cleanupPanel()
+    {
+    }
 } // BreadEditor

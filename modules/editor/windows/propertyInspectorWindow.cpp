@@ -212,4 +212,12 @@ namespace BreadEditor {
         _engineNode->remove(type);
         lookupNode(_engineNode);
     }
+
+    void PropertyInspectorWindow::initializePanel()
+    {
+    }
+
+    void PropertyInspectorWindow::cleanupPanel()
+    {
+    }
 } // BreadEditor

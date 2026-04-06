@@ -59,5 +59,9 @@ namespace BreadEditor {
         void setupUiComponent(UiInspector *uiComponentElement) const;
 
         void onUiComponentDeleted(std::type_index type);
+
+        void initializePanel() override;
+
+        void cleanupPanel() override;
     };
 } // BreadEditor

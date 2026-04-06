@@ -2,23 +2,29 @@
 #include "engine.h"
 
 namespace BreadEditor {
+    auto UiEmptyElementFactory = []() -> UiEmpty *
+    {
+        return new UiEmpty();
+    };
+    ObjectPool<UiEmpty> UiPool::emptyElementPool(UiEmptyElementFactory, 1);
+
     auto UiLabelButtonFactory = []() -> UiLabelButton *
     {
         return new UiLabelButton();
     };
-    ObjectPool<UiLabelButton> UiPool::labelButtonPool(UiLabelButtonFactory, 10);
+    ObjectPool<UiLabelButton> UiPool::labelButtonPool(UiLabelButtonFactory, 1);
 
     auto UiButtonFactory = []() -> UiButton *
     {
         return new UiButton();
     };
-    ObjectPool<UiButton> UiPool::buttonPool(UiButtonFactory, 10);
+    ObjectPool<UiButton> UiPool::buttonPool(UiButtonFactory, 1);
 
     auto UiPanelFactory = []() -> UiPanel *
     {
         return new UiPanel();
     };
-    ObjectPool<UiPanel> UiPool::panelPool(UiPanelFactory, 10);
+    ObjectPool<UiPanel> UiPool::panelPool(UiPanelFactory, 1);
 
     auto UiToolbarFactory = []() -> UiToolbar *
     {
@@ -30,25 +36,25 @@ namespace BreadEditor {
     {
         return new NodeUiElement();
     };
-    ObjectPool<NodeUiElement> UiPool::nodeUiElementPool(NodeInstanceFactory, 10);
+    ObjectPool<NodeUiElement> UiPool::nodeUiElementPool(NodeInstanceFactory, 1);
 
     auto UiCheckBoxFactory = []() -> UiCheckBox *
     {
         return new UiCheckBox();
     };
-    ObjectPool<UiCheckBox> UiPool::checkBoxPool(UiCheckBoxFactory, 10);
+    ObjectPool<UiCheckBox> UiPool::checkBoxPool(UiCheckBoxFactory, 1);
 
     auto UiTextBoxFactory = []() -> UiTextBox *
     {
         return new UiTextBox();
     };
-    ObjectPool<UiTextBox> UiPool::textBoxPool(UiTextBoxFactory, 10);
+    ObjectPool<UiTextBox> UiPool::textBoxPool(UiTextBoxFactory, 1);
 
     auto UiNumberBoxFactory = []() -> UiNumberBox *
     {
         return new UiNumberBox();
     };
-    ObjectPool<UiNumberBox> UiPool::numberBoxPool(UiNumberBoxFactory, 10);
+    ObjectPool<UiNumberBox> UiPool::numberBoxPool(UiNumberBoxFactory, 1);
 
     auto UiComponentFactory = []() -> UiInspector *
     {
@@ -60,7 +66,7 @@ namespace BreadEditor {
     {
         return new UiLabel();
     };
-    ObjectPool<UiLabel> UiPool::labelPool(UiLabelFactory, 10);
+    ObjectPool<UiLabel> UiPool::labelPool(UiLabelFactory, 1);
 
     auto UiVector2DFactory = []() -> UiVector2D *
     {

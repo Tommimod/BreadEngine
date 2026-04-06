@@ -66,5 +66,9 @@ namespace BreadEditor {
         void deleteAsset(const std::string &guid);
 
         void rebuild();
+
+        void initializePanel() override;
+
+        void cleanupPanel() override;
     };
 } // BreadEditor

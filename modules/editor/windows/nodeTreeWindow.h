@@ -66,5 +66,9 @@ namespace BreadEditor {
         void recalculateUiNodes(Node &startNode, int &nodeOrder, bool isParentExpanded = true);
 
         void drawLines(Node &startNode, bool isParentExpanded = true) const;
+
+        void initializePanel() override;
+
+        void cleanupPanel() override;
     };
 } // BreadEditor

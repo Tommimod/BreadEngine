@@ -333,6 +333,14 @@ namespace BreadEditor {
         recalculateUiFolders(_assetConfig.getRootFolder(), i);
     }
 
+    void AssetsWindow::initializePanel()
+    {
+    }
+
+    void AssetsWindow::cleanupPanel()
+    {
+    }
+
     void AssetsWindow::update(const float deltaTime)
     {
         const auto selectedFile = _editorModel->getSelectedFileUiElement();

@@ -8,6 +8,7 @@
 #include "uiCheckBox.h"
 #include "uiInspector.h"
 #include "uiDropdown.h"
+#include "uiEmpty.h"
 #include "uiLabel.h"
 #include "uiNumberBox.h"
 #include "uiScrollPanel.h"
@@ -25,6 +26,7 @@ namespace BreadEditor {
     class UiPool
     {
     public:
+        static ObjectPool<UiEmpty> emptyElementPool;
         static ObjectPool<UiLabelButton> labelButtonPool;
         static ObjectPool<UiButton> buttonPool;
         static ObjectPool<UiPanel> panelPool;

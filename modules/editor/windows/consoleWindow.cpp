@@ -199,4 +199,12 @@ namespace BreadEditor {
         switchButton->setState(_errorLogsVisible ? STATE_FOCUSED : STATE_NORMAL);
         rebuild();
     }
+
+    void ConsoleWindow::initializePanel()
+    {
+    }
+
+    void ConsoleWindow::cleanupPanel()
+    {
+    }
 } // BreadEditor

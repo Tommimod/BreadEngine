@@ -1,5 +1,6 @@
 ﻿#pragma once
 #include "action.h"
+#include "uiEmpty.h"
 #include "uiScrollPanel.h"
 #include "uitoolkit/IUiResizable.h"
 #include "uitoolkit/uiElement.h"
@@ -16,7 +17,7 @@ namespace BreadEditor {
 
         ~UiWindow() override;
 
-        void open() const;
+        void open();
 
         void draw(float deltaTime) override;
 
@@ -30,11 +31,21 @@ namespace BreadEditor {
 
     protected:
         UiScrollPanel *_content = nullptr;
+        UiEmpty *_topPanel = nullptr;
 
         virtual void subscribe();
 
         virtual void unsubscribe();
 
         bool tryDeleteSelf() override;
+
+        [[nodiscard]] UiEmpty *getWindowPanel() const;
+
+    private:
+        void initializeWindow();
+
+        virtual void initializePanel() = 0;
+
+        virtual void cleanupPanel() = 0;
     };
 } // BreadEditor

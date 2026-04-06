@@ -2,6 +2,7 @@
 #include "editor.h"
 #include "raymath.h"
 #include "rlgl.h"
+#include "uitoolkit/uiPool.h"
 
 namespace BreadEditor {
     std::string ViewportWindow::Id = "Viewport";
@@ -23,12 +24,42 @@ namespace BreadEditor {
     void ViewportWindow::awake()
     {
         UiWindow::awake();
-        destroyChild(_content);
+        _content->isActive = false;
+        auto horizontalOffset = 0.0f;
+        UiButton *gameButton = nullptr;
+        UiButton *sceneButton = nullptr;
+
+        sceneButton = &UiPool::buttonPool.get().setup(id + "_sceneButton", getWindowPanel(), "Scene");
+        gameButton = &UiPool::buttonPool.get().setup(id + "_gameButton", getWindowPanel(), "Game");
+        sceneButton->setSizePercentPermanent({-1, .85f});
+        sceneButton->setSize({40, -1});
+        sceneButton->setPosition({0, 2});
+        sceneButton->setState(STATE_FOCUSED);
+        sceneButton->onClick.subscribe([this, gameButton](UiButton *button)
+        {
+            if (_mode == Scene) return;
+            _mode = Scene;
+            button->setState(STATE_FOCUSED);
+            gameButton->setState(STATE_NORMAL);
+        });
+        horizontalOffset = sceneButton->getPosition().x + sceneButton->getSize().x;
+
+        gameButton->setSizePercentPermanent({-1, .85f});
+        gameButton->setSize({40, -1});
+        gameButton->setPosition({horizontalOffset + 1, 2});
+        gameButton->onClick.subscribe([this, sceneButton](UiButton *button)
+        {
+            if (_mode == Game) return;
+            _mode = Game;
+            button->setState(STATE_FOCUSED);
+            sceneButton->setState(STATE_NORMAL);
+        });
+        horizontalOffset = gameButton->getPosition().x + gameButton->getSize().x;
     }
 
     void ViewportWindow::draw(const float deltaTime)
     {
-        EditorStyle::setFontSize(EditorStyle::FontSize::MediumLarge);
+        UiWindow::draw(deltaTime);
         const auto texture = Editor::getInstance().getViewportRenderTexture();
         if (!texture) return;
 
@@ -70,7 +101,7 @@ namespace BreadEditor {
 
         const auto screenMouse = GetMousePosition();
         const auto size = getViewportSize();
-        auto localMouse = Vector2Subtract(screenMouse, (Vector2){size.x, size.y});
+        const auto localMouse = Vector2Subtract(screenMouse, (Vector2){size.x, size.y});
         const auto scaleX = static_cast<float>(texture->texture.width) / size.width;
         const auto scaleY = static_cast<float>(texture->texture.height) / size.height;
         return (Vector2){localMouse.x * scaleX, localMouse.y * scaleY};
@@ -118,9 +149,7 @@ namespace BreadEditor {
 
     Rectangle ViewportWindow::getViewportSize() const
     {
-        auto size= _bounds;
-        size.width += 40;
-        return size;
+        return _content->getBounds();
     }
 
     void ViewportWindow::subscribe()
@@ -131,5 +160,13 @@ namespace BreadEditor {
     void ViewportWindow::unsubscribe()
     {
         UiWindow::unsubscribe();
+    }
+
+    void ViewportWindow::initializePanel()
+    {
+    }
+
+    void ViewportWindow::cleanupPanel()
+    {
     }
 } // BreadEditor
