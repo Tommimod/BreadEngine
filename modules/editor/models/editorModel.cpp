@@ -1,12 +1,12 @@
 ﻿#include "editorModel.h"
 
 namespace BreadEditor {
-    void EditorModel::selectNodeUiElement(NodeUiElement *nodeUiElement)
+    void EditorModel::selectNodeUiElement(const NodeUiElement *nodeUiElement)
     {
         clearSelections();
         if (nodeUiElement == nullptr) return;
 
-        _selectedNodeUiElement = nodeUiElement;
+        _selectedNodeUiElement = nodeUiElement->getNode();
         onNodeSelected.invoke(_selectedNodeUiElement);
     }
 

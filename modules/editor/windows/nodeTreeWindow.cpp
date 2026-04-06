@@ -29,18 +29,12 @@ namespace BreadEditor {
 
     NodeTreeWindow::~NodeTreeWindow() = default;
 
-    void NodeTreeWindow::draw(const float deltaTime)
-    {
-        UiWindow::draw(deltaTime);
-        drawLines(Engine::getRootNode());
-    }
-
     void NodeTreeWindow::update(const float deltaTime)
     {
-        const auto selectedNode = _editorModel->getSelectedNodeUiElement();
+        const auto selectedNode = _editorModel->getSelectedEngineNode();
         for (const auto nodeUiElement: _nodeUiElements)
         {
-            nodeUiElement->setIsSelected(selectedNode != nullptr && selectedNode->id == nodeUiElement->id);
+            nodeUiElement->setIsSelected(selectedNode != nullptr && selectedNode->getId() == nodeUiElement->getNode()->getId());
         }
 
         UiWindow::update(deltaTime);
@@ -48,6 +42,7 @@ namespace BreadEditor {
 
     void NodeTreeWindow::onFrameEnd(const float deltaTime)
     {
+        drawLines(Engine::getRootNode());
         UiWindow::onFrameEnd(deltaTime);
     }
 

@@ -172,9 +172,9 @@ namespace BreadEditor {
 
     void PropertyInspectorWindow::rebuild()
     {
-        const auto selectedElement = Editor::getInstance().getEditorModel().getSelectedNodeUiElement();
-        if (!selectedElement) return;
-        lookupNode(selectedElement->getNode());
+        const auto selectedNode = Editor::getInstance().getEditorModel().getSelectedEngineNode();
+        if (!selectedNode) return;
+        lookupNode(selectedNode);
     }
 
     void PropertyInspectorWindow::onNodeActiveChanged(const bool isActive) const

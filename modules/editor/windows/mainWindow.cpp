@@ -125,7 +125,7 @@ namespace BreadEditor {
 
     void MainWindow::render3D(const float deltaTime)
     {
-        if (const auto &model = Editor::getInstance().getEditorModel(); model.getSelectedNodeUiElement() != nullptr)
+        if (const auto &model = Editor::getInstance().getEditorModel(); model.getSelectedEngineNode() != nullptr)
         {
             _gizmoSystem.render();
         }

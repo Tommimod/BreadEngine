@@ -18,8 +18,6 @@ namespace BreadEditor {
 
         ~NodeTreeWindow() override;
 
-        void draw(float deltaTime) override;
-
         void update(float deltaTime) override;
 
         void onFrameEnd(float deltaTime) override;

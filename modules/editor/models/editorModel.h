@@ -8,7 +8,7 @@ namespace BreadEditor {
     {
     public:
         Action<> onClearSelection;
-        Action<NodeUiElement *> onNodeSelected;
+        Action<Node *> onNodeSelected;
         Action<FileUiElement *> onFileSelected;
 
         EditorModel()
@@ -23,10 +23,10 @@ namespace BreadEditor {
             onClearSelection.unsubscribeAll();
         };
 
-        [[nodiscard]] NodeUiElement *getSelectedNodeUiElement() const { return _selectedNodeUiElement; }
+        [[nodiscard]] Node *getSelectedEngineNode() const { return _selectedNodeUiElement; }
         [[nodiscard]] FileUiElement *getSelectedFileUiElement() const { return _selectedFileUiElement; }
 
-        void selectNodeUiElement(NodeUiElement *nodeUiElement);
+        void selectNodeUiElement(const NodeUiElement *nodeUiElement);
 
         void selectFileUiElement(FileUiElement *fileUiElement);
 
@@ -39,7 +39,7 @@ namespace BreadEditor {
         [[nodiscard]] static const char *getEditorAssetsPath();
 
     private:
-        NodeUiElement *_selectedNodeUiElement = nullptr;
+        Node *_selectedNodeUiElement = nullptr;
         FileUiElement *_selectedFileUiElement = nullptr;
         std::unique_ptr<WindowsModel> _windowsModel;
         std::string _projectPath;
