@@ -1,5 +1,7 @@
 #include "moduleLoader.h"
 
+#include <thread>
+
 #ifdef _WIN32
 #include <windows.h>
 #elif defined(__APPLE__) || defined(__linux__)
@@ -10,10 +12,7 @@ ModuleLoader::ModuleLoader() : _moduleHandle(nullptr)
 {
 }
 
-ModuleLoader::~ModuleLoader()
-{
-    UnloadModule();
-}
+ModuleLoader::~ModuleLoader() = default;
 
 bool ModuleLoader::LoadModule(const std::string &path)
 {
@@ -46,7 +45,6 @@ void *ModuleLoader::GetFunction(const std::string &functionName)
 #ifdef _WIN32
 void *ModuleLoader::LoadLibrary(const std::string &path)
 {
-    // Check if file exists first
     const DWORD fileAttrs = GetFileAttributesA(path.c_str());
     if (fileAttrs == INVALID_FILE_ATTRIBUTES)
     {
@@ -61,8 +59,8 @@ void *ModuleLoader::LoadLibrary(const std::string &path)
         LPSTR messageBuffer = nullptr;
         const size_t size = FormatMessageA(
             FORMAT_MESSAGE_ALLOCATE_BUFFER | FORMAT_MESSAGE_FROM_SYSTEM | FORMAT_MESSAGE_IGNORE_INSERTS,
-            nullptr, errorCode, MAKELANGID(LANG_ENGLISH, SUBLANG_DEFAULT), (LPSTR)&messageBuffer, 0, nullptr);
-        
+            nullptr, errorCode, MAKELANGID(LANG_ENGLISH, SUBLANG_DEFAULT), (LPSTR) &messageBuffer, 0, nullptr);
+
         std::string errorMsg = "Failed to load library (code " + std::to_string(errorCode) + "): ";
         if (size > 0 && messageBuffer)
         {
@@ -80,7 +78,10 @@ void *ModuleLoader::LoadLibrary(const std::string &path)
 
 void ModuleLoader::FreeLibrary(void *handle)
 {
-    ::FreeLibrary(static_cast<HMODULE>(handle));
+    if (handle)
+    {
+        ::FreeLibrary(static_cast<HMODULE>(handle));
+    }
 }
 
 void *ModuleLoader::GetProcAddress(void *handle, const std::string &functionName)
@@ -141,7 +142,6 @@ void *ModuleLoader::LoadLibrary(const std::string &path)
 
 void ModuleLoader::FreeLibrary(void *handle)
 {
-
 }
 
 void *ModuleLoader::GetProcAddress(void *handle, const std::string &functionName)

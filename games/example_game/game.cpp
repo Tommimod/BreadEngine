@@ -2,7 +2,6 @@
 
 #include "../../lib/engine/raylib.h"
 #include "../../lib/engine/raymath.h"
-#include "../../modules/Engine/Engine.h"
 #include <fstream>
 #include <string>
 
@@ -19,14 +18,14 @@ void Game_Initialize()
     playerSpeed = 7.5f;
 }
 
-void Game_Update()
+void Game_Update(float deltaTime)
 {
     if (!gameInitialized) return;
 
-    cubePosition.x = sinf(GetTime()) * 2.0f;
+    cubePosition.x = sinf(GetTime() * 50) * deltaTime;
 }
 
-void Game_Render2D()
+void Game_Render2D(float deltaTime)
 {
     if (!gameInitialized) return;
 
@@ -42,7 +41,7 @@ void Game_Render2D()
     DrawText(speedText, 10, 130, 16, GREEN);
 }
 
-void Game_Render3D()
+void Game_Render3D(float deltaTime)
 {
     if (!gameInitialized) return;
 

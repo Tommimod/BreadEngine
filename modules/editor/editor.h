@@ -44,9 +44,15 @@ namespace BreadEditor {
 
         void stopGame();
 
+        void pauseGame();
+
+        void resumeGame();
+
         [[nodiscard]] bool isPlayMode() const { return _isPlayMode; }
 
         [[nodiscard]] bool isEditorMode() const { return !_isPlayMode; }
+
+        [[nodiscard]] bool isPaused() const { return _isPaused; }
 
         [[nodiscard]] EditorModel &getEditorModel() { return _editorModel; }
 
@@ -60,6 +66,7 @@ namespace BreadEditor {
         static std::unique_ptr<Editor> _instance;
 
         bool _isPlayMode = false;
+        bool _isPaused = false;
         bool _isFrameEnded = false;
         bool _initialized = false;
         RenderTexture2D *_viewportRenderTexture = nullptr;

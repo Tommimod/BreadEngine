@@ -6,10 +6,14 @@ file(GLOB_RECURSE GAME_SOURCES
 )
 
 file(GLOB_RECURSE GAME_HEADERS
+        "*.hpp"
         "*.h"
 )
 
+list(REMOVE_ITEM GAME_SOURCES "${CMAKE_CURRENT_SOURCE_DIR}/main.cpp")
+
 add_executable(ExampleGame
+    main.cpp
     ${GAME_SOURCES}
     ${GAME_HEADERS}
 )
@@ -68,10 +72,16 @@ set_target_properties(ExampleGame PROPERTIES
 add_custom_command(TARGET ExampleGame POST_BUILD
         COMMAND ${CMAKE_COMMAND} -E copy_if_different
         "${CMAKE_SOURCE_DIR}/lib/engine/r3d.dll"
-        $<TARGET_FILE_DIR:ExampleGame>
+        "${CMAKE_BINARY_DIR}/bin"
         COMMAND ${CMAKE_COMMAND} -E copy_if_different
-        "$<TARGET_FILE:BreadEngine>"
-        $<TARGET_FILE_DIR:ExampleGame>
+        "${CMAKE_SOURCE_DIR}/lib/engine/raylib.dll"
+        "${CMAKE_BINARY_DIR}/bin"
+        COMMAND ${CMAKE_COMMAND} -E copy_if_different
+        "${CMAKE_SOURCE_DIR}/lib/engine/assimp/assimp-vc143-mt.dll"
+        "${CMAKE_BINARY_DIR}/bin"
+        COMMAND ${CMAKE_COMMAND} -E copy_if_different
+        "${CMAKE_SOURCE_DIR}/lib/libc++.dll"
+        "${CMAKE_BINARY_DIR}/bin"
 )
 
 message(STATUS "ExampleGame executable configured")

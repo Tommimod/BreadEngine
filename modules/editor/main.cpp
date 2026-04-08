@@ -30,7 +30,7 @@ int main()
             renderTexture = LoadRenderTexture(nextWidth, nextHeight);
         }
 
-        const auto deltaTime = Engine::getDeltaTime();
+        const auto deltaTime = editor.isPaused() ? 0 : Engine::getDeltaTime();
         editor.update(deltaTime);
 
         BeginTextureMode(renderTexture); // drawing 3D game to viewport
@@ -38,16 +38,16 @@ int main()
 
         BeginMode3D(engine.getCamera());
         DrawGrid(1000, 1.0f);
-        engine.callGameRender3D();
+        engine.callGameRender3D(deltaTime);
         editor.render3D(deltaTime);
         EndMode3D();
 
-        engine.callGameRender2D();
+        engine.callGameRender2D(deltaTime);
         EndTextureMode(); // end 3D of viewport
 
-        engine.beginFrame();
+        engine.beginFrame(deltaTime);
         editor.render2D(renderTexture, deltaTime); // drawing editor UI
-        engine.endFrame();
+        engine.endFrame(deltaTime);
     }
 
     editor.shutdown();

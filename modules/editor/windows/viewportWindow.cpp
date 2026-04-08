@@ -23,6 +23,9 @@ namespace BreadEditor {
 
     void ViewportWindow::awake()
     {
+        constexpr Vector2 permanentSize = {-1, .85f};
+        constexpr float verticalPosition = 2;
+
         UiWindow::awake();
         _content->isActive = false;
         auto horizontalOffset = 0.0f;
@@ -31,9 +34,9 @@ namespace BreadEditor {
 
         sceneButton = &UiPool::buttonPool.get().setup(id + "_sceneButton", getWindowPanel(), "Scene");
         gameButton = &UiPool::buttonPool.get().setup(id + "_gameButton", getWindowPanel(), "Game");
-        sceneButton->setSizePercentPermanent({-1, .85f});
+        sceneButton->setSizePercentPermanent(permanentSize);
         sceneButton->setSize({40, -1});
-        sceneButton->setPosition({0, 2});
+        sceneButton->setPosition({0, verticalPosition});
         sceneButton->setState(STATE_FOCUSED);
         sceneButton->onClick.subscribe([this, gameButton](UiButton *button)
         {
@@ -44,9 +47,9 @@ namespace BreadEditor {
         });
         horizontalOffset = sceneButton->getPosition().x + sceneButton->getSize().x;
 
-        gameButton->setSizePercentPermanent({-1, .85f});
+        gameButton->setSizePercentPermanent(permanentSize);
         gameButton->setSize({40, -1});
-        gameButton->setPosition({horizontalOffset + 1, 2});
+        gameButton->setPosition({horizontalOffset + 1, verticalPosition});
         gameButton->onClick.subscribe([this, sceneButton](UiButton *button)
         {
             if (_mode == Game) return;
@@ -54,7 +57,47 @@ namespace BreadEditor {
             button->setState(STATE_FOCUSED);
             sceneButton->setState(STATE_NORMAL);
         });
-        horizontalOffset = gameButton->getPosition().x + gameButton->getSize().x;
+
+        const auto playButton = &UiPool::buttonPool.get().setup(id + "_playButton", getWindowPanel(), GuiIconText(ICON_PLAYER_PLAY, nullptr));
+        playButton->setAnchor(UI_CENTER_TOP);
+        playButton->setSizePercentPermanent(permanentSize);
+        playButton->setSize({20, -1});
+        playButton->setPosition({-40, verticalPosition});
+        playButton->onClick.subscribe([](UiButton *button)
+        {
+            if (auto &editor = Editor::getInstance(); editor.isPlayMode())
+            {
+                editor.stopGame();
+                button->setState(STATE_NORMAL);
+                button->setText(GuiIconText(ICON_PLAYER_PLAY, nullptr));
+            }
+            else
+            {
+                editor.runGame();
+                button->setState(STATE_FOCUSED);
+                button->setText(GuiIconText(ICON_PLAYER_STOP, nullptr));
+            }
+        });
+        horizontalOffset = playButton->getPosition().x + playButton->getSize().x;
+
+        const auto pauseButton = &UiPool::buttonPool.get().setup(id + "_pauseButton", getWindowPanel(), GuiIconText(ICON_PLAYER_PAUSE, nullptr));
+        pauseButton->setAnchor(UI_CENTER_TOP);
+        pauseButton->setSizePercentPermanent(permanentSize);
+        pauseButton->setSize({20, -1});
+        pauseButton->setPosition({horizontalOffset + 1, verticalPosition});
+        pauseButton->onClick.subscribe([](UiButton *button)
+        {
+            if (auto &editor = Editor::getInstance(); editor.isPaused())
+            {
+                editor.resumeGame();
+                button->setState(STATE_NORMAL);
+            }
+            else
+            {
+                editor.pauseGame();
+                button->setState(STATE_FOCUSED);
+            }
+        });
     }
 
     void ViewportWindow::draw(const float deltaTime)

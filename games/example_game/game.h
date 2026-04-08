@@ -1,18 +1,17 @@
 #pragma once
 
-// Game API that must be implemented by user games
 extern "C" {
     // Called when game is loaded
     void Game_Initialize();
     
     // Called every frame for game logic
-    void Game_Update();
+    void Game_Update(float deltaTime);
     
     // Called every frame for 2D rendering
-    void Game_Render2D();
+    void Game_Render2D(float deltaTime);
     
     // Called every frame for 3D rendering (inside BeginMode3D/EndMode3D)
-    void Game_Render3D();
+    void Game_Render3D(float deltaTime);
     
     // Called when game is unloaded
     void Game_Shutdown();

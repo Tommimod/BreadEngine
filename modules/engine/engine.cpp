@@ -64,7 +64,7 @@ namespace BreadEngine {
         return WindowShouldClose();
     }
 
-    void Engine::beginFrame() const
+    void Engine::beginFrame(float deltaTime) const
     {
         ZoneScoped;
         BeginDrawing();
@@ -72,13 +72,13 @@ namespace BreadEngine {
         // Call game logic update if loaded
         if (_gameUpdate)
         {
-            _gameUpdate();
+            _gameUpdate(deltaTime);
         }
 
         _systems.update(getDeltaTime());
     }
 
-    void Engine::endFrame() const
+    void Engine::endFrame(float deltaTime) const
     {
         ZoneScoped;
         EndDrawing();
@@ -125,38 +125,48 @@ namespace BreadEngine {
     void Engine::unloadGameModule()
     {
         ZoneScoped;
-        if (_gameModuleLoader)
+        if (!_gameModuleLoader)
         {
-            if (_gameShutdown)
-            {
-                _gameShutdown();
-            }
-
-            delete _gameModuleLoader;
-            _gameModuleLoader = nullptr;
-            _gameInit = nullptr;
-            _gameUpdate = nullptr;
-            _gameRender2D = nullptr;
-            _gameRender3D = nullptr;
-            _gameShutdown = nullptr;
+            return;
         }
+
+        GameShutdownFunc shutdownFunc = _gameShutdown;
+        _gameInit = nullptr;
+        _gameUpdate = nullptr;
+        _gameRender2D = nullptr;
+        _gameRender3D = nullptr;
+        _gameShutdown = nullptr;
+
+        if (shutdownFunc)
+        {
+            Logger::LogInfo("Calling Game_Shutdown...");
+            shutdownFunc();
+        }
+
+        ModuleLoader* loader = _gameModuleLoader;
+        _gameModuleLoader = nullptr;
+
+        Logger::LogInfo("Unloading game module...");
+        loader->UnloadModule();
+        delete loader;
+        Logger::LogInfo("Game module unloaded.");
     }
 
-    void Engine::callGameRender2D() const
+    void Engine::callGameRender2D(float deltaTime) const
     {
         ZoneScoped;
         if (_gameRender2D)
         {
-            _gameRender2D();
+            _gameRender2D(deltaTime);
         }
     }
 
-    void Engine::callGameRender3D() const
+    void Engine::callGameRender3D(float deltaTime) const
     {
         ZoneScoped;
         if (_gameRender3D)
         {
-            _gameRender3D();
+            _gameRender3D(deltaTime);
         }
     }
 

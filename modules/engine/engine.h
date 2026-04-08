@@ -29,9 +29,9 @@ namespace BreadEngine {
 
         static bool shouldClose();
 
-        void beginFrame() const;
+        void beginFrame(float deltaTime) const;
 
-        void endFrame() const;
+        void endFrame(float deltaTime) const;
 
         void setupDefaultCamera();
 
@@ -44,9 +44,9 @@ namespace BreadEngine {
 
         void unloadGameModule();
 
-        void callGameRender2D() const;
+        void callGameRender2D(float deltaTime) const;
 
-        void callGameRender3D() const;
+        void callGameRender3D(float deltaTime) const;
 
         // Check if point is inside rectangle
         static bool isCollisionPointRec(Vector2 point, Rectangle rec);
@@ -66,11 +66,11 @@ namespace BreadEngine {
 
         typedef void (*GameInitFunc)();
 
-        typedef void (*GameUpdateFunc)();
+        typedef void (*GameUpdateFunc)(float deltaTime);
 
-        typedef void (*GameRender2DFunc)();
+        typedef void (*GameRender2DFunc)(float deltaTime);
 
-        typedef void (*GameRender3DFunc)();
+        typedef void (*GameRender3DFunc)(float deltaTime);
 
         typedef void (*GameShutdownFunc)();
 

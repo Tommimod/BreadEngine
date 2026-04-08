@@ -108,14 +108,11 @@ namespace BreadEditor {
     {
         ZoneScoped;
         Logger::LogInfo("Compiling game...");
-        std::string projectPath = getEditorModel().getProjectPath();
+        const auto &projectPath = getEditorModel().getProjectPath();
 
-        // If path points to cmake-build-debug/bin/, go up 2 levels to get build root
         std::string buildDir = projectPath;
         if (projectPath.find("cmake-build-debug") != std::string::npos)
         {
-            // Already in build directory, use it directly
-            // Remove trailing bin/ if present and use cmake-build-debug as build root
             size_t pos = projectPath.rfind("bin");
             if (pos != std::string::npos)
             {
@@ -123,14 +120,13 @@ namespace BreadEditor {
             }
         }
 
-        // Ensure path ends with cmake-build-debug
         if (buildDir.find("cmake-build-debug") == std::string::npos)
         {
             buildDir = projectPath + "../../cmake-build-debug";
         }
 
-        std::string buildCommand = "cmake --build " + buildDir + " --target ExampleGameLib -j 14";
-        Logger::LogInfo(buildCommand.c_str());
+        const auto buildCommand = "cmake --build " + buildDir + " --target ExampleGameLib -j 14 -v";
+        Logger::LogInfo(buildCommand);
         return system(buildCommand.c_str()) == 0;
     }
 
@@ -139,8 +135,8 @@ namespace BreadEditor {
         ZoneScoped;
         if (!compileGame()) return false;
 
-        std::string projectPath = getEditorModel().getProjectPath();
-        std::string buildDir = projectPath;
+        const auto &projectPath = getEditorModel().getProjectPath();
+        auto buildDir = projectPath;
         if (projectPath.find("cmake-build-debug") != std::string::npos)
         {
             size_t pos = projectPath.rfind("bin");
@@ -155,14 +151,15 @@ namespace BreadEditor {
         }
 
 #ifdef _WIN32
-        const std::string gamePath = buildDir + "bin\\libgame.dll";
+        const auto gamePath = buildDir + "bin\\libgame.dll";
 #elif defined(__APPLE__)
-        std::string gamePath = buildDir + "bin\\libgame.dylib";
+        const auto gamePath = buildDir + "bin\\libgame.dylib";
 #else
-        std::string gamePath = buildDir + "bin\\libgame.so";
+        const auto gamePath = buildDir + "bin\\libgame.so";
 #endif
         Logger::LogInfo(gamePath);
         Engine::getInstance().loadGameModule(gamePath.c_str());
+        _isPlayMode = true;
         return true;
     }
 
@@ -170,6 +167,17 @@ namespace BreadEditor {
     {
         ZoneScoped;
         Engine::getInstance().unloadGameModule();
+        _isPlayMode = false;
+    }
+
+    void Editor::pauseGame()
+    {
+        _isPaused = true;
+    }
+
+    void Editor::resumeGame()
+    {
+        _isPaused = false;
     }
 
     void Editor::processInput()
