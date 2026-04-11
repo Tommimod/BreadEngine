@@ -255,9 +255,8 @@ namespace BreadEngine {
     {
         using RawFieldType = std::remove_cvref_t<decltype( (static_cast<LocalClass *>(nullptr)->*memberPtr) )>;
         using FieldType = std::conditional_t<std::is_reference_v<RawFieldType>, std::remove_reference_t<RawFieldType>, RawFieldType>;
-        constexpr PropertyType ptype = deducePropertyType<FieldType>();
 
-        if constexpr (ptype == PropertyType::INSPECTOR_STRUCT)
+        if constexpr (constexpr PropertyType ptype = deducePropertyType<FieldType>(); ptype == PropertyType::INSPECTOR_STRUCT)
         {
             props.emplace_back(Property{
                 .guid = InspectorStruct::getNewGUID(),
@@ -273,11 +272,12 @@ namespace BreadEngine {
                 .set = [memberPtr](InspectorStruct *comp, const Property::VariantT &value)
                 {
                     auto *obj = static_cast<LocalClass *>(comp);
-                    obj->*memberPtr = std::any_cast<FieldType>(value); //TODO RISKI
+                    obj->*memberPtr = std::any_cast<FieldType>(value);
                 },
                 .toStr = [](const Property::VariantT &val) -> std::string
                 {
                     if (val.type() == typeid(std::string)) return std::any_cast<std::string>(val);
+                    if (val.type() == typeid(uint8_t)) return std::to_string(std::any_cast<uint8_t>(val));
                     if (val.type() == typeid(int)) return std::to_string(std::any_cast<int>(val));
                     if (val.type() == typeid(float)) return std::to_string(std::any_cast<float>(val));
                     if (val.type() == typeid(long)) return std::to_string(std::any_cast<long>(val));

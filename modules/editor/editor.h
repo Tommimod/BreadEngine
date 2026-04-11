@@ -48,6 +48,11 @@ namespace BreadEditor {
 
         void resumeGame();
 
+        Camera3D &getCamera()
+        {
+            return _camera;
+        }
+
         [[nodiscard]] bool isPlayMode() const { return _isPlayMode; }
 
         [[nodiscard]] bool isEditorMode() const { return !_isPlayMode; }
@@ -71,11 +76,13 @@ namespace BreadEditor {
         bool _initialized = false;
         RenderTexture2D *_viewportRenderTexture = nullptr;
         UiElement &_uiRoot;
+        Camera3D _camera;
 
         EditorModel _editorModel;
         ConfigsProvider _configsProvider;
         CameraSystem _cameraSystem;
 
         static void processInput();
+        void setupDefaultCamera();
     };
 } // namespace BreadEditor

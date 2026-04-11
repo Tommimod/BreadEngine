@@ -3,8 +3,8 @@
 #include <stdexcept>
 #include <type_traits>
 
-#include "component.h"
-#include "componentsProvider.h"
+#include "../../component/core/component.h"
+#include "../../component/core/componentsProvider.h"
 #include "node.h"
 
 namespace BreadEngine {

@@ -33,13 +33,6 @@ namespace BreadEngine {
 
         void endFrame(float deltaTime) const;
 
-        void setupDefaultCamera();
-
-        Camera3D &getCamera()
-        {
-            return _camera;
-        }
-
         void loadGameModule(const char *path);
 
         void unloadGameModule();
@@ -61,7 +54,6 @@ namespace BreadEngine {
 
         AssetsConfig _fileSystem;
         SystemsRegistry _systems;
-        Camera3D _camera;
         ModuleLoader *_gameModuleLoader = nullptr;
 
         typedef void (*GameInitFunc)();

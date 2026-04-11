@@ -4,7 +4,7 @@
 #include "baseComponentChunk.h"
 #include "logger.h"
 #include "raylib.h"
-#include "../nodeProvider.h"
+#include "../../nodeProvider.h"
 
 namespace BreadEngine {
     struct Component;

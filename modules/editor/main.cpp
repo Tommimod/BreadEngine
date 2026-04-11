@@ -36,7 +36,7 @@ int main()
         BeginTextureMode(renderTexture); // drawing 3D game to viewport
         ClearBackground(RAYWHITE);
 
-        BeginMode3D(engine.getCamera());
+        BeginMode3D(editor.getCamera());
         DrawGrid(1000, 1.0f);
         engine.callGameRender3D(deltaTime);
         editor.render3D(deltaTime);

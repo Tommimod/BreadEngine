@@ -2,7 +2,7 @@
 #include <yaml-cpp/node/node.h>
 #include "nameof.h"
 #include "node.h"
-#include "component/componentsProvider.h"
+#include "component/core/componentsProvider.h"
 
 namespace YAML {
     template<>

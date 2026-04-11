@@ -1,6 +1,6 @@
 #include "component.h"
 #include <typeinfo>
-#include "../node.h"
+#include "../../node.h"
 #include "tracy/Tracy.hpp"
 
 namespace BreadEngine {

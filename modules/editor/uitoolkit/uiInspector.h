@@ -2,7 +2,7 @@
 #include <map>
 #include <typeindex>
 #include "action.h"
-#include "component.h"
+#include "../../engine/component/core/component.h"
 #include "uiElement.h"
 #include "inspectorObject.h"
 

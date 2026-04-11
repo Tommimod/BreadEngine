@@ -1,5 +1,5 @@
 #pragma once
-#include "component.h"
+#include "core/component.h"
 #include <raylib.h>
 
 namespace BreadEngine {
@@ -46,6 +46,12 @@ namespace BreadEngine {
         [[nodiscard]] Vector3 getLocalScale() const;
 
         void setLocalScale(const Vector3 &localScale);
+
+        [[nodiscard]] Vector3 getForward() const;
+
+        [[nodiscard]] Vector3 getRight() const;
+
+        [[nodiscard]] Vector3 getUp() const;
 
     private:
         Vector3 _localPosition{};

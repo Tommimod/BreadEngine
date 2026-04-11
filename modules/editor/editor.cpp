@@ -34,6 +34,7 @@ namespace BreadEditor {
         GuiLoadStyleDefault();
         EditorStyle::loadFont();
         SetTraceLogLevel(LOG_ALL);
+        setupDefaultCamera();
 
         mainWindow.initialize();
         mainWindow.updateInternal(0);
@@ -192,5 +193,14 @@ namespace BreadEditor {
         {
             CommandsHandler::execute(std::make_unique<SaveProjectCommand>());
         }
+    }
+
+    void Editor::setupDefaultCamera()
+    {
+        _camera.position = {0.0f, 10.0f, 10.0f};
+        _camera.target = {0.0f, 0.0f, 0.0f};
+        _camera.up = {0.0f, 1.0f, 0.0f};
+        _camera.fovy = 45.0f;
+        _camera.projection = CAMERA_PERSPECTIVE;
     }
 } // namespace BreadEditor

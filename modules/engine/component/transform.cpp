@@ -204,6 +204,24 @@ namespace BreadEngine {
         _localScale = localScale;
     }
 
+    Vector3 Transform::getForward() const
+    {
+        constexpr auto forward = Vector3{0.0f, 0.0f, -1.0f};
+        return Vector3RotateByQuaternion(forward, getRotationQuaternion());
+    }
+
+    Vector3 Transform::getRight() const
+    {
+        constexpr auto right = Vector3{1.0f, 0.0f, 0.0f};
+        return Vector3RotateByQuaternion(right, getRotationQuaternion());
+    }
+
+    Vector3 Transform::getUp() const
+    {
+        constexpr auto up = Vector3{0.0f, 1.0f, 0.0f};
+        return Vector3RotateByQuaternion(up, getRotationQuaternion());
+    }
+
     Transform *Transform::getParentTransform() const
     {
         const Node *ownerNode = getOwner();

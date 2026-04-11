@@ -1,11 +1,11 @@
 #pragma once
 
-#include "component/component.h"
+#include "component/core/component.h"
 #include <algorithm>
 #include <vector>
 #include <unordered_set>
 #include "iDisposable.h"
-#include "component/componentsProvider.h"
+#include "component/core/componentsProvider.h"
 #include <yaml-cpp/node/node.h>
 
 namespace BreadEngine {

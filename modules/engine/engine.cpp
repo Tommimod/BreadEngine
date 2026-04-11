@@ -43,7 +43,6 @@ namespace BreadEngine {
         InitWindow(width, height, title);
         MaximizeWindow();
         R3D_Init(GetScreenWidth(), GetScreenHeight(), R3D_FLAG_FXAA);
-        setupDefaultCamera();
         NodeProvider::init();
         initializeSystems();
 
@@ -84,15 +83,6 @@ namespace BreadEngine {
         EndDrawing();
         _systems.endFrame(getDeltaTime());
         FrameMark;
-    }
-
-    void Engine::setupDefaultCamera()
-    {
-        _camera.position = {0.0f, 10.0f, 10.0f};
-        _camera.target = {0.0f, 0.0f, 0.0f};
-        _camera.up = {0.0f, 1.0f, 0.0f};
-        _camera.fovy = 45.0f;
-        _camera.projection = CAMERA_PERSPECTIVE;
     }
 
     void Engine::loadGameModule(const char *path)

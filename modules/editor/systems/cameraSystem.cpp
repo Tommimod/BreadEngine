@@ -8,7 +8,7 @@
 #define PI 3.141592653589793f
 
 namespace BreadEditor {
-    CameraSystem::CameraSystem() : _camera(Engine::getInstance().getCamera())
+    CameraSystem::CameraSystem() : _camera(Editor::getInstance().getCamera())
     {
         _yaw = PI;
         _pitch = -PI / 4.0f;
