@@ -24,6 +24,10 @@ namespace BreadEngine {
             {
                 return PropertyType::INSPECTOR_STRUCT;
             }
+            else if constexpr (std::is_enum_v<T>)
+            {
+                return PropertyType::ENUM;
+            }
             else
             {
                 static_assert(false, "Unsupported type for inspector property");
@@ -326,12 +330,19 @@ namespace BreadEngine {
                 .get = [memberPtr](const InspectorStruct *comp) -> Property::VariantT
                 {
                     const auto *obj = static_cast<const LocalClass *>(comp);
-                    return Property::VariantT{obj->*memberPtr};
+                    auto value = obj->*memberPtr;
+                    if constexpr (std::is_enum_v<FieldType>)
+                        return Property::VariantT{static_cast<std::underlying_type_t<FieldType>>(value)};
+                    else
+                        return Property::VariantT{value};
                 },
                 .set = [memberPtr](InspectorStruct *comp, const Property::VariantT &value)
                 {
                     auto *obj = static_cast<LocalClass *>(comp);
-                    obj->*memberPtr = std::any_cast<FieldType>(value);
+                    if constexpr (std::is_enum_v<FieldType>)
+                        obj->*memberPtr = static_cast<FieldType>(std::any_cast<std::underlying_type_t<FieldType>>(value));
+                    else
+                        obj->*memberPtr = std::any_cast<FieldType>(value);
                 },
                 .toStr = {}
             });

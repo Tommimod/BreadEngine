@@ -4,7 +4,7 @@
 namespace BreadEngine {
     struct Camera final : Component
     {
-        enum CameraType : uint8_t
+        enum CameraType
         {
             CAMERA_PERSPECTIVE = 0,
             CAMERA_ORTHOGRAPHIC

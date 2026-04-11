@@ -1,5 +1,4 @@
 ﻿#include "inspectorObject.h"
-#include <cstdlib>
 #include <cxxabi.h>
 
 #include "tracy/Tracy.hpp"
