@@ -1,6 +1,7 @@
 ﻿#include "logger.h"
 #include "raylib.h"
 #include <ctime>
+#include <iomanip>
 
 #include "stacktrace.h"
 #include "configs/baseYamlConfig.h"

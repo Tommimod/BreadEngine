@@ -1,4 +1,4 @@
-﻿#pragma once
+#pragma once
 #include "action.h"
 #include "uiElement.h"
 using namespace BreadEngine;
@@ -27,6 +27,10 @@ namespace BreadEditor {
 
         void changeOptions(const std::vector<std::string> &options);
 
+        void setSelected(const int index) { _selectedOption = index; }
+
+        [[nodiscard]] int getSelected() const { return _selectedOption; }
+
         [[nodiscard]] bool isCollisionPointRec(Vector2 point) const;
 
     protected:
@@ -38,6 +42,7 @@ namespace BreadEditor {
         const char *_optionsForGui{};
         int _selectedOption = 0;
         int _elementsCount = 0;
-        bool _isEditMode = true;
+        bool _isShouldBeDeleted = true;
+        bool _inOpenState = true;
     };
 } // BreadEditor

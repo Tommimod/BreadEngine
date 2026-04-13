@@ -162,7 +162,7 @@ namespace BreadEditor {
         toolbar.setPivot({0, 0});
         toolbar.setSize({0, 20});
         toolbar.computeBounds();
-        toolbar.setOnOverlayLayer();
+        toolbar.enableOverlayLayer();
         toolbar.isStatic = true;
 
         toolbar.onButtonPressed.subscribe([this, &toolbar, &categories](const UiElement *uiElement)
@@ -182,7 +182,7 @@ namespace BreadEditor {
             dropdown.setSize({80, 15});
             dropdown.setPosition({toolbar.getAllChilds()[index]->getPosition().x, 0});
             dropdown.setTextAlignment(TEXT_ALIGN_LEFT);
-            dropdown.setOnOverlayLayer();
+            dropdown.enableOverlayLayer();
             dropdown.onOptionSelected.subscribe([&dropdown, &toolbar, this, &index, &categories](const int value)
             {
                 toolbar.destroyChild(&dropdown);

@@ -13,16 +13,22 @@ namespace BreadEditor {
     UiDropdown &UiDropdown::setup(const std::string_view &id, const std::vector<std::string> &options, const bool isPermanent)
     {
         changeOptions(options);
-        _isEditMode = !isPermanent;
         UiElement::setup(id);
+        _isShouldBeDeleted = !isPermanent;
+        _inOpenState = _isShouldBeDeleted;
+
+        if (!_isShouldBeDeleted) enableOverlayLayer();
         return *this;
     }
 
     UiDropdown &UiDropdown::setup(const std::string_view &id, UiElement *parentElement, const std::vector<std::string> &options, const bool isPermanent)
     {
         changeOptions(options);
-        _isEditMode = !isPermanent;
         UiElement::setup(id, parentElement);
+        _isShouldBeDeleted = !isPermanent;
+        _inOpenState = _isShouldBeDeleted;
+
+        if (!_isShouldBeDeleted) enableOverlayLayer();
         return *this;
     }
 
@@ -35,7 +41,7 @@ namespace BreadEditor {
         }
 
         EditorStyle::setDrowDownBoxTextAlignment(_textAlignment);
-        if (GuiDropdownBox(_bounds, _optionsForGui, &_selectedOption, _isEditMode))
+        if (GuiDropdownBox(_bounds, _optionsForGui, &_selectedOption, _inOpenState))
         {
             if (!isCollisionPointRec(GetMousePosition()))
             {
@@ -48,10 +54,24 @@ namespace BreadEditor {
 
     void UiDropdown::update(const float deltaTime)
     {
-        if (_isEditMode && !isCollisionPointRec(GetMousePosition())
+        if (_isShouldBeDeleted && !isCollisionPointRec(GetMousePosition())
             && (IsMouseButtonPressed(MOUSE_RIGHT_BUTTON) || IsMouseButtonPressed(MOUSE_LEFT_BUTTON)))
         {
             getParentElement()->destroyChild(this);
+        }
+        else if (!_isShouldBeDeleted)
+        {
+            if (Engine::isCollisionPointRec(GetMousePosition(), _bounds))
+            {
+                _inOpenState = true;
+                enableOverlayLayer();
+            }
+
+            if (_inOpenState && !isCollisionPointRec(GetMousePosition()))
+            {
+                _inOpenState = false;
+                disableOverlayLayer();
+            }
         }
     }
 
@@ -62,6 +82,8 @@ namespace BreadEditor {
         _optionsForGui = nullptr;
         _selectedOption = 0;
         _elementsCount = 0;
+        _inOpenState = true;
+        _isShouldBeDeleted = true;
         UiElement::dispose();
     }
 

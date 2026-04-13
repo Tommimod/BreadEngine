@@ -23,7 +23,7 @@ namespace BreadEditor {
         _dropdown->setSize({80, 15});
         _dropdown->setPosition(GetMousePosition());
         _dropdown->setTextAlignment(TEXT_ALIGN_LEFT);
-        _dropdown->setOnOverlayLayer();
+        _dropdown->enableOverlayLayer();
         _dropdown->onOptionSelected.subscribe([this](const int value)
         {
             _element->destroyChild(_dropdown);

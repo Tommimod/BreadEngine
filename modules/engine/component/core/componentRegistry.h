@@ -1,5 +1,6 @@
 #pragma once
 #include <functional>
+#include <ranges>
 #include <typeindex>
 
 #include "baseComponentChunk.h"
@@ -34,7 +35,7 @@ namespace BreadEngine {
             GetRegistry()[name] = {ti, std::move(compCreator), std::move(chunkCreator)};
         }
 
-        static const RegistryEntry *GetEntry(const std::string &name)
+        static const RegistryEntry *getEntry(const std::string &name)
         {
             auto &reg = GetRegistry();
             const auto it = reg.find(name);
@@ -45,11 +46,33 @@ namespace BreadEngine {
             return nullptr;
         }
 
-    private:
-        static std::unordered_map<std::string, RegistryEntry> &GetRegistry()
+        static std::vector<std::type_index> getAllComponents()
         {
-            static std::unordered_map<std::string, RegistryEntry> registry;
-            return registry;
+            auto keys = std::vector<std::type_index>();
+            for (auto &registry = GetRegistry(); const auto &key: registry | std::views::keys)
+            {
+                keys.emplace_back(registry[key].ti);
+            }
+
+            return keys;
+        }
+
+        static std::string getComponentNameByType(const std::type_index type)
+        {
+            for (auto &registry = GetRegistry(); const auto &key: registry | std::views::keys)
+            {
+                if (registry[key].ti == type) return key;
+            }
+
+            return "";
+        }
+
+    private:
+        static std::map<std::string, RegistryEntry> &GetRegistry()
+        {
+            static std::map<std::string, RegistryEntry> _registry;
+
+            return _registry;
         }
     };
 } // BreadEngine

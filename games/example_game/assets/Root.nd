@@ -4,19 +4,43 @@ Name: Root
 ParentId: 2147483647
 Components:
   - ComponentType: Transform
-    _position:
+    _localPosition:
       x: 0
       y: 0
       z: 0
-    _rotation:
+    _localRotation:
       x: 0
       y: 0
       z: 0
-      w: 0
-    _scale:
+      w: 1
+    _localScale:
       x: 1
       y: 1
       z: 1
 Childs:
-  []
+  - IsActive: true
+    Id: 1
+    Name: Camera
+    ParentId: 0
+    Components:
+      - ComponentType: Camera
+        _projection: 0
+        _fov: 45
+      - ComponentType: Transform
+        _localPosition:
+          x: 0
+          y: 0
+          z: 0
+        _localRotation:
+          x: 0
+          y: 0
+          z: 0
+          w: 1
+        _localScale:
+          x: 1
+          y: 1
+          z: 1
+    Childs:
+      []
+    IsNodePrefab: true
 IsNodePrefab: true

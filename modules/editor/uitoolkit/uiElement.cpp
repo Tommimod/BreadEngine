@@ -738,12 +738,20 @@ namespace BreadEditor {
         }
     }
 
-    void UiElement::setOnOverlayLayer()
+    void UiElement::enableOverlayLayer()
     {
         ZoneScoped;
         _onOverlayLayer = true;
         const auto root = getRootElement();
         root->_overlayChilds.emplace_back(this);
+    }
+
+    void UiElement::disableOverlayLayer()
+    {
+        ZoneScoped;
+        _onOverlayLayer = false;
+        const auto root = getRootElement();
+        std::erase(root->_overlayChilds, this);
     }
 
     void UiElement::setRenderOnEndOfFrame()

@@ -13,7 +13,7 @@ namespace BreadEditor {
         setAnchor(UI_CENTER_CENTER);
         setPivot({.5f, .5f});
         setSize({200, 80});
-        setOnOverlayLayer();
+        enableOverlayLayer();
         computeBounds();
         return *this;
     }

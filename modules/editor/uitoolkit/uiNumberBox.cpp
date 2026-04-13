@@ -85,11 +85,25 @@ namespace BreadEditor {
 
     UiNumberBox &UiNumberBox::setup(const std::string_view &id, UiElement *parentElement, const std::string &label, std::function<std::variant<int, float, long>()> getFunc, const bool defaultEditMode)
     {
-        _intMode = true;
         _label = label;
         _getFunc = std::move(getFunc);
-        snprintf(_valueText, sizeof(_valueText), "%i", _intValue);
         _editMode = defaultEditMode;
+
+        if (_getFunc)
+        {
+            auto value = _getFunc();
+            _intMode = std::holds_alternative<int>(value);
+            std::visit([this]<typename T0>(T0&& v) {
+                using T = std::decay_t<T0>;
+                if constexpr (std::is_same_v<T, int>)
+                    snprintf(_valueText, sizeof(_valueText), "%i", v);
+                else if constexpr (std::is_same_v<T, float>)
+                    snprintf(_valueText, sizeof(_valueText), "%.1f", v);
+                else if constexpr (std::is_same_v<T, long>)
+                    snprintf(_valueText, sizeof(_valueText), "%ld", v);
+            }, value);
+        }
+
         UiElement::setup(id, parentElement);
         return *this;
     }

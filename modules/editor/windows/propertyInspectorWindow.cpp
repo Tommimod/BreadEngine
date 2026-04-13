@@ -1,6 +1,7 @@
 ﻿#include "propertyInspectorWindow.h"
 #include "editor.h"
-#include "raygui.h"
+#include "component/camera.h"
+#include "editorElements/customDropdownUiElement.h"
 #include "uitoolkit/uiPool.h"
 
 namespace BreadEditor {
@@ -60,7 +61,10 @@ namespace BreadEditor {
                     auto element = &UiPool::componentPool.get().setup("UiComponent_" + std::to_string(_uiComponentElements.size()), _content, false);
                     _uiComponentElements.push_back(element);
                     setupUiComponent(element);
-                    _subscriptions.emplace(element, element->onDelete.subscribe([this](const std::type_index type) { this->onUiComponentDeleted(type); }));
+                    _subscriptions.emplace(element, element->onDelete.subscribe([this](const std::type_index type)
+                    {
+                        onUiComponentDeleted(type);
+                    }));
                 }
             }
             else if (needCreateCount < 0)
@@ -77,6 +81,11 @@ namespace BreadEditor {
             for (int i = 0; i < static_cast<int>(_trackedComponents.size()); i++)
             {
                 _uiComponentElements[i]->track(_trackedComponents[i]);
+            }
+
+            if (static_cast<int>(_trackedComponents.size()) == 0)
+            {
+                adjustAddComponentButtonPosition();
             }
         }
         else
@@ -118,7 +127,7 @@ namespace BreadEditor {
     void PropertyInspectorWindow::awake()
     {
         UiWindow::awake();
-        auto verticalOffset = _content->getPosition().y + 5;
+        const auto verticalOffset = _content->getPosition().y + 5;
         constexpr int horizontalOffset = 5;
 
         _activeCheckBox = &UiPool::checkBoxPool.get().setup(id + "_activeCheckBox", this, "Active", false);
@@ -134,6 +143,53 @@ namespace BreadEditor {
         _nameTextBox->setSizePercentPermanent({.75f, -1});
         _subscriptions.emplace(_nameTextBox, _nameTextBox->onValueChanged.subscribe([this](const char *text) { this->onNodeNameChanged(text); }));
 
+        _componentsDropdown = std::make_unique<CustomDropdownUiElement>();
+        _componentsDropdown->setup(id + "_componentsDropdown", this, {});
+        _componentsDropdown->setPivot({.5f, 0});
+        _componentsDropdown->setAnchor(UI_CENTER_TOP);
+        _componentsDropdown->setSize({250, 350});
+        _componentsDropdown->setPosition({0, 15});
+        _componentsDropdown->isActive = false;
+
+        _addComponentButton = &UiPool::buttonPool.get().setup(id + "_addComponentButton", this, "Add Component");
+        _addComponentButton->setAnchor(UI_LEFT_TOP);
+        _addComponentButton->setPivot({.5f, -1});
+        _addComponentButton->setSizePercentPermanent({.55f, -1});
+        _addComponentButton->setSize({-1, 25});
+        _addComponentButton->onClick.subscribe([this](UiButton *)
+        {
+            if (_engineNode == nullptr) return;
+
+            auto allComponentsInEngineList = ComponentRegistry::getAllComponents();
+            auto nodeComponents = ComponentsProvider::getAllComponentTypes(_engineNode->getId());
+            allComponentsInEngineList.erase(ranges::remove_if(allComponentsInEngineList,
+                                                              [nodeComponents](const std::type_index &type)
+                                                              {
+                                                                  return ranges::find(nodeComponents, type) != nodeComponents.end();
+                                                              }).begin());
+            auto options = std::vector<std::string>();
+            for (const auto &val: allComponentsInEngineList)
+            {
+                if (val == typeid(BreadEngine::Transform)) continue;
+                options.emplace_back(ComponentRegistry::getComponentNameByType(val));
+            }
+
+            _componentsDropdown->isActive = true;
+            _componentsDropdown->setOptions(options);
+            _componentsDropdown->onOptionSelected.subscribe([this](const std::string &value)
+            {
+                _componentsDropdown->close();
+                if (value.empty()) return;
+
+                const auto id = _engineNode->getId();
+                ComponentsProvider::addDynamic(id, value);
+                const auto node = NodeProvider::getNode(id);
+                _engineNode = nullptr;
+                lookupNode(node);
+            });
+        });
+
+        setChildLast(_componentsDropdown.get());
         resetElementsState(false);
     }
 
@@ -165,6 +221,7 @@ namespace BreadEditor {
         const auto emptyString = "";
         _activeCheckBox->isActive = withGlobalSettings;
         _nameTextBox->isActive = withGlobalSettings;
+        _addComponentButton->isActive = withGlobalSettings;
         _activeCheckBox->setChecked(false);
         _nameTextBox->setText(emptyString);
         _trackedComponents = {};
@@ -189,21 +246,28 @@ namespace BreadEditor {
         _nameTextBox->setText(_engineNode->getName());
     }
 
-    void PropertyInspectorWindow::setupUiComponent(UiInspector *uiComponentElement) const
+    void PropertyInspectorWindow::setupUiComponent(UiInspector *uiInspectorElement) const
     {
-        uiComponentElement->setAnchor(UI_LEFT_TOP);
-        uiComponentElement->setSize({0, 50});
-        uiComponentElement->setSizePercentPermanent({.955f, -1});
+        uiInspectorElement->setAnchor(UI_LEFT_TOP);
+        uiInspectorElement->setSize({0, 50});
+        uiInspectorElement->setSizePercentPermanent({.955f, -1});
         auto yPosition = 10.0f;
         if (_activeCheckBox->isActive)
         {
             yPosition += _nameTextBox->getSize().y;
         }
 
-        uiComponentElement->setPosition(Vector2{5, yPosition});
-        uiComponentElement->onUpdated += [this](UiInspector *inspector)
+        uiInspectorElement->onUpdated += [this, yPosition](UiInspector *)
         {
-            _content->calculateRectForScroll(inspector);
+            auto prevPos = yPosition;
+            const auto allChilds = _content->getAllChilds();
+            for (int i = allChilds.size() - 1; i >= 0; --i)
+            {
+                const auto child = allChilds[i];
+                child->setPosition({5, prevPos});
+                prevPos += child->getSize().y + 5;
+            }
+            adjustAddComponentButtonPosition();
         };
     }
 
@@ -219,5 +283,13 @@ namespace BreadEditor {
 
     void PropertyInspectorWindow::cleanupPanel()
     {
+    }
+
+    void PropertyInspectorWindow::adjustAddComponentButtonPosition() const
+    {
+        const auto lastInspector = _content->getAllChilds()[0];
+        const auto size = Vector2{lastInspector->getPosition().x + lastInspector->getSize().x * .5f, lastInspector->getPosition().y + lastInspector->getSize().y + 10};
+        _addComponentButton->setPosition(size);
+        _content->calculateRectForScroll(_addComponentButton);
     }
 } // BreadEditor

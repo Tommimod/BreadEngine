@@ -35,10 +35,19 @@ target_include_directories(BreadEditor PRIVATE
         ${CMAKE_SOURCE_DIR}/modules/engine
 )
 
-target_link_libraries(BreadEditor PUBLIC
-        BreadEngine
-        ${PLATFORM_LIBS}
-)
+if (CMAKE_CXX_COMPILER_ID MATCHES "Clang|GNU")
+    target_link_libraries(BreadEditor PUBLIC
+            -Wl,--whole-archive
+            BreadEngine
+            -Wl,--no-whole-archive
+            ${PLATFORM_LIBS}
+    )
+else()
+    target_link_libraries(BreadEditor PUBLIC
+            BreadEngine
+            ${PLATFORM_LIBS}
+    )
+endif()
 
 if (WIN32 AND CMAKE_CXX_COMPILER_ID MATCHES "Clang|GNU")
     target_link_libraries(BreadEditor PUBLIC dbghelp)

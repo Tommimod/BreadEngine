@@ -2,13 +2,13 @@
 #include <any>
 #include <chrono>
 #include <functional>
-#include <iomanip>
 #include <random>
 #include <string>
 #include "raylib.h"
 #include <type_traits>
 #include <utility>
 #include <yaml-cpp/yaml.h>
+#include <magic_enum/magic_enum.hpp>
 
 namespace BreadEngine {
     struct InspectorStruct;
@@ -121,6 +121,8 @@ namespace BreadEngine {
         std::function<VariantT(const InspectorStruct *)> get;
         std::function<void(InspectorStruct *, const VariantT &)> set;
         std::function<std::string(const VariantT &)> toStr;
+        std::function<std::vector<std::string>()> getEnumNames;
+        std::function<VariantT(int)> enumIndexToValue;
 
         bool operator==(const Property &other) const
         {
@@ -176,6 +178,11 @@ namespace BreadEngine {
             {
                 return std::any{const_cast<InspectorStruct *>(static_cast<const InspectorStruct *>(&vec[index]))};
             }
+            else if constexpr (std::is_enum_v<typename VecT::value_type>)
+            {
+                auto enumIndex = magic_enum::enum_index(vec[index]);
+                return std::any{static_cast<int>(enumIndex.value_or(0))};
+            }
             else
             {
                 return std::any{vec[index]};
@@ -188,7 +195,16 @@ namespace BreadEngine {
             {
                 throw std::out_of_range("Vector index out of range");
             }
-            vec[index] = std::any_cast<typename VecT::value_type>(value);
+            if constexpr (std::is_enum_v<typename VecT::value_type>)
+            {
+                const int enumIndex = std::any_cast<int>(value);
+                if (auto enumValue = magic_enum::enum_cast<typename VecT::value_type>(static_cast<size_t>(enumIndex)); enumValue.has_value())
+                    vec[index] = enumValue.value();
+            }
+            else
+            {
+                vec[index] = std::any_cast<typename VecT::value_type>(value);
+            }
         }
 
         void add() override
@@ -321,6 +337,42 @@ namespace BreadEngine {
                 }
             });
         }
+        else if constexpr (ptype == PropertyType::ENUM)
+        {
+            props.emplace_back(Property{
+                .guid = InspectorStruct::getNewGUID(),
+                .name = std::string(fieldName),
+                .type = ptype,
+                .get = [memberPtr](const InspectorStruct *comp) -> Property::VariantT
+                {
+                    const auto *obj = static_cast<const LocalClass *>(comp);
+                    auto value = obj->*memberPtr;
+                    auto index = magic_enum::enum_index(value);
+                    return Property::VariantT{static_cast<int>(index.value_or(0))};
+                },
+                .set = [memberPtr](InspectorStruct *comp, const Property::VariantT &value)
+                {
+                    auto *obj = static_cast<LocalClass *>(comp);
+                    const int index = std::any_cast<int>(value);
+                    if (auto enumValue = magic_enum::enum_cast<FieldType>(static_cast<size_t>(index)); enumValue.has_value())
+                        obj->*memberPtr = enumValue.value();
+                },
+                .toStr = {},
+                .getEnumNames = []() -> std::vector<std::string>
+                {
+                    std::vector<std::string> names;
+                    for (auto name : magic_enum::enum_names<FieldType>())
+                        names.emplace_back(std::string(name));
+                    return names;
+                },
+                .enumIndexToValue = [](const int index) -> Property::VariantT
+                {
+                    if (auto enumValue = magic_enum::enum_cast<FieldType>(static_cast<size_t>(index)); enumValue.has_value())
+                        return Property::VariantT{static_cast<std::underlying_type_t<FieldType>>(enumValue.value())};
+                    return Property::VariantT{};
+                }
+            });
+        }
         else
         {
             props.emplace_back(Property{
@@ -331,18 +383,12 @@ namespace BreadEngine {
                 {
                     const auto *obj = static_cast<const LocalClass *>(comp);
                     auto value = obj->*memberPtr;
-                    if constexpr (std::is_enum_v<FieldType>)
-                        return Property::VariantT{static_cast<std::underlying_type_t<FieldType>>(value)};
-                    else
-                        return Property::VariantT{value};
+                    return Property::VariantT{value};
                 },
                 .set = [memberPtr](InspectorStruct *comp, const Property::VariantT &value)
                 {
                     auto *obj = static_cast<LocalClass *>(comp);
-                    if constexpr (std::is_enum_v<FieldType>)
-                        obj->*memberPtr = static_cast<FieldType>(std::any_cast<std::underlying_type_t<FieldType>>(value));
-                    else
-                        obj->*memberPtr = std::any_cast<FieldType>(value);
+                    obj->*memberPtr = std::any_cast<FieldType>(value);
                 },
                 .toStr = {}
             });

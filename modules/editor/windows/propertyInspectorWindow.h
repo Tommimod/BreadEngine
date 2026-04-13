@@ -1,6 +1,8 @@
 ﻿#pragma once
 #include <map>
 #include "node.h"
+#include "editorElements/customDropdownUiElement.h"
+#include "uitoolkit/uiButton.h"
 #include "uitoolkit/uiCheckBox.h"
 #include "uitoolkit/uiInspector.h"
 #include "uitoolkit/uiElement.h"
@@ -40,11 +42,13 @@ namespace BreadEditor {
     private:
         const char *_title = Id.c_str();
 
+        std::unique_ptr<CustomDropdownUiElement> _componentsDropdown = nullptr;
         std::map<UiElement *, SubscriptionHandle> _subscriptions{};
         Node *_engineNode = nullptr;
         InspectorStruct *_inspectorStruct = nullptr;
         UiCheckBox *_activeCheckBox = nullptr;
         UiTextBox *_nameTextBox = nullptr;
+        UiButton *_addComponentButton = nullptr;
         std::vector<Component *> _trackedComponents{};
         std::vector<UiInspector *> _uiComponentElements{};
 
@@ -56,12 +60,14 @@ namespace BreadEditor {
 
         void onNodeNameChanged(const char *name) const;
 
-        void setupUiComponent(UiInspector *uiComponentElement) const;
+        void setupUiComponent(UiInspector *uiInspectorElement) const;
 
         void onUiComponentDeleted(std::type_index type);
 
         void initializePanel() override;
 
         void cleanupPanel() override;
+
+        void adjustAddComponentButtonPosition() const;
     };
 } // BreadEditor

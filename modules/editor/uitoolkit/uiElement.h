@@ -148,7 +148,9 @@ namespace BreadEditor {
 
         void setDirty();
 
-        void setOnOverlayLayer();
+        void enableOverlayLayer();
+
+        void disableOverlayLayer();
 
         void setRenderOnEndOfFrame();
 

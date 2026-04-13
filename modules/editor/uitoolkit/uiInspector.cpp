@@ -312,7 +312,48 @@ namespace BreadEditor {
         }
         else if (propType == PropertyType::ENUM)
         {
-            //TODO
+            isSingleField = false;
+            auto enumNames = property.getEnumNames();
+            if (enumNames.empty())
+            {
+                TraceLog(LOG_ERROR, "Enum property %s has no names", property.name.c_str());
+                return;
+            }
+
+            if (isSimpleProp)
+            {
+                auto currentIndex = std::any_cast<int>(property.get(inspectorStruct));
+                createdElement = &UiPool::dropdownPool.get().setup(
+                    TextFormat("Enum %s%i", property.name.c_str(), depth),
+                    this,
+                    enumNames,
+                    true
+                );
+                auto *dropdown = dynamic_cast<UiDropdown *>(createdElement);
+                dropdown->setSelected(currentIndex);
+                dropdown->setTextAlignment(TEXT_ALIGN_LEFT);
+                dropdown->onOptionSelected.subscribe([inspectorStruct, property](const int selectedIndex)
+                {
+                    property.set(inspectorStruct, selectedIndex - 1);
+                });
+            }
+            else
+            {
+                auto currentIndex = std::any_cast<int>(vectorAccessor->get(vectorIndex));
+                createdElement = &UiPool::dropdownPool.get().setup(
+                    TextFormat("Enum %s%i", property.name.c_str(), depth),
+                    this,
+                    enumNames,
+                    true
+                );
+                auto *dropdown = dynamic_cast<UiDropdown *>(createdElement);
+                dropdown->setSelected(currentIndex);
+                dropdown->setTextAlignment(TEXT_ALIGN_LEFT);
+                dropdown->onOptionSelected.subscribe([vectorAccessor, vectorIndex](const int selectedIndex)
+                {
+                    vectorAccessor->set(vectorIndex, selectedIndex - 1);
+                });
+            }
         }
         else if (propType == PropertyType::VECTOR_L)
         {
@@ -408,7 +449,8 @@ namespace BreadEditor {
 
         createdElement->setAnchor(UI_LEFT_TOP);
         createdElement->setSize({0, heightSize});
-        const auto sizeInPercent = isSingleField ? .6f : 1;
+        auto sizeInPercent = isSingleField ? .6f : 1;
+        if (propType == PropertyType::ENUM) sizeInPercent -= .4f;
         createdElement->setSizePercentPermanent({sizeInPercent, -1});
         if (isSimpleProp)
         {

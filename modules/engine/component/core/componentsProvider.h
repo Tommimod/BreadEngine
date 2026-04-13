@@ -52,9 +52,33 @@ namespace BreadEngine {
             return GetComponentID(std::type_index(typeid(T)));
         }
 
+        static void addDynamic(const unsigned int ownerId, const std::string &componentType)
+        {
+            const auto *entry = ComponentRegistry::getEntry(componentType);
+            if (!entry)
+            {
+                throw std::runtime_error("Unable to add dynamic component");
+            }
+
+            auto comp = entry->compCreator();
+            comp->setOwner(NodeProvider::getNode(ownerId));
+
+            auto &chunks = getChunks();
+            auto ti = entry->ti;
+            auto it = chunks.find(ti);
+            if (it == chunks.end())
+            {
+                chunks.emplace(ti, entry->chunkCreator());
+                it = chunks.find(ti);
+            }
+
+            auto &baseChunk = *it->second;
+            baseChunk.addComponent(ownerId, std::move(comp), true);
+        }
+
         static void addDynamic(const unsigned int ownerId, const std::string &componentType, const YAML::Node &node)
         {
-            const auto *entry = ComponentRegistry::GetEntry(componentType);
+            const auto *entry = ComponentRegistry::getEntry(componentType);
             if (!entry)
             {
                 throw std::runtime_error("Unable to add dynamic component");

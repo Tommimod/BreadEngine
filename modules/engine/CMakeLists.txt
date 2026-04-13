@@ -13,6 +13,13 @@ FetchContent_Declare(
         GIT_TAG v1.0.4
 )
 FetchContent_MakeAvailable(cpptrace)
+
+FetchContent_Declare(
+        magic_enum
+        GIT_REPOSITORY https://github.com/Neargye/magic_enum.git
+        GIT_TAG v0.9.7
+)
+FetchContent_MakeAvailable(magic_enum)
 if (TARGET dwarf)
     target_compile_definitions(dwarf PRIVATE
             PACKAGE_VERSION="2.1.0"
@@ -66,11 +73,6 @@ set(PUGIXML_HEADERS
         ${CMAKE_SOURCE_DIR}/lib/pugixml/pugiconfig.hpp
 )
 
-# Add Clay renderer
-set(CLAY_SOURCES
-        ${CMAKE_SOURCE_DIR}/lib/engine/clay_renderer_raylib.c
-)
-
 # Add external library headers for CLion IntelliSense
 file(GLOB RAYLIB_HEADERS
         ${CMAKE_SOURCE_DIR}/lib/engine/*.h
@@ -91,7 +93,6 @@ add_library(BreadEngine STATIC
         ${ENGINE_INLINES}
         ${PUGIXML_SOURCES}
         ${PUGIXML_HEADERS}
-        ${CLAY_SOURCES}
         ${RAYLIB_HEADERS}
 )
 
@@ -129,6 +130,7 @@ target_link_libraries(BreadEngine PUBLIC
         yaml-cpp::yaml-cpp
         cpptrace::cpptrace
         Tracy::TracyClient
+        magic_enum::magic_enum
 )
 
 if (TARGET cpptrace)
@@ -165,7 +167,6 @@ source_group("Engine Core" FILES ${ENGINE_SOURCES} ${ENGINE_HEADERS} ${ENGINE_IN
 source_group("Engine\\Component" REGULAR_EXPRESSION "component/.*")
 source_group("Engine\\UI" REGULAR_EXPRESSION "ui/.*")
 source_group("External\\PugiXML" FILES ${PUGIXML_SOURCES} ${PUGIXML_HEADERS})
-source_group("External\\Clay" FILES ${CLAY_SOURCES})
 source_group("External\\Raylib" FILES ${RAYLIB_HEADERS})
 
 message(STATUS "BreadEngine library configured")

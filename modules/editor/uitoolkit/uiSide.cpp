@@ -87,7 +87,7 @@ namespace BreadEditor {
         _topPanel->setSizePercentPermanent({1, -1});
         _topPanel->setSize({-1, 18});
         _topPanel->setIgnoreScrollLayout();
-        _topPanel->setOnOverlayLayer();
+        _topPanel->enableOverlayLayer();
         _topPanel->computeBounds();
 
         const auto addSlotButton = &UiPool::labelButtonPool.get().setup(id + "_addSlotButton", _topPanel, GuiIconText(ICON_BURGER_MENU, nullptr));
@@ -106,7 +106,7 @@ namespace BreadEditor {
             dropdown->setSize({80, 15});
             dropdown->setPosition({-5, 0});
             dropdown->setTextAlignment(TEXT_ALIGN_LEFT);
-            dropdown->setOnOverlayLayer();
+            dropdown->enableOverlayLayer();
             dropdown->onOptionSelected.subscribe([this, dropdown, &model, windowsNames, button](const int value)
             {
                 button->destroyChild(dropdown);

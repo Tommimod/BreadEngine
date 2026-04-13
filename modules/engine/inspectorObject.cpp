@@ -1,4 +1,4 @@
-﻿#include "inspectorObject.h"
+#include "inspectorObject.h"
 #include <cxxabi.h>
 
 #include "tracy/Tracy.hpp"
@@ -168,7 +168,7 @@ namespace BreadEngine {
                 n["a"] = c.a;
                 return n;
             }
-            case PropertyType::ENUM: return YAML::Node(static_cast<int>(std::any_cast<uint8_t>(val)));
+            case PropertyType::ENUM: return YAML::Node(std::any_cast<int>(val));
             case PropertyType::INSPECTOR_STRUCT:
             {
                 auto *strct = std::any_cast<InspectorStruct *>(val);
@@ -238,7 +238,7 @@ namespace BreadEngine {
                             seq.push_back(nn);
                             break;
                         }
-                        case PropertyType::ENUM: seq.push_back(static_cast<int>(std::any_cast<uint8_t>(subval)));
+                        case PropertyType::ENUM: seq.push_back(std::any_cast<int>(subval));
                             break;
                         case PropertyType::INSPECTOR_STRUCT: seq.push_back(std::any_cast<InspectorStruct *>(subval)->serialize());
                             break;
@@ -294,7 +294,7 @@ namespace BreadEngine {
                 c.a = n["a"].as<unsigned char>();
                 return Property::VariantT{c};
             }
-            case PropertyType::ENUM: return Property::VariantT{static_cast<uint8_t>(n.as<int>())};
+            case PropertyType::ENUM: return Property::VariantT{n.as<int>()};
             default: throw std::runtime_error("Unsupported property type for deserialization");
         }
     }
