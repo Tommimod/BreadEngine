@@ -310,9 +310,36 @@ namespace BreadEditor {
         {
             //TODO
         }
+        else if (propType == PropertyType::NODE_LINK)
+        {
+            // TODO: UI for node/component link assignment
+            // For now just a placeholder - user will implement UI element later
+            if (isSimpleProp)
+            {
+                auto getFunc = [inspectorStruct, property]
+                {
+                    return std::any_cast<Component *>(property.get(inspectorStruct));
+                };
+
+                createdElement = &UiPool::nodeLinkPool.get().setup(TextFormat("Link %s%i", property.name.c_str(), depth), this, std::move(getFunc));
+            }
+            else
+            {
+                auto getFunc = [vectorAccessor, vectorIndex]
+                {
+                    return std::any_cast<Component *>(vectorAccessor->get(vectorIndex));
+                };
+
+                createdElement = &UiPool::nodeLinkPool.get().setup(TextFormat("Link %s%i", property.name.c_str(), depth), this, std::move(getFunc));
+            }
+            const auto element = dynamic_cast<UiNodeLink *>(createdElement);
+            element->onValueChanged.subscribe([inspectorStruct, property](Component *value)
+            {
+                property.set(inspectorStruct, value);
+            });
+        }
         else if (propType == PropertyType::ENUM)
         {
-            isSingleField = false;
             auto enumNames = property.getEnumNames();
             if (enumNames.empty())
             {
@@ -450,7 +477,6 @@ namespace BreadEditor {
         createdElement->setAnchor(UI_LEFT_TOP);
         createdElement->setSize({0, heightSize});
         auto sizeInPercent = isSingleField ? .6f : 1;
-        if (propType == PropertyType::ENUM) sizeInPercent -= .4f;
         createdElement->setSizePercentPermanent({sizeInPercent, -1});
         if (isSimpleProp)
         {

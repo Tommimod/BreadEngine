@@ -10,6 +10,7 @@
 #include "uiDropdown.h"
 #include "uiEmpty.h"
 #include "uiLabel.h"
+#include "uiNodeLink.h"
 #include "uiNumberBox.h"
 #include "uiScrollPanel.h"
 #include "uiTextBox.h"
@@ -46,5 +47,6 @@ namespace BreadEditor {
         static ObjectPool<FileUiElement> fileUiElementPool;
         static ObjectPool<RenameUiElement> renameUiElementPool;
         static ObjectPool<MessageUiElement> messageUiElementPool;
+        static ObjectPool<UiNodeLink> nodeLinkPool;
     };
 } // BreadEditor

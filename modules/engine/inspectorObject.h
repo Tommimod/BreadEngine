@@ -13,7 +13,7 @@
 namespace BreadEngine {
     struct InspectorStruct;
 
-    enum class PropertyType : uint8_t { INSPECTOR_STRUCT, INT, FLOAT, LONG, BOOL, STRING, VECTOR2, VECTOR3, VECTOR4, COLOR, ENUM, VECTOR_L };
+    enum class PropertyType : uint8_t { INSPECTOR_STRUCT, INT, FLOAT, LONG, BOOL, STRING, VECTOR2, VECTOR3, VECTOR4, COLOR, ENUM, VECTOR_L, NODE_LINK };
 
     template<typename T>
     struct DeducePropertyType
@@ -102,6 +102,25 @@ namespace BreadEngine {
         static constexpr PropertyType value = []() constexpr
         {
             return PropertyType::VECTOR_L;
+        }();
+    };
+
+    struct Component;
+
+    template<typename T>
+    struct DeducePropertyType<T*>
+    {
+        static constexpr PropertyType value = []() constexpr
+        {
+            if constexpr (std::is_base_of_v<Component, T>)
+            {
+                return PropertyType::NODE_LINK;
+            }
+            else
+            {
+                static_assert(false, "Unsupported pointer type for inspector property");
+                return PropertyType{};
+            }
         }();
     };
 
@@ -371,6 +390,26 @@ namespace BreadEngine {
                         return Property::VariantT{static_cast<std::underlying_type_t<FieldType>>(enumValue.value())};
                     return Property::VariantT{};
                 }
+            });
+        }
+        else if constexpr (ptype == PropertyType::NODE_LINK)
+        {
+            props.emplace_back(Property{
+                .guid = InspectorStruct::getNewGUID(),
+                .name = std::string(fieldName),
+                .type = ptype,
+                .get = [memberPtr](const InspectorStruct *comp) -> Property::VariantT
+                {
+                    const auto *obj = static_cast<const LocalClass *>(comp);
+                    Component* value = obj->*memberPtr;
+                    return Property::VariantT{value};
+                },
+                .set = [memberPtr](InspectorStruct *comp, const Property::VariantT &value)
+                {
+                    auto *obj = static_cast<LocalClass *>(comp);
+                    obj->*memberPtr = std::any_cast<FieldType>(value);
+                },
+                .toStr = {}
             });
         }
         else

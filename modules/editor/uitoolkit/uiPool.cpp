@@ -121,4 +121,10 @@ namespace BreadEditor {
         return new MessageUiElement();
     };
     ObjectPool<MessageUiElement> UiPool::messageUiElementPool(MessageUiElementFactory, 1);
+
+    auto UiNodeLinkFactory = []() -> UiNodeLink *
+    {
+        return new UiNodeLink();
+    };
+    ObjectPool<UiNodeLink> UiPool::nodeLinkPool(UiNodeLinkFactory, 1);
 } // BreadEditor

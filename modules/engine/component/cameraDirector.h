@@ -6,7 +6,7 @@
 namespace BreadEngine {
     struct CameraDirector final : Component
     {
-        Camera &getActiveCamera() const;
+        [[nodiscard]] Camera &getActiveCamera() const;
 
         void transitionToCamera(int cameraId);
 
@@ -17,6 +17,7 @@ namespace BreadEngine {
         Camera *_activeCamera = nullptr;
 
         INSPECTOR_BEGIN(CameraDirector)
+            INSPECT_FIELD(_activeCamera)
         INSPECTOR_END()
     };
 } // BreadEngine

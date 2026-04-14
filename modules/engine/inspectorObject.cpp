@@ -1,6 +1,8 @@
 #include "inspectorObject.h"
 #include <cxxabi.h>
 
+#include "node.h"
+#include "core/component.h"
 #include "tracy/Tracy.hpp"
 
 namespace BreadEngine {
@@ -174,6 +176,19 @@ namespace BreadEngine {
                 auto *strct = std::any_cast<InspectorStruct *>(val);
                 return strct->serialize();
             }
+            case PropertyType::NODE_LINK:
+            {
+                auto *comp = std::any_cast<Component *>(val);
+                if (comp && comp->getOwner())
+                {
+                    YAML::Node n;
+                    n["nodeId"] = comp->getOwner()->getId();
+                    n["type"] = comp->getTypeName();
+                    return n;
+                }
+
+                return YAML::Node(0);
+            }
             case PropertyType::VECTOR_L:
             {
                 auto acc = std::any_cast<std::shared_ptr<VectorAccessor> >(val);
@@ -295,6 +310,22 @@ namespace BreadEngine {
                 return Property::VariantT{c};
             }
             case PropertyType::ENUM: return Property::VariantT{n.as<int>()};
+            case PropertyType::NODE_LINK:
+            {
+                const auto id = n["nodeId"].as<unsigned int>();
+                const auto requestedType = n["type"].as<std::string>();
+                const auto allComps = ComponentsProvider::getAllComponents(id);
+                Component *comp = nullptr;
+                for (const auto c: allComps)
+                {
+                    if (c->getTypeName() == requestedType)
+                    {
+                        comp = c;
+                        break;
+                    }
+                }
+                return Property::VariantT{comp};
+            }
             default: throw std::runtime_error("Unsupported property type for deserialization");
         }
     }
