@@ -9,6 +9,7 @@ namespace BreadEditor {
     {
         std::string LastProjectPath;
         std::string LastOpenedNodePath;
+        std::string EditorThemeName = "darkred.rgs";
 
         EditorPrefsConfig();
 
@@ -38,8 +39,10 @@ namespace YAML {
             Node node;
             const auto projectPathName = NAMEOF(rhs.LastProjectPath).c_str();
             const auto openedNodeName = NAMEOF(rhs.LastOpenedNodePath).c_str();
+            const auto editorThemeName = NAMEOF(rhs.EditorThemeName).c_str();
             node[projectPathName] = rhs.LastProjectPath;
             node[openedNodeName] = rhs.LastOpenedNodePath;
+            node[editorThemeName] = rhs.EditorThemeName;
             return node;
         }
 
@@ -47,8 +50,10 @@ namespace YAML {
         {
             const auto projectPathName = NAMEOF(rhs.LastProjectPath).c_str();
             const auto openedNodeName = NAMEOF(rhs.LastOpenedNodePath).c_str();
+            const auto editorThemeName = NAMEOF(rhs.EditorThemeName).c_str();
             rhs.LastProjectPath = node[projectPathName].as<std::string>();
             rhs.LastOpenedNodePath = node[openedNodeName].as<std::string>();
+            rhs.EditorThemeName = node[editorThemeName].as<std::string>();
             return true;
         }
     };

@@ -29,9 +29,9 @@ namespace BreadEngine {
 
         static bool shouldClose();
 
-        void beginFrame(float deltaTime) const;
+        void update(float deltaTime) const;
 
-        void endFrame(float deltaTime) const;
+        void onFrameEnd(float deltaTime) const;
 
         void loadGameModule(const char *path);
 

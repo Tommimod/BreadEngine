@@ -1,4 +1,6 @@
 ﻿#pragma once
+#include <string>
+
 #include "raygui.h"
 
 namespace BreadEditor {
@@ -49,5 +51,6 @@ namespace BreadEditor {
         static int _lastGlobalTextWrapMode;
 
         static void loadFont();
+        static void loadStyle(const std::string &themeName);
     };
 } // BreadEditor

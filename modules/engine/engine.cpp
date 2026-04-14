@@ -63,7 +63,7 @@ namespace BreadEngine {
         return WindowShouldClose();
     }
 
-    void Engine::beginFrame(float deltaTime) const
+    void Engine::update(const float deltaTime) const
     {
         ZoneScoped;
         BeginDrawing();
@@ -77,7 +77,7 @@ namespace BreadEngine {
         _systems.update(getDeltaTime());
     }
 
-    void Engine::endFrame(float deltaTime) const
+    void Engine::onFrameEnd(float deltaTime) const
     {
         ZoneScoped;
         EndDrawing();

@@ -2,7 +2,6 @@
 #include "windows/mainWindow.h"
 #include <string>
 #include <memory>
-#include "editorStyle.h"
 #include "configs/infrastructure/configsProvider.h"
 #include "models/editorModel.h"
 #include "systems/cameraSystem.h"
@@ -25,6 +24,8 @@ namespace BreadEditor {
         bool initialize();
 
         void shutdown();
+
+        void callLoop(RenderTexture2D &renderTexture);
 
         void update(float deltaTime);
 
@@ -76,13 +77,14 @@ namespace BreadEditor {
         bool _initialized = false;
         RenderTexture2D *_viewportRenderTexture = nullptr;
         UiElement &_uiRoot;
-        Camera3D _camera;
+        Camera3D _camera{};
 
         EditorModel _editorModel;
         ConfigsProvider _configsProvider;
         CameraSystem _cameraSystem;
 
         static void processInput();
+
         void setupDefaultCamera();
     };
 } // namespace BreadEditor

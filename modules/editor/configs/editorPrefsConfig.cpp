@@ -34,7 +34,8 @@ namespace BreadEditor {
         if (rawConfig.IsNull())
         {
             LastProjectPath = TextFormat("%s\\%s", GetWorkingDirectory(), "assets\\game");
-            LastOpenedNodePath = LastProjectPath + "\\" + "Root" + ReservedFileNames::MARKER_NODE;
+            LastOpenedNodePath = LastProjectPath + "\\" + "Root" + BreadEngine::ReservedFileNames::MARKER_NODE;
+            EditorThemeName = "darkred.rgs";
             serializeConfig();
             deserializeConfig();
             return;

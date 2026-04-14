@@ -22,32 +22,7 @@ int main()
 
     while (!Engine::shouldClose())
     {
-        const auto nextWidth = static_cast<int>(viewportWindow.getViewportSize().width);
-        const auto nextHeight = static_cast<int>(viewportWindow.getViewportSize().height);
-        if (nextWidth != renderTexture.texture.width || nextHeight != renderTexture.texture.height)
-        {
-            UnloadRenderTexture(renderTexture);
-            renderTexture = LoadRenderTexture(nextWidth, nextHeight);
-        }
-
-        const auto deltaTime = editor.isPaused() ? 0 : Engine::getDeltaTime();
-        editor.update(deltaTime);
-
-        BeginTextureMode(renderTexture); // drawing 3D game to viewport
-        ClearBackground(RAYWHITE);
-
-        BeginMode3D(editor.getCamera());
-        DrawGrid(1000, 1.0f);
-        engine.callGameRender3D(deltaTime);
-        editor.render3D(deltaTime);
-        EndMode3D();
-
-        engine.callGameRender2D(deltaTime);
-        EndTextureMode(); // end 3D of viewport
-
-        engine.beginFrame(deltaTime);
-        editor.render2D(renderTexture, deltaTime); // drawing editor UI
-        engine.endFrame(deltaTime);
+        editor.callLoop(renderTexture);
     }
 
     editor.shutdown();

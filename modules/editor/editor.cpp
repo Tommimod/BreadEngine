@@ -33,6 +33,7 @@ namespace BreadEditor {
 
         GuiLoadStyleDefault();
         EditorStyle::loadFont();
+        // EditorStyle::loadStyle(_configsProvider.getEditorPrefsConfig()->EditorThemeName); //TODO Setup editor theme
         SetTraceLogLevel(LOG_ALL);
         setupDefaultCamera();
 
@@ -52,6 +53,40 @@ namespace BreadEditor {
 
         closeProject();
         _initialized = false;
+    }
+
+    void Editor::callLoop(RenderTexture2D &renderTexture)
+    {
+        const Engine &engine = Engine::getInstance();
+        const auto &viewportWindow = mainWindow.getViewportWindow();
+        const auto nextWidth = static_cast<int>(viewportWindow.getViewportSize().width);
+        const auto nextHeight = static_cast<int>(viewportWindow.getViewportSize().height);
+        if (nextWidth != renderTexture.texture.width || nextHeight != renderTexture.texture.height)
+        {
+            UnloadRenderTexture(renderTexture);
+            renderTexture = LoadRenderTexture(nextWidth, nextHeight);
+        }
+
+        const auto deltaTime = isPaused() ? 0 : Engine::getDeltaTime();
+        update(deltaTime);
+
+        BeginTextureMode(renderTexture); // drawing 3D game to viewport
+        ClearBackground(RAYWHITE);
+
+        BeginMode3D(getCamera()); //TODO select camera from game mode
+        DrawGrid(1000, 1.0f);
+        engine.callGameRender3D(deltaTime);
+        render3D(deltaTime);
+        EndMode3D();
+
+        engine.callGameRender2D(deltaTime);
+        EndTextureMode(); // end 3D of viewport
+
+        if (isPlayMode()) engine.update(deltaTime);
+        else BeginDrawing();
+        render2D(renderTexture, deltaTime); // drawing editor UI
+        if (isPlayMode()) engine.onFrameEnd(deltaTime);
+        else EndDrawing();
     }
 
     void Editor::update(const float deltaTime)

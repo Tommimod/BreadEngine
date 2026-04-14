@@ -5,10 +5,8 @@
 #include "raymath.h"
 #include "tracy/Tracy.hpp"
 
-#define PI 3.141592653589793f
-
 namespace BreadEditor {
-    CameraSystem::CameraSystem() : _camera(Editor::getInstance().getCamera())
+    CameraSystem::CameraSystem()
     {
         _yaw = PI;
         _pitch = -PI / 4.0f;
@@ -22,6 +20,7 @@ namespace BreadEditor {
         tryPrepare();
         if (IsMouseButtonDown(MOUSE_BUTTON_RIGHT) && _isPrepared)
         {
+            auto &editorCamera = Editor::getInstance().getCamera();
             CursorSystem::setCursor(MOUSE_CURSOR_CROSSHAIR);
             const auto mouseDelta = GetMouseDelta();
 
@@ -33,10 +32,10 @@ namespace BreadEditor {
             direction.x = cosf(_pitch) * cosf(_yaw);
             direction.y = sinf(_pitch);
             direction.z = cosf(_pitch) * sinf(_yaw);
-            _camera.target = Vector3Add(_camera.position, direction);
+            editorCamera.target = Vector3Add(editorCamera.position, direction);
 
-            const auto forward = Vector3Normalize(Vector3Subtract(_camera.target, _camera.position));
-            const auto right = Vector3CrossProduct(forward, _camera.up);
+            const auto forward = Vector3Normalize(Vector3Subtract(editorCamera.target, editorCamera.position));
+            const auto right = Vector3CrossProduct(forward, editorCamera.up);
             Vector3 move = {0.0f, 0.0f, 0.0f};
 
             if (IsKeyDown(KEY_W)) move = Vector3Add(move, forward);
@@ -48,8 +47,8 @@ namespace BreadEditor {
             {
                 move = Vector3Normalize(move);
                 move = Vector3Scale(move, _moveSpeed * deltaTime);
-                _camera.position = Vector3Add(_camera.position, move);
-                _camera.target = Vector3Add(_camera.target, move);
+                editorCamera.position = Vector3Add(editorCamera.position, move);
+                editorCamera.target = Vector3Add(editorCamera.target, move);
             }
         }
     }
@@ -64,8 +63,8 @@ namespace BreadEditor {
             return;
         }
 
-        const auto size = viewportWindow->getViewportSize();
-        if (IsMouseButtonPressed(MOUSE_BUTTON_RIGHT) && Engine::isCollisionPointRec(GetMousePosition(), size))
+        if (const auto size = viewportWindow->getViewportSize();
+            IsMouseButtonPressed(MOUSE_BUTTON_RIGHT) && Engine::isCollisionPointRec(GetMousePosition(), size))
         {
             _isPrepared = true;
         }

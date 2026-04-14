@@ -16,7 +16,7 @@ int main()
     while (!BreadEngine::Engine::shouldClose())
     {
         const auto deltaTime = BreadEngine::Engine::getDeltaTime();
-        engine.beginFrame(deltaTime);
+        engine.update(deltaTime);
         Game_Update(deltaTime);
 
         ClearBackground(RAYWHITE);
@@ -29,7 +29,7 @@ int main()
         Game_Render3D(deltaTime);
         EndMode3D();
 
-        engine.endFrame(deltaTime);
+        engine.onFrameEnd(deltaTime);
     }
 
     Game_Shutdown();

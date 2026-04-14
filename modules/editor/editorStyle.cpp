@@ -115,4 +115,11 @@ namespace BreadEditor {
         _lastFontSize = static_cast<int>(FontSize::Medium);
         GuiSetFont(_fontMedium);
     }
+
+    void EditorStyle::loadStyle(const std::string &themeName)
+    {
+        ZoneScoped;
+        const auto path = TextFormat("%s/%s%s", GetApplicationDirectory(), R"(assets\editor\styles\)", themeName.c_str());
+        GuiLoadStyle(path);
+    }
 } // BreadEditor
