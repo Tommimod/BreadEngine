@@ -6,6 +6,12 @@ namespace BreadEditor {
     class ViewportWindow final : public UiWindow
     {
     public:
+        enum ViewportMode
+        {
+            Scene,
+            Game
+        };
+
         static std::string Id;
 
         explicit ViewportWindow(const std::string_view &id);
@@ -32,18 +38,14 @@ namespace BreadEditor {
 
         [[nodiscard]] Rectangle getViewportSize() const;
 
+        [[nodiscard]] ViewportMode getMode() const { return _mode; }
+
     protected:
         void subscribe() override;
 
         void unsubscribe() override;
 
     private:
-        enum ViewportMode
-        {
-            Scene,
-            Game
-        };
-
         Vector2 _mousePosition{0, 0};
         const char *_title = Id.c_str();
         ViewportMode _mode = Scene;

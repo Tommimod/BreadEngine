@@ -9,9 +9,12 @@ namespace BreadEngine {
 
         virtual ~SystemBase() = default;
 
-        [[nodiscard]] virtual bool isInitializable() const { return false; }
-        [[nodiscard]] virtual bool isUpdatable() const { return false; }
+        [[nodiscard]] virtual bool isInitialize() const { return false; }
+        [[nodiscard]] virtual bool isUpdate() const { return false; }
+        [[nodiscard]] virtual bool isFixedUpdate() const { return false; }
+        [[nodiscard]] virtual bool isStartOnFrame() const { return false; }
         [[nodiscard]] virtual bool isEndOnFrame() const { return false; }
-        [[nodiscard]] virtual bool isValid(Node &node) { return true; }
+
+        [[nodiscard]] virtual bool isValid(Node &node);
     };
 } // BreadEngine

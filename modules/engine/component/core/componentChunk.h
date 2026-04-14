@@ -90,7 +90,7 @@ namespace BreadEngine {
             const int id = _ownerIdToIndex[ownerId];
             _freeSlots.push_back(id);
             _ownerIds[id] = -1;
-            _components[id].destroy();
+            _components[id].onDestroy();
             _components[id] = T{};
             _ownerIdToIndex.erase(ownerId);
         }
@@ -129,17 +129,15 @@ namespace BreadEngine {
             _freeSlots.erase(_freeSlots.begin());
             _ownerIds[index] = ownerId;
             _ownerIdToIndex.emplace(ownerId, index);
-            auto c = &_components[index];
-            c->setOwner(NodeProvider::getNode(ownerId));
-            c->init();
+            auto component = &_components[index];
+            component->setOwner(NodeProvider::getNode(ownerId));
             return _components[index];
         }
 
         _ownerIds[_size] = ownerId;
         _ownerIdToIndex.emplace(ownerId, _size);
-        auto c = &_components[_size];
-        c->setOwner(NodeProvider::getNode(ownerId));
-        c->init();
+        auto component = &_components[_size];
+        component->setOwner(NodeProvider::getNode(ownerId));
         return _components[_size++];
     }
 

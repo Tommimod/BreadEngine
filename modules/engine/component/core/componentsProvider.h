@@ -86,6 +86,7 @@ namespace BreadEngine {
 
             auto comp = entry->compCreator();
             comp->deserialize(node);
+            comp->setOwner(NodeProvider::getNode(ownerId));
 
             auto &chunks = getChunks();
             auto ti = entry->ti;

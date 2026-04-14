@@ -1,19 +1,29 @@
 ﻿#include "updateSystem.h"
 
 namespace BreadEngine {
+    bool UpdateSystem::isValid(Node &node)
+    {
+        _isValidLogicEnabled = false;
+        return SystemBase::isValid(node);
+    }
+
     void UpdateSystem::update(const std::vector<Node *> &nodes, float deltaTime)
     {
     }
 
-    void UpdateSystem::updateInternal(float deltaTime)
+    void UpdateSystem::updateInternal(const float deltaTime)
     {
-        _sortedNodes.clear();
-        for (auto &allNodes = NodeProvider::getAllNodes(); auto node: allNodes)
+        if (_isValidLogicEnabled)
         {
-            if (!isValid(*node)) continue;
-            _sortedNodes.emplace_back(node);
-        }
+            _sortedNodes.clear();
+            for (auto &allNodes = NodeProvider::getAllNodes(); auto node: allNodes)
+            {
+                if (!isValid(*node)) continue;
+                _sortedNodes.emplace_back(node);
+            }
 
-        update(_sortedNodes, deltaTime);
+            update(_sortedNodes, deltaTime);
+        }
+        else update(NodeProvider::getAllNodes(), deltaTime);
     }
 } // BreadEngine

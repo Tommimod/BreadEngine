@@ -14,11 +14,7 @@ namespace BreadEngine {
 
     Component::~Component() = default;
 
-    void Component::init()
-    {
-    }
-
-    void Component::start()
+    void Component::initialize()
     {
     }
 
@@ -38,7 +34,7 @@ namespace BreadEngine {
     {
     }
 
-    void Component::destroy()
+    void Component::onDestroy()
     {
     }
 

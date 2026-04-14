@@ -1,8 +1,9 @@
 IsActive: true
-Id: 0
+Id: 1
 Name: Root
 ParentId: 2147483647
 Components:
+  - ComponentType: CameraDirector
   - ComponentType: Transform
     _localPosition:
       x: 0
@@ -19,9 +20,9 @@ Components:
       z: 1
 Childs:
   - IsActive: true
-    Id: 1
+    Id: 2
     Name: Camera
-    ParentId: 0
+    ParentId: 1
     Components:
       - ComponentType: Camera
         _projection: 0

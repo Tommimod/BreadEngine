@@ -21,12 +21,12 @@ int main()
 
         ClearBackground(RAYWHITE);
 
-        Game_Render2D(deltaTime);
+        Game_Render2DStart(deltaTime);
         DrawFPS(10, 10);
 
         BeginMode3D(engine.getCamera());
         DrawGrid(10, 1.0f);
-        Game_Render3D(deltaTime);
+        Game_Render3DStart(deltaTime);
         EndMode3D();
 
         engine.onFrameEnd(deltaTime);

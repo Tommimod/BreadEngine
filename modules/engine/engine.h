@@ -31,15 +31,15 @@ namespace BreadEngine {
 
         void update(float deltaTime) const;
 
+        void fixedUpdate(float fixedDeltaTime) const;
+
+        void onFrameStart(float deltaTime) const;
+
         void onFrameEnd(float deltaTime) const;
 
         void loadGameModule(const char *path);
 
         void unloadGameModule();
-
-        void callGameRender2D(float deltaTime) const;
-
-        void callGameRender3D(float deltaTime) const;
 
         // Check if point is inside rectangle
         static bool isCollisionPointRec(Vector2 point, Rectangle rec);
@@ -60,16 +60,25 @@ namespace BreadEngine {
 
         typedef void (*GameUpdateFunc)(float deltaTime);
 
-        typedef void (*GameRender2DFunc)(float deltaTime);
+        typedef void (*FixedUpdateFunc)(float fixedDeltaTime);
 
-        typedef void (*GameRender3DFunc)(float deltaTime);
+        typedef void (*GameRender2DStartFunc)(float deltaTime);
+
+        typedef void (*GameRender3DStartFunc)(float deltaTime);
+
+        typedef void (*GameRender2DEndFunc)(float deltaTime);
+
+        typedef void (*GameRender3DEndFunc)(float deltaTime);
 
         typedef void (*GameShutdownFunc)();
 
         GameInitFunc _gameInit = nullptr;
         GameUpdateFunc _gameUpdate = nullptr;
-        GameRender2DFunc _gameRender2D = nullptr;
-        GameRender3DFunc _gameRender3D = nullptr;
+        FixedUpdateFunc _fixedUpdateFunc = nullptr;
+        GameRender2DStartFunc _gameRender2DStart = nullptr;
+        GameRender3DStartFunc _gameRender3DStart = nullptr;
+        GameRender2DEndFunc _gameRender2DEnd = nullptr;
+        GameRender3DEndFunc _gameRender3DEnd = nullptr;
         GameShutdownFunc _gameShutdown = nullptr;
 
         void initializeSystems();

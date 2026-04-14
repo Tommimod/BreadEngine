@@ -25,7 +25,12 @@ void Game_Update(float deltaTime)
     cubePosition.x = sinf(GetTime() * 50) * deltaTime;
 }
 
-void Game_Render2D(float deltaTime)
+void Game_FixedUpdate(float fixedDeltaTime)
+{
+    if (!gameInitialized) return;
+}
+
+void Game_Render2DStart(float deltaTime)
 {
     if (!gameInitialized) return;
 
@@ -41,12 +46,22 @@ void Game_Render2D(float deltaTime)
     DrawText(speedText, 10, 130, 16, GREEN);
 }
 
-void Game_Render3D(float deltaTime)
+void Game_Render3DStart(float deltaTime)
 {
     if (!gameInitialized) return;
 
     DrawCube(cubePosition, 2.0f, 2.0f, 2.0f, RED);
     DrawCubeWires(cubePosition, 2.0f, 2.0f, 2.0f, MAROON);
+}
+
+void Game_Render2DEnd(float deltaTime)
+{
+    if (!gameInitialized) return;
+}
+
+void Game_Render3DEnd(float deltaTime)
+{
+    if (!gameInitialized) return;
 }
 
 void Game_Shutdown()

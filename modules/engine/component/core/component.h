@@ -14,9 +14,7 @@ namespace BreadEngine {
 
         ~Component() override;
 
-        virtual void init();
-
-        virtual void start();
+        virtual void initialize();
 
         virtual void update(float deltaTime);
 
@@ -26,7 +24,7 @@ namespace BreadEngine {
 
         virtual void onFrameEnd(float deltaTime);
 
-        virtual void destroy();
+        virtual void onDestroy();
 
         [[nodiscard]] virtual std::string toString() const;
 

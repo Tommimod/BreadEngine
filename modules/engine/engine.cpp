@@ -3,6 +3,9 @@
 #include <fstream>
 #include "nodeProvider.h"
 #include <r3d.h>
+
+#include "systems/cameraDirectorSystem.h"
+#include "systems/nodeSystem.h"
 #include "tracy/Tracy.hpp"
 
 namespace BreadEngine {
@@ -15,6 +18,8 @@ namespace BreadEngine {
 
     void Engine::initializeSystems()
     {
+        _systems.addSystem<NodeSystem>()
+                .addSystem<CameraDirectorSystem>();
     }
 
     Engine::Engine() = default;
@@ -46,7 +51,6 @@ namespace BreadEngine {
         NodeProvider::init();
         initializeSystems();
 
-        _systems.initialize();
         return true;
     }
 
@@ -66,22 +70,46 @@ namespace BreadEngine {
     void Engine::update(const float deltaTime) const
     {
         ZoneScoped;
-        BeginDrawing();
 
-        // Call game logic update if loaded
         if (_gameUpdate)
         {
+            _systems.update(deltaTime);
             _gameUpdate(deltaTime);
         }
-
-        _systems.update(getDeltaTime());
     }
 
-    void Engine::onFrameEnd(float deltaTime) const
+    void Engine::fixedUpdate(const float fixedDeltaTime) const
     {
         ZoneScoped;
-        EndDrawing();
-        _systems.endFrame(getDeltaTime());
+
+        if (_fixedUpdateFunc)
+        {
+            _systems.fixedUpdate(fixedDeltaTime);
+            _fixedUpdateFunc(fixedDeltaTime);
+        }
+    }
+
+    void Engine::onFrameStart(const float deltaTime) const
+    {
+        ZoneScoped;
+        if (_gameRender3DStart && _gameRender2DStart)
+        {
+            _systems.startFrame(deltaTime);
+            _gameRender3DStart(deltaTime);
+            _gameRender2DStart(deltaTime);
+        }
+    }
+
+    void Engine::onFrameEnd(const float deltaTime) const
+    {
+        ZoneScoped;
+
+        if (_gameRender3DEnd && _gameRender2DEnd)
+        {
+            _systems.endFrame(deltaTime);
+            _gameRender3DEnd(deltaTime);
+            _gameRender2DEnd(deltaTime);
+        }
         FrameMark;
     }
 
@@ -102,12 +130,16 @@ namespace BreadEngine {
         // Get function pointers
         _gameInit = (GameInitFunc) _gameModuleLoader->GetFunction("Game_Initialize");
         _gameUpdate = (GameUpdateFunc) _gameModuleLoader->GetFunction("Game_Update");
-        _gameRender2D = (GameRender2DFunc) _gameModuleLoader->GetFunction("Game_Render2D");
-        _gameRender3D = (GameRender3DFunc) _gameModuleLoader->GetFunction("Game_Render3D");
+        _fixedUpdateFunc = (FixedUpdateFunc) _gameModuleLoader->GetFunction("Game_FixedUpdate");
+        _gameRender2DStart = (GameRender2DStartFunc) _gameModuleLoader->GetFunction("Game_Render2DStart");
+        _gameRender3DStart = (GameRender3DStartFunc) _gameModuleLoader->GetFunction("Game_Render3DStart");
+        _gameRender2DEnd = (GameRender2DEndFunc) _gameModuleLoader->GetFunction("Game_Render2DEnd");
+        _gameRender3DEnd = (GameRender3DEndFunc) _gameModuleLoader->GetFunction("Game_Render3DEnd");
         _gameShutdown = (GameShutdownFunc) _gameModuleLoader->GetFunction("Game_Shutdown");
 
         if (_gameInit)
         {
+            _systems.initialize();
             _gameInit();
         }
     }
@@ -120,11 +152,14 @@ namespace BreadEngine {
             return;
         }
 
-        GameShutdownFunc shutdownFunc = _gameShutdown;
+        const GameShutdownFunc shutdownFunc = _gameShutdown;
         _gameInit = nullptr;
         _gameUpdate = nullptr;
-        _gameRender2D = nullptr;
-        _gameRender3D = nullptr;
+        _fixedUpdateFunc = nullptr;
+        _gameRender2DStart = nullptr;
+        _gameRender3DStart = nullptr;
+        _gameRender2DEnd = nullptr;
+        _gameRender3DEnd = nullptr;
         _gameShutdown = nullptr;
 
         if (shutdownFunc)
@@ -133,31 +168,13 @@ namespace BreadEngine {
             shutdownFunc();
         }
 
-        ModuleLoader* loader = _gameModuleLoader;
+        ModuleLoader *loader = _gameModuleLoader;
         _gameModuleLoader = nullptr;
 
         Logger::LogInfo("Unloading game module...");
         loader->UnloadModule();
         delete loader;
         Logger::LogInfo("Game module unloaded.");
-    }
-
-    void Engine::callGameRender2D(float deltaTime) const
-    {
-        ZoneScoped;
-        if (_gameRender2D)
-        {
-            _gameRender2D(deltaTime);
-        }
-    }
-
-    void Engine::callGameRender3D(float deltaTime) const
-    {
-        ZoneScoped;
-        if (_gameRender3D)
-        {
-            _gameRender3D(deltaTime);
-        }
     }
 
     bool Engine::isCollisionPointRec(const Vector2 point, const Rectangle rec)

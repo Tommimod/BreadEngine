@@ -1,24 +1,23 @@
 ﻿#pragma once
-#include "node.h"
 #include "systemBase.h"
 
 namespace BreadEngine {
-    class InitializeSystem : public SystemBase
+    class StartFrameSystem : public SystemBase
     {
     public:
-        InitializeSystem() = default;
+        StartFrameSystem() = default;
 
-        [[nodiscard]] bool isInitialize() const override { return true; }
+        [[nodiscard]] bool isStartOnFrame() const override { return true; }
 
         [[nodiscard]] bool isValid(Node &node) override;
 
-        virtual void initialize(const std::vector<Node *> &nodes) = 0;
+        virtual void startFrame(const std::vector<Node *> &nodes, float deltaTime) = 0;
 
     private:
         friend class SystemsRegistry;
         std::vector<Node *> _sortedNodes;
         bool _isValidLogicEnabled = true;
 
-        void initializeInternal();
+        void startFrameInternal(float deltaTime);
     };
 } // BreadEngine

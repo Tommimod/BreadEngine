@@ -1,17 +1,17 @@
-﻿#include "endFrameSystem.h"
+﻿#include "startFrameSystem.h"
 
 namespace BreadEngine {
-    bool EndOfFrameSystem::isValid(Node &node)
+    bool StartFrameSystem::isValid(Node &node)
     {
         _isValidLogicEnabled = false;
         return SystemBase::isValid(node);
     }
 
-    void EndOfFrameSystem::endOnFrame(const std::vector<Node *> &nodes, float deltaTime)
+    void StartFrameSystem::startFrame(const std::vector<Node *> &nodes, float deltaTime)
     {
     }
 
-    void EndOfFrameSystem::endOfFrameInternal(const float deltaTime)
+    void StartFrameSystem::startFrameInternal(const float deltaTime)
     {
         if (_isValidLogicEnabled)
         {
@@ -22,8 +22,8 @@ namespace BreadEngine {
                 _sortedNodes.emplace_back(node);
             }
 
-            endOnFrame(_sortedNodes, deltaTime);
+            startFrame(_sortedNodes, deltaTime);
         }
-        else endOnFrame(NodeProvider::getAllNodes(), deltaTime);
+        else startFrame(NodeProvider::getAllNodes(), deltaTime);
     }
 } // BreadEngine

@@ -1,17 +1,17 @@
-﻿#include "endFrameSystem.h"
+﻿#include "fixedUpdateSystem.h"
 
 namespace BreadEngine {
-    bool EndOfFrameSystem::isValid(Node &node)
+    bool FixedUpdateSystem::isValid(Node &node)
     {
         _isValidLogicEnabled = false;
         return SystemBase::isValid(node);
     }
 
-    void EndOfFrameSystem::endOnFrame(const std::vector<Node *> &nodes, float deltaTime)
+    void FixedUpdateSystem::fixedUpdate(const std::vector<Node *> &nodes, float fixedDeltaTime)
     {
     }
 
-    void EndOfFrameSystem::endOfFrameInternal(const float deltaTime)
+    void FixedUpdateSystem::fixedUpdateInternal(const float fixedDeltaTime)
     {
         if (_isValidLogicEnabled)
         {
@@ -22,8 +22,8 @@ namespace BreadEngine {
                 _sortedNodes.emplace_back(node);
             }
 
-            endOnFrame(_sortedNodes, deltaTime);
+            fixedUpdate(_sortedNodes, fixedDeltaTime);
         }
-        else endOnFrame(NodeProvider::getAllNodes(), deltaTime);
+        else fixedUpdate(NodeProvider::getAllNodes(), fixedDeltaTime);
     }
 } // BreadEngine

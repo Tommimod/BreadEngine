@@ -3,17 +3,21 @@
 #include "systemBase.h"
 
 namespace BreadEngine {
-    class UpdateSystem : public SystemBase
+    class UpdateSystem : SystemBase
     {
     public:
         UpdateSystem() = default;
-        [[nodiscard]] bool isUpdatable() const override { return true; }
 
-        virtual void update(const std::vector<Node *> &nodes, float deltaTime);
+        [[nodiscard]] bool isUpdate() const override { return true; }
+
+        [[nodiscard]] bool isValid(Node &node) override;
+
+        virtual void update(const std::vector<Node *> &nodes, float deltaTime) = 0;
 
     private:
         friend class SystemsRegistry;
         std::vector<Node *> _sortedNodes;
+        bool _isValidLogicEnabled = true;
 
         void updateInternal(float deltaTime);
     };

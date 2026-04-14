@@ -17,6 +17,22 @@ namespace BreadEngine {
         }
     }
 
+    void SystemsRegistry::fixedUpdate(const float fixedDeltaTime) const noexcept
+    {
+        for (const auto &system: _fixedUpdateSystems)
+        {
+            system->fixedUpdateInternal(fixedDeltaTime);
+        }
+    }
+
+    void SystemsRegistry::startFrame(const float deltaTime) const noexcept
+    {
+        for (const auto &system: _startFrameSystems)
+        {
+            system->startFrameInternal(deltaTime);
+        }
+    }
+
     void SystemsRegistry::endFrame(const float deltaTime) const noexcept
     {
         for (const auto &system: _endFrameSystems)

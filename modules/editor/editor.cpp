@@ -68,25 +68,23 @@ namespace BreadEditor {
         }
 
         const auto deltaTime = isPaused() ? 0 : Engine::getDeltaTime();
+        engine.update(deltaTime);
         update(deltaTime);
 
         BeginTextureMode(renderTexture); // drawing 3D game to viewport
         ClearBackground(RAYWHITE);
-
+        const auto viewportMode = viewportWindow.getMode();
         BeginMode3D(getCamera()); //TODO select camera from game mode
-        DrawGrid(1000, 1.0f);
-        engine.callGameRender3D(deltaTime);
+        if (viewportMode == ViewportWindow::Scene) DrawGrid(1000, 1.0f);
+        engine.onFrameStart(deltaTime);
+        engine.onFrameEnd(deltaTime);
         render3D(deltaTime);
         EndMode3D();
-
-        engine.callGameRender2D(deltaTime);
         EndTextureMode(); // end 3D of viewport
 
-        if (isPlayMode()) engine.update(deltaTime);
-        else BeginDrawing();
+        BeginDrawing();
         render2D(renderTexture, deltaTime); // drawing editor UI
-        if (isPlayMode()) engine.onFrameEnd(deltaTime);
-        else EndDrawing();
+        EndDrawing();
     }
 
     void Editor::update(const float deltaTime)
