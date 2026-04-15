@@ -4,9 +4,14 @@ namespace BreadEngine {
     DEFINE_STATIC_PROPS(CameraDirector)
     REGISTER_COMPONENT(CameraDirector)
 
-    Camera &CameraDirector::getActiveCamera() const
+    CameraDirector::CameraDirector(Node *owner)
     {
-        return *_activeCamera;
+        _owner = owner;
+    }
+
+    Camera *CameraDirector::getActiveCamera() const
+    {
+        return _activeCamera;
     }
 
     void CameraDirector::transitionToCamera(const int cameraId)

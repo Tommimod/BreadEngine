@@ -75,6 +75,9 @@ namespace BreadEngine {
         [[nodiscard]] bool has() const;
 
         template<typename T, std::enable_if_t<std::is_base_of_v<Component, T>, int> = 0>
+        T &add();
+
+        template<typename T, std::enable_if_t<std::is_base_of_v<Component, T>, int> = 0>
         T &add(T component);
 
         template<typename T, std::enable_if_t<std::is_base_of_v<Component, T>, int> = 0>
@@ -120,6 +123,17 @@ namespace BreadEngine {
     bool Node::has() const
     {
         return ComponentsProvider::has<T>(_id);
+    }
+
+    template<typename T, std::enable_if_t<std::is_base_of_v<Component, T>, int> >
+    T &Node::add()
+    {
+        if (has<T>())
+        {
+            return get<T>();
+        }
+
+        return ComponentsProvider::add<T>(_id);
     }
 
     template<typename T, std::enable_if_t<std::is_base_of_v<Component, T>, int> >

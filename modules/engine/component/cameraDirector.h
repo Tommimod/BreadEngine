@@ -6,7 +6,13 @@
 namespace BreadEngine {
     struct CameraDirector final : Component
     {
-        [[nodiscard]] Camera &getActiveCamera() const;
+        CameraDirector() = default;
+
+        explicit CameraDirector(Node *owner);
+
+        ~CameraDirector() override = default;
+
+        [[nodiscard]] Camera *getActiveCamera() const;
 
         void transitionToCamera(int cameraId);
 

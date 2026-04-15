@@ -1,5 +1,6 @@
 ﻿#pragma once
 #include "uitoolkit/uiElement.h"
+#include "uitoolkit/uiPanel.h"
 #include "uitoolkit/uiWindow.h"
 
 namespace BreadEditor {
@@ -26,6 +27,8 @@ namespace BreadEditor {
 
         void update(float deltaTime) override;
 
+        void onFrameEnd(float deltaTime) override;
+
         void dispose() override;
 
         const char *getTitle() override { return _title; }
@@ -46,6 +49,7 @@ namespace BreadEditor {
         void unsubscribe() override;
 
     private:
+        UiPanel *_warningPanel = nullptr;
         Vector2 _mousePosition{0, 0};
         const char *_title = Id.c_str();
         ViewportMode _mode = Scene;

@@ -17,6 +17,8 @@ namespace BreadEditor {
     void CameraSystem::update(const float deltaTime)
     {
         ZoneScoped;
+        if (Editor::getInstance().mainWindow.getViewportWindow().getMode() == ViewportWindow::Game) return;
+
         tryPrepare();
         if (IsMouseButtonDown(MOUSE_BUTTON_RIGHT) && _isPrepared)
         {

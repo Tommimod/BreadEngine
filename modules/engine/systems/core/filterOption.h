@@ -45,7 +45,10 @@ namespace BreadEngine {
         }
 
     public:
-        static FilterOption empty() noexcept { return FilterOption(ComponentsProvider::MAX_MASK_COUNT); }
+        static FilterOption empty() noexcept
+        {
+            return FilterOption(ComponentsProvider::MAX_MASK_COUNT);
+        }
 
         explicit FilterOption(const int maskCount) : _maskCount(maskCount)
         {

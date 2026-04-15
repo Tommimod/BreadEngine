@@ -124,9 +124,30 @@ namespace BreadEditor {
         UiWindow::update(deltaTime);
     }
 
+    void ViewportWindow::onFrameEnd(float deltaTime)
+    {
+        if (const auto isCameraRendered = Editor::getInstance().isCameraRendered(); !isCameraRendered && _warningPanel == nullptr)
+        {
+            _warningPanel = &UiPool::panelPool.get().setup(id + "_warningPanel", this);
+            _warningPanel->setSizePercentPermanent({.2f, .15f});
+            _warningPanel->setAnchor(UI_CENTER_CENTER);
+            _warningPanel->setPivot({.5f, .5f});
+            const auto label = &UiPool::labelPool.get().setup(id + "_warningLabel", _warningPanel, "WARNING!\n\nACTIVE CAMERA NOT FOUND\nSETUP CAMERA IN CAMERA_DIRECTOR COMPONENT");
+            label->setSizePercentPermanent({1, 1});
+            label->setTextAlignment(TEXT_ALIGN_CENTER);
+            label->setTextSize(static_cast<int>(EditorStyle::FontSize::Large));
+        }
+        else if (isCameraRendered && _warningPanel != nullptr)
+        {
+            destroyChild(_warningPanel);
+            _warningPanel = nullptr;
+        }
+    }
+
     void ViewportWindow::dispose()
     {
         _mousePosition = {};
+        _warningPanel = nullptr;
         UiWindow::dispose();
     }
 

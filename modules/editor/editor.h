@@ -2,6 +2,8 @@
 #include "windows/mainWindow.h"
 #include <string>
 #include <memory>
+
+#include "component/camera.h"
 #include "configs/infrastructure/configsProvider.h"
 #include "models/editorModel.h"
 #include "systems/cameraSystem.h"
@@ -54,6 +56,8 @@ namespace BreadEditor {
             return _camera;
         }
 
+        [[nodiscard]] bool isCameraRendered() const { return _isCameraRendered; }
+
         [[nodiscard]] bool isPlayMode() const { return _isPlayMode; }
 
         [[nodiscard]] bool isEditorMode() const { return !_isPlayMode; }
@@ -75,6 +79,7 @@ namespace BreadEditor {
         bool _isPaused = false;
         bool _isFrameEnded = false;
         bool _initialized = false;
+        bool _isCameraRendered = false;
         RenderTexture2D *_viewportRenderTexture = nullptr;
         UiElement &_uiRoot;
         Camera3D _camera{};
@@ -86,5 +91,7 @@ namespace BreadEditor {
         static void processInput();
 
         void setupDefaultCamera();
+
+        static BreadEngine::Camera *getGameCamera();
     };
 } // namespace BreadEditor

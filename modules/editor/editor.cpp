@@ -7,8 +7,10 @@
 #include "systems/commands/commandsHandler.h"
 #include "systems/commands/mainToolbarCommands/reopenLastProjectCommand.h"
 #include "systems/commands/mainToolbarCommands/saveProjectCommand.h"
+#include "systems/core/filterOption.h"
 #include "tracy/Tracy.hpp"
 #include "validators/mandatoryEditorFilesValidator.h"
+#include "component/cameraDirector.h"
 
 namespace BreadEditor {
     std::unique_ptr<Editor> Editor::_instance = std::make_unique<Editor>();
@@ -67,20 +69,42 @@ namespace BreadEditor {
             renderTexture = LoadRenderTexture(nextWidth, nextHeight);
         }
 
+        BeginTextureMode(renderTexture); // drawing 3D game to viewport
+        ClearBackground(RAYWHITE);
+        const auto viewportMode = viewportWindow.getMode();
+        _isCameraRendered = true;
+        if (viewportMode == ViewportWindow::Scene)
+        {
+            BeginMode3D(getCamera());
+            DrawGrid(1000, 1.0f);
+        }
+        else
+        {
+            const auto gameCamera = getGameCamera();
+            _isCameraRendered = gameCamera != nullptr;
+            const auto nativeCamera = _isCameraRendered ? gameCamera->getNativeCamera() : getCamera();
+            BeginMode3D(nativeCamera);
+        }
+
         const auto deltaTime = isPaused() ? 0 : Engine::getDeltaTime();
         engine.update(deltaTime);
         update(deltaTime);
 
-        BeginTextureMode(renderTexture); // drawing 3D game to viewport
-        ClearBackground(RAYWHITE);
-        const auto viewportMode = viewportWindow.getMode();
-        BeginMode3D(getCamera()); //TODO select camera from game mode
-        if (viewportMode == ViewportWindow::Scene) DrawGrid(1000, 1.0f);
-        engine.onFrameStart(deltaTime);
-        engine.onFrameEnd(deltaTime);
-        render3D(deltaTime);
+        if (_isCameraRendered)
+        {
+            engine.onFrameStart(deltaTime);
+            engine.onFrameEnd(deltaTime);
+            render3D(deltaTime);
+        }
         EndMode3D();
         EndTextureMode(); // end 3D of viewport
+
+        if (!_isCameraRendered)
+        {
+            BeginTextureMode(renderTexture);
+            ClearBackground(BLACK);
+            EndTextureMode();
+        }
 
         BeginDrawing();
         render2D(renderTexture, deltaTime); // drawing editor UI
@@ -235,5 +259,17 @@ namespace BreadEditor {
         _camera.up = {0.0f, 1.0f, 0.0f};
         _camera.fovy = 45.0f;
         _camera.projection = CAMERA_PERSPECTIVE;
+    }
+
+    BreadEngine::Camera *Editor::getGameCamera()
+    {
+        for (auto &allNodes = NodeProvider::getAllNodes(); const auto node: allNodes)
+        {
+            if (node->has<CameraDirector>())
+            {
+                return node->get<CameraDirector>().getActiveCamera();
+            }
+        }
+        return nullptr;
     }
 } // namespace BreadEditor
