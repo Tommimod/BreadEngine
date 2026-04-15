@@ -1,6 +1,11 @@
 ﻿#include "editorModel.h"
 
 namespace BreadEditor {
+    void EditorModel::invokeNodeHighlightRequested(Node *node)
+    {
+        onNodeHighlightRequested.invoke(node);
+    }
+
     void EditorModel::setDraggableElement(UiElement *draggableElement)
     {
         if (_draggableElement != nullptr && draggableElement == nullptr)

@@ -52,6 +52,8 @@ namespace BreadEditor {
 
         [[nodiscard]] bool &getIsExpanded() { return _isExpanded; }
 
+        void highlight();
+
     protected:
         bool tryDeleteSelf() override;
 
@@ -67,6 +69,12 @@ namespace BreadEditor {
         bool _isExpanded = true;
         bool _isMuted = false;
         bool _isRootNode = false;
+
+        float _highlightTimer = 0.0f;
+        bool _isHighlighting = false;
+        float _originalX = 0.0f;
+        float _currentShakeOffset = 0.0f;
+        int _shakeDirection = 1;
 
         void updateExpandButtonText() const;
     };

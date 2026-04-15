@@ -106,6 +106,14 @@ namespace BreadEditor {
         _nodeNotificatorSubscriptions.emplace_back(
             NodeProvider::onNodeChangedActive.subscribe([this](const Node *node) { this->onNodeChangedActive(node); }));
 
+        _editorModel->onNodeHighlightRequested.subscribe([this](const Node *node)
+        {
+            if (const auto instance = getNodeUiElementByEngineNode(node))
+            {
+                instance->highlight();
+            }
+        });
+
         UiWindow::subscribe();
     }
 
@@ -116,6 +124,7 @@ namespace BreadEditor {
         NodeProvider::onNodeDestroyed.unsubscribe(_nodeNotificatorSubscriptions[2]);
         NodeProvider::onNodeChangedActive.unsubscribe(_nodeNotificatorSubscriptions[3]);
         _nodeNotificatorSubscriptions.clear();
+        _editorModel->onNodeHighlightRequested.unsubscribeAll();
 
         UiWindow::unsubscribe();
     }

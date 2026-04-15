@@ -1,10 +1,15 @@
 #include "nodeUiElement.h"
+
 #include "editor.h"
 #include "engine.h"
 #include "raygui.h"
 #include "uitoolkit/uiPool.h"
 
 namespace BreadEditor {
+    constexpr float animationDurationInSec = .5f;
+    constexpr float horizontalOffset = 5.0f;
+    constexpr float deltaForMove = .2f;
+
     NodeUiElement::NodeUiElement() = default;
 
     NodeUiElement::~NodeUiElement() = default;
@@ -56,6 +61,27 @@ namespace BreadEditor {
             _isExpanded = true;
         }
 
+        if (_isHighlighting)
+        {
+            _highlightTimer -= deltaTime;
+
+            _currentShakeOffset += deltaForMove * _shakeDirection;
+
+            if (std::abs(_currentShakeOffset) >= horizontalOffset)
+            {
+                _shakeDirection *= -1;
+            }
+
+            setPosition({_originalX + _currentShakeOffset, getPosition().y});
+
+            if (_highlightTimer <= 0.0f)
+            {
+                _isHighlighting = false;
+                setPosition({_originalX, getPosition().y});
+                _currentShakeOffset = 0.0f;
+            }
+        }
+
         updateOptionsOwner();
         updateDraggable(this);
     }
@@ -67,6 +93,11 @@ namespace BreadEditor {
         _isMuted = false;
         _localStateBeforeMuted = STATE_NORMAL;
         _localState = STATE_NORMAL;
+        _highlightTimer = 0.0f;
+        _isHighlighting = false;
+        _originalX = 0.0f;
+        _currentShakeOffset = 0.0f;
+        _shakeDirection = 1;
         _engineNode = nullptr;
         _parentNode = nullptr;
         _expandButton = nullptr;
@@ -140,6 +171,15 @@ namespace BreadEditor {
         }
 
         return _state;
+    }
+
+    void NodeUiElement::highlight()
+    {
+        _isHighlighting = true;
+        _highlightTimer = animationDurationInSec;
+        _originalX = getPosition().x;
+        _currentShakeOffset = 0.0f;
+        _shakeDirection = 1;
     }
 
     bool NodeUiElement::tryDeleteSelf()

@@ -1,6 +1,7 @@
 ﻿#include "assetsWindow.h"
 #include <filesystem>
 #include "editor.h"
+#include "models/reservedFileNames.h"
 #include "systems/commands/commandsHandler.h"
 #include "systems/commands/assetsCommands/deleteAssetCommand.h"
 #include "systems/commands/assetsCommands/moveAssetCommand.h"
@@ -218,7 +219,7 @@ namespace BreadEditor {
         const auto file = _assetConfig.getFileByGuid(fileUiElement->getFileGuid());
         const auto fileName = file->getShortName().c_str();
         const auto inspectorWindow = &Editor::getInstance().mainWindow.getPropertyInspector();
-        if (strcmp(fileName, ReservedFileNames::ASSETS_REGISTRY_NAME) == 0)
+        if (strcmp(fileName, BreadEngine::ReservedFileNames::ASSETS_REGISTRY_NAME) == 0)
         {
             inspectorWindow->lookupStruct(&Engine::getInstance().getAssetsConfig());
         }
@@ -230,11 +231,13 @@ namespace BreadEditor {
         {
             _draggedFolderUiElementCopy = folderElement->copy();
             _draggedFolderUiElementCopy->forceStartDrag(_draggedFolderUiElementCopy);
+            Editor::getInstance().getEditorModel().setDraggableElement(uiElement);
         }
         else if (const auto fileElement = dynamic_cast<FileUiElement *>(uiElement); fileElement != nullptr)
         {
             _draggedFileUiElementCopy = fileElement->copy();
             _draggedFileUiElementCopy->forceStartDrag(_draggedFileUiElementCopy);
+            Editor::getInstance().getEditorModel().setDraggableElement(uiElement);
         }
     }
 
@@ -242,6 +245,7 @@ namespace BreadEditor {
     {
         if (_draggedFolderUiElementCopy == nullptr) return;
 
+        Editor::getInstance().getEditorModel().setDraggableElement(nullptr);
         _content->destroyChild(_draggedFolderUiElementCopy);
         _draggedFolderUiElementCopy = nullptr;
         const auto originalElement = dynamic_cast<FolderUiElement *>(uiElement);

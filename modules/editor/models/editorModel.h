@@ -11,6 +11,7 @@ namespace BreadEditor {
         Action<> onClearSelection;
         Action<Node *> onNodeSelected;
         Action<FileUiElement *> onFileSelected;
+        Action<Node *> onNodeHighlightRequested;
 
         EditorModel()
         {
@@ -23,11 +24,14 @@ namespace BreadEditor {
             onFileSelected.unsubscribeAll();
             onClearSelection.unsubscribeAll();
             onDragEnded.unsubscribeAll();
+            onNodeHighlightRequested.unsubscribeAll();
         };
 
         [[nodiscard]] Node *getSelectedEngineNode() const { return _selectedNodeUiElement; }
         [[nodiscard]] FileUiElement *getSelectedFileUiElement() const { return _selectedFileUiElement; }
         [[nodiscard]] UiElement *getDraggableElement() const { return _draggableElement; }
+
+        void invokeNodeHighlightRequested(Node *node);
 
         void setDraggableElement(UiElement *draggableElement);
 

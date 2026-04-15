@@ -333,9 +333,10 @@ namespace BreadEditor {
             }
             const auto element = dynamic_cast<UiNodeLink *>(createdElement);
             element->setExpectedType(property.expectedComponentType);
-            element->onClicked.subscribe([this, element](Component *)
+            element->onClicked.subscribe([this, element](const Component *component)
             {
                 _lastSelectedNodeLink = element;
+                Editor::getInstance().getEditorModel().invokeNodeHighlightRequested(component->getOwner());
             });
             element->onValueChanged.subscribe([inspectorStruct, property](Component *value)
             {
