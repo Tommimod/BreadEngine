@@ -132,6 +132,18 @@ namespace BreadEngine {
             return chunk.get(ownerId);
         }
 
+        static Component *get(const unsigned int ownerId, const std::type_index &ti)
+        {
+            const auto it = getChunks().find(ti);
+            if (it == getChunks().end())
+            {
+                return nullptr;
+            }
+
+            auto &baseChunk = *it->second;
+            return baseChunk.getComponent(ownerId);
+        }
+
         template<typename T, std::enable_if_t<std::is_base_of_v<Component, T>, int> = 0>
         static void remove(unsigned int ownerId)
         {

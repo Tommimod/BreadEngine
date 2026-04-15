@@ -4,6 +4,7 @@
 #include <functional>
 #include <random>
 #include <string>
+#include <typeindex>
 #include "raylib.h"
 #include <type_traits>
 #include <utility>
@@ -137,6 +138,7 @@ namespace BreadEngine {
         std::string name;
         PropertyType type;
         PropertyType elementType = PropertyType{};
+        std::type_index expectedComponentType{typeid(void)}; // For NODE_LINK: expected component type
         std::function<VariantT(const InspectorStruct *)> get;
         std::function<void(InspectorStruct *, const VariantT &)> set;
         std::function<std::string(const VariantT &)> toStr;
@@ -394,10 +396,12 @@ namespace BreadEngine {
         }
         else if constexpr (ptype == PropertyType::NODE_LINK)
         {
+            using ComponentType = std::remove_pointer_t<FieldType>;
             props.emplace_back(Property{
                 .guid = InspectorStruct::getNewGUID(),
                 .name = std::string(fieldName),
                 .type = ptype,
+                .expectedComponentType = std::type_index(typeid(ComponentType)),
                 .get = [memberPtr](const InspectorStruct *comp) -> Property::VariantT
                 {
                     const auto *obj = static_cast<const LocalClass *>(comp);
@@ -407,7 +411,9 @@ namespace BreadEngine {
                 .set = [memberPtr](InspectorStruct *comp, const Property::VariantT &value)
                 {
                     auto *obj = static_cast<LocalClass *>(comp);
-                    obj->*memberPtr = std::any_cast<FieldType>(value);
+                    Component* compPtr = std::any_cast<Component*>(value);
+                    // Dynamic cast to validate type and avoid bad_any_cast
+                    obj->*memberPtr = dynamic_cast<FieldType>(compPtr);
                 },
                 .toStr = {}
             });

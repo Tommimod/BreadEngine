@@ -234,12 +234,14 @@ namespace BreadEditor {
         _draggedNodeUiElementCopy = originalElement->copySingle();
         _draggedNodeUiElementCopy->forceStartDrag(_draggedNodeUiElementCopy);
         originalElement->switchMuteState();
+        Editor::getInstance().getEditorModel().setDraggableElement(originalElement);
     }
 
     void NodeTreeWindow::onElementEndDrag(UiElement *uiElement)
     {
         if (_draggedNodeUiElementCopy == nullptr) return;
 
+        Editor::getInstance().getEditorModel().setDraggableElement(nullptr);
         _content->destroyChild(_draggedNodeUiElementCopy);
         _draggedNodeUiElementCopy = nullptr;
         const auto originalElement = dynamic_cast<NodeUiElement *>(uiElement);

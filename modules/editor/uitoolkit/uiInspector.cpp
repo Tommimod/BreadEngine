@@ -312,8 +312,6 @@ namespace BreadEditor {
         }
         else if (propType == PropertyType::NODE_LINK)
         {
-            // TODO: UI for node/component link assignment
-            // For now just a placeholder - user will implement UI element later
             if (isSimpleProp)
             {
                 auto getFunc = [inspectorStruct, property]
@@ -333,6 +331,7 @@ namespace BreadEditor {
                 createdElement = &UiPool::nodeLinkPool.get().setup(TextFormat("Link %s%i", property.name.c_str(), depth), this, std::move(getFunc));
             }
             const auto element = dynamic_cast<UiNodeLink *>(createdElement);
+            element->setExpectedType(property.expectedComponentType);
             element->onValueChanged.subscribe([inspectorStruct, property](Component *value)
             {
                 property.set(inspectorStruct, value);
