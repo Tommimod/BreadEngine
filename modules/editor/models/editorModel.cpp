@@ -1,6 +1,16 @@
 ﻿#include "editorModel.h"
 
 namespace BreadEditor {
+    void EditorModel::setDraggableElement(UiElement *draggableElement)
+    {
+        if (_draggableElement != nullptr && draggableElement == nullptr)
+        {
+            onDragEnded.invoke(_draggableElement);
+        }
+
+        _draggableElement = draggableElement;
+    }
+
     void EditorModel::selectNodeUiElement(const NodeUiElement *nodeUiElement)
     {
         clearSelections();

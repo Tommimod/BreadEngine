@@ -9,6 +9,7 @@ namespace BreadEditor {
     class UiNodeLink : public UiElement
     {
     public:
+        Action<Component *> onClicked;
         Action<Component *> onValueChanged;
 
         UiNodeLink() = default;
@@ -45,7 +46,12 @@ namespace BreadEditor {
     private:
         std::function<Component *()> _getFunc;
         Component *_component = nullptr;
+        Component *_prevComponent = nullptr;
         UiLabelButton *_labelButton = nullptr;
-        std::type_index _expectedType{typeid(void)}; // For type validation
+        std::type_index _expectedType{typeid(void)};
+        SubscriptionHandle _onDragEndedHandle;
+        bool _isInitialized = false;
+
+        void onDragEnded(UiElement *draggableElement);
     };
 } // BreadEditor

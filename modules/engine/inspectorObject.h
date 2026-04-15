@@ -109,7 +109,7 @@ namespace BreadEngine {
     struct Component;
 
     template<typename T>
-    struct DeducePropertyType<T*>
+    struct DeducePropertyType<T *>
     {
         static constexpr PropertyType value = []() constexpr
         {
@@ -138,7 +138,7 @@ namespace BreadEngine {
         std::string name;
         PropertyType type;
         PropertyType elementType = PropertyType{};
-        std::type_index expectedComponentType{typeid(void)}; // For NODE_LINK: expected component type
+        std::type_index expectedComponentType{typeid(void)};
         std::function<VariantT(const InspectorStruct *)> get;
         std::function<void(InspectorStruct *, const VariantT &)> set;
         std::function<std::string(const VariantT &)> toStr;
@@ -154,6 +154,15 @@ namespace BreadEngine {
         {
             return !(*this == other);
         }
+    };
+
+    struct DeferredNodeLink
+    {
+        unsigned int sourceOwnerId = 0;
+        std::string sourceComponentType;
+        std::string propertyName;
+        unsigned int targetNodeId = 0;
+        std::string targetComponentType;
     };
 
     struct VectorAccessor
@@ -219,8 +228,7 @@ namespace BreadEngine {
             if constexpr (std::is_enum_v<typename VecT::value_type>)
             {
                 const int enumIndex = std::any_cast<int>(value);
-                if (auto enumValue = magic_enum::enum_cast<typename VecT::value_type>(static_cast<size_t>(enumIndex)); enumValue.has_value())
-                    vec[index] = enumValue.value();
+                if (auto enumValue = magic_enum::enum_cast<typename VecT::value_type>(static_cast<size_t>(enumIndex)); enumValue.has_value()) vec[index] = enumValue.value();
             }
             else
             {
@@ -277,10 +285,37 @@ namespace BreadEngine {
 
         void deserialize(const YAML::Node &node);
 
+        static void beginDeserializationPhase();
+
+        static void endDeserializationPhase();
+
+        static bool isInDeserializationPhase();
+
+        static void resolveAllDeferredNodeLinks();
+
+        static void setCurrentDeserializingComponent(Component *comp);
+
+        static Component *getCurrentDeserializingComponent();
+
+        static void setCurrentDeserializingOwnerId(unsigned int ownerId);
+
+        static unsigned int getCurrentDeserializingOwnerId();
+
     protected:
         static YAML::Node propertyToYaml(const Property &prop, const Property::VariantT &val);
 
-        static Property::VariantT yamlToVariant(PropertyType type, const YAML::Node &n);
+        static Property::VariantT yamlToVariant(PropertyType type, const YAML::Node &n, const std::string &propertyName);
+
+        static Property::VariantT yamlToVariant(PropertyType type, const YAML::Node &node);
+
+    private:
+        static std::vector<DeferredNodeLink> &getDeferredLinks();
+
+        static bool &getDeserializationFlag();
+
+        static Component *&getCurrentComponent();
+
+        static unsigned int &getCurrentOwnerId();
     };
 
     template<typename Class, typename Field>
@@ -375,21 +410,18 @@ namespace BreadEngine {
                 {
                     auto *obj = static_cast<LocalClass *>(comp);
                     const int index = std::any_cast<int>(value);
-                    if (auto enumValue = magic_enum::enum_cast<FieldType>(static_cast<size_t>(index)); enumValue.has_value())
-                        obj->*memberPtr = enumValue.value();
+                    if (auto enumValue = magic_enum::enum_cast<FieldType>(static_cast<size_t>(index)); enumValue.has_value()) obj->*memberPtr = enumValue.value();
                 },
                 .toStr = {},
                 .getEnumNames = []() -> std::vector<std::string>
                 {
                     std::vector<std::string> names;
-                    for (auto name : magic_enum::enum_names<FieldType>())
-                        names.emplace_back(std::string(name));
+                    for (auto name: magic_enum::enum_names<FieldType>()) names.emplace_back(std::string(name));
                     return names;
                 },
                 .enumIndexToValue = [](const int index) -> Property::VariantT
                 {
-                    if (auto enumValue = magic_enum::enum_cast<FieldType>(static_cast<size_t>(index)); enumValue.has_value())
-                        return Property::VariantT{static_cast<std::underlying_type_t<FieldType>>(enumValue.value())};
+                    if (auto enumValue = magic_enum::enum_cast<FieldType>(static_cast<size_t>(index)); enumValue.has_value()) return Property::VariantT{static_cast<std::underlying_type_t<FieldType>>(enumValue.value())};
                     return Property::VariantT{};
                 }
             });
@@ -405,15 +437,21 @@ namespace BreadEngine {
                 .get = [memberPtr](const InspectorStruct *comp) -> Property::VariantT
                 {
                     const auto *obj = static_cast<const LocalClass *>(comp);
-                    Component* value = obj->*memberPtr;
+                    Component *value = obj->*memberPtr;
                     return Property::VariantT{value};
                 },
                 .set = [memberPtr](InspectorStruct *comp, const Property::VariantT &value)
                 {
                     auto *obj = static_cast<LocalClass *>(comp);
-                    Component* compPtr = std::any_cast<Component*>(value);
-                    // Dynamic cast to validate type and avoid bad_any_cast
-                    obj->*memberPtr = dynamic_cast<FieldType>(compPtr);
+                    if (value.has_value())
+                    {
+                        Component *compPtr = std::any_cast<Component *>(value);
+                        obj->*memberPtr = dynamic_cast<FieldType>(compPtr);
+                    }
+                    else
+                    {
+                        obj->*memberPtr = nullptr;
+                    }
                 },
                 .toStr = {}
             });

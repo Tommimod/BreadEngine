@@ -5,6 +5,7 @@
 #include "../../engine/component/core/component.h"
 #include "uiElement.h"
 #include "inspectorObject.h"
+#include "uiNodeLink.h"
 
 using namespace BreadEngine;
 
@@ -51,14 +52,15 @@ namespace BreadEditor {
             ~UiListData() = default;
         };
 
-        bool _isStatic = false;
-        bool _isPermanent = false;
-        bool _hasNextInspectorStruct = false;
-        std::string _componentName;
+        UiNodeLink *_lastSelectedNodeLink = nullptr;
         InspectorStruct *_inspectorStruct = nullptr;
         InspectorStruct *_nextInspectorStruct = nullptr;
         std::map<std::string, UiListData> _uiListData{};
         std::vector<UiElement *> _fields{};
+        std::string _componentName;
+        bool _isStatic = false;
+        bool _isPermanent = false;
+        bool _hasNextInspectorStruct = false;
 
         void cleanUp();
 

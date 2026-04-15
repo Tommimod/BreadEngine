@@ -7,6 +7,7 @@
 #include "baseComponentChunk.h"
 #include "componentChunk.h"
 #include "componentRegistry.h"
+#include "inspectorObject.h"
 
 namespace BreadEngine {
     template<typename T, std::enable_if_t<std::is_base_of_v<Component, T>, int> >
@@ -85,7 +86,11 @@ namespace BreadEngine {
             }
 
             auto comp = entry->compCreator();
+            // Set deserialization context for NODE_LINK resolution
+            InspectorStruct::setCurrentDeserializingComponent(comp.get());
+            InspectorStruct::setCurrentDeserializingOwnerId(ownerId);
             comp->deserialize(node);
+            InspectorStruct::setCurrentDeserializingComponent(nullptr);
             comp->setOwner(NodeProvider::getNode(ownerId));
 
             auto &chunks = getChunks();

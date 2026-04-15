@@ -3,7 +3,9 @@
 
 #include "node.h"
 #include "core/component.h"
+#include "component/core/componentsProvider.h"
 #include "tracy/Tracy.hpp"
+#include "raylib.h"
 
 namespace BreadEngine {
     std::string InspectorStruct::getTypeName()
@@ -116,7 +118,7 @@ namespace BreadEngine {
                 }
                 else
                 {
-                    Property::VariantT val = yamlToVariant(prop.type, subnode);
+                    Property::VariantT val = yamlToVariant(prop.type, subnode, prop.name);
                     prop.set(this, val);
                 }
             }
@@ -266,7 +268,12 @@ namespace BreadEngine {
         }
     }
 
-    Property::VariantT InspectorStruct::yamlToVariant(const PropertyType type, const YAML::Node &n)
+    Property::VariantT InspectorStruct::yamlToVariant(const PropertyType type, const YAML::Node &node)
+    {
+        return yamlToVariant(type, node, "");
+    }
+
+    Property::VariantT InspectorStruct::yamlToVariant(const PropertyType type, const YAML::Node &n, const std::string &propertyName)
     {
         ZoneScoped;
         switch (type)
@@ -312,13 +319,33 @@ namespace BreadEngine {
             case PropertyType::ENUM: return Property::VariantT{n.as<int>()};
             case PropertyType::NODE_LINK:
             {
-                const auto id = n["nodeId"].as<unsigned int>();
-                const auto requestedType = n["type"].as<std::string>();
-                const auto allComps = ComponentsProvider::getAllComponents(id);
+                if (n.size() == 0) return Property::VariantT{static_cast<Component *>(nullptr)};
+
+                const auto targetNodeId = n["nodeId"].as<unsigned int>();
+                const auto targetType = n["type"].as<std::string>();
+                if (isInDeserializationPhase())
+                {
+                    if (Component *currentComp = getCurrentDeserializingComponent())
+                    {
+                        DeferredNodeLink deferred;
+                        unsigned int ownerId = currentComp->getOwner()
+                                                   ? currentComp->getOwner()->getId()
+                                                   : getCurrentDeserializingOwnerId();
+                        deferred.sourceOwnerId = ownerId;
+                        deferred.sourceComponentType = currentComp->getTypeName();
+                        deferred.propertyName = propertyName;
+                        deferred.targetNodeId = targetNodeId;
+                        deferred.targetComponentType = targetType;
+                        getDeferredLinks().push_back(std::move(deferred));
+                    }
+                    return Property::VariantT{static_cast<Component *>(nullptr)};
+                }
+
+                const auto allComps = ComponentsProvider::getAllComponents(targetNodeId);
                 Component *comp = nullptr;
                 for (const auto c: allComps)
                 {
-                    if (c->getTypeName() == requestedType)
+                    if (c->getTypeName() == targetType)
                     {
                         comp = c;
                         break;
@@ -328,5 +355,120 @@ namespace BreadEngine {
             }
             default: throw std::runtime_error("Unsupported property type for deserialization");
         }
+    }
+
+    std::vector<DeferredNodeLink> &InspectorStruct::getDeferredLinks()
+    {
+        static std::vector<DeferredNodeLink> deferredLinks;
+        return deferredLinks;
+    }
+
+    bool &InspectorStruct::getDeserializationFlag()
+    {
+        static bool inDeserialization = false;
+        return inDeserialization;
+    }
+
+    void InspectorStruct::beginDeserializationPhase()
+    {
+        getDeferredLinks().clear();
+        getDeserializationFlag() = true;
+    }
+
+    void InspectorStruct::endDeserializationPhase()
+    {
+        getDeserializationFlag() = false;
+    }
+
+    bool InspectorStruct::isInDeserializationPhase()
+    {
+        return getDeserializationFlag();
+    }
+
+    void InspectorStruct::resolveAllDeferredNodeLinks()
+    {
+        ZoneScoped;
+        for (const auto &link: getDeferredLinks())
+        {
+            const auto allComps = ComponentsProvider::getAllComponents(link.targetNodeId);
+            Component *targetComp = nullptr;
+            for (const auto c: allComps)
+            {
+                if (c->getTypeName() == link.targetComponentType)
+                {
+                    targetComp = c;
+                    break;
+                }
+            }
+
+            if (!targetComp)
+            {
+                Logger::LogWarning(TextFormat("Could not resolve node link: target component %s not found in node %u",
+                                              link.targetComponentType.c_str(), link.targetNodeId));
+                continue;
+            }
+
+            const auto sourceComps = ComponentsProvider::getAllComponents(link.sourceOwnerId);
+            Component *sourceComp = nullptr;
+            for (const auto c: sourceComps)
+            {
+                if (c->getTypeName() == link.sourceComponentType)
+                {
+                    sourceComp = c;
+                    break;
+                }
+            }
+
+            if (!sourceComp)
+            {
+                Logger::LogWarning(TextFormat("Could not resolve node link: source component %s not found in node %u",
+                                              link.sourceComponentType.c_str(), link.sourceOwnerId));
+                continue;
+            }
+
+            for (auto &prop: sourceComp->getInspectedProperties())
+            {
+                if (prop.name == link.propertyName && prop.type == PropertyType::NODE_LINK)
+                {
+                    prop.set(sourceComp, targetComp);
+                    break;
+                }
+            }
+        }
+
+        getDeferredLinks().clear();
+        getDeserializationFlag() = false;
+    }
+
+    Component *&InspectorStruct::getCurrentComponent()
+    {
+        static Component *current = nullptr;
+        return current;
+    }
+
+    void InspectorStruct::setCurrentDeserializingComponent(Component *comp)
+    {
+        getCurrentComponent() = comp;
+    }
+
+    Component *InspectorStruct::getCurrentDeserializingComponent()
+    {
+        return getCurrentComponent();
+    }
+
+    unsigned int &InspectorStruct::getCurrentOwnerId()
+    {
+        static unsigned int ownerId = 0;
+        return ownerId;
+    }
+
+    void InspectorStruct::setCurrentDeserializingOwnerId(const unsigned int ownerId)
+    {
+        getCurrentOwnerId() = ownerId;
+    }
+
+    unsigned int InspectorStruct::getCurrentDeserializingOwnerId()
+    {
+        return getCurrentOwnerId();
     }
 } // BreadEngine

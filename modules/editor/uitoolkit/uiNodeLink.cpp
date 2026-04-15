@@ -40,6 +40,9 @@ namespace BreadEditor {
     {
         _labelButton = &UiPool::labelButtonPool.get().setup(id + "_label", this, "");
         _labelButton->setSizePercentPermanent({1, 1});
+        _labelButton->onClick.subscribe([this](UiLabelButton *) { onClicked.invoke(_component); });
+
+        _onDragEndedHandle = Editor::getInstance().getEditorModel().onDragEnded.subscribe([this](UiElement *element) { onDragEnded(element); });
     }
 
     void UiNodeLink::draw(float deltaTime)
@@ -50,26 +53,14 @@ namespace BreadEditor {
     void UiNodeLink::update(float deltaTime)
     {
         const auto isMouseOver = Engine::isCollisionPointRec(GetMousePosition(), _bounds);
-        _labelButton->setState(isMouseOver ? STATE_NORMAL : STATE_DISABLED);
-        auto draggableElement = Editor::getInstance().getEditorModel().getDraggableElement();
-
-        if (isMouseOver && draggableElement != nullptr)
-        {
-            if (const auto nodeUiElement = dynamic_cast<NodeUiElement *>(draggableElement); nodeUiElement != nullptr && _expectedType != typeid(void))
-            {
-                const auto *node = nodeUiElement->getNode();
-                if (const auto component = ComponentsProvider::get(node->getId(), _expectedType); isComponentTypeValid(component))
-                {
-                    setComponent(component);
-                }
-            }
-        }
+        _labelButton->setState(isMouseOver || _component != nullptr ? STATE_NORMAL : STATE_DISABLED);
 
         if (_getFunc != nullptr)
         {
             _component = _getFunc();
         }
 
+        if (_prevComponent == _component && _isInitialized) return;
         if (_component != nullptr)
         {
             _labelButton->setText(GuiIconText(ICON_CPU, TextFormat("%s (%s)", _component->getOwner()->getName().c_str(), _component->getTypeName().c_str())));
@@ -78,14 +69,21 @@ namespace BreadEditor {
         {
             _labelButton->setText(TextFormat(" None (%s)", getExpectedTypeName().c_str()));
         }
+
+        _prevComponent = _component;
+        _isInitialized = true;
     }
 
     void UiNodeLink::dispose()
     {
+        _isInitialized = false;
         _getFunc = nullptr;
         _component = nullptr;
+        _prevComponent = nullptr;
         _labelButton = nullptr;
         onValueChanged.unsubscribeAll();
+        onClicked.unsubscribeAll();
+        Editor::getInstance().getEditorModel().onDragEnded.unsubscribe(_onDragEndedHandle);
         UiElement::dispose();
     }
 
@@ -108,10 +106,11 @@ namespace BreadEditor {
 
     std::string UiNodeLink::getExpectedTypeName() const
     {
-        if (_expectedType == typeid(void)) return "";
+        constexpr std::string empty = "";
+        if (_expectedType == typeid(void)) return empty;
         int status;
         char *demangled = abi::__cxa_demangle(_expectedType.name(), nullptr, nullptr, &status);
-        std::string result = (status == 0 && demangled) ? demangled : _expectedType.name();
+        std::string result = status == 0 && demangled ? demangled : _expectedType.name();
         free(demangled);
         if (const size_t lastColon = result.rfind("::"); lastColon != std::string::npos)
         {
@@ -124,5 +123,19 @@ namespace BreadEditor {
     {
         UiPool::nodeLinkPool.release(*this);
         return true;
+    }
+
+    void UiNodeLink::onDragEnded(UiElement *draggableElement)
+    {
+        const auto isMouseOver = Engine::isCollisionPointRec(GetMousePosition(), _bounds);
+        if (!isMouseOver || draggableElement == nullptr) return;
+        if (const auto nodeUiElement = dynamic_cast<NodeUiElement *>(draggableElement); nodeUiElement != nullptr && _expectedType != typeid(void))
+        {
+            const auto *node = nodeUiElement->getNode();
+            if (const auto component = ComponentsProvider::get(node->getId(), _expectedType); isComponentTypeValid(component))
+            {
+                setComponent(component);
+            }
+        }
     }
 } // BreadEditor

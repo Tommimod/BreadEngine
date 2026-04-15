@@ -3,6 +3,7 @@
 #include "nameof.h"
 #include "node.h"
 #include "component/core/componentsProvider.h"
+#include "inspectorObject.h"
 
 namespace YAML {
     template<>
@@ -59,7 +60,10 @@ namespace YAML {
             unsigned int nodeId = INT_MAX;
             const auto idName = NAMEOF(BreadEngine::NodeRawData::Id).c_str();
             const auto node = yamlNode["IsNodePrefab"].as<bool>() ? nullptr : BreadEngine::NodeProvider::getNode(yamlNode[idName].as<unsigned int>())->getParent();
+            BreadEngine::InspectorStruct::beginDeserializationPhase();
             decodeRecursive(yamlNode, nodeId, node);
+
+            BreadEngine::InspectorStruct::resolveAllDeferredNodeLinks();
             rhs.Id = nodeId;
             return true;
         }
@@ -87,8 +91,7 @@ namespace YAML {
                 BreadEngine::ComponentsProvider::addDynamic(nextNode.getId(), compType, compNode);
             }
 
-            auto childsNodeList = yamlNode[childsName].as<std::vector<Node> >();
-            for (auto &childNode: childsNodeList)
+            for (auto childsNodeList = yamlNode[childsName].as<std::vector<Node> >(); auto &childNode: childsNodeList)
             {
                 decodeRecursive(childNode, nodeId, &nextNode);
             }

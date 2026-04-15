@@ -17,14 +17,15 @@ namespace BreadEditor {
 
     void UiInspector::dispose()
     {
-        _inspectorStruct = nullptr;
         onDelete.unsubscribeAll();
         onUpdated.unsubscribeAll();
         _uiListData.clear();
         _isStatic = false;
         _isPermanent = false;
         _componentName.clear();
+        _inspectorStruct = nullptr;
         _nextInspectorStruct = nullptr;
+        _lastSelectedNodeLink = nullptr;
         _hasNextInspectorStruct = false;
 
         UiElement::dispose();
@@ -332,6 +333,10 @@ namespace BreadEditor {
             }
             const auto element = dynamic_cast<UiNodeLink *>(createdElement);
             element->setExpectedType(property.expectedComponentType);
+            element->onClicked.subscribe([this, element](Component *)
+            {
+                _lastSelectedNodeLink = element;
+            });
             element->onValueChanged.subscribe([inspectorStruct, property](Component *value)
             {
                 property.set(inspectorStruct, value);
@@ -520,6 +525,11 @@ namespace BreadEditor {
 
     void UiInspector::update(const float deltaTime)
     {
+        if (IsKeyPressed(KEY_BACKSPACE) && _lastSelectedNodeLink)
+        {
+            _lastSelectedNodeLink->setComponent(nullptr);
+        }
+
         if (_nextInspectorStruct == nullptr || !_hasNextInspectorStruct)
         {
             return;
