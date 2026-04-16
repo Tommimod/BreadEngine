@@ -1,7 +1,9 @@
 ﻿#include "changeNameNodeCommand.h"
 
+#include "editor.h"
+
 namespace BreadEditor {
-    ChangeNameNodeCommand::ChangeNameNodeCommand(BreadEngine::Node *node, const std::string &newName, const std::string &oldName)
+    ChangeNameNodeCommand::ChangeNameNodeCommand(Node *node, const std::string &newName, const std::string &oldName)
     {
         _node = node;
         _newName = newName;
@@ -16,5 +18,6 @@ namespace BreadEditor {
     void ChangeNameNodeCommand::undo()
     {
         _node->setName(_oldName);
+        Editor::getInstance().getEditorModel().invokeRefreshInspectorRequested();
     }
 } // BreadEditor

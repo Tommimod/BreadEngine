@@ -1,7 +1,9 @@
 ﻿#include "setActiveNodeCommand.h"
 
+#include "editor.h"
+
 namespace BreadEditor {
-    SetActiveNodeCommand::SetActiveNodeCommand(BreadEngine::Node *node, const bool nextState)
+    SetActiveNodeCommand::SetActiveNodeCommand(Node *node, const bool nextState)
     {
         _node = node;
         _nextState = nextState;
@@ -14,6 +16,7 @@ namespace BreadEditor {
 
     void SetActiveNodeCommand::undo()
     {
-        _node->setIsActive(!_nextState);
+        _node->setIsActive(!_node->getIsActive());
+        Editor::getInstance().getEditorModel().invokeRefreshInspectorRequested();
     }
 } // BreadEditor

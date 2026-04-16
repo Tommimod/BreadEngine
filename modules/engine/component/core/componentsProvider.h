@@ -201,8 +201,21 @@ namespace BreadEngine {
             }
         }
 
-        static Component *removeAndGetOwnership(const unsigned int ownerId, const std::type_index type)
+        static std::unique_ptr<Component> removeAndGetOwnership(const unsigned int ownerId, const std::type_index type)
         {
+            if (const auto it = getChunks().find(type); it != getChunks().end())
+            {
+                auto &baseChunk = *it->second;
+                auto comp = baseChunk.removeAndGetOwnership(ownerId);
+                if (baseChunk.isEmpty())
+                {
+                    getChunks().erase(type);
+                }
+
+                return comp;
+            }
+
+            return nullptr;
         }
 
         static void remove(const unsigned int ownerId, const std::string &componentType)

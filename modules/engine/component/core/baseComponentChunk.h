@@ -1,4 +1,4 @@
-﻿#pragma once
+#pragma once
 
 namespace BreadEngine {
     struct Component;
@@ -19,5 +19,7 @@ namespace BreadEngine {
         [[nodiscard]] virtual bool isEmpty() const = 0;
 
         virtual void remove(unsigned int ownerId) = 0;
+
+        [[nodiscard]] virtual std::unique_ptr<Component> removeAndGetOwnership(unsigned int ownerId) = 0;
     };
 } // BreadEngine

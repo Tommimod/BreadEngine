@@ -517,7 +517,7 @@ namespace BreadEditor {
         {
             if (GuiWindowBox(_bounds, _componentName.c_str()))
             {
-                onDelete.invoke(typeid(_inspectorStruct));
+                onDelete.invoke(ComponentRegistry::getEntry(_inspectorStruct->getTypeName())->ti);
             }
         }
 

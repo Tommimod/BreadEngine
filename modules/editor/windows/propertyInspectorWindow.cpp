@@ -3,6 +3,7 @@
 #include "commands/commandsHandler.h"
 #include "commands/inspectorCommands/addComponentCommand.h"
 #include "commands/inspectorCommands/changeNameNodeCommand.h"
+#include "commands/inspectorCommands/removeComponentCommand.h"
 #include "commands/inspectorCommands/setActiveNodeCommand.h"
 #include "component/camera.h"
 #include "editorElements/customDropdownUiElement.h"
@@ -208,7 +209,8 @@ namespace BreadEditor {
 
     void PropertyInspectorWindow::subscribe()
     {
-        Editor::getInstance().getEditorModel().onClearSelection.subscribe([this]
+        auto &editorModel = Editor::getInstance().getEditorModel();
+        editorModel.onClearSelection.subscribe([this]
         {
             clear();
             resetElementsState(false);
@@ -221,6 +223,15 @@ namespace BreadEditor {
             }
         });
 
+        editorModel.onRefreshInspectorRequested.subscribe([this]
+        {
+            if (_engineNode != nullptr)
+            {
+                const auto node = NodeProvider::getNode(_engineNode->getId());
+                _engineNode = nullptr;
+                lookupNode(node);
+            }
+        });
         UiWindow::subscribe();
     }
 
@@ -286,8 +297,10 @@ namespace BreadEditor {
 
     void PropertyInspectorWindow::onUiComponentDeleted(const std::type_index type)
     {
-        _engineNode->remove(type);
-        lookupNode(_engineNode);
+        CommandsHandler::execute(std::make_unique<RemoveComponentCommand>(_engineNode, type));
+        const auto node = NodeProvider::getNode(_engineNode->getId());
+        _engineNode = nullptr;
+        lookupNode(node);
     }
 
     void PropertyInspectorWindow::initializePanel()

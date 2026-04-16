@@ -1,7 +1,9 @@
 ﻿#include "addComponentCommand.h"
 
+#include "editor.h"
+
 namespace BreadEditor {
-    AddComponentCommand::AddComponentCommand(BreadEngine::Node *node, const std::string &componentType)
+    AddComponentCommand::AddComponentCommand(Node *node, const std::string &componentType)
     {
         _node = node;
         _componentType = componentType;
@@ -10,11 +12,12 @@ namespace BreadEditor {
     void AddComponentCommand::execute()
     {
         const auto id = _node->getId();
-        BreadEngine::ComponentsProvider::addDynamic(id, _componentType);
+        ComponentsProvider::addDynamic(id, _componentType);
     }
 
     void AddComponentCommand::undo()
     {
-        BreadEngine::ComponentsProvider::remove(_node->getId(), _componentType);
+        ComponentsProvider::remove(_node->getId(), _componentType);
+        Editor::getInstance().getEditorModel().invokeRefreshInspectorRequested();
     }
 } // BreadEditor

@@ -95,6 +95,22 @@ namespace BreadEngine {
             _ownerIdToIndex.erase(ownerId);
         }
 
+        std::unique_ptr<Component> removeAndGetOwnership(const unsigned int ownerId) override
+        {
+            if (!_ownerIdToIndex.contains(ownerId))
+            {
+                return nullptr;
+            }
+
+            const int id = _ownerIdToIndex[ownerId];
+            _freeSlots.push_back(id);
+            _ownerIds[id] = -1;
+            auto comp = std::make_unique<T>(std::move(_components[id]));
+            _components[id] = T{};
+            _ownerIdToIndex.erase(ownerId);
+            return comp;
+        }
+
         std::unordered_map<unsigned int, int> _ownerIdToIndex{};
         std::vector<T> _components{};
         std::vector<unsigned int> _ownerIds{};

@@ -6,6 +6,11 @@ namespace BreadEditor {
         onNodeHighlightRequested.invoke(node);
     }
 
+    void EditorModel::invokeRefreshInspectorRequested() const
+    {
+        onRefreshInspectorRequested.invoke();
+    }
+
     void EditorModel::setDraggableElement(UiElement *draggableElement)
     {
         if (_draggableElement != nullptr && draggableElement == nullptr)
