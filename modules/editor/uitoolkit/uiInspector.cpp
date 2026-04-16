@@ -1,6 +1,8 @@
 #include "uiInspector.h"
 #include "editor.h"
 #include "uiPool.h"
+#include "commands/commandsHandler.h"
+#include "commands/inspectorCommands/changeInspectorValueCommand.h"
 using namespace BreadEngine;
 
 namespace BreadEditor {
@@ -95,216 +97,223 @@ namespace BreadEditor {
         }
         else if (propType == PropertyType::INT)
         {
+            function<variant<int, float, long>()> getFunc;
             if (isSimpleProp)
             {
-                auto getFunc = [inspectorStruct, property]
+                getFunc = [inspectorStruct, property]
                 {
                     return std::any_cast<int>(property.get(inspectorStruct));
                 };
 
-                createdElement = &UiPool::numberBoxPool.get().setup(TextFormat("IntBox %s%i", property.name.c_str(), depth), this, emptyLabel, std::move(getFunc));
+                createdElement = &UiPool::numberBoxPool.get().setup(TextFormat("IntBox %s%i", property.name.c_str(), depth), this, emptyLabel, getFunc);
             }
             else
             {
-                auto getFunc = [vectorAccessor, vectorIndex]
+                getFunc = [vectorAccessor, vectorIndex]
                 {
                     return std::any_cast<int>(vectorAccessor->get(vectorIndex));
                 };
 
-                createdElement = &UiPool::numberBoxPool.get().setup(TextFormat("IntBox %s%i", property.name.c_str(), depth), this, emptyLabel, std::move(getFunc));
+                createdElement = &UiPool::numberBoxPool.get().setup(TextFormat("IntBox %s%i", property.name.c_str(), depth), this, emptyLabel, getFunc);
             }
             const auto element = dynamic_cast<UiNumberBox *>(createdElement);
-            element->onValueChanged.subscribe([inspectorStruct, property](const int &value)
+            element->onValueChanged.subscribe([inspectorStruct, property, getFunc](const int &value)
             {
-                property.set(inspectorStruct, value);
+                CommandsHandler::execute(std::make_unique<ChangeInspectorValueCommand>(ChangeInspectorValueCommand::Data(property, inspectorStruct, value, getFunc())));
             });
         }
         else if (propType == PropertyType::FLOAT)
         {
+            function<variant<int, float, long>()> getFunc;
             if (isSimpleProp)
             {
-                auto getFunc = [inspectorStruct, property]
+                getFunc = [inspectorStruct, property]
                 {
                     return std::any_cast<float>(property.get(inspectorStruct));
                 };
 
-                createdElement = &UiPool::numberBoxPool.get().setup(TextFormat("FloatBox %s%i", property.name.c_str(), depth), this, emptyLabel, std::move(getFunc));
+                createdElement = &UiPool::numberBoxPool.get().setup(TextFormat("FloatBox %s%i", property.name.c_str(), depth), this, emptyLabel, getFunc);
             }
             else
             {
-                auto getFunc = [vectorAccessor, vectorIndex]
+                getFunc = [vectorAccessor, vectorIndex]
                 {
                     return std::any_cast<float>(vectorAccessor->get(vectorIndex));
                 };
 
-                createdElement = &UiPool::numberBoxPool.get().setup(TextFormat("FloatBox %s%i", property.name.c_str(), depth), this, emptyLabel, std::move(getFunc));
+                createdElement = &UiPool::numberBoxPool.get().setup(TextFormat("FloatBox %s%i", property.name.c_str(), depth), this, emptyLabel, getFunc);
             }
             const auto element = dynamic_cast<UiNumberBox *>(createdElement);
-            element->onValueChanged.subscribe([inspectorStruct, property](const float &value)
+            element->onValueChanged.subscribe([inspectorStruct, property, getFunc](const float &value)
             {
-                property.set(inspectorStruct, value);
+                CommandsHandler::execute(std::make_unique<ChangeInspectorValueCommand>(ChangeInspectorValueCommand::Data(property, inspectorStruct, value, getFunc())));
             });
         }
         else if (propType == PropertyType::LONG)
         {
+            function<variant<int, float, long>()> getFunc;
             if (isSimpleProp)
             {
-                auto getFunc = [inspectorStruct, property]
+                getFunc = [inspectorStruct, property]
                 {
                     return std::any_cast<long>(property.get(inspectorStruct));
                 };
 
-                createdElement = &UiPool::numberBoxPool.get().setup(TextFormat("LongBox %s%i", property.name.c_str(), depth), this, emptyLabel, std::move(getFunc));
+                createdElement = &UiPool::numberBoxPool.get().setup(TextFormat("LongBox %s%i", property.name.c_str(), depth), this, emptyLabel, getFunc);
             }
             else
             {
-                auto getFunc = [vectorAccessor, vectorIndex]
+                getFunc = [vectorAccessor, vectorIndex]
                 {
                     return std::any_cast<long>(vectorAccessor->get(vectorIndex));
                 };
 
-                createdElement = &UiPool::numberBoxPool.get().setup(TextFormat("LongBox %s%i", property.name.c_str(), depth), this, emptyLabel, std::move(getFunc));
+                createdElement = &UiPool::numberBoxPool.get().setup(TextFormat("LongBox %s%i", property.name.c_str(), depth), this, emptyLabel, getFunc);
             }
             const auto element = dynamic_cast<UiNumberBox *>(createdElement);
-            element->onValueChanged.subscribe([inspectorStruct, property](const long &value)
+            element->onValueChanged.subscribe([inspectorStruct, property, getFunc](const long &value)
             {
-                property.set(inspectorStruct, value);
+                CommandsHandler::execute(std::make_unique<ChangeInspectorValueCommand>(ChangeInspectorValueCommand::Data(property, inspectorStruct, value, getFunc())));
             });
         }
         else if (propType == PropertyType::BOOL)
         {
+            std::function<bool()> getFunc;
             if (isSimpleProp)
             {
-                auto getFunc = [inspectorStruct, property]
+                getFunc = [inspectorStruct, property]
                 {
                     return std::any_cast<bool>(property.get(inspectorStruct));
                 };
 
-                createdElement = &UiPool::checkBoxPool.get().setup(TextFormat("CheckBox %s%i", property.name.c_str(), depth), this, emptyLabel, std::move(getFunc));
+                createdElement = &UiPool::checkBoxPool.get().setup(TextFormat("CheckBox %s%i", property.name.c_str(), depth), this, emptyLabel, getFunc);
             }
             else
             {
-                auto getFunc = [vectorAccessor, vectorIndex]
+                getFunc = [vectorAccessor, vectorIndex]
                 {
                     return std::any_cast<bool>(vectorAccessor->get(vectorIndex));
                 };
 
-                createdElement = &UiPool::checkBoxPool.get().setup(TextFormat("CheckBox %s%i", property.name.c_str(), depth), this, emptyLabel, std::move(getFunc));
+                createdElement = &UiPool::checkBoxPool.get().setup(TextFormat("CheckBox %s%i", property.name.c_str(), depth), this, emptyLabel, getFunc);
             }
             const auto element = dynamic_cast<UiCheckBox *>(createdElement);
-            element->onValueChanged.subscribe([inspectorStruct, property](const bool &value)
+            element->onValueChanged.subscribe([inspectorStruct, property, getFunc](const bool &value)
             {
-                property.set(inspectorStruct, value);
+                CommandsHandler::execute(std::make_unique<ChangeInspectorValueCommand>(ChangeInspectorValueCommand::Data(property, inspectorStruct, value, getFunc())));
             });
             element->setSizeMax({heightSize, heightSize});
         }
         else if (propType == PropertyType::STRING)
         {
+            std::function<std::string()> getFunc;
             if (isSimpleProp)
             {
-                auto getFunc = [inspectorStruct, property]
+                getFunc = [inspectorStruct, property]
                 {
                     return std::any_cast<std::string>(property.get(inspectorStruct));
                 };
 
-                createdElement = &UiPool::textBoxPool.get().setup(TextFormat("TextBox %s%i", property.name.c_str(), depth), this, std::move(getFunc));
+                createdElement = &UiPool::textBoxPool.get().setup(TextFormat("TextBox %s%i", property.name.c_str(), depth), this, getFunc);
             }
             else
             {
-                auto getFunc = [vectorAccessor, vectorIndex]
+                getFunc = [vectorAccessor, vectorIndex]
                 {
                     return std::any_cast<std::string>(vectorAccessor->get(vectorIndex));
                 };
 
-                createdElement = &UiPool::textBoxPool.get().setup(TextFormat("TextBox %s%i", property.name.c_str(), depth), this, std::move(getFunc));
+                createdElement = &UiPool::textBoxPool.get().setup(TextFormat("TextBox %s%i", property.name.c_str(), depth), this, getFunc);
             }
             const auto element = dynamic_cast<UiTextBox *>(createdElement);
-            element->onValueChanged.subscribe([inspectorStruct, property](const std::string &value)
+            element->onValueChanged.subscribe([inspectorStruct, property, getFunc](const std::string &value)
             {
-                property.set(inspectorStruct, value);
+                CommandsHandler::execute(std::make_unique<ChangeInspectorValueCommand>(ChangeInspectorValueCommand::Data(property, inspectorStruct, value, getFunc())));
             });
             element->setTextSize(static_cast<int>(EditorStyle::FontSize::Medium));
         }
         else if (propType == PropertyType::VECTOR2)
         {
             isSingleField = false;
-
+            function<Vector2()> getFunc;
             if (isSimpleProp)
             {
-                auto getFunc = [inspectorStruct, property]
+                getFunc = [inspectorStruct, property]
                 {
                     return std::any_cast<Vector2>(property.get(inspectorStruct));
                 };
 
-                createdElement = UiPool::vector2DPool.get().setup(TextFormat("Vector2D %s%i", property.name.c_str(), depth), this, std::move(getFunc));
+                createdElement = UiPool::vector2DPool.get().setup(TextFormat("Vector2D %s%i", property.name.c_str(), depth), this, getFunc);
             }
             else
             {
-                auto getFunc = [vectorAccessor, vectorIndex]
+                getFunc = [vectorAccessor, vectorIndex]
                 {
                     return std::any_cast<Vector2>(vectorAccessor->get(vectorIndex));
                 };
 
-                createdElement = UiPool::vector2DPool.get().setup(TextFormat("Vector2D %s%i", property.name.c_str(), depth), this, std::move(getFunc));
+                createdElement = UiPool::vector2DPool.get().setup(TextFormat("Vector2D %s%i", property.name.c_str(), depth), this, getFunc);
             }
             const auto element = dynamic_cast<UiVector2D *>(createdElement);
-            element->onChanged.subscribe([inspectorStruct, property](const Vector2 &value)
+            element->onChanged.subscribe([inspectorStruct, property, getFunc](const Vector2 &value)
             {
-                property.set(inspectorStruct, value);
+                CommandsHandler::execute(std::make_unique<ChangeInspectorValueCommand>(ChangeInspectorValueCommand::Data(property, inspectorStruct, value, getFunc())));
             });
         }
         else if (propType == PropertyType::VECTOR3)
         {
             isSingleField = false;
+            function<Vector3()> getFunc;
             if (isSimpleProp)
             {
-                auto getFunc = [inspectorStruct, property]
+                getFunc = [inspectorStruct, property]
                 {
                     return std::any_cast<Vector3>(property.get(inspectorStruct));
                 };
 
-                createdElement = UiPool::vector3DPool.get().setup(TextFormat("Vector3D %s%i", property.name.c_str(), depth), this, std::move(getFunc));
+                createdElement = UiPool::vector3DPool.get().setup(TextFormat("Vector3D %s%i", property.name.c_str(), depth), this, getFunc);
             }
             else
             {
-                auto getFunc = [vectorAccessor, vectorIndex]
+                getFunc = [vectorAccessor, vectorIndex]
                 {
                     return std::any_cast<Vector3>(vectorAccessor->get(vectorIndex));
                 };
 
-                createdElement = UiPool::vector3DPool.get().setup(TextFormat("Vector3D %s%i", property.name.c_str(), depth), this, std::move(getFunc));
+                createdElement = UiPool::vector3DPool.get().setup(TextFormat("Vector3D %s%i", property.name.c_str(), depth), this, getFunc);
             }
             const auto element = dynamic_cast<UiVector3D *>(createdElement);
-            element->onChanged.subscribe([inspectorStruct, property](const Vector3 &value)
+            element->onChanged.subscribe([inspectorStruct, property, getFunc](const Vector3 &value)
             {
-                property.set(inspectorStruct, value);
+                CommandsHandler::execute(std::make_unique<ChangeInspectorValueCommand>(ChangeInspectorValueCommand::Data(property, inspectorStruct, value, getFunc())));
             });
         }
         else if (propType == PropertyType::VECTOR4)
         {
             isSingleField = false;
+            function<Vector4()> getFunc;
             if (isSimpleProp)
             {
-                auto getFunc = [inspectorStruct, property]
+                getFunc = [inspectorStruct, property]
                 {
                     return std::any_cast<Vector4>(property.get(inspectorStruct));
                 };
 
-                createdElement = UiPool::vector4DPool.get().setup(TextFormat("Vector4D %s%i", property.name.c_str(), depth), this, std::move(getFunc));
+                createdElement = UiPool::vector4DPool.get().setup(TextFormat("Vector4D %s%i", property.name.c_str(), depth), this, getFunc);
             }
             else
             {
-                auto getFunc = [vectorAccessor, vectorIndex]
+                getFunc = [vectorAccessor, vectorIndex]
                 {
                     return std::any_cast<Vector4>(vectorAccessor->get(vectorIndex));
                 };
 
-                createdElement = UiPool::vector4DPool.get().setup(TextFormat("Vector4D %s%i", property.name.c_str(), depth), this, std::move(getFunc));
+                createdElement = UiPool::vector4DPool.get().setup(TextFormat("Vector4D %s%i", property.name.c_str(), depth), this, getFunc);
             }
             const auto element = dynamic_cast<UiVector4D *>(createdElement);
-            element->onChanged.subscribe([inspectorStruct, property](const Vector4 &value)
+            element->onChanged.subscribe([inspectorStruct, property, getFunc](const Vector4 &value)
             {
-                property.set(inspectorStruct, value);
+                CommandsHandler::execute(std::make_unique<ChangeInspectorValueCommand>(ChangeInspectorValueCommand::Data(property, inspectorStruct, value, getFunc())));
             });
         }
         else if (propType == PropertyType::COLOR)
@@ -313,34 +322,36 @@ namespace BreadEditor {
         }
         else if (propType == PropertyType::NODE_LINK)
         {
+            std::function<Component *()> getFunc;
             if (isSimpleProp)
             {
-                auto getFunc = [inspectorStruct, property]
+                getFunc = [inspectorStruct, property]
                 {
                     return std::any_cast<Component *>(property.get(inspectorStruct));
                 };
 
-                createdElement = &UiPool::nodeLinkPool.get().setup(TextFormat("Link %s%i", property.name.c_str(), depth), this, std::move(getFunc));
+                createdElement = &UiPool::nodeLinkPool.get().setup(TextFormat("Link %s%i", property.name.c_str(), depth), this, getFunc);
             }
             else
             {
-                auto getFunc = [vectorAccessor, vectorIndex]
+                getFunc = [vectorAccessor, vectorIndex]
                 {
                     return std::any_cast<Component *>(vectorAccessor->get(vectorIndex));
                 };
 
-                createdElement = &UiPool::nodeLinkPool.get().setup(TextFormat("Link %s%i", property.name.c_str(), depth), this, std::move(getFunc));
+                createdElement = &UiPool::nodeLinkPool.get().setup(TextFormat("Link %s%i", property.name.c_str(), depth), this, getFunc);
             }
             const auto element = dynamic_cast<UiNodeLink *>(createdElement);
             element->setExpectedType(property.expectedComponentType);
             element->onClicked.subscribe([this, element](const Component *component)
             {
                 _lastSelectedNodeLink = element;
+                if (component == nullptr) return;
                 Editor::getInstance().getEditorModel().invokeNodeHighlightRequested(component->getOwner());
             });
-            element->onValueChanged.subscribe([inspectorStruct, property](Component *value)
+            element->onValueChanged.subscribe([inspectorStruct, property, getFunc](Component *value)
             {
-                property.set(inspectorStruct, value);
+                CommandsHandler::execute(std::make_unique<ChangeInspectorValueCommand>(ChangeInspectorValueCommand::Data(property, inspectorStruct, value, getFunc())));
             });
         }
         else if (propType == PropertyType::ENUM)
@@ -364,9 +375,9 @@ namespace BreadEditor {
                 auto *dropdown = dynamic_cast<UiDropdown *>(createdElement);
                 dropdown->setSelected(currentIndex);
                 dropdown->setTextAlignment(TEXT_ALIGN_LEFT);
-                dropdown->onOptionSelected.subscribe([inspectorStruct, property](const int selectedIndex)
+                dropdown->onOptionSelected.subscribe([inspectorStruct, property, currentIndex](const int selectedIndex)
                 {
-                    property.set(inspectorStruct, selectedIndex - 1);
+                    CommandsHandler::execute(std::make_unique<ChangeInspectorValueCommand>(ChangeInspectorValueCommand::Data(property, inspectorStruct, selectedIndex - 1, currentIndex)));
                 });
             }
             else
@@ -381,9 +392,9 @@ namespace BreadEditor {
                 auto *dropdown = dynamic_cast<UiDropdown *>(createdElement);
                 dropdown->setSelected(currentIndex);
                 dropdown->setTextAlignment(TEXT_ALIGN_LEFT);
-                dropdown->onOptionSelected.subscribe([vectorAccessor, vectorIndex](const int selectedIndex)
+                dropdown->onOptionSelected.subscribe([vectorAccessor, vectorIndex, currentIndex](const int selectedIndex)
                 {
-                    vectorAccessor->set(vectorIndex, selectedIndex - 1);
+                    CommandsHandler::execute(std::make_unique<ChangeInspectorValueCommand>(ChangeInspectorValueCommand::VectorData(vectorAccessor, vectorIndex, selectedIndex - 1, currentIndex)));
                 });
             }
         }

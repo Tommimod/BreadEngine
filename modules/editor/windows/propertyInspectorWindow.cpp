@@ -1,5 +1,9 @@
 ﻿#include "propertyInspectorWindow.h"
 #include "editor.h"
+#include "commands/commandsHandler.h"
+#include "commands/inspectorCommands/addComponentCommand.h"
+#include "commands/inspectorCommands/changeNameNodeCommand.h"
+#include "commands/inspectorCommands/setActiveNodeCommand.h"
 #include "component/camera.h"
 #include "editorElements/customDropdownUiElement.h"
 #include "uitoolkit/uiPool.h"
@@ -134,14 +138,22 @@ namespace BreadEditor {
         _activeCheckBox->setAnchor(UI_LEFT_TOP);
         _activeCheckBox->setPosition({horizontalOffset, verticalOffset + 5});
         _activeCheckBox->setSize({10, 10});
-        _subscriptions.emplace(_activeCheckBox, _activeCheckBox->onValueChanged.subscribe([this](const bool checked) { this->onNodeActiveChanged(checked); }));
+        _activeCheckBox->onValueChanged.subscribe([this](const bool checked)
+        {
+            CommandsHandler::execute(std::make_unique<SetActiveNodeCommand>(_engineNode, _engineNode->getIsActive()));
+            this->onNodeActiveChanged(checked);
+        });
 
         _nameTextBox = &UiPool::textBoxPool.get().setup(id + "_nameTextBox", this, "Name");
         _nameTextBox->setAnchor(UI_LEFT_TOP);
         _nameTextBox->setPosition({_activeCheckBox->getSize().x + 50, verticalOffset});
         _nameTextBox->setSize({0, 20});
         _nameTextBox->setSizePercentPermanent({.75f, -1});
-        _subscriptions.emplace(_nameTextBox, _nameTextBox->onValueChanged.subscribe([this](const char *text) { this->onNodeNameChanged(text); }));
+        _nameTextBox->onValueChanged.subscribe([this](const char *text)
+        {
+            CommandsHandler::execute(std::make_unique<ChangeNameNodeCommand>(_engineNode, text, _engineNode->getName()));
+            this->onNodeNameChanged(text);
+        });
 
         _componentsDropdown = std::make_unique<CustomDropdownUiElement>();
         _componentsDropdown->setup(id + "_componentsDropdown", this, {});
@@ -183,6 +195,7 @@ namespace BreadEditor {
 
                 const auto id = _engineNode->getId();
                 ComponentsProvider::addDynamic(id, value);
+                CommandsHandler::execute(std::make_unique<AddComponentCommand>(_engineNode, value));
                 const auto node = NodeProvider::getNode(id);
                 _engineNode = nullptr;
                 lookupNode(node);

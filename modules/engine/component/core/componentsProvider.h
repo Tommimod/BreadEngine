@@ -77,6 +77,29 @@ namespace BreadEngine {
             baseChunk.addComponent(ownerId, std::move(comp), true);
         }
 
+        static void addDynamic(const unsigned int ownerId, const std::type_index type, std::unique_ptr<Component> component)
+        {
+            const auto *entry = ComponentRegistry::getEntry(ComponentRegistry::getComponentNameByType(type));
+            if (!entry)
+            {
+                throw std::runtime_error("Unable to add dynamic component");
+            }
+
+            component->setOwner(NodeProvider::getNode(ownerId));
+
+            auto &chunks = getChunks();
+            auto ti = entry->ti;
+            auto it = chunks.find(ti);
+            if (it == chunks.end())
+            {
+                chunks.emplace(ti, entry->chunkCreator());
+                it = chunks.find(ti);
+            }
+
+            auto &baseChunk = *it->second;
+            baseChunk.addComponent(ownerId, std::move(component), true);
+        }
+
         static void addDynamic(const unsigned int ownerId, const std::string &componentType, const YAML::Node &node)
         {
             const auto *entry = ComponentRegistry::getEntry(componentType);
@@ -86,7 +109,6 @@ namespace BreadEngine {
             }
 
             auto comp = entry->compCreator();
-            // Set deserialization context for NODE_LINK resolution
             InspectorStruct::setCurrentDeserializingComponent(comp.get());
             InspectorStruct::setCurrentDeserializingOwnerId(ownerId);
             comp->deserialize(node);
@@ -168,6 +190,24 @@ namespace BreadEngine {
 
         static void remove(const unsigned int ownerId, const std::type_index type)
         {
+            if (const auto it = getChunks().find(type); it != getChunks().end())
+            {
+                auto &baseChunk = *it->second;
+                baseChunk.remove(ownerId);
+                if (baseChunk.isEmpty())
+                {
+                    getChunks().erase(type);
+                }
+            }
+        }
+
+        static Component *removeAndGetOwnership(const unsigned int ownerId, const std::type_index type)
+        {
+        }
+
+        static void remove(const unsigned int ownerId, const std::string &componentType)
+        {
+            const auto type = std::type_index(typeid(ComponentRegistry::getEntry(componentType)->ti));
             if (const auto it = getChunks().find(type); it != getChunks().end())
             {
                 auto &baseChunk = *it->second;
