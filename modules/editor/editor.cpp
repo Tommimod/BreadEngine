@@ -4,9 +4,9 @@
 
 #include "systems/cursorSystem.h"
 #include "node.h"
-#include "systems/commands/commandsHandler.h"
-#include "systems/commands/mainToolbarCommands/reopenLastProjectCommand.h"
-#include "systems/commands/mainToolbarCommands/saveProjectCommand.h"
+#include "commands/commandsHandler.h"
+#include "commands/mainToolbarCommands/reopenLastProjectCommand.h"
+#include "commands/mainToolbarCommands/saveProjectCommand.h"
 #include "systems/core/filterOption.h"
 #include "tracy/Tracy.hpp"
 #include "validators/mandatoryEditorFilesValidator.h"

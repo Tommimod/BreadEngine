@@ -2,10 +2,10 @@
 #include <filesystem>
 #include "editor.h"
 #include "models/reservedFileNames.h"
-#include "systems/commands/commandsHandler.h"
-#include "systems/commands/assetsCommands/deleteAssetCommand.h"
-#include "systems/commands/assetsCommands/moveAssetCommand.h"
-#include "systems/commands/assetsCommands/renameAssetCommand.h"
+#include "commands/commandsHandler.h"
+#include "commands/assetsCommands/deleteAssetCommand.h"
+#include "commands/assetsCommands/moveAssetCommand.h"
+#include "commands/assetsCommands/renameAssetCommand.h"
 #include "uitoolkit/uiPool.h"
 
 namespace BreadEditor {

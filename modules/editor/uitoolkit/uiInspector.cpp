@@ -553,7 +553,6 @@ namespace BreadEditor {
             _componentName = _nextInspectorStruct->getTypeName();
             _isPermanent = _isStatic || _componentName == transformName;
             int depth = 0;
-            TraceLog(LOG_DEBUG, "______REDRAW_____");
             initializeProperties(_nextInspectorStruct, _nextInspectorStruct->getInspectedProperties(), depth, 1);
             onUpdated.invoke(this);
         }

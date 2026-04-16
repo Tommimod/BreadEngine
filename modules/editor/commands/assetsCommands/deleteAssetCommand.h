@@ -1,7 +1,7 @@
 ﻿#pragma once
 #include <string>
 #include "configs/assetsConfig.h"
-#include "systems/commands/command.h"
+#include "commands/command.h"
 
 namespace BreadEditor {
     struct DeleteAssetCommand : Command

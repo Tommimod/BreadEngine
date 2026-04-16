@@ -28,7 +28,7 @@ namespace BreadEditor {
             }
         }
 
-        if (IsMouseButtonPressed(MOUSE_LEFT_BUTTON) && BreadEngine::Engine::isCollisionPointRec(mousePos, element->getBounds()))
+        if (IsMouseButtonPressed(MOUSE_LEFT_BUTTON) && Engine::isCollisionPointRec(mousePos, element->getBounds()))
         {
             if (_mousePositionBeforeClick.x == 0 && _mousePositionBeforeClick.y == 0)
             {
@@ -44,8 +44,6 @@ namespace BreadEditor {
             {
                 isDragging = true;
                 onDragStarted.invoke(element);
-                TraceLog(LOG_INFO, "Drag started");
-                TraceLog(LOG_INFO, to_string(delta).c_str());
             }
 
             if (isDragging && !onlyProvideDragEvents)
@@ -74,6 +72,5 @@ namespace BreadEditor {
         auto mousePos = GetMousePosition();
         mousePos.x -= element->getSize().x * 0.5f;
         element->setPosition(mousePos);
-        TraceLog(LOG_INFO, "Dragged");
     }
 } // BreadEditor

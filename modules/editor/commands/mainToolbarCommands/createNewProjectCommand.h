@@ -1,5 +1,5 @@
 ﻿#pragma once
-#include "systems/commands/command.h"
+#include "commands/command.h"
 
 namespace BreadEditor {
     struct CreateNewProjectCommand : Command
