@@ -58,10 +58,19 @@ namespace YAML {
         static bool decode(const Node &yamlNode, BreadEngine::NodeRawData &rhs)
         {
             unsigned int nodeId = INT_MAX;
-            const auto idName = NAMEOF(BreadEngine::NodeRawData::Id).c_str();
-            const auto node = yamlNode["IsNodePrefab"].as<bool>() ? nullptr : BreadEngine::NodeProvider::getNode(yamlNode[idName].as<unsigned int>())->getParent();
+            const auto idName = NAMEOF(BreadEngine::NodeRawData::ParentId).c_str();
+            BreadEngine::Node *parentNode = nullptr;
+            if (!yamlNode["IsNodePrefab"].as<bool>())
+            {
+                const auto id = yamlNode[idName].as<unsigned int>();
+                if (id != INT_MAX)
+                {
+                    parentNode = BreadEngine::NodeProvider::getNode(id);
+                }
+            }
+
             BreadEngine::InspectorStruct::beginDeserializationPhase();
-            decodeRecursive(yamlNode, nodeId, node);
+            decodeRecursive(yamlNode, nodeId, parentNode);
 
             BreadEngine::InspectorStruct::resolveAllDeferredNodeLinks();
             rhs.Id = nodeId;

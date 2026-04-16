@@ -1,11 +1,12 @@
 #include "nodeTreeWindow.h"
 
-#include <thread>
-
 #include "editor.h"
 #include "engine.h"
 #include "nodeProvider.h"
 #include "raygui.h"
+#include "commands/commandsHandler.h"
+#include "commands/nodeCommands/changeParentNodeCommand.h"
+#include "commands/nodeCommands/createNodeCommand.h"
 #include "uitoolkit/uiPool.h"
 
 namespace BreadEditor {
@@ -166,6 +167,7 @@ namespace BreadEditor {
         {
             if (_copyData.IsNull()) return;
             Node::createCopyFromData(_copyData, *nodeUiElement->getNode());
+            CommandsHandler::execute(std::make_unique<CreateNodeCommand>(nodeUiElement->getNode(), std::move(_copyData)));
             _copyData = {};
         });
 
@@ -282,7 +284,7 @@ namespace BreadEditor {
                     return;
                 }
 
-                currentNode->changeParent(parentNode);
+                CommandsHandler::execute(std::make_unique<ChangeParentNodeCommand>(currentNode, parentNode));
                 return;
             }
         }

@@ -3,6 +3,9 @@
 #include "editor.h"
 #include "engine.h"
 #include "raygui.h"
+#include "commands/commandsHandler.h"
+#include "commands/nodeCommands/createNodeCommand.h"
+#include "commands/nodeCommands/destroyNodeCommand.h"
 #include "uitoolkit/uiPool.h"
 
 namespace BreadEditor {
@@ -192,7 +195,11 @@ namespace BreadEditor {
     {
         if (index == 1) // Create empty
         {
-            Engine::nodePool.get().setup("Empty Node", *_engineNode);
+            const auto nextNode = &Engine::nodePool.get();
+            nextNode->setName("Empty node");
+            auto data = Node::getDataForCopy(*nextNode);
+            Engine::nodePool.release(*nextNode);
+            CommandsHandler::execute(std::make_unique<CreateNodeCommand>(_engineNode, std::move(data)));
         }
         else if (index == 2) // Copy
         {
@@ -204,11 +211,11 @@ namespace BreadEditor {
         }
         else if (index == 4) // Duplicate
         {
-            Node::createCopyFromNode(*_engineNode);
+            CommandsHandler::execute(std::make_unique<CreateNodeCommand>(_engineNode));
         }
         else if (index == 5) // Delete
         {
-            _engineNode->destroy();
+            CommandsHandler::execute(std::make_unique<DestroyNodeCommand>(_engineNode));
         }
     }
 
