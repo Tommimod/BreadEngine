@@ -33,7 +33,7 @@ namespace BreadEngine {
         if (rawConfig.IsNull())
         {
             findAllAssets(projectPath);
-            serialize();
+            serializeConfig();
             return;
         }
 
@@ -46,7 +46,7 @@ namespace BreadEngine {
         if (!isValid(filesProvider))
         {
             findAllAssets(projectPath);
-            serialize();
+            serializeConfig();
         }
 
         UnloadDirectoryFiles(filesProvider);

@@ -12,6 +12,12 @@ int main()
     }
 
     Game_Initialize();
+    const auto camera = new Camera();
+    camera->fovy = 45.0f;
+    camera->position = {10.0f, 1.0f, 1.0f};
+    camera->target = {0.0f, 0.0f, 0.0f};
+    camera->up = {0.0f, 1.0f, 0.0f};
+    camera->projection = CAMERA_PERSPECTIVE;
 
     while (!BreadEngine::Engine::shouldClose())
     {
@@ -19,20 +25,23 @@ int main()
         engine.update(deltaTime);
         Game_Update(deltaTime);
 
+        BeginDrawing();
         ClearBackground(RAYWHITE);
 
         Game_Render2DStart(deltaTime);
         DrawFPS(10, 10);
 
-        BeginMode3D(engine.getCamera());
+        BeginMode3D(*camera);
         DrawGrid(10, 1.0f);
         Game_Render3DStart(deltaTime);
         EndMode3D();
 
         engine.onFrameEnd(deltaTime);
+        EndDrawing();
     }
 
     Game_Shutdown();
     engine.shutdown();
+    delete camera;
     return 0;
 }
