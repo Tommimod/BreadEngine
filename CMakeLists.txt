@@ -53,60 +53,33 @@ include_directories(
 )
 
 if (WIN32)
-    if (WIN32)
-        set(ENV{PATH} "C:/mingw64/bin;$ENV{PATH}")
-        set(ENV{PATH} "C:/Program Files (x86)/GnuWin32/bin;$ENV{PATH}")
-        message(STATUS "Updated PATH for MinGW/GnuWin32: $ENV{PATH}")
-    endif ()
-    find_library(RAYLIB_LIBRARY
-            NAMES raylib
-            PATHS ${CMAKE_SOURCE_DIR}/lib/engine
-            NO_DEFAULT_PATH
-            REQUIRED
-    )
-    find_file(RAYLIB_DLL
-            NAMES raylib.dll
-            PATHS ${CMAKE_SOURCE_DIR}/lib/engine
-            NO_DEFAULT_PATH
-            REQUIRED
-    )
-    find_file(ASSIMP_DLL
-            NAMES assimp-vc143-mt.dll
-            PATHS ${CMAKE_SOURCE_DIR}/lib/engine/assimp
-            NO_DEFAULT_PATH
-            REQUIRED
-    )
-    find_library(ASSIMP_LIB
-            NAMES assimp-vc143-mt
-            PATHS ${CMAKE_SOURCE_DIR}/lib/engine/assimp
-            NO_DEFAULT_PATH
-            REQUIRED
-    )
-    find_file(R3D_DLL
-            NAMES r3d.dll
-            PATHS ${CMAKE_SOURCE_DIR}/lib/engine
-            NO_DEFAULT_PATH
-            REQUIRED
-    )
-    find_library(R3D_LIB
-            NAMES r3d
-            PATHS ${CMAKE_SOURCE_DIR}/lib/engine
-            NO_DEFAULT_PATH
-            REQUIRED
-    )
-else ()
-    find_library(RAYLIB_LIBRARY
-            NAMES raylib libraylib
-            PATHS ${CMAKE_SOURCE_DIR}/lib/engine
-            NO_DEFAULT_PATH
-            REQUIRED
-    )
+    set(ENV{PATH} "C:/mingw64/bin;$ENV{PATH}")
+    set(ENV{PATH} "C:/Program Files (x86)/GnuWin32/bin;$ENV{PATH}")
+    message(STATUS "Updated PATH for MinGW/GnuWin32: $ENV{PATH}")
 endif ()
+find_file(RAYLIB_DLL
+        NAMES libraylib.dll
+        PATHS ${CMAKE_SOURCE_DIR}/lib/engine
+        NO_DEFAULT_PATH
+        REQUIRED
+)
+find_file(ASSIMP_DLL
+        NAMES libassimp-6.dll
+        PATHS ${CMAKE_SOURCE_DIR}/lib/engine/assimp
+        NO_DEFAULT_PATH
+        REQUIRED
+)
+find_file(R3D_DLL
+        NAMES libr3d.dll
+        PATHS ${CMAKE_SOURCE_DIR}/lib/engine
+        NO_DEFAULT_PATH
+        REQUIRED
+)
 
-if (RAYLIB_LIBRARY)
-    message(STATUS "Found Raylib: ${RAYLIB_LIBRARY}")
+if (RAYLIB_DLL)
+    message(STATUS "Found Raylib: ${RAYLIB_DLL}")
 else ()
-    message(FATAL_ERROR "Raylib library not found in ${CMAKE_SOURCE_DIR}/lib/engine")
+    message(FATAL_ERROR "Raylib dll not found in ${CMAKE_SOURCE_DIR}/lib/engine")
 endif ()
 
 add_subdirectory(modules/engine)
@@ -131,7 +104,6 @@ add_custom_target(copy_assets ALL
 add_dependencies(BreadEditor copy_assets)
 add_dependencies(ExampleGame copy_assets)
 
-message(STATUS "BreadEngine configured for CLion")
 message(STATUS "Available targets: BreadEngine (lib), BreadEditor (exe), ExampleGame (exe)")
 message(STATUS "Build directory: ${CMAKE_BINARY_DIR}")
 message(STATUS "Install prefix: ${CMAKE_INSTALL_PREFIX}")

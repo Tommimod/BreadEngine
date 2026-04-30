@@ -71,13 +71,13 @@ set_target_properties(ExampleGame PROPERTIES
 
 add_custom_command(TARGET ExampleGame POST_BUILD
         COMMAND ${CMAKE_COMMAND} -E copy_if_different
-        "${CMAKE_SOURCE_DIR}/lib/engine/r3d.dll"
+        "${CMAKE_SOURCE_DIR}/lib/engine/libr3d.dll"
         "${CMAKE_BINARY_DIR}/bin"
         COMMAND ${CMAKE_COMMAND} -E copy_if_different
-        "${CMAKE_SOURCE_DIR}/lib/engine/raylib.dll"
+        "${CMAKE_SOURCE_DIR}/lib/engine/libraylib.dll"
         "${CMAKE_BINARY_DIR}/bin"
         COMMAND ${CMAKE_COMMAND} -E copy_if_different
-        "${CMAKE_SOURCE_DIR}/lib/engine/assimp/assimp-vc143-mt.dll"
+        "${CMAKE_SOURCE_DIR}/lib/engine/assimp/libassimp-6.dll"
         "${CMAKE_BINARY_DIR}/bin"
         COMMAND ${CMAKE_COMMAND} -E copy_if_different
         "${CMAKE_SOURCE_DIR}/lib/libc++.dll"
