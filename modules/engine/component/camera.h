@@ -22,13 +22,13 @@ namespace BreadEngine {
 
         void setFov(float fov);
 
-        Camera3D &getNativeCamera() { return _camera3D; }
+        Camera3D &getNativeCamera() { return _nativeCamera; }
 
     private:
         friend class CameraDirectorSystem;
         friend struct CameraDirector;
 
-        Camera3D _camera3D{};
+        Camera3D _nativeCamera{};
         CameraType _projection = CAMERA_PERSPECTIVE;
         float _fov = 45.0f;
         int _index = 0;

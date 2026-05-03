@@ -38,7 +38,7 @@ typedef int R3D_AnimationStmIndex;
  * @param userData Optional user-defined data passed when the callback was registered.
  */
 typedef void (*R3D_AnimationNodeCallback)(const R3D_Animation* animation, R3D_AnimationState state,
-                                          int boneIndex, Transform* out, void* userData);
+                                          int boneIndex, ::Transform* out, void* userData);
 
 /**
  * @brief Callback type for manipulating the final animation.
@@ -49,7 +49,7 @@ typedef void (*R3D_AnimationNodeCallback)(const R3D_Animation* animation, R3D_An
  * @param userData Optional user-defined data passed when the callback was registered.
  */
 typedef void (*R3D_AnimationTreeCallback)(const R3D_AnimationPlayer* player, int boneIndex,
-                                          Transform* out, void* userData);
+                                          ::Transform* out, void* userData);
 
 // ========================================
 // ENUM TYPES
@@ -234,7 +234,7 @@ R3DAPI void R3D_UpdateAnimationTree(R3D_AnimationTree* tree, float dt);
  * @param rootDistance Pointer to transformation containing root bone distance from rest pose.
  */
 R3DAPI void R3D_UpdateAnimationTreeEx(R3D_AnimationTree* tree, float dt,
-                                      Transform* rootMotion, Transform* rootDistance);
+                                      ::Transform* rootMotion, ::Transform* rootDistance);
 
 /**
  * @brief Sets root animation node of the animation tree.

@@ -25,11 +25,11 @@ namespace BreadEngine {
     {
         const auto &transform = _owner->get<Transform>();
         const auto pos = transform.getPosition();
-        _camera3D.position = pos;
-        _camera3D.target = Vector3Add(pos, transform.getForward());
-        _camera3D.up = transform.getUp();
-        _camera3D.fovy = _fov;
-        _camera3D.projection = static_cast<int>(_projection);
+        _nativeCamera.position = pos;
+        _nativeCamera.target = Vector3Add(pos, transform.getForward());
+        _nativeCamera.up = transform.getUp();
+        _nativeCamera.fovy = _fov;
+        _nativeCamera.projection = static_cast<int>(_projection);
     }
 
     void Camera::setPerspective(const CameraType type)
@@ -44,9 +44,9 @@ namespace BreadEngine {
 
     void Camera::setupCamera()
     {
-        _camera3D.target = {0.0f, 0.0f, 0.0f};
-        _camera3D.up = {0.0f, 1.0f, 0.0f};
-        _camera3D.fovy = _fov;
-        _camera3D.projection = static_cast<int>(_projection);
+        _nativeCamera.target = {0.0f, 0.0f, 0.0f};
+        _nativeCamera.up = {0.0f, 1.0f, 0.0f};
+        _nativeCamera.fovy = _fov;
+        _nativeCamera.projection = static_cast<int>(_projection);
     }
 } // BreadEngine

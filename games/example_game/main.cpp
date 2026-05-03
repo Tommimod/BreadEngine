@@ -1,6 +1,7 @@
 #include "../../modules/Engine/Engine.h"
 #include "../../lib/engine/raylib.h"
 #include "game.h"
+#include "r3d.h"
 
 int main()
 {
@@ -31,10 +32,10 @@ int main()
         Game_Render2DStart(deltaTime);
         DrawFPS(10, 10);
 
-        BeginMode3D(*camera);
+        R3D_Begin(*camera);
         DrawGrid(10, 1.0f);
         Game_Render3DStart(deltaTime);
-        EndMode3D();
+        R3D_End();
 
         engine.onFrameEnd(deltaTime);
         EndDrawing();

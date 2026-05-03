@@ -4,6 +4,7 @@
 
 #include "systems/cursorSystem.h"
 #include "node.h"
+#include <r3d.h>
 #include "commands/commandsHandler.h"
 #include "commands/mainToolbarCommands/reopenLastProjectCommand.h"
 #include "commands/mainToolbarCommands/saveProjectCommand.h"
@@ -44,6 +45,7 @@ namespace BreadEditor {
         mainWindow.drawInternal(0);
         const auto filePath = _configsProvider.getEditorPrefsConfig()->LastOpenedNodePath;
         Node::deserialize(filePath);
+        R3D_ENVIRONMENT_SET(ambient.color, Color{10, 10, 10, 255});
 
         return _initialized;
     }
@@ -75,15 +77,18 @@ namespace BreadEditor {
         _isCameraRendered = true;
         if (viewportMode == ViewportWindow::Scene)
         {
-            BeginMode3D(getCamera());
+            auto &camera = getCamera();
+            UpdateCamera(&camera, CAMERA_FREE);
+            R3D_Begin(camera);
             DrawGrid(1000, 1.0f);
         }
         else
         {
             const auto gameCamera = getGameCamera();
             _isCameraRendered = gameCamera != nullptr;
-            const auto nativeCamera = _isCameraRendered ? gameCamera->getNativeCamera() : getCamera();
-            BeginMode3D(nativeCamera);
+            auto &nativeCamera = _isCameraRendered ? gameCamera->getNativeCamera() : getCamera();
+            UpdateCamera(&nativeCamera, CAMERA_FREE);
+            R3D_Begin(nativeCamera);
         }
 
         const auto deltaTime = isPaused() ? 0 : Engine::getDeltaTime();
@@ -96,7 +101,7 @@ namespace BreadEditor {
             engine.onFrameEnd(deltaTime);
             render3D(deltaTime);
         }
-        EndMode3D();
+        R3D_End();
         EndTextureMode(); // end 3D of viewport
 
         if (!_isCameraRendered)
