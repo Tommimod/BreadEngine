@@ -40,4 +40,12 @@ namespace BreadEngine {
             system->endOfFrameInternal(deltaTime);
         }
     }
+
+    void SystemsRegistry::dispose(const float deltaTime) const noexcept
+    {
+        for (const auto &system: _disposeSystems)
+        {
+            system->onDisposeInternal(deltaTime);
+        }
+    }
 } // BreadEngine

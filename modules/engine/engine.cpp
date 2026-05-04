@@ -8,6 +8,7 @@
 #include "systems/cameraDirectorSystem.h"
 #include "systems/cameraSystem.h"
 #include "systems/lightSystem.h"
+#include "systems/meshRendererSystem.h"
 
 namespace BreadEngine {
     auto nodeFactory = []() -> Node *
@@ -21,7 +22,8 @@ namespace BreadEngine {
     {
         _engineSystems.addSystem<LightSystem>()
                 .addSystem<CameraSystem>()
-                .addSystem<CameraDirectorSystem>();
+                .addSystem<CameraDirectorSystem>()
+                .addSystem<MeshRendererSystem>();
 
         _engineSystems.initialize();
     }
@@ -61,6 +63,7 @@ namespace BreadEngine {
     {
         ComponentsProvider::setDisposed();
         unloadGameModule();
+        _engineSystems.dispose(getDeltaTime());
         R3D_Close();
         CloseWindow();
     }

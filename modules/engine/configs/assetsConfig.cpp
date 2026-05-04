@@ -9,12 +9,11 @@
 #include "assetsConfigYaml.h"
 #include "logger.h"
 #include "meshAsset.h"
+#include "textureAsset.h"
 #include "tracy/Tracy.hpp"
 
 namespace BreadEngine {
     DEFINE_STATIC_PROPS(AssetsConfig)
-    DEFINE_STATIC_PROPS(Folder)
-    DEFINE_STATIC_PROPS(File)
     namespace fs = std::filesystem;
 
     void AssetsConfig::serializeConfig()
@@ -72,7 +71,7 @@ namespace BreadEngine {
         buildIndexes();
     }
 
-    Asset *AssetsConfig::getAsset(const File *file)
+    Asset *AssetsConfig::getAsset(File *file)
     {
         const auto it = _guidToAsset.find(file->getGUID());
         if (it != _guidToAsset.end())
@@ -80,8 +79,10 @@ namespace BreadEngine {
             return it->second;
         }
 
-        auto asset = MeshAsset(file->getGUID(), file->getShortName());
-        _guidToAsset[file->getGUID()] = new MeshAsset(file->getGUID(), file->getShortName());
+        if (file->is3DModel())
+            _guidToAsset[file->getGUID()] = new MeshAsset(file);
+        else if (file->isImage())
+            _guidToAsset[file->getGUID()] = new TextureAsset(file);
         return _guidToAsset[file->getGUID()];
     }
 

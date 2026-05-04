@@ -8,7 +8,7 @@ namespace BreadEngine {
         {
         }
 
-        MeshAsset(const std::string &guid, const std::string &name) : Asset(guid, name)
+        explicit MeshAsset(File *file) : Asset(file)
         {
         }
 

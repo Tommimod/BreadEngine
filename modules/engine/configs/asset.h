@@ -1,4 +1,5 @@
 #pragma once
+#include "file.h"
 #include "inspectorObject.h"
 
 namespace BreadEngine {
@@ -6,13 +7,16 @@ namespace BreadEngine {
     {
         Asset() = default;
 
-        Asset(const std::string &guid, const std::string &name);
+        explicit Asset(File *file)
+        {
+            _file = file;
+        }
 
         ~Asset() override = default;
 
         virtual bool operator==(const Asset &other) const
         {
-            return _guid == other._guid && _name == other._name;
+            return _file == other._file;
         }
 
         bool operator!=(const Asset &other) const
@@ -20,20 +24,16 @@ namespace BreadEngine {
             return !(*this == other);
         }
 
-        [[nodiscard]] const std::string &getGuid() const { return _guid; }
+        [[nodiscard]] const std::string &getGuid() const { return _file->getGUID(); }
 
-        void setGuid(const std::string &guid) { _guid = guid; }
+        [[nodiscard]] const std::string &getAssetName() const { return _file->getShortName(); }
 
-        [[nodiscard]] const std::string &getName() const { return _name; }
-
-        void setName(const std::string &name) { _name = name; }
+        [[nodiscard]] const std::string &getAssetPath() const { return _file->getFullPath(); }
 
     protected:
-        std::string _guid;
-        std::string _name;
+        File *_file = nullptr;
 
         INSPECTOR_BEGIN(Asset)
-            INSPECT_FIELD(_name);
         INSPECTOR_END()
     };
 } // BreadEngine

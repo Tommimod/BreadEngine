@@ -59,7 +59,7 @@ namespace BreadEditor {
         if (_prevAsset == _asset && _isInitialized) return;
         if (_asset != nullptr)
         {
-            _labelButton->setText(GuiIconText(ICON_FILE, TextFormat("%s (%s)", _asset->getName().c_str(), getExpectedTypeName().c_str())));
+            _labelButton->setText(GuiIconText(ICON_FILE, TextFormat("%s (%s)", _asset->getAssetName().c_str(), getExpectedTypeName().c_str())));
         }
         else
         {
