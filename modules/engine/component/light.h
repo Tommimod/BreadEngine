@@ -20,14 +20,13 @@ namespace BreadEngine {
 
         [[nodiscard]] Color getColor() const;
 
-        void update(float deltaTime) override;
-
         void setWithShadows(bool withShadows) const;
 
         void setShadowResolution(int resolution);
 
     private:
-        R3D_Light _nativeLight{};
+        friend class LightSystem;
+        R3D_Light _nativeLight = {};
         R3D_LightType _lightType = R3D_LIGHT_DIR;
         R3D_LightType _prevLightType = R3D_LIGHT_DIR;
         Color _color;

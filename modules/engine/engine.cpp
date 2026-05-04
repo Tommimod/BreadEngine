@@ -1,12 +1,13 @@
 #include "engine.h"
 #include "moduleLoader.h"
 #include <fstream>
-#include "nodeProvider.h"
 #include <r3d.h>
 
-#include "systems/cameraDirectorSystem.h"
-#include "systems/nodeSystem.h"
+#include "nodeProvider.h"
 #include "tracy/Tracy.hpp"
+#include "systems/cameraDirectorSystem.h"
+#include "systems/cameraSystem.h"
+#include "systems/lightSystem.h"
 
 namespace BreadEngine {
     auto nodeFactory = []() -> Node *
@@ -18,8 +19,11 @@ namespace BreadEngine {
 
     void Engine::initializeSystems()
     {
-        _systems.addSystem<NodeSystem>()
+        _engineSystems.addSystem<LightSystem>()
+                .addSystem<CameraSystem>()
                 .addSystem<CameraDirectorSystem>();
+
+        _engineSystems.initialize();
     }
 
     Engine::Engine() = default;
@@ -49,7 +53,6 @@ namespace BreadEngine {
         MaximizeWindow();
         R3D_Init(GetScreenWidth(), GetScreenHeight());
         NodeProvider::init();
-        initializeSystems();
 
         return true;
     }
@@ -70,10 +73,10 @@ namespace BreadEngine {
     void Engine::update(const float deltaTime) const
     {
         ZoneScoped;
+        _engineSystems.update(deltaTime);
 
         if (_gameUpdate)
         {
-            _systems.update(deltaTime);
             _gameUpdate(deltaTime);
         }
     }
@@ -81,10 +84,10 @@ namespace BreadEngine {
     void Engine::fixedUpdate(const float fixedDeltaTime) const
     {
         ZoneScoped;
+        _engineSystems.fixedUpdate(fixedDeltaTime);
 
         if (_fixedUpdateFunc)
         {
-            _systems.fixedUpdate(fixedDeltaTime);
             _fixedUpdateFunc(fixedDeltaTime);
         }
     }
@@ -92,9 +95,10 @@ namespace BreadEngine {
     void Engine::onFrameStart(const float deltaTime) const
     {
         ZoneScoped;
+        _engineSystems.startFrame(deltaTime);
+
         if (_gameRender3DStart && _gameRender2DStart)
         {
-            _systems.startFrame(deltaTime);
             _gameRender3DStart(deltaTime);
             _gameRender2DStart(deltaTime);
         }
@@ -103,10 +107,10 @@ namespace BreadEngine {
     void Engine::onFrameEnd(const float deltaTime) const
     {
         ZoneScoped;
+        _engineSystems.endFrame(deltaTime);
 
         if (_gameRender3DEnd && _gameRender2DEnd)
         {
-            _systems.endFrame(deltaTime);
             _gameRender3DEnd(deltaTime);
             _gameRender2DEnd(deltaTime);
         }
@@ -139,7 +143,6 @@ namespace BreadEngine {
 
         if (_gameInit)
         {
-            _systems.initialize();
             _gameInit();
         }
     }

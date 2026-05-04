@@ -1,9 +1,5 @@
 ﻿#include "camera.h"
 
-#include "node.h"
-#include "raymath.h"
-#include "transform.h"
-
 namespace BreadEngine {
     DEFINE_STATIC_PROPS(Camera)
     REGISTER_COMPONENT(Camera)
@@ -20,17 +16,6 @@ namespace BreadEngine {
     }
 
     Camera::~Camera() = default;
-
-    void Camera::update(float deltaTime)
-    {
-        const auto &transform = _owner->get<Transform>();
-        const auto pos = transform.getPosition();
-        _nativeCamera.position = pos;
-        _nativeCamera.target = Vector3Add(pos, transform.getForward());
-        _nativeCamera.up = transform.getUp();
-        _nativeCamera.fovy = _fov;
-        _nativeCamera.projection = static_cast<int>(_projection);
-    }
 
     void Camera::setPerspective(const CameraType type)
     {

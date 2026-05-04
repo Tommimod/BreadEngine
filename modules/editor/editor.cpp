@@ -45,8 +45,14 @@ namespace BreadEditor {
         mainWindow.drawInternal(0);
         const auto filePath = _configsProvider.getEditorPrefsConfig()->LastOpenedNodePath;
         Node::deserialize(filePath);
-        R3D_ENVIRONMENT_SET(ambient.color, Color{10, 10, 10, 255});
 
+        R3D_Cubemap skybox = R3D_GenProceduralSky(1024, R3D_PROCEDURAL_SKY_BASE);
+        R3D_ENVIRONMENT_SET(background.sky, skybox);
+
+        R3D_AmbientMap ambientMap = R3D_GenAmbientMap(skybox, R3D_AMBIENT_ILLUMINATION | R3D_AMBIENT_REFLECTION); //TODO To settings
+        R3D_ENVIRONMENT_SET(ambient.map, ambientMap);
+
+        Engine::getInstance().initializeSystems();
         return _initialized;
     }
 
@@ -71,24 +77,22 @@ namespace BreadEditor {
             renderTexture = LoadRenderTexture(nextWidth, nextHeight);
         }
 
-        BeginTextureMode(renderTexture); // drawing 3D game to viewport
+        BeginDrawing();
         ClearBackground(RAYWHITE);
         const auto viewportMode = viewportWindow.getMode();
         _isCameraRendered = true;
+        Camera3D cameraForViewport;
         if (viewportMode == ViewportWindow::Scene)
         {
-            auto &camera = getCamera();
-            UpdateCamera(&camera, CAMERA_FREE);
-            R3D_Begin(camera);
-            DrawGrid(1000, 1.0f);
+            cameraForViewport = getCamera();
+            R3D_BeginEx(renderTexture, cameraForViewport);
         }
         else
         {
             const auto gameCamera = getGameCamera();
             _isCameraRendered = gameCamera != nullptr;
-            auto &nativeCamera = _isCameraRendered ? gameCamera->getNativeCamera() : getCamera();
-            UpdateCamera(&nativeCamera, CAMERA_FREE);
-            R3D_Begin(nativeCamera);
+            cameraForViewport = _isCameraRendered ? gameCamera->getNativeCamera() : getCamera();
+            R3D_BeginEx(renderTexture, cameraForViewport);
         }
 
         const auto deltaTime = isPaused() ? 0 : Engine::getDeltaTime();
@@ -99,10 +103,18 @@ namespace BreadEditor {
         {
             engine.onFrameStart(deltaTime);
             engine.onFrameEnd(deltaTime);
-            render3D(deltaTime);
         }
         R3D_End();
-        EndTextureMode(); // end 3D of viewport
+
+        BeginTextureMode(renderTexture); // drawing 3D editor to viewport
+        BeginMode3D(cameraForViewport);
+        DrawGrid(1000, 1.0f);
+        if (_isCameraRendered)
+        {
+            render3D(deltaTime);
+        }
+        EndMode3D();
+        EndTextureMode(); // end 3D editor of viewport
 
         if (!_isCameraRendered)
         {
@@ -111,7 +123,6 @@ namespace BreadEditor {
             EndTextureMode();
         }
 
-        BeginDrawing();
         render2D(renderTexture, deltaTime); // drawing editor UI
         EndDrawing();
     }

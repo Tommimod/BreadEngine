@@ -41,6 +41,8 @@ namespace BreadEngine {
 
         void unloadGameModule();
 
+        void initializeSystems();
+
         // Check if point is inside rectangle
         static bool isCollisionPointRec(Vector2 point, Rectangle rec);
 
@@ -53,7 +55,7 @@ namespace BreadEngine {
         static std::unique_ptr<Engine> _instance;
 
         AssetsConfig _fileSystem;
-        SystemsRegistry _systems;
+        SystemsRegistry _engineSystems;
         ModuleLoader *_gameModuleLoader = nullptr;
 
         typedef void (*GameInitFunc)();
@@ -80,8 +82,6 @@ namespace BreadEngine {
         GameRender2DEndFunc _gameRender2DEnd = nullptr;
         GameRender3DEndFunc _gameRender3DEnd = nullptr;
         GameShutdownFunc _gameShutdown = nullptr;
-
-        void initializeSystems();
     };
 
     namespace Input {

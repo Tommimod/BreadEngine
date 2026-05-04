@@ -14,26 +14,6 @@ namespace BreadEngine {
 
     Component::~Component() = default;
 
-    void Component::initialize()
-    {
-    }
-
-    void Component::update(float deltaTime)
-    {
-    }
-
-    void Component::fixedUpdate(float fixedDeltaTime)
-    {
-    }
-
-    void Component::onFrameStart(float deltaTime)
-    {
-    }
-
-    void Component::onFrameEnd(float deltaTime)
-    {
-    }
-
     void Component::onDestroy()
     {
     }

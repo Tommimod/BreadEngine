@@ -16,8 +16,6 @@ namespace BreadEngine {
 
         ~Camera() override;
 
-        void update(float deltaTime) override;
-
         void setPerspective(CameraType type);
 
         void setFov(float fov);
@@ -26,6 +24,7 @@ namespace BreadEngine {
 
     private:
         friend class CameraDirectorSystem;
+        friend class CameraSystem;
         friend struct CameraDirector;
 
         Camera3D _nativeCamera{};
