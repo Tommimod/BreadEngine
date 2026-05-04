@@ -4,7 +4,6 @@
 #include <vector>
 #include <yaml-cpp/node/node.h>
 #include "baseYamlConfig.h"
-#include "nameof.h"
 #include "raylib.h"
 #include <unordered_map>
 #include <string_view>
@@ -61,6 +60,15 @@ namespace BreadEngine {
             constexpr auto png = ".png";
             constexpr auto ico = ".ico";
             return _extension == jpg || _extension == jpeg || _extension == png || _extension == ico;
+        }
+
+        [[nodiscard]] bool is3DModel() const
+        {
+            constexpr auto obj = ".obj";
+            constexpr auto fbx = ".fbx";
+            constexpr auto gltf = ".gltf";
+            constexpr auto glb = ".glb";
+            return _extension == obj || _extension == fbx || _extension == gltf || _extension == glb;
         }
 
         [[nodiscard]] bool isAudio() const
@@ -239,13 +247,13 @@ namespace BreadEngine {
     private:
         friend struct YAML::convert<Folder>;
         friend struct AssetsConfig;
-        int _depth = 0;
+        std::vector<Folder> _folders;
+        std::vector<File> _files;
         std::string _fullPath;
         std::string _guid;
         std::string _pathFromRoot;
         std::string _name;
-        std::vector<File> _files;
-        std::vector<Folder> _folders;
+        int _depth = 0;
 
         INSPECTOR_BEGIN(Folder)
             INSPECT_FIELD(_depth);
@@ -258,7 +266,7 @@ namespace BreadEngine {
 
     struct AssetsConfig : BaseYamlConfig
     {
-        Action<> ConfigUndo;
+        Action<> ConfigUndo{};
 
         AssetsConfig() = default;
 
@@ -274,6 +282,8 @@ namespace BreadEngine {
         void deserializeConfig() override;
 
         void findAllAssets(const char *projectPath);
+
+        [[nodiscard]] Asset *getAsset(const File *file);
 
         [[nodiscard]] static bool isFolder(const char *path);
 
@@ -311,11 +321,12 @@ namespace BreadEngine {
     private:
         friend struct YAML::convert<AssetsConfig>;
 
-        std::unordered_map<std::string_view, Folder *> _guidToFolder{};
-        std::unordered_map<std::string_view, File *> _guidToFile{};
-        std::unordered_map<std::string_view, Folder *> _pathToFolder{};
-        std::unordered_map<std::string_view, File *> _pathToFile{};
         Folder _rootFolder;
+        std::unordered_map<std::string_view, Folder *> _guidToFolder{};
+        std::unordered_map<std::string_view, Folder *> _pathToFolder{};
+        std::unordered_map<std::string_view, File *> _guidToFile{};
+        std::unordered_map<std::string_view, File *> _pathToFile{};
+        std::unordered_map<std::string_view, Asset *> _guidToAsset{};
         std::string _empty;
         std::string _projectPath;
 
@@ -327,7 +338,7 @@ namespace BreadEngine {
 
         [[nodiscard]] bool isValid(const FilePathList &filePathList);
 
-        void parseFolders(Folder &folder, const FilePathList &filePathList) noexcept;
+        void parseFolders(Folder &folder, const FilePathList &filePathList);
 
         static void moveInternal(const std::string &from, const std::string &to);
 

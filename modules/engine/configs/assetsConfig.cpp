@@ -1,11 +1,14 @@
 #include "assetsConfig.h"
 #include <fstream>
+#include <ranges>
+
 #include "raylib.h"
 #include "models/reservedFileNames.h"
 #include <yaml-cpp/yaml.h>
 #include <yaml-cpp/node/parse.h>
 #include "assetsConfigYaml.h"
 #include "logger.h"
+#include "meshAsset.h"
 #include "tracy/Tracy.hpp"
 
 namespace BreadEngine {
@@ -67,6 +70,19 @@ namespace BreadEngine {
         parseFolders(_rootFolder, filesProvider);
         UnloadDirectoryFiles(filesProvider);
         buildIndexes();
+    }
+
+    Asset *AssetsConfig::getAsset(const File *file)
+    {
+        const auto it = _guidToAsset.find(file->getGUID());
+        if (it != _guidToAsset.end())
+        {
+            return it->second;
+        }
+
+        auto asset = MeshAsset(file->getGUID(), file->getShortName());
+        _guidToAsset[file->getGUID()] = new MeshAsset(file->getGUID(), file->getShortName());
+        return _guidToAsset[file->getGUID()];
     }
 
     bool AssetsConfig::isFolder(const char *path)
@@ -296,6 +312,11 @@ namespace BreadEngine {
         _guidToFile.clear();
         _pathToFolder.clear();
         _pathToFile.clear();
+        for (const auto &val: _guidToAsset | std::views::values)
+        {
+            delete val;
+        }
+        _guidToAsset.clear();
         indexFolder(_rootFolder);
     }
 
@@ -343,7 +364,7 @@ namespace BreadEngine {
         return true;
     }
 
-    void AssetsConfig::parseFolders(Folder &folder, const FilePathList &filePathList) noexcept
+    void AssetsConfig::parseFolders(Folder &folder, const FilePathList &filePathList)
     {
         ZoneScoped;
         for (auto i = 0u; i < filePathList.count; i++)

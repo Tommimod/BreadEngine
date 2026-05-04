@@ -11,10 +11,9 @@ namespace BreadEngine {
             if (!node->has<Light>()) continue;
 
             auto &light = node->get<Light>();
-            light.setLightType(light._lightType);
-            light.setWithShadows(light._withShadows);
-            light.setShadowResolution(light._shadowResolution);
-            light.setColor(light._color);
+            light.setLightType(light._settings.lightType);
+            light.setWithShadows(light._settings.withShadows);
+            light.setColor(light._settings.color);
         }
     }
 
@@ -25,30 +24,16 @@ namespace BreadEngine {
             if (!node->has<Light>()) continue;
 
             auto &light = node->get<Light>();
-            if (light._prevLightType != light._lightType)
-            {
-                light.setLightType(light._lightType);
-                light._prevLightType = light._lightType;
-            }
-
-            if (light._prevWithShadows != light._withShadows)
-            {
-                light._prevWithShadows = light._withShadows;
-                light.setWithShadows(light._withShadows);
-            }
-
-            if (light._prevColor != light._color)
-            {
-                light._prevColor = light._color;
-                light.setColor(light._color);
-            }
+            light.setLightType(light._settings.lightType);
+            light.setWithShadows(light._settings.withShadows);
+            light.setColor(light._settings.color);
 
             if (const auto isActive = R3D_IsLightActive(light._nativeLight); isActive != node->getIsActive())
             {
                 R3D_SetLightActive(light._nativeLight, node->getIsActive());
             }
 
-            if (light._lightType == R3D_LIGHT_DIR) continue;
+            if (light._settings.lightType == R3D_LIGHT_DIR) continue;
             const auto &transform = node->get<Transform>();
             const auto pos = transform.getPosition();
             const auto direction = transform.getForward();

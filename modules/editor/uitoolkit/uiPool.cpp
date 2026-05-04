@@ -127,4 +127,10 @@ namespace BreadEditor {
         return new UiNodeLink();
     };
     ObjectPool<UiNodeLink> UiPool::nodeLinkPool(UiNodeLinkFactory, 1);
+
+    auto UiAssetLinkFactory = []() -> UiAssetLink *
+    {
+        return new UiAssetLink();
+    };
+    ObjectPool<UiAssetLink> UiPool::assetLinkPool(UiAssetLinkFactory, 1);
 } // BreadEditor

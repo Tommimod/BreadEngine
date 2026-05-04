@@ -354,6 +354,40 @@ namespace BreadEditor {
                 CommandsHandler::execute(std::make_unique<ChangeInspectorValueCommand>(ChangeInspectorValueCommand::Data(property, inspectorStruct, value, getFunc())));
             });
         }
+        else if (propType == PropertyType::ASSET_LINK)
+        {
+            std::function<Asset *()> getFunc;
+            if (isSimpleProp)
+            {
+                getFunc = [inspectorStruct, property]
+                {
+                    return std::any_cast<Asset *>(property.get(inspectorStruct));
+                };
+
+                createdElement = &UiPool::assetLinkPool.get().setup(TextFormat("Link %s%i", property.name.c_str(), depth), this, getFunc);
+            }
+            else
+            {
+                getFunc = [vectorAccessor, vectorIndex]
+                {
+                    return std::any_cast<Asset *>(vectorAccessor->get(vectorIndex));
+                };
+
+                createdElement = &UiPool::assetLinkPool.get().setup(TextFormat("Link %s%i", property.name.c_str(), depth), this, getFunc);
+            }
+            const auto element = dynamic_cast<UiAssetLink *>(createdElement);
+            element->setExpectedType(property.expectedAssetType);
+            element->onClicked.subscribe([this, element](Asset *asset)
+            {
+                _lastSelectedAssetLink = element;
+                if (asset == nullptr) return;
+                Editor::getInstance().getEditorModel().invokeFileHighlightRequested(asset);
+            });
+            element->onValueChanged.subscribe([inspectorStruct, property, getFunc](Asset *value)
+            {
+                CommandsHandler::execute(std::make_unique<ChangeInspectorValueCommand>(ChangeInspectorValueCommand::Data(property, inspectorStruct, value, getFunc())));
+            });
+        }
         else if (propType == PropertyType::ENUM)
         {
             auto enumNames = property.getEnumNames();

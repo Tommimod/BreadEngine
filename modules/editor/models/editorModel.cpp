@@ -6,6 +6,11 @@ namespace BreadEditor {
         onNodeHighlightRequested.invoke(node);
     }
 
+    void EditorModel::invokeFileHighlightRequested(Asset *asset)
+    {
+        onFileHighlightRequested.invoke(asset);
+    }
+
     void EditorModel::invokeRefreshInspectorRequested() const
     {
         onRefreshInspectorRequested.invoke();

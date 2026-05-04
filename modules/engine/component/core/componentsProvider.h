@@ -150,7 +150,7 @@ namespace BreadEngine {
             const auto it = getChunks().find(ti);
             if (it == getChunks().end())
             {
-                auto &chunk = emplaceChunk<T>();
+                emplaceChunk<T>();
                 return add<T>(ownerId);
             }
 

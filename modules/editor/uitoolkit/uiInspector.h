@@ -2,9 +2,9 @@
 #include <map>
 #include <typeindex>
 #include "action.h"
-#include "../../engine/component/core/component.h"
 #include "uiElement.h"
 #include "inspectorObject.h"
+#include "uiAssetLink.h"
 #include "uiNodeLink.h"
 
 using namespace BreadEngine;
@@ -53,6 +53,7 @@ namespace BreadEditor {
         };
 
         UiNodeLink *_lastSelectedNodeLink = nullptr;
+        UiAssetLink *_lastSelectedAssetLink = nullptr;
         InspectorStruct *_inspectorStruct = nullptr;
         InspectorStruct *_nextInspectorStruct = nullptr;
         std::map<std::string, UiListData> _uiListData{};

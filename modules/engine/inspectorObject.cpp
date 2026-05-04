@@ -1,9 +1,11 @@
 #include "inspectorObject.h"
 #include <cxxabi.h>
 
+#include "engine.h"
 #include "node.h"
 #include "core/component.h"
 #include "component/core/componentsProvider.h"
+#include "configs/asset.h"
 #include "tracy/Tracy.hpp"
 #include "raylib.h"
 
@@ -191,6 +193,19 @@ namespace BreadEngine {
 
                 return YAML::Node(0);
             }
+            case PropertyType::ASSET_LINK:
+            {
+                auto *asset = std::any_cast<Asset *>(val);
+                if (asset)
+                {
+                    YAML::Node n;
+                    n["guid"] = asset->getGuid();
+                    n["type"] = asset->getTypeName();
+                    return n;
+                }
+
+                return YAML::Node(YAML::NodeType::Null);
+            }
             case PropertyType::VECTOR_L:
             {
                 auto acc = std::any_cast<std::shared_ptr<VectorAccessor> >(val);
@@ -353,6 +368,15 @@ namespace BreadEngine {
                 }
                 return Property::VariantT{comp};
             }
+            case PropertyType::ASSET_LINK:
+            {
+                if (!n["guid"] || !n["type"]) return Property::VariantT{static_cast<Asset *>(nullptr)};
+
+                const auto targetGuid = n["guid"].as<std::string>();
+                auto &assetsConfig = Engine::getInstance().getAssetsConfig();
+                auto asset = assetsConfig.getAsset(assetsConfig.getFileByGuid(targetGuid));
+                return Property::VariantT{asset};
+            }
             default: throw std::runtime_error("Unsupported property type for deserialization");
         }
     }
@@ -361,6 +385,12 @@ namespace BreadEngine {
     {
         static std::vector<DeferredNodeLink> deferredLinks;
         return deferredLinks;
+    }
+
+    std::vector<DeferredAssetLink> &InspectorStruct::getDeferredAssetLinks()
+    {
+        static std::vector<DeferredAssetLink> deferredAssetLinks;
+        return deferredAssetLinks;
     }
 
     bool &InspectorStruct::getDeserializationFlag()
@@ -438,6 +468,14 @@ namespace BreadEngine {
 
         getDeferredLinks().clear();
         getDeserializationFlag() = false;
+    }
+
+    void InspectorStruct::resolveAllDeferredAssetLinks()
+    {
+        ZoneScoped;
+        // TODO: Resolve asset links from asset database using guids
+        // This requires an asset manager/provider system to look up assets by guid
+        getDeferredAssetLinks().clear();
     }
 
     Component *&InspectorStruct::getCurrentComponent()

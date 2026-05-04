@@ -14,7 +14,7 @@
 namespace BreadEngine {
     struct InspectorStruct;
 
-    enum class PropertyType : uint8_t { INSPECTOR_STRUCT, INT, FLOAT, LONG, BOOL, STRING, VECTOR2, VECTOR3, VECTOR4, COLOR, ENUM, VECTOR_L, NODE_LINK };
+    enum class PropertyType : uint8_t { INSPECTOR_STRUCT, INT, FLOAT, LONG, BOOL, STRING, VECTOR2, VECTOR3, VECTOR4, COLOR, ENUM, VECTOR_L, NODE_LINK, ASSET_LINK };
 
     template<typename T>
     struct DeducePropertyType
@@ -108,6 +108,8 @@ namespace BreadEngine {
 
     struct Component;
 
+    struct Asset;
+
     template<typename T>
     struct DeducePropertyType<T *>
     {
@@ -116,6 +118,10 @@ namespace BreadEngine {
             if constexpr (std::is_base_of_v<Component, T>)
             {
                 return PropertyType::NODE_LINK;
+            }
+            else if constexpr (std::is_base_of_v<Asset, T>)
+            {
+                return PropertyType::ASSET_LINK;
             }
             else
             {
@@ -139,11 +145,12 @@ namespace BreadEngine {
         PropertyType type;
         PropertyType elementType = PropertyType{};
         std::type_index expectedComponentType{typeid(void)};
+        std::type_index expectedAssetType{typeid(void)};
         std::function<VariantT(const InspectorStruct *)> get;
         std::function<void(InspectorStruct *, const VariantT &)> set;
         std::function<std::string(const VariantT &)> toStr;
-        std::function<std::vector<std::string>()> getEnumNames;
-        std::function<VariantT(int)> enumIndexToValue;
+        std::function<std::vector<std::string>()> getEnumNames{};
+        std::function<VariantT(int)> enumIndexToValue{};
 
         bool operator==(const Property &other) const
         {
@@ -163,6 +170,15 @@ namespace BreadEngine {
         std::string propertyName;
         unsigned int targetNodeId = 0;
         std::string targetComponentType;
+    };
+
+    struct DeferredAssetLink
+    {
+        unsigned int sourceOwnerId = 0;
+        std::string sourceComponentType;
+        std::string propertyName;
+        std::string targetAssetGuid;
+        std::string targetAssetType;
     };
 
     struct VectorAccessor
@@ -250,7 +266,7 @@ namespace BreadEngine {
             vec.erase(vec.begin() + index);
         }
 
-        void forEachInspectorStruct(std::function<void(InspectorStruct *)> callback) override
+        void forEachInspectorStruct(const std::function<void(InspectorStruct *)> callback) override
         {
             if constexpr (std::is_base_of_v<InspectorStruct, typename VecT::value_type>)
             {
@@ -293,6 +309,8 @@ namespace BreadEngine {
 
         static void resolveAllDeferredNodeLinks();
 
+        static void resolveAllDeferredAssetLinks();
+
         static void setCurrentDeserializingComponent(Component *comp);
 
         static Component *getCurrentDeserializingComponent();
@@ -310,6 +328,8 @@ namespace BreadEngine {
 
     private:
         static std::vector<DeferredNodeLink> &getDeferredLinks();
+
+        static std::vector<DeferredAssetLink> &getDeferredAssetLinks();
 
         static bool &getDeserializationFlag();
 
@@ -447,6 +467,36 @@ namespace BreadEngine {
                     {
                         Component *compPtr = std::any_cast<Component *>(value);
                         obj->*memberPtr = dynamic_cast<FieldType>(compPtr);
+                    }
+                    else
+                    {
+                        obj->*memberPtr = nullptr;
+                    }
+                },
+                .toStr = {}
+            });
+        }
+        else if constexpr (ptype == PropertyType::ASSET_LINK)
+        {
+            using AssetType = std::remove_pointer_t<FieldType>;
+            props.emplace_back(Property{
+                .guid = InspectorStruct::getNewGUID(),
+                .name = std::string(fieldName),
+                .type = ptype,
+                .expectedAssetType = std::type_index(typeid(AssetType)),
+                .get = [memberPtr](const InspectorStruct *comp) -> Property::VariantT
+                {
+                    const auto *obj = static_cast<const LocalClass *>(comp);
+                    Asset *value = obj->*memberPtr;
+                    return Property::VariantT{value};
+                },
+                .set = [memberPtr](InspectorStruct *comp, const Property::VariantT &value)
+                {
+                    auto *obj = static_cast<LocalClass *>(comp);
+                    if (value.has_value())
+                    {
+                        Asset *assetPtr = std::any_cast<Asset *>(value);
+                        obj->*memberPtr = dynamic_cast<FieldType>(assetPtr);
                     }
                     else
                     {

@@ -219,10 +219,11 @@ namespace BreadEditor {
         const auto file = _assetConfig.getFileByGuid(fileUiElement->getFileGuid());
         const auto fileName = file->getShortName().c_str();
         const auto inspectorWindow = &Editor::getInstance().mainWindow.getPropertyInspector();
-        if (strcmp(fileName, BreadEngine::ReservedFileNames::ASSETS_REGISTRY_NAME) == 0)
+        if (strcmp(fileName, ReservedFileNames::ASSETS_REGISTRY_NAME) == 0)
         {
             inspectorWindow->lookupStruct(&Engine::getInstance().getAssetsConfig());
         }
+        else if (file->is3DModel() || file->isImage() || file->isAudio() || file->isVideo() || file->isText() || file->isConfig() || file->isText()) inspectorWindow->lookupStruct(_assetConfig.getAsset(file));
     }
 
     void AssetsWindow::onElementDragStarted(UiElement *uiElement)
@@ -281,6 +282,7 @@ namespace BreadEditor {
     {
         if (_draggedFileUiElementCopy == nullptr) return;
 
+        Editor::getInstance().getEditorModel().setDraggableElement(nullptr);
         _content->destroyChild(_draggedFileUiElementCopy);
         _draggedFileUiElementCopy = nullptr;
         const auto originalElement = dynamic_cast<FileUiElement *>(uiElement);
@@ -369,6 +371,12 @@ namespace BreadEditor {
     void AssetsWindow::subscribe()
     {
         UiWindow::subscribe();
+        Editor::getInstance().getEditorModel().onFileHighlightRequested.subscribe([this](const Asset *asset)
+        {
+            auto &guid = asset->getGuid();
+            const auto fileUiElement = getFileUiElementByPath(_assetConfig.getFileByGuid(guid));
+            fileUiElement->highlight();
+        });
     }
 
     void AssetsWindow::unsubscribe()

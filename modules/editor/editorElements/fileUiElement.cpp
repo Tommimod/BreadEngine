@@ -3,6 +3,10 @@
 #include "uitoolkit/uiPool.h"
 
 namespace BreadEditor {
+    constexpr float animationDurationInSec = .5f;
+    constexpr float horizontalOffset = 5.0f;
+    constexpr float deltaForMove = .2f;
+
     FileUiElement::FileUiElement() : _assetConfig(Engine::getInstance().getAssetsConfig())
     {
     }
@@ -39,6 +43,27 @@ namespace BreadEditor {
     {
         updateDraggable(this);
         updateOptionsOwner();
+
+        if (_isHighlighting)
+        {
+            _highlightTimer -= deltaTime;
+
+            _currentShakeOffset += deltaForMove * _shakeDirection;
+
+            if (std::abs(_currentShakeOffset) >= horizontalOffset)
+            {
+                _shakeDirection *= -1;
+            }
+
+            setPosition({_originalX + _currentShakeOffset, getPosition().y});
+
+            if (_highlightTimer <= 0.0f)
+            {
+                _isHighlighting = false;
+                setPosition({_originalX, getPosition().y});
+                _currentShakeOffset = 0.0f;
+            }
+        }
     }
 
     void FileUiElement::dispose()
@@ -47,6 +72,11 @@ namespace BreadEditor {
         onClicked.unsubscribeAll();
         _button = nullptr;
         _fileGuid.clear();
+        _highlightTimer = 0.0f;
+        _isHighlighting = false;
+        _originalX = 0.0f;
+        _currentShakeOffset = 0.0f;
+        _shakeDirection = 1;
         disposeDraggable();
         disposeOptionsOwner();
         UiElement::dispose();
@@ -65,6 +95,15 @@ namespace BreadEditor {
         copyElement->setBounds(_localPosition, _localSize);
         copyElement->onlyProvideDragEvents = false;
         return copyElement;
+    }
+
+    void FileUiElement::highlight()
+    {
+        _isHighlighting = true;
+        _highlightTimer = animationDurationInSec;
+        _originalX = getPosition().x;
+        _currentShakeOffset = 0.0f;
+        _shakeDirection = 1;
     }
 
     bool FileUiElement::tryDeleteSelf()
@@ -91,6 +130,10 @@ namespace BreadEditor {
         if (_file->isImage())
         {
             icon = ICON_FILETYPE_IMAGE;
+        }
+        else if (_file->is3DModel())
+        {
+            icon = ICON_MODE_3D;
         }
         else if (_file->isAudio())
         {

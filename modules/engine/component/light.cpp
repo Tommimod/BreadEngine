@@ -11,44 +11,41 @@ namespace BreadEngine {
 
     void Light::setLightType(const R3D_LightType type)
     {
-        if (const auto isLightExist = R3D_IsLightExist(_nativeLight); isLightExist && getLightType() != _lightType)
+        if (const auto isLightExist = R3D_IsLightExist(_nativeLight); isLightExist && getLightType() != _settings.lightType)
         {
-            _lightType = type;
+            _settings.lightType = type;
             R3D_DestroyLight(_nativeLight);
-            _nativeLight = R3D_CreateLight(_lightType);
+            _nativeLight = R3D_CreateLight(_settings.lightType);
         }
         else if (!isLightExist)
         {
-            _lightType = type;
-            _nativeLight = R3D_CreateLight(_lightType);
+            _settings.lightType = type;
+            _nativeLight = R3D_CreateLight(_settings.lightType);
         }
     }
 
     R3D_LightType Light::getLightType() const
     {
-        return _lightType;
+        return _settings.lightType;
     }
 
     void Light::setColor(const Color &color)
     {
-        _color = color;
-        R3D_SetLightColorV(_nativeLight, _color.asVector3());
+        if (color == _settings.color) return;
+        _settings.color = color;
+        R3D_SetLightColorV(_nativeLight, _settings.color.asVector3());
     }
 
     Color Light::getColor() const
     {
-        return _color;
+        return _settings.color;
     }
 
-    void Light::setWithShadows(const bool withShadows) const
+    void Light::setWithShadows(const bool withShadows)
     {
+        if (_settings.withShadows == withShadows) return;
+        _settings.withShadows = withShadows;
         if (withShadows) R3D_EnableShadow(_nativeLight);
         else R3D_DisableShadow(_nativeLight);
-    }
-
-    void Light::setShadowResolution(const int resolution)
-    {
-        _shadowResolution = resolution;
-        setWithShadows(_withShadows);
     }
 } // BreadEngine

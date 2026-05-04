@@ -4,6 +4,7 @@
 #include "uiLabelButton.h"
 #include "../editorElements/nodeUiElement.h"
 #include "objectPool.h"
+#include "uiAssetLink.h"
 #include "uiButton.h"
 #include "uiCheckBox.h"
 #include "uiInspector.h"
@@ -48,5 +49,6 @@ namespace BreadEditor {
         static ObjectPool<RenameUiElement> renameUiElementPool;
         static ObjectPool<MessageUiElement> messageUiElementPool;
         static ObjectPool<UiNodeLink> nodeLinkPool;
+        static ObjectPool<UiAssetLink> assetLinkPool;
     };
 } // BreadEditor

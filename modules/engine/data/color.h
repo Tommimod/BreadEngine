@@ -3,7 +3,6 @@
 
 #include "inspectorObject.h"
 #include "raylib.h"
-#include "component/light.h"
 
 namespace BreadEngine {
     struct Color : InspectorStruct

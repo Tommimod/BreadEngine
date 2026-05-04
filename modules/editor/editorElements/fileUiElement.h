@@ -38,6 +38,8 @@ namespace BreadEditor {
             return _options;
         }
 
+        void highlight();
+
     protected:
         bool tryDeleteSelf() override;
 
@@ -49,6 +51,12 @@ namespace BreadEditor {
         File *_file = nullptr;
         UiLabelButton *_button = nullptr;
         std::string _fileGuid;
+
+        float _highlightTimer = 0.0f;
+        bool _isHighlighting = false;
+        float _originalX = 0.0f;
+        float _currentShakeOffset = 0.0f;
+        int _shakeDirection = 1;
 
         GuiIconName getIconByFileType() const;
     };

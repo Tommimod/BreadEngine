@@ -1,7 +1,7 @@
 #include <format>
 
 #include "editor.h"
-#include "UiNumberBox.h"
+#include "uiNumberBox.h"
 #include "uiPool.h"
 
 namespace BreadEditor {
