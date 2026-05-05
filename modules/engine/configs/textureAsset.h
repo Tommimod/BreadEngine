@@ -17,6 +17,8 @@ namespace BreadEngine {
 
         Texture2D &getTexture();
 
+        void unload();
+
     private:
         Texture2D _nativeTexture {};
         TextureWrap _textureWrap = TEXTURE_WRAP_REPEAT;

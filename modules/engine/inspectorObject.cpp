@@ -373,7 +373,33 @@ namespace BreadEngine {
                 if (!n["guid"] || !n["type"]) return Property::VariantT{static_cast<Asset *>(nullptr)};
 
                 const auto targetGuid = n["guid"].as<std::string>();
+                const auto targetType = n["type"].as<std::string>();
+
+                if (isInDeserializationPhase())
+                {
+                    if (Component *currentComp = getCurrentDeserializingComponent())
+                    {
+                        DeferredAssetLink deferred;
+                        unsigned int ownerId = currentComp->getOwner()
+                                                   ? currentComp->getOwner()->getId()
+                                                   : getCurrentDeserializingOwnerId();
+                        deferred.sourceOwnerId = ownerId;
+                        deferred.sourceComponentType = currentComp->getTypeName();
+                        deferred.propertyName = propertyName;
+                        deferred.targetAssetGuid = targetGuid;
+                        deferred.targetAssetType = targetType;
+                        getDeferredAssetLinks().push_back(std::move(deferred));
+                    }
+                    return Property::VariantT{static_cast<Asset *>(nullptr)};
+                }
+
+                // If not in deserialization phase, resolve immediately
                 auto &assetsConfig = Engine::getInstance().getAssetsConfig();
+                if (auto file = assetsConfig.getFileByGuid(targetGuid); !file)
+                {
+                    TraceLog(LOG_ERROR, TextFormat("Failed to find asset by guid: %s", targetGuid.c_str()));
+                    return Property::VariantT{static_cast<Asset *>(nullptr)};
+                }
                 auto asset = assetsConfig.getAsset(assetsConfig.getFileByGuid(targetGuid));
                 return Property::VariantT{asset};
             }
@@ -402,6 +428,7 @@ namespace BreadEngine {
     void InspectorStruct::beginDeserializationPhase()
     {
         getDeferredLinks().clear();
+        getDeferredAssetLinks().clear();
         getDeserializationFlag() = true;
     }
 
@@ -473,8 +500,54 @@ namespace BreadEngine {
     void InspectorStruct::resolveAllDeferredAssetLinks()
     {
         ZoneScoped;
-        // TODO: Resolve asset links from asset database using guids
-        // This requires an asset manager/provider system to look up assets by guid
+        auto &assetsConfig = Engine::getInstance().getAssetsConfig();
+
+        for (const auto &link: getDeferredAssetLinks())
+        {
+            auto file = assetsConfig.getFileByGuid(link.targetAssetGuid);
+            if (!file)
+            {
+                Logger::LogWarning(TextFormat("Could not resolve asset link: asset with guid %s not found",
+                                              link.targetAssetGuid.c_str()));
+                continue;
+            }
+
+            Asset *targetAsset = assetsConfig.getAsset(file);
+            if (!targetAsset)
+            {
+                Logger::LogWarning(TextFormat("Could not resolve asset link: asset %s (%s) could not be loaded",
+                                              link.targetAssetType.c_str(), link.targetAssetGuid.c_str()));
+                continue;
+            }
+
+            const auto sourceComps = ComponentsProvider::getAllComponents(link.sourceOwnerId);
+            Component *sourceComp = nullptr;
+            for (const auto c: sourceComps)
+            {
+                if (c->getTypeName() == link.sourceComponentType)
+                {
+                    sourceComp = c;
+                    break;
+                }
+            }
+
+            if (!sourceComp)
+            {
+                Logger::LogWarning(TextFormat("Could not resolve asset link: source component %s not found in node %u",
+                                              link.sourceComponentType.c_str(), link.sourceOwnerId));
+                continue;
+            }
+
+            for (auto &prop: sourceComp->getInspectedProperties())
+            {
+                if (prop.name == link.propertyName && prop.type == PropertyType::ASSET_LINK)
+                {
+                    prop.set(sourceComp, targetAsset);
+                    break;
+                }
+            }
+        }
+
         getDeferredAssetLinks().clear();
     }
 

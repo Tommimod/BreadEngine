@@ -11,4 +11,10 @@ namespace BreadEngine {
         _isLoaded = true;
         return _nativeTexture;
     }
+
+    void TextureAsset::unload()
+    {
+        if (_isLoaded) R3D_UnloadTexture(_nativeTexture);
+        _isLoaded = false;
+    }
 } // BreadEngine

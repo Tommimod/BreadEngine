@@ -15,13 +15,19 @@ namespace BreadEngine {
         }
 
         _nativeMeshRenderer = R3D_LoadModelEx(_meshAsset->getAssetPath().c_str(), R3D_IMPORT_MESH_DATA | R3D_IMPORT_QUALITY);
-        _materials = std::vector<Material>(_nativeMeshRenderer.materialCount);
+        _materials = _meshAsset->getMaterials();
         _isLoaded = true;
     }
 
     void MeshRenderer::unload()
     {
+        if (!_isLoaded) return;
         R3D_UnloadModel(_nativeMeshRenderer, true);
+        for (auto &material: _materials)
+        {
+            material.unload();
+        }
+
         _isLoaded = false;
     }
 

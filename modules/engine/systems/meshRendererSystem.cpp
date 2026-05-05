@@ -17,9 +17,9 @@ namespace BreadEngine {
                 meshRenderer.load();
             }
 
-            for (auto &material: meshRenderer._materials)
+            for (auto i = 0; i < meshRenderer._materials.size(); i++)
             {
-                meshRenderer._nativeMeshRenderer.materials[0] = material.getNativeMaterial();
+                meshRenderer._nativeMeshRenderer.materials[i] = meshRenderer._materials[i].getNativeMaterial();
             }
 
             auto &transform = node->get<Transform>();

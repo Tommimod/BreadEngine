@@ -44,8 +44,8 @@ namespace BreadEngine {
         const auto dateTime = oss.str();
 
         const auto logLevel = level == Info ? LOG_INFO : level == Warning ? LOG_WARNING : LOG_ERROR;
-        std::string stack = "       " + Stacktrace::get_stacktrace_string();
-        const auto text = TextFormat("[%s] %s\n%s", dateTime.c_str(), message.data(), stack.c_str());
+        //std::string stack = "       " + Stacktrace::get_stacktrace_string(); //TODO FIX
+        const auto text = TextFormat("[%s] %s\n%s", dateTime.c_str(), message.data(), "");
         TraceLog(logLevel, "%s", text);
 
         auto entity = LogEntity{.level = level, .message = text};

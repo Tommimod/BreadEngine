@@ -73,6 +73,7 @@ namespace YAML {
             decodeRecursive(yamlNode, nodeId, parentNode);
 
             BreadEngine::InspectorStruct::resolveAllDeferredNodeLinks();
+            BreadEngine::InspectorStruct::resolveAllDeferredAssetLinks();
             rhs.Id = nodeId;
             return true;
         }
