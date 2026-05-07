@@ -20,6 +20,7 @@ namespace BreadEngine {
         _nativeMeshRenderer = R3D_LoadModelEx(path, 0);
         _materials = _meshAsset->getMaterials();
         _isLoaded = _nativeMeshRenderer.meshes != nullptr;
+        isChangedFromEditor = false;
     }
 
     void MeshRenderer::unload()

@@ -18,6 +18,12 @@ namespace BreadEngine {
             }
 
             if (!meshRenderer.isLoaded()) continue;
+            if (meshRenderer.isChangedFromEditor)
+            {
+                meshRenderer.unload();
+                meshRenderer.loadMesh();
+            }
+
             for (auto i = 0; i < static_cast<int>(meshRenderer._materials.size()); i++)
             {
                 meshRenderer._nativeMeshRenderer.materials[i] = meshRenderer._materials[i].getNativeMaterial();

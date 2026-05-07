@@ -285,6 +285,7 @@ namespace BreadEngine {
 
     struct InspectorStruct
     {
+        bool isChangedFromEditor = false;
         virtual ~InspectorStruct() = default;
 
         [[nodiscard]] virtual std::vector<Property> &getInspectedProperties() const
@@ -369,6 +370,7 @@ namespace BreadEngine {
                 {
                     auto *obj = static_cast<LocalClass *>(comp);
                     obj->*memberPtr = std::any_cast<FieldType>(value);
+                    comp->isChangedFromEditor = true;
                 },
                 .toStr = [](const Property::VariantT &val) -> std::string
                 {
@@ -406,6 +408,7 @@ namespace BreadEngine {
                 {
                     auto *obj = static_cast<LocalClass *>(comp);
                     obj->*memberPtr = std::any_cast<FieldType>(value);
+                    comp->isChangedFromEditor = true;
                 },
                 .toStr = [](const Property::VariantT &) -> std::string
                 {
@@ -431,6 +434,7 @@ namespace BreadEngine {
                     auto *obj = static_cast<LocalClass *>(comp);
                     const int index = std::any_cast<int>(value);
                     if (auto enumValue = magic_enum::enum_cast<FieldType>(static_cast<size_t>(index)); enumValue.has_value()) obj->*memberPtr = enumValue.value();
+                    comp->isChangedFromEditor = true;
                 },
                 .toStr = {},
                 .getEnumNames = []() -> std::vector<std::string>
@@ -472,6 +476,8 @@ namespace BreadEngine {
                     {
                         obj->*memberPtr = nullptr;
                     }
+
+                    comp->isChangedFromEditor = true;
                 },
                 .toStr = {}
             });
@@ -502,6 +508,8 @@ namespace BreadEngine {
                     {
                         obj->*memberPtr = nullptr;
                     }
+
+                    comp->isChangedFromEditor = true;
                 },
                 .toStr = {}
             });
@@ -522,6 +530,7 @@ namespace BreadEngine {
                 {
                     auto *obj = static_cast<LocalClass *>(comp);
                     obj->*memberPtr = std::any_cast<FieldType>(value);
+                    comp->isChangedFromEditor = true;
                 },
                 .toStr = {}
             });
