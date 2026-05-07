@@ -9,10 +9,12 @@ namespace BreadEngine {
         if (_albedoTexture) _albedoTexture->unload();
         if (_normalTexture) _normalTexture->unload();
         if (_omrTexture) _omrTexture->unload();
+        if (_emissionTexture) _emissionTexture->unload();
 
         _albedoTexture = nullptr;
         _normalTexture = nullptr;
         _omrTexture = nullptr;
+        _emissionTexture = nullptr;
     }
 
     R3D_Material const &Material::getNativeMaterial()
@@ -20,6 +22,8 @@ namespace BreadEngine {
         getAlbedoTexture();
         getNormalTexture();
         getOmrTexture();
+        getEmissionTexture();
+
         return _nativeMaterial;
     }
 
@@ -42,5 +46,12 @@ namespace BreadEngine {
         if (_omrTexture == nullptr) return whiteTex;
         _nativeMaterial.orm.texture = _omrTexture->getTexture();
         return _omrTexture->getTexture();
+    }
+
+    Texture2D const &Material::getEmissionTexture()
+    {
+        if (_emissionTexture == nullptr) return whiteTex;
+        _nativeMaterial.emission.texture = _emissionTexture->getTexture();
+        return _emissionTexture->getTexture();
     }
 } // BreadEngine

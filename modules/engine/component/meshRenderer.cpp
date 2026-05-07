@@ -6,7 +6,7 @@ namespace BreadEngine {
         _owner = owner;
     }
 
-    void MeshRenderer::load()
+    void MeshRenderer::loadMesh()
     {
         if (_meshAsset == nullptr)
         {
@@ -14,15 +14,16 @@ namespace BreadEngine {
             return;
         }
 
-        _nativeMeshRenderer = R3D_LoadModelEx(_meshAsset->getAssetPath().c_str(), R3D_IMPORT_MESH_DATA | R3D_IMPORT_QUALITY);
+        const auto path = _meshAsset->getAssetPath().c_str();
+        _nativeMeshRenderer = R3D_LoadModelEx(path, 0);
         _materials = _meshAsset->getMaterials();
-        _isLoaded = true;
+        _isLoaded = _nativeMeshRenderer.meshes != nullptr;
     }
 
     void MeshRenderer::unload()
     {
         if (!_isLoaded) return;
-        R3D_UnloadModel(_nativeMeshRenderer, true);
+        R3D_UnloadModel(_nativeMeshRenderer, false);
         for (auto &material: _materials)
         {
             material.unload();
@@ -31,13 +32,18 @@ namespace BreadEngine {
         _isLoaded = false;
     }
 
+    bool MeshRenderer::isLoaded() const
+    {
+        return _isLoaded && _meshAsset != nullptr;
+    }
+
     void MeshRenderer::setMeshAsset(MeshAsset *meshAsset)
     {
         _meshAsset = meshAsset;
         if (_isLoaded)
         {
             unload();
-            load();
+            loadMesh();
         }
     }
 

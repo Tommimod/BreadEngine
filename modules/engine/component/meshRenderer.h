@@ -15,9 +15,11 @@ namespace BreadEngine {
 
         ~MeshRenderer() override = default;
 
-        void load();
+        void loadMesh();
 
         void unload();
+
+        [[nodiscard]] bool isLoaded() const;
 
         void setMeshAsset(MeshAsset *meshAsset);
 

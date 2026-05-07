@@ -103,6 +103,11 @@ namespace BreadEngine {
             return _extension == node;
         }
 
+        [[nodiscard]] bool IsUnexpectedType() const
+        {
+            return !isImage() && !is3DModel() && !isAudio() && !isConfig() && !isNode() && !isText() && !isVideo();
+        }
+
     private:
         friend struct YAML::convert<File>;
         friend struct AssetsConfig;

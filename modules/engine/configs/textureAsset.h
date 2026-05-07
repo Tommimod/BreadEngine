@@ -1,4 +1,6 @@
 ﻿#pragma once
+#include <thread>
+
 #include "asset.h"
 #include "r3d_texture.h"
 
@@ -9,7 +11,7 @@ namespace BreadEngine {
         {
         }
 
-        explicit TextureAsset(File *file) : Asset(file)
+        explicit TextureAsset(const std::string &fileGuid) : Asset(fileGuid)
         {
         }
 
@@ -17,12 +19,16 @@ namespace BreadEngine {
 
         Texture2D &getTexture();
 
+        void loadToMemory() override;
+
         void unload();
 
     private:
-        Texture2D _nativeTexture {};
+        Image _nativeRawImage{};
+        Texture2D _nativeTexture{};
         TextureWrap _textureWrap = TEXTURE_WRAP_REPEAT;
         TextureFilter _textureFilter = TEXTURE_FILTER_POINT;
+        std::thread _loadThread{};
         bool _withColor = true;
         bool _isLoaded = false;
 

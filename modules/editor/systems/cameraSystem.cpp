@@ -6,11 +6,7 @@
 #include "tracy/Tracy.hpp"
 
 namespace BreadEditor {
-    CameraSystem::CameraSystem()
-    {
-        _yaw = PI;
-        _pitch = -PI / 4.0f;
-    }
+    CameraSystem::CameraSystem() = default;
 
     CameraSystem::~CameraSystem() = default;
 
@@ -55,6 +51,14 @@ namespace BreadEditor {
         }
     }
 
+    void CameraSystem::syncYawPitchFromCamera()
+    {
+        const auto &camera = Editor::getInstance().getCamera();
+        const auto forward = Vector3Normalize(Vector3Subtract(camera.target, camera.position));
+        _pitch = asinf(forward.y);
+        _yaw = atan2f(forward.z, forward.x);
+    }
+
     void CameraSystem::tryPrepare()
     {
         ZoneScoped;
@@ -68,6 +72,7 @@ namespace BreadEditor {
         if (const auto size = viewportWindow->getViewportSize();
             IsMouseButtonPressed(MOUSE_BUTTON_RIGHT) && Engine::isCollisionPointRec(GetMousePosition(), size))
         {
+            syncYawPitchFromCamera();
             _isPrepared = true;
         }
         else if (IsMouseButtonReleased(MOUSE_BUTTON_RIGHT))

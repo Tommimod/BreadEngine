@@ -155,7 +155,8 @@ namespace BreadEditor {
         messageUiElement.setPosition({2, offset});
         messageUiElement.onClick.subscribe([this](const Logger::LogEntity &logEntity)
         {
-            _logText->setText(logEntity.message.data());
+            const auto str = static_cast<std::string>(logEntity.message);
+            _logText->setText(str);
             const auto newLines = std::ranges::count(logEntity.message, '\n');
             _logText->setSize({-1, static_cast<float>(newLines) * static_cast<float>(_logText->getTextSize()) + 30});
             _textLogPanel->calculateRectForScroll(_logText);

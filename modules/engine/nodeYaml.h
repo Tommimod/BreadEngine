@@ -75,6 +75,7 @@ namespace YAML {
             BreadEngine::InspectorStruct::resolveAllDeferredNodeLinks();
             BreadEngine::InspectorStruct::resolveAllDeferredAssetLinks();
             rhs.Id = nodeId;
+            BreadEngine::InspectorStruct::endDeserializationPhase();
             return true;
         }
 

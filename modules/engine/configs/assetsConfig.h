@@ -31,7 +31,7 @@ namespace BreadEngine {
 
         void findAllAssets(const char *projectPath);
 
-        [[nodiscard]] Asset *getAsset(File *file);
+        [[nodiscard]] Asset *getAsset(const File *file);
 
         [[nodiscard]] static bool isFolder(const char *path);
 
@@ -68,17 +68,22 @@ namespace BreadEngine {
 
     private:
         friend struct YAML::convert<AssetsConfig>;
+        friend class AssetsDeserializer;
 
         Folder _rootFolder;
         std::unordered_map<std::string_view, Folder *> _guidToFolder{};
         std::unordered_map<std::string_view, Folder *> _pathToFolder{};
         std::unordered_map<std::string_view, File *> _guidToFile{};
         std::unordered_map<std::string_view, File *> _pathToFile{};
-        std::unordered_map<std::string_view, Asset *> _guidToAsset{};
+        std::map<std::string, Asset *> _guidToAsset{};
         std::string _empty;
         std::string _projectPath;
 
         static void updateIncludesAfterFolderChange(Folder *folder);
+
+        void restoreAssets();
+
+        void initializeAssets(YAML::Node &rawConfig);
 
         void buildIndexes();
 

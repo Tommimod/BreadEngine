@@ -1,12 +1,12 @@
 #include "assetsConfig.h"
 #include <fstream>
-#include <ranges>
 
 #include "raylib.h"
 #include "models/reservedFileNames.h"
 #include <yaml-cpp/yaml.h>
 #include <yaml-cpp/node/parse.h>
 #include "assetsConfigYaml.h"
+#include "assetsDeserializer.h"
 #include "logger.h"
 #include "meshAsset.h"
 #include "textureAsset.h"
@@ -31,10 +31,11 @@ namespace BreadEngine {
         ZoneScoped;
         _projectPath = projectPath;
         const auto filePath = std::string(projectPath) + "\\" + ReservedFileNames::ASSETS_REGISTRY_NAME;
-        const auto rawConfig = YAML::LoadFile(filePath);
+        auto rawConfig = YAML::LoadFile(filePath);
         if (rawConfig.IsNull())
         {
             findAllAssets(projectPath);
+            restoreAssets();
             serializeConfig();
             return;
         }
@@ -43,6 +44,7 @@ namespace BreadEngine {
         _projectPath = data._projectPath;
         _rootFolder = data._rootFolder;
         buildIndexes();
+        AssetsDeserializer::deserialize(rawConfig);
 
         const FilePathList filesProvider = LoadDirectoryFiles(_projectPath.c_str());
         if (!isValid(filesProvider))
@@ -52,6 +54,7 @@ namespace BreadEngine {
         }
 
         UnloadDirectoryFiles(filesProvider);
+        initializeAssets(rawConfig);
     }
 
     void AssetsConfig::deserializeConfig()
@@ -71,19 +74,27 @@ namespace BreadEngine {
         buildIndexes();
     }
 
-    Asset *AssetsConfig::getAsset(File *file)
+    Asset *AssetsConfig::getAsset(const File *file)
     {
-        const auto it = _guidToAsset.find(file->getGUID());
-        if (it != _guidToAsset.end())
+        auto &guid = file->getGUID();
+        if (_guidToAsset.contains(guid))
         {
-            return it->second;
+            return _guidToAsset[guid];
         }
 
         if (file->is3DModel())
-            _guidToAsset[file->getGUID()] = new MeshAsset(file);
+        {
+            _guidToAsset[guid] = new MeshAsset(guid);
+        }
         else if (file->isImage())
-            _guidToAsset[file->getGUID()] = new TextureAsset(file);
-        return _guidToAsset[file->getGUID()];
+        {
+            _guidToAsset[guid] = new TextureAsset(guid);
+        }
+
+        const auto asset = _guidToAsset[guid];
+        if (asset == nullptr) return nullptr;
+        asset->loadToMemory();
+        return asset;
     }
 
     bool AssetsConfig::isFolder(const char *path)
@@ -306,6 +317,52 @@ namespace BreadEngine {
         }
     }
 
+    void AssetsConfig::restoreAssets()
+    {
+        std::vector<Asset *> textures;
+        std::vector<Asset *> models;
+        for (auto &[guid, file]: _guidToFile)
+        {
+            if (_guidToAsset.contains(guid.data())) continue;
+            auto asset = getAsset(file);
+            if (file->isImage()) textures.push_back(asset);
+            if (file->is3DModel()) models.push_back(asset);
+        }
+
+        for (const auto asset: textures)
+        {
+            asset->loadToMemory();
+        }
+
+        for (const auto asset: models)
+        {
+            asset->loadToMemory();
+        }
+    }
+
+    void AssetsConfig::initializeAssets(YAML::Node &rawConfig)
+    {
+        std::vector<Asset *> textures;
+        std::vector<Asset *> models;
+        for (auto &[guid, asset]: _guidToAsset)
+        {
+            if (asset == nullptr) continue;
+            const auto file = _guidToFile[guid.data()];
+            if (file->isImage()) textures.push_back(asset);
+            if (file->is3DModel()) models.push_back(asset);
+        }
+
+        for (const auto asset: textures)
+        {
+            asset->loadToMemory();
+        }
+
+        for (const auto asset: models)
+        {
+            asset->loadToMemory();
+        }
+    }
+
     void AssetsConfig::buildIndexes()
     {
         ZoneScoped;
@@ -313,11 +370,6 @@ namespace BreadEngine {
         _guidToFile.clear();
         _pathToFolder.clear();
         _pathToFile.clear();
-        for (const auto &val: _guidToAsset | std::views::values)
-        {
-            delete val;
-        }
-        _guidToAsset.clear();
         indexFolder(_rootFolder);
     }
 
@@ -355,7 +407,8 @@ namespace BreadEngine {
             }
             else
             {
-                if (_pathToFile[path] == nullptr)
+                const auto file = _pathToFile[path];
+                if (file == nullptr)
                 {
                     return false;
                 }

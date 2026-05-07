@@ -1,6 +1,10 @@
 ﻿#pragma once
 #include <yaml-cpp/node/node.h>
+
+#include "asset.h"
 #include "assetsConfig.h"
+#include "meshAsset.h"
+#include "textureAsset.h"
 #include "nameof.h"
 
 namespace YAML {
@@ -42,9 +46,9 @@ namespace YAML {
         static Node encode(const std::vector<BreadEngine::File> &rhs)
         {
             Node node;
-            for (auto i = 0u; i < rhs.size(); i++)
+            for (const auto &rh: rhs)
             {
-                node.push_back(rhs[i]);
+                node.push_back(rh);
             }
             return node;
         }
@@ -107,11 +111,22 @@ namespace YAML {
     {
         static Node encode(const BreadEngine::AssetsConfig &rhs)
         {
+            constexpr static std::string typeKey = "type";
             const auto projectPathName = NAMEOF(rhs._projectPath).c_str();
             const auto folderName = NAMEOF(rhs._rootFolder).c_str();
+            const auto guidToAssetName = NAMEOF(rhs._guidToAsset).c_str();
             Node node;
             node[projectPathName] = rhs._projectPath;
             node[folderName] = rhs._rootFolder;
+            Node assetsNode(NodeType::Map);
+            for (auto &[guid, value]: rhs._guidToAsset)
+            {
+                if (value == nullptr) continue;
+                auto data = value->serialize();
+                data[typeKey] = value->getTypeName();
+                assetsNode[guid] = data;
+            }
+            node[guidToAssetName] = assetsNode;
             return node;
         }
 

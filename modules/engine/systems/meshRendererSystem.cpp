@@ -12,12 +12,13 @@ namespace BreadEngine {
             if (!node->has<MeshRenderer>()) continue;
 
             auto &meshRenderer = node->get<MeshRenderer>();
-            if (!meshRenderer._isLoaded)
+            if (!meshRenderer.isLoaded())
             {
-                meshRenderer.load();
+                meshRenderer.loadMesh();
             }
 
-            for (auto i = 0; i < meshRenderer._materials.size(); i++)
+            if (!meshRenderer.isLoaded()) continue;
+            for (auto i = 0; i < static_cast<int>(meshRenderer._materials.size()); i++)
             {
                 meshRenderer._nativeMeshRenderer.materials[i] = meshRenderer._materials[i].getNativeMaterial();
             }

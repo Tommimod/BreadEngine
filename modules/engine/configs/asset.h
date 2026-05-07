@@ -7,16 +7,16 @@ namespace BreadEngine {
     {
         Asset() = default;
 
-        explicit Asset(File *file)
+        explicit Asset(const std::string &fileGuid)
         {
-            _file = file;
+            _fileGuid = fileGuid;
         }
 
         ~Asset() override = default;
 
         virtual bool operator==(const Asset &other) const
         {
-            return _file == other._file;
+            return getFile() == other.getFile();
         }
 
         bool operator!=(const Asset &other) const
@@ -24,14 +24,18 @@ namespace BreadEngine {
             return !(*this == other);
         }
 
-        [[nodiscard]] const std::string &getGuid() const { return _file->getGUID(); }
+        [[nodiscard]] const std::string &getGuid() const { return getFile()->getGUID(); }
 
-        [[nodiscard]] const std::string &getAssetName() const { return _file->getShortName(); }
+        [[nodiscard]] const std::string &getAssetName() const { return getFile()->getShortName(); }
 
-        [[nodiscard]] const std::string &getAssetPath() const { return _file->getFullPath(); }
+        [[nodiscard]] const std::string &getAssetPath() const { return getFile()->getFullPath(); }
+
+        virtual void loadToMemory() = 0;
 
     protected:
-        File *_file = nullptr;
+        std::string _fileGuid;
+
+        File *getFile() const;
 
         INSPECTOR_BEGIN(Asset)
         INSPECTOR_END()

@@ -11,14 +11,19 @@ namespace BreadEngine {
         {
         }
 
-        explicit MeshAsset(File *file);
+        explicit MeshAsset(const std::string &fileGuid) : Asset(fileGuid)
+        {
+        }
 
         ~MeshAsset() override = default;
 
-        std::vector<Material> const &getMaterials() const { return _materials; }
+        [[nodiscard]] std::vector<Material> const &getMaterials() const { return _materials; }
+
+        void loadToMemory() override;
 
     private:
         std::vector<Material> _materials;
+        bool _isLoaded = false;
 
         INSPECTOR_BEGIN(MeshAsset)
             INSPECT_FIELD(_materials);

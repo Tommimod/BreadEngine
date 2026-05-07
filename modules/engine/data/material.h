@@ -21,9 +21,12 @@ namespace BreadEngine {
 
         Texture2D const &getOmrTexture();
 
+        Texture2D const &getEmissionTexture();
+
         void setAlbedoTexture(TextureAsset *texture) { _albedoTexture = texture; }
         void setNormalTexture(TextureAsset *texture) { _normalTexture = texture; }
         void setOmrTexture(TextureAsset *texture) { _omrTexture = texture; }
+        void setEmissionTexture(TextureAsset *texture) { _emissionTexture = texture; }
 
     private:
         std::string _shaderPath;
@@ -31,12 +34,14 @@ namespace BreadEngine {
         TextureAsset *_albedoTexture = nullptr;
         TextureAsset *_normalTexture = nullptr;
         TextureAsset *_omrTexture = nullptr;
+        TextureAsset *_emissionTexture = nullptr;
 
         INSPECTOR_BEGIN(Material)
             INSPECT_FIELD(_shaderPath);
             INSPECT_FIELD(_albedoTexture);
             INSPECT_FIELD(_normalTexture);
             INSPECT_FIELD(_omrTexture);
+            INSPECT_FIELD(_emissionTexture);
         INSPECTOR_END()
     };
 } // BreadEngine
