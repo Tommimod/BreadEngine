@@ -1,6 +1,9 @@
 ﻿#include "meshRenderer.h"
 
 namespace BreadEngine {
+    DEFINE_STATIC_PROPS(MeshRenderer)
+    REGISTER_COMPONENT(MeshRenderer)
+
     MeshRenderer::MeshRenderer(Node *owner)
     {
         _owner = owner;
@@ -10,7 +13,6 @@ namespace BreadEngine {
     {
         if (_meshAsset == nullptr)
         {
-            Logger::LogError("Can't load meshes, because asset link is null");
             return;
         }
 
@@ -46,7 +48,4 @@ namespace BreadEngine {
             loadMesh();
         }
     }
-
-    DEFINE_STATIC_PROPS(MeshRenderer)
-    REGISTER_COMPONENT(MeshRenderer)
 } // BreadEngine

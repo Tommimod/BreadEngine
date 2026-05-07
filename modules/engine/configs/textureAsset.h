@@ -17,7 +17,7 @@ namespace BreadEngine {
 
         ~TextureAsset() override = default;
 
-        Texture2D &getTexture();
+        Texture2D const &getTexture();
 
         void loadToMemory() override;
 

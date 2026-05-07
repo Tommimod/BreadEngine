@@ -206,7 +206,7 @@ namespace BreadEngine {
 
     Vector3 Transform::getForward() const
     {
-        constexpr auto forward = Vector3{0.0f, 0.0f, -1.0f};
+        constexpr auto forward = Vector3{0.0f, 0.0f, 1.0f};
         return Vector3RotateByQuaternion(forward, getRotationQuaternion());
     }
 

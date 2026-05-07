@@ -5,7 +5,7 @@
 namespace BreadEngine {
     DEFINE_STATIC_PROPS(TextureAsset)
 
-    Texture2D &TextureAsset::getTexture()
+    Texture2D const &TextureAsset::getTexture()
     {
         if (_isLoaded) return _nativeTexture;
         if (_loadThread.joinable()) _loadThread.join();

@@ -9,6 +9,7 @@
 #include "systems/cameraSystem.h"
 #include "systems/lightSystem.h"
 #include "systems/meshRendererSystem.h"
+#include "systems/spriteRendererSystem.h"
 
 namespace BreadEngine {
     auto nodeFactory = []() -> Node *
@@ -23,6 +24,7 @@ namespace BreadEngine {
         _engineSystems.addSystem<LightSystem>()
                 .addSystem<CameraSystem>()
                 .addSystem<CameraDirectorSystem>()
+                .addSystem<SpriteRendererSystem>()
                 .addSystem<MeshRendererSystem>();
 
         _engineSystems.initialize();
