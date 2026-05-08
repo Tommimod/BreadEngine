@@ -5,6 +5,7 @@
 #include "node.h"
 #include "objectPool.h"
 #include "configs/assetsConfig.h"
+#include "configs/projectSettings.h"
 #include "systems/core/systemsRegistry.h"
 
 namespace BreadEngine {
@@ -15,11 +16,11 @@ namespace BreadEngine {
 
         ~Engine() = default;
 
-        static ObjectPool<Node> nodePool;
-
         static Engine &getInstance();
 
         static Node &getRootNode();
+
+        static void setNodeAsRoot(const Node &node);
 
         static float getDeltaTime();
 
@@ -49,12 +50,18 @@ namespace BreadEngine {
         // Check if point is inside rectangle with hole
         static bool isCollisionPointRec(Vector2 point, Rectangle rec, Rectangle subtraction);
 
-        [[nodiscard]] AssetsConfig &getAssetsConfig() { return _fileSystem; };
+        [[nodiscard]] AssetsConfig &getAssetsConfig() { return _fileSystem; }
+
+        [[nodiscard]] ProjectSettings &getProjectSettings() { return _projectSettings; }
+
+        [[nodiscard]] static std::string getProjectPath();
 
     private:
         static std::unique_ptr<Engine> _instance;
+        static Node _rootNode;
 
         AssetsConfig _fileSystem;
+        ProjectSettings _projectSettings;
         SystemsRegistry _engineSystems;
         ModuleLoader *_gameModuleLoader = nullptr;
 

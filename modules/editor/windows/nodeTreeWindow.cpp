@@ -89,9 +89,7 @@ namespace BreadEditor {
 
     void NodeTreeWindow::save()
     {
-        if (!_isDirty) return;
-
-        const auto filePath = Editor::getInstance().getConfigsProvider().getEditorPrefsConfig()->LastOpenedNodePath;
+        const auto &filePath = Engine::getInstance().getAssetsConfig().getFileByGuid(Engine::getInstance().getProjectSettings().startNodeGuid)->getFullPath();
         auto _ = Engine::getRootNode().serialize(filePath);
         _isDirty = false;
     }

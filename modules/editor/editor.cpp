@@ -32,7 +32,6 @@ namespace BreadEditor {
 
         _initialized = MandatoryEditorFilesValidator::validate();
         CommandsHandler::execute(std::make_unique<ReopenLastProjectCommand>());
-        Engine::getInstance().getAssetsConfig().deserializeConfig(_configsProvider.getEditorPrefsConfig()->LastProjectPath.c_str());
 
         GuiLoadStyleDefault();
         EditorStyle::loadFont();
@@ -43,8 +42,6 @@ namespace BreadEditor {
         mainWindow.initialize();
         mainWindow.updateInternal(0);
         mainWindow.drawInternal(0);
-        const auto filePath = _configsProvider.getEditorPrefsConfig()->LastOpenedNodePath;
-        Node::deserialize(filePath);
 
         R3D_Cubemap skybox = R3D_GenProceduralSky(1024, R3D_PROCEDURAL_SKY_BASE);
         R3D_ENVIRONMENT_SET(background.sky, skybox);

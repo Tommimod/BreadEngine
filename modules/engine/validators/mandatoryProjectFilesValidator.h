@@ -1,9 +1,9 @@
 ﻿#pragma once
 
-namespace BreadEditor {
+namespace BreadEngine {
     class MandatoryProjectFilesValidator
     {
     public:
-        [[nodiscard]] static bool validate();
+        [[nodiscard]] static bool validateAndInitialize();
     };
 } // BreadEditor

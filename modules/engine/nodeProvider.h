@@ -15,11 +15,15 @@ namespace BreadEngine {
 
         static void init();
 
-        static unsigned int generateId();
+        [[nodiscard]] static unsigned int generateId();
 
-        static Node *getNode(unsigned int ownerId);
+        [[nodiscard]] static Node *getNode(unsigned int ownerId);
 
-        static const std::vector<Node *> &getAllNodes();
+        [[nodiscard]] static const std::vector<Node *> &getAllNodes();
+
+        [[nodiscard]] static Node &createNode();
+
+        static void destroyNode(Node &node);
 
     private:
         static std::vector<Node *> _nodes;

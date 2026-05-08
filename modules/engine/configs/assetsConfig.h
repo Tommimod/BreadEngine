@@ -25,9 +25,7 @@ namespace BreadEngine {
 
         void serializeConfig() override;
 
-        void deserializeConfig(const char *projectPath);
-
-        void deserializeConfig() override;
+        void deserializeConfig(const char *filePath) override;
 
         void findAllAssets(const char *projectPath);
 
@@ -78,6 +76,7 @@ namespace BreadEngine {
         std::map<std::string, Asset *> _guidToAsset{};
         std::string _empty;
         std::string _projectPath;
+        std::string _filePath;
 
         static void updateIncludesAfterFolderChange(Folder *folder);
 

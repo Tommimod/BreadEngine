@@ -1,8 +1,14 @@
 #include "nodeProvider.h"
 #include "node.h"
+#include "objectPool.h"
 #include "tracy/Tracy.hpp"
 
 namespace BreadEngine {
+    auto nodeFactory = []() -> Node *
+    {
+        return new Node();
+    };
+    ObjectPool<Node> nodePool(nodeFactory, 10);
     Action<Node *> NodeProvider::onNodeCreated{};
     Action<Node *> NodeProvider::onNodeChangedParent{};
     Action<Node *> NodeProvider::onNodeDestroyed{};
@@ -54,5 +60,16 @@ namespace BreadEngine {
     const std::vector<Node *> &NodeProvider::getAllNodes()
     {
         return _nodes;
+    }
+
+    Node &NodeProvider::createNode()
+    {
+        auto &node = nodePool.get();
+        return node;
+    }
+
+    void NodeProvider::destroyNode(Node &node)
+    {
+        nodePool.release(node);
     }
 }

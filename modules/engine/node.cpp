@@ -53,7 +53,7 @@ namespace BreadEngine {
             destroyChild(child);
         }
 
-        Engine::nodePool.release(*this);
+        NodeProvider::destroyNode(*this);
     }
 
     void Node::destroyChild(Node *node)
@@ -110,7 +110,7 @@ namespace BreadEngine {
         {
             if (child)
             {
-                Engine::nodePool.release(*child);
+                NodeProvider::destroyNode(*child);
             }
         }
 

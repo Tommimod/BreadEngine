@@ -14,6 +14,7 @@ namespace BreadEditor {
         BreadEngine::Node *_node = nullptr;
         std::string _newName;
         std::string _oldName;
+        std::string _renamedFileGuid;
 
         bool withUndo() override { return true; }
 

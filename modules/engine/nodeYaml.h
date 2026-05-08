@@ -90,8 +90,9 @@ namespace YAML {
             auto &nextNode = parentNode == nullptr && yamlNode["IsNodePrefab"].as<bool>()
                                  ? BreadEngine::Engine::getRootNode()
                                  : parentNode != nullptr
-                                       ? BreadEngine::Engine::nodePool.get().setup(name, *parentNode)
-                                       : BreadEngine::Engine::nodePool.get().setup(name);
+                                       ? BreadEngine::NodeProvider::createNode().setup(name, *parentNode)
+                                       : BreadEngine::NodeProvider::createNode().setup(name);
+            if (nextNode._name.empty()) nextNode.setup(name);
             nextNode.setIsActive(yamlNode[isActiveName].as<bool>());
             auto componentsNode = yamlNode[componentsName].as<Node>();
             for (unsigned i = 0; i < componentsNode.size(); i++)

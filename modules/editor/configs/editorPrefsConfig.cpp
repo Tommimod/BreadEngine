@@ -3,7 +3,6 @@
 #include "editor.h"
 #include <yaml-cpp/yaml.h>
 #include <yaml-cpp/node/parse.h>
-#include "models/reservedFileNames.h"
 
 namespace BreadEditor {
     EditorPrefsConfig::EditorPrefsConfig() : BaseYamlConfig()
@@ -22,8 +21,9 @@ namespace BreadEditor {
         process.close();
     }
 
-    void EditorPrefsConfig::deserializeConfig()
+    void EditorPrefsConfig::deserializeConfig(const char *filePath)
     {
+        _filePath = filePath;
         auto &configProvider = Editor::getInstance().getConfigsProvider();
         if (configProvider.getEditorPrefsConfig() != nullptr)
         {
@@ -33,16 +33,15 @@ namespace BreadEditor {
         const auto rawConfig = YAML::LoadFile(_filePath);
         if (rawConfig.IsNull())
         {
-            LastProjectPath = TextFormat("%s\\%s", GetWorkingDirectory(), "assets\\game");
-            LastOpenedNodePath = LastProjectPath + "\\" + "Root" + BreadEngine::ReservedFileNames::MARKER_NODE;
+            LastProjectPath = Engine::getProjectPath();
             EditorThemeName = "darkred.rgs";
             serializeConfig();
-            deserializeConfig();
+            deserializeConfig(filePath);
             return;
         }
 
         auto data = rawConfig.as<EditorPrefsConfig>();
-        data.setPath(_filePath);
+        data._filePath = filePath;
         configProvider.setEditorPrefsConfig(std::make_unique<EditorPrefsConfig>(std::move(data)));
     }
 } // BreadEditor

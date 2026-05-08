@@ -32,6 +32,8 @@ namespace BreadEditor {
         void unsubscribe() override;
 
     private:
+        friend class ChangeNameNodeCommand;
+
         bool _isUpdateAfterMove = true;
         const char *_title = Id.c_str();
         AssetsConfig &_assetConfig;

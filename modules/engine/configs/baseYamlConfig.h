@@ -14,10 +14,9 @@ namespace BreadEngine {
 
         virtual void serializeConfig() = 0;
 
-        virtual void deserializeConfig() = 0;
+        virtual void deserializeConfig(const char* filePath) = 0;
 
     protected:
-        void setPath(const std::string &filePath) { _filePath = filePath; }
         std::string _filePath;
     };
 } // BreadEngine

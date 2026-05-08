@@ -19,22 +19,21 @@ namespace BreadEngine {
     void AssetsConfig::serializeConfig()
     {
         ZoneScoped;
-        const auto filePath = std::string(_projectPath) + "\\" + ReservedFileNames::ASSETS_REGISTRY_NAME;
-        std::ofstream process(filePath);
+        std::ofstream process(_filePath);
         process.clear();
         process << YAML::Node(*this);
         process.close();
     }
 
-    void AssetsConfig::deserializeConfig(const char *projectPath)
+    void AssetsConfig::deserializeConfig(const char *filePath)
     {
         ZoneScoped;
-        _projectPath = projectPath;
-        const auto filePath = std::string(projectPath) + "\\" + ReservedFileNames::ASSETS_REGISTRY_NAME;
-        auto rawConfig = YAML::LoadFile(filePath);
+        _filePath = filePath;
+        _projectPath = GetDirectoryPath(filePath);
+        auto rawConfig = YAML::LoadFile(_filePath);
         if (rawConfig.IsNull())
         {
-            findAllAssets(projectPath);
+            findAllAssets(_projectPath.c_str());
             restoreAssets();
             serializeConfig();
             return;
@@ -49,18 +48,12 @@ namespace BreadEngine {
         const FilePathList filesProvider = LoadDirectoryFiles(_projectPath.c_str());
         if (!isValid(filesProvider))
         {
-            findAllAssets(projectPath);
+            findAllAssets(_projectPath.c_str());
             serializeConfig();
         }
 
         UnloadDirectoryFiles(filesProvider);
         initializeAssets(rawConfig);
-    }
-
-    void AssetsConfig::deserializeConfig()
-    {
-        ZoneScoped;
-        deserializeConfig(TextFormat("%s\\%s", GetWorkingDirectory(), "assets\\game"));
     }
 
     void AssetsConfig::findAllAssets(const char *projectPath)

@@ -195,10 +195,10 @@ namespace BreadEditor {
     {
         if (index == 1) // Create empty
         {
-            const auto nextNode = &Engine::nodePool.get();
-            nextNode->setName("Empty node");
-            auto data = Node::getDataForCopy(*nextNode);
-            Engine::nodePool.release(*nextNode);
+            auto &nextNode = NodeProvider::createNode();
+            nextNode.setName("Empty node");
+            auto data = Node::getDataForCopy(nextNode);
+            NodeProvider::destroyNode(nextNode);
             CommandsHandler::execute(std::make_unique<CreateNodeCommand>(_engineNode, std::move(data)));
         }
         else if (index == 2) // Copy

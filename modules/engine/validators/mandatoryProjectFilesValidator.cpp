@@ -1,26 +1,29 @@
 ﻿#include "mandatoryProjectFilesValidator.h"
+
 #include <fstream>
-#include "editor.h"
-#include "../models/reservedFileNames.h"
+
+#include "engine.h"
+#include "raylib.h"
 #include "models/reservedFileNames.h"
 
-namespace BreadEditor {
-    bool MandatoryProjectFilesValidator::validate()
+namespace BreadEngine {
+    bool MandatoryProjectFilesValidator::validateAndInitialize()
     {
         try
         {
-            std::string path = Editor::getInstance().getEditorModel().getProjectPath();
+            std::string path = Engine::getProjectPath();
             if (path.empty())
             {
                 return false;
             }
 
-            auto filePath = TextFormat("%s%s", path.c_str(), BreadEngine::ReservedFileNames::PROJECT_SETTINGS_NAME);
+            auto filePath = TextFormat("%s%s", path.c_str(), ReservedFileNames::PROJECT_SETTINGS_NAME);
             if (!FileExists(filePath))
             {
                 std::ofstream outfile(filePath);
                 outfile.close();
             }
+            Engine::getInstance().getProjectSettings().deserializeConfig(filePath);
 
             filePath = TextFormat("%s%s", path.c_str(), ReservedFileNames::EDITOR_IN_PROJECT_SETTINGS_NAME);
             if (!FileExists(filePath))
@@ -29,12 +32,13 @@ namespace BreadEditor {
                 outfile.close();
             }
 
-            filePath = TextFormat("%s%s", path.c_str(), BreadEngine::ReservedFileNames::ASSETS_REGISTRY_NAME);
+            filePath = TextFormat("%s%s", path.c_str(), ReservedFileNames::ASSETS_REGISTRY_NAME);
             if (!FileExists(filePath))
             {
                 std::ofstream outfile(filePath);
                 outfile.close();
             }
+            Engine::getInstance().getAssetsConfig().deserializeConfig(filePath);
 
             return true;
         }

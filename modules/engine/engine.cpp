@@ -10,14 +10,11 @@
 #include "systems/lightSystem.h"
 #include "systems/meshRendererSystem.h"
 #include "systems/spriteRendererSystem.h"
+#include "validators/mandatoryProjectFilesValidator.h"
 
 namespace BreadEngine {
-    auto nodeFactory = []() -> Node *
-    {
-        return new Node();
-    };
-    ObjectPool<Node> Engine::nodePool(nodeFactory, 10);
     std::unique_ptr<Engine> Engine::_instance = std::make_unique<Engine>();
+    Node Engine::_rootNode = {};
 
     void Engine::initializeSystems()
     {
@@ -39,14 +36,22 @@ namespace BreadEngine {
 
     Node &Engine::getRootNode()
     {
-        static Node _rootNode;
-        if (_rootNode.getName().empty()) _rootNode = _rootNode.setup("Root");
         return _rootNode;
+    }
+
+    void Engine::setNodeAsRoot(const Node &node)
+    {
+        _rootNode = node;
     }
 
     float Engine::getDeltaTime()
     {
         return GetFrameTime();
+    }
+
+    std::string Engine::getProjectPath()
+    {
+        return TextFormat("%s%s\\", GetApplicationDirectory(), "assets\\game");
     }
 
     bool Engine::initialize(const int width, const int height, const char *title)
@@ -55,9 +60,26 @@ namespace BreadEngine {
         SetConfigFlags(FLAG_WINDOW_RESIZABLE | FLAG_WINDOW_ALWAYS_RUN | FLAG_WINDOW_HIGHDPI);
         InitWindow(width, height, title);
         MaximizeWindow();
-        R3D_Init(GetScreenWidth(), GetScreenHeight());
-        NodeProvider::init();
+        R3D_Init(width, height);
 
+        const auto isValid = MandatoryProjectFilesValidator::validateAndInitialize();
+        if (!isValid)
+        {
+            return false;
+        }
+
+        NodeProvider::init();
+        auto &nodeFileGuid = _projectSettings.startNodeGuid;
+        if (nodeFileGuid.empty())
+        {
+            const auto path = TextFormat("%s%s%s", getProjectPath().c_str(), getRootNode().getName().c_str(), ReservedFileNames::MARKER_NODE);
+            nodeFileGuid = _projectSettings.startNodeGuid = _fileSystem.getFileByPath(path)->getGUID();
+            _projectSettings.serializeConfig();
+        }
+
+        const auto nodeFile = _fileSystem.getFileByGuid(nodeFileGuid);
+        const auto node = Node::deserialize(nodeFile->getFullPath());
+        if (getRootNode().getName().empty()) setNodeAsRoot(*node);
         return true;
     }
 

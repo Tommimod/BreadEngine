@@ -199,7 +199,7 @@ namespace BreadEngine {
                 if (asset)
                 {
                     YAML::Node n;
-                    n["guid"] = asset->getGuid();
+                    n["guid"] = asset->getGuid().c_str();
                     n["type"] = asset->getTypeName();
                     return n;
                 }
