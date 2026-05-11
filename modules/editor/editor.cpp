@@ -12,6 +12,7 @@
 #include "tracy/Tracy.hpp"
 #include "validators/mandatoryEditorFilesValidator.h"
 #include "component/cameraDirector.h"
+#include "utils/assetsConfigUpdater.h"
 
 namespace BreadEditor {
     std::unique_ptr<Editor> Editor::_instance = std::make_unique<Editor>();
@@ -30,6 +31,8 @@ namespace BreadEditor {
         ZoneScoped;
         if (_initialized) return false;
 
+        FilesWatcher::start(Engine::getProjectPath().c_str());
+        AssetsConfigUpdater::subscribe();
         _initialized = MandatoryEditorFilesValidator::validate();
         CommandsHandler::execute(std::make_unique<ReopenLastProjectCommand>());
 
@@ -58,6 +61,8 @@ namespace BreadEditor {
         ZoneScoped;
         if (!_initialized) return;
 
+        AssetsConfigUpdater::unsubscribe();
+        FilesWatcher::stop();
         closeProject();
         _initialized = false;
     }

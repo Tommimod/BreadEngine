@@ -64,6 +64,12 @@ namespace BreadEngine {
             return _projectPath == other._projectPath && _rootFolder == other._rootFolder;
         }
 
+        void onFileCreated(const std::string &filePath);
+
+        void onFileDeleted(const std::string &filePath);
+
+        void onFileMoved(const std::string &from, const std::string &to);
+
     private:
         friend struct YAML::convert<AssetsConfig>;
         friend class AssetsDeserializer;

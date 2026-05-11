@@ -7,6 +7,7 @@
 #include "configs/infrastructure/configsProvider.h"
 #include "models/editorModel.h"
 #include "systems/cameraSystem.h"
+#include "utils/filesWatcher.h"
 using namespace BreadEngine;
 #if !defined(RAYGUI_WINDOWBOX_STATUSBAR_HEIGHT)
 #define RAYGUI_WINDOWBOX_STATUSBAR_HEIGHT        24

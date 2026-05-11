@@ -42,12 +42,12 @@ if (CMAKE_CXX_COMPILER_ID MATCHES "Clang|GNU")
             -Wl,--no-whole-archive
             ${PLATFORM_LIBS}
     )
-else()
+else ()
     target_link_libraries(BreadEditor PUBLIC
             BreadEngine
             ${PLATFORM_LIBS}
     )
-endif()
+endif ()
 
 if (WIN32 AND CMAKE_CXX_COMPILER_ID MATCHES "Clang|GNU")
     target_link_libraries(BreadEditor PUBLIC dbghelp)

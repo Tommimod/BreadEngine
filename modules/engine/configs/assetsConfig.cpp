@@ -292,6 +292,19 @@ namespace BreadEngine {
         serialize();
     }
 
+    void AssetsConfig::onFileCreated(const std::string &filePath)
+    {
+        
+    }
+
+    void AssetsConfig::onFileDeleted(const std::string &filePath)
+    {
+    }
+
+    void AssetsConfig::onFileMoved(const std::string &from, const std::string &to)
+    {
+    }
+
     void AssetsConfig::updateIncludesAfterFolderChange(Folder *folder)
     {
         ZoneScoped;

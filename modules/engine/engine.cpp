@@ -4,6 +4,7 @@
 #include <r3d.h>
 
 #include "nodeProvider.h"
+#include "models/reservedFileNames.h"
 #include "tracy/Tracy.hpp"
 #include "systems/cameraDirectorSystem.h"
 #include "systems/cameraSystem.h"
