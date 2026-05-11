@@ -40,6 +40,6 @@ namespace BreadEditor {
             _assetsConfig.renameFolder(_assetGuid, _oldName);
         }
 
-        _assetsConfig.ConfigUndo.invoke();
+        _assetsConfig.onIndirectChange.invoke();
     }
 } // BreadEditor

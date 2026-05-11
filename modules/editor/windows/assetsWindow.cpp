@@ -19,7 +19,7 @@ namespace BreadEditor {
         setup(id);
         subscribe();
 
-        _assetConfig.ConfigUndo.subscribe([this]
+        _assetConfig.onIndirectChange.subscribe([this]
         {
             rebuild();
         });
@@ -32,7 +32,7 @@ namespace BreadEditor {
         setup(id, parentElement);
         subscribe();
 
-        _assetConfig.ConfigUndo.subscribe([this]
+        _assetConfig.onIndirectChange.subscribe([this]
         {
             rebuild();
         });

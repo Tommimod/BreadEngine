@@ -18,17 +18,16 @@ namespace BreadEditor {
     void AssetsConfigUpdater::onUpdate(const FilesWatcher::CallbackData &data)
     {
         auto &assetsConfig = BreadEngine::Engine::getInstance().getAssetsConfig();
-        const auto projectPath = BreadEngine::Engine::getProjectPath();
         switch (data.action)
         {
-            case FilesWatcher::ACTION_CREATE: assetsConfig.onFileCreated(projectPath + data.path);
+            case FilesWatcher::ACTION_CREATE: assetsConfig.onEntityCreated(data.rootdir + data.path);
                 break;
-            case FilesWatcher::ACTION_DELETE: assetsConfig.onFileDeleted(projectPath + data.path);
+            case FilesWatcher::ACTION_DELETE: assetsConfig.onEntityDeleted(data.rootdir + data.path);
                 break;
             case FilesWatcher::ACTION_MODIFY:
                 //TODO check if .h or .cpp and re-build game module
                 break;
-            case FilesWatcher::ACTION_MOVE: assetsConfig.onFileMoved(projectPath + data.oldPath, projectPath + data.path);
+            case FilesWatcher::ACTION_MOVE: assetsConfig.onEntityMoved(data.rootdir + data.oldPath, data.rootdir + data.path);
                 break;
         }
     }

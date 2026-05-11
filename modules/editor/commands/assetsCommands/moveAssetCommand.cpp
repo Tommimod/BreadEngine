@@ -45,6 +45,6 @@ namespace BreadEditor {
             _assetsConfig.moveFolder(_currentAssetGuid, _oldFolderGuid);
         }
 
-        _assetsConfig.ConfigUndo.invoke();
+        _assetsConfig.onIndirectChange.invoke();
     }
 }

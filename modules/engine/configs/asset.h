@@ -24,7 +24,7 @@ namespace BreadEngine {
             return !(*this == other);
         }
 
-        [[nodiscard]] const std::string &getGuid() const { return getFile()->getGUID(); }
+        [[nodiscard]] const std::string &getGuid() const { return _fileGuid; }
 
         [[nodiscard]] const std::string &getAssetName() const { return getFile()->getShortName(); }
 

@@ -14,7 +14,7 @@
 namespace BreadEngine {
     struct AssetsConfig : BaseYamlConfig
     {
-        Action<> ConfigUndo{};
+        Action<> onIndirectChange{};
 
         AssetsConfig() = default;
 
@@ -26,7 +26,7 @@ namespace BreadEngine {
 
         void buildFullProjectTree(const char *projectPath);
 
-        [[nodiscard]] Asset *getAsset(const File *file);
+        Asset *getAsset(const File *file);
 
         [[nodiscard]] static bool isFolder(const char *path);
 
@@ -61,11 +61,11 @@ namespace BreadEngine {
             return _projectPath == other._projectPath && _rootFolder == other._rootFolder;
         }
 
-        void onFileCreated(const std::string &filePath);
+        void onEntityCreated(const std::string &filePath);
 
-        void onFileDeleted(const std::string &filePath);
+        void onEntityDeleted(const std::string &filePath);
 
-        void onFileMoved(const std::string &from, const std::string &to);
+        void onEntityMoved(const std::string &from, const std::string &to);
 
     private:
         friend struct YAML::convert<AssetsConfig>;

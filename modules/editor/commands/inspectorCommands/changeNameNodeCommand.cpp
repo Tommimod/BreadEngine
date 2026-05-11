@@ -34,7 +34,7 @@ namespace BreadEditor {
         auto &assetsConfig = Engine::getInstance().getAssetsConfig();
         if (assetsConfig.getFileByGuid(_renamedFileGuid) == nullptr) return;
         assetsConfig.renameFile(_renamedFileGuid, _oldName + BreadEngine::ReservedFileNames::MARKER_NODE);
-        assetsConfig.ConfigUndo.invoke();
+        assetsConfig.onIndirectChange.invoke();
         CommandsHandler::execute(std::make_unique<SaveProjectCommand>());
     }
 } // BreadEditor

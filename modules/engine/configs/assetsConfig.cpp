@@ -1,6 +1,7 @@
 #include "assetsConfig.h"
 #include <fstream>
 #include <ranges>
+#include <sys/stat.h>
 
 #include "raylib.h"
 #include <yaml-cpp/yaml.h>
@@ -18,7 +19,7 @@ namespace BreadEngine {
 
     AssetsConfig::~AssetsConfig()
     {
-        ConfigUndo.unsubscribeAll();
+        onIndirectChange.unsubscribeAll();
         for (const auto asset: _guidToAsset | std::views::values)
         {
             delete asset;
@@ -323,15 +324,42 @@ namespace BreadEngine {
         serialize();
     }
 
-    void AssetsConfig::onFileCreated(const std::string &filePath)
+    void AssetsConfig::onEntityCreated(const std::string &filePath)
+    {
+        auto prevFolder = _pathToFolder[GetDirectoryPath(filePath.c_str())];
+        prevFolder = prevFolder ? prevFolder : &_rootFolder;
+        const auto isFolder = AssetsConfig::isFolder(filePath.c_str());
+        const auto ext = GetFileExtension(filePath.c_str());
+        const auto guid = getNewGUID();
+        const auto relPath = filePath.c_str() + _projectPath.size() + 1;
+        if (isFolder)
+        {
+            auto folder = Folder(filePath.c_str(), prevFolder->getDepth() + 1, relPath, GetFileName(filePath.c_str()), guid);
+            prevFolder->getFolders().emplace_back(std::move(folder));
+            auto &link = prevFolder->getFolders().back();
+            _pathToFolder[filePath] = &link;
+            _guidToFolder[guid] = &link;
+        }
+        else
+        {
+            auto file = File(filePath.c_str(), relPath, ext, guid);
+            prevFolder->getFiles().emplace_back(std::move(file));
+            auto &link = prevFolder->getFiles().back();
+            _pathToFile[filePath] = &link;
+            _guidToFile[guid] = &link;
+            getAsset(&link);
+        }
+
+        buildIndexes();
+        serializeConfig();
+        onIndirectChange.invoke();
+    }
+
+    void AssetsConfig::onEntityDeleted(const std::string &filePath)
     {
     }
 
-    void AssetsConfig::onFileDeleted(const std::string &filePath)
-    {
-    }
-
-    void AssetsConfig::onFileMoved(const std::string &from, const std::string &to)
+    void AssetsConfig::onEntityMoved(const std::string &from, const std::string &to)
     {
     }
 
@@ -353,17 +381,22 @@ namespace BreadEngine {
         }
     }
 
+    struct stat info;
+
     void AssetsConfig::removeUndefinedFoldersAndFiles()
     {
         auto pathForRemove = std::vector<std::string_view>{};
         auto guidForRemove = std::vector<std::string_view>{};
         for (auto &[path, folder]: _pathToFolder)
         {
-            if (DirectoryExists(path.data())) continue;
+            if (stat(path.data(), &info) != 0)
+            {
+            }
+            else if (info.st_mode & S_IFDIR) continue;
             pathForRemove.emplace_back(path);
             guidForRemove.emplace_back(folder->getGUID());
-            const auto parentFolder = _pathToFolder[folder->getFullPath().data()];
-            if (!parentFolder) continue;
+            auto parentFolder = _pathToFolder[GetPrevDirectoryPath(path.data())];
+            parentFolder = parentFolder ? parentFolder : &_rootFolder;
             parentFolder->removeFolder(folder);
         }
 
@@ -384,8 +417,8 @@ namespace BreadEngine {
             if (FileExists(path.data())) continue;
             pathForRemove.emplace_back(path);
             guidForRemove.emplace_back(file->getGUID());
-            const auto parentFolder = _pathToFolder[GetPrevDirectoryPath(path.data())];
-            if (!parentFolder) continue;
+            auto parentFolder = _pathToFolder[GetPrevDirectoryPath(path.data())];
+            parentFolder = parentFolder ? parentFolder : &_rootFolder;
             parentFolder->removeFile(file);
         }
 
