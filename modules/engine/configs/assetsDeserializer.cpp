@@ -33,6 +33,9 @@ namespace BreadEngine {
         std::vector<YAML::detail::iterator_value> meshValues;
         for (auto iteratorValues: assetNode)
         {
+            auto key = iteratorValues.first.as<std::string>();
+            if (rhs.getFileByGuid(key) == nullptr) continue;
+
             auto dataType = iteratorValues.second[typeKey].as<std::string>();
             if (TextIsEqual(dataType.c_str(), getTypeName(typeid(MeshAsset).name()).c_str()))
             {
@@ -40,7 +43,6 @@ namespace BreadEngine {
             }
             else if (TextIsEqual(dataType.c_str(), getTypeName(typeid(TextureAsset).name()).c_str()))
             {
-                auto key = iteratorValues.first.as<std::string>();
                 auto data = iteratorValues.second.as<YAML::Node>();
                 rhs._guidToAsset[key] = new TextureAsset(key);
                 auto asset = dynamic_cast<TextureAsset *>(rhs._guidToAsset[key]);

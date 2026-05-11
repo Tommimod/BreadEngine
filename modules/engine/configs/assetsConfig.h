@@ -18,16 +18,13 @@ namespace BreadEngine {
 
         AssetsConfig() = default;
 
-        ~AssetsConfig() override
-        {
-            ConfigUndo.unsubscribeAll();
-        }
+        ~AssetsConfig() override;
 
         void serializeConfig() override;
 
         void deserializeConfig(const char *filePath) override;
 
-        void findAllAssets(const char *projectPath);
+        void buildFullProjectTree(const char *projectPath);
 
         [[nodiscard]] Asset *getAsset(const File *file);
 
@@ -86,15 +83,17 @@ namespace BreadEngine {
 
         static void updateIncludesAfterFolderChange(Folder *folder);
 
-        void restoreAssets();
+        void removeUndefinedFoldersAndFiles();
 
-        void initializeAssets(YAML::Node &rawConfig);
+        void restoreProjectTree(Folder &folder, const FilePathList &filePathList);
+
+        void restoreEngineAssetsByFiles(bool withInitialize);
+
+        void initializeExistingEngineAssets();
 
         void buildIndexes();
 
         void indexFolder(Folder &folder);
-
-        [[nodiscard]] bool isValid(const FilePathList &filePathList);
 
         void parseFolders(Folder &folder, const FilePathList &filePathList);
 

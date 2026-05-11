@@ -24,7 +24,7 @@ namespace BreadEngine {
 
     void TextureAsset::loadToMemory()
     {
-        if (_isLoaded || IsImageValid(_nativeRawImage)) return;
+        if (_isLoaded || _loadThread.joinable() || IsImageValid(_nativeRawImage)) return;
 
         auto path = getFile()->getFullPath().c_str();
         auto func = [this, path]

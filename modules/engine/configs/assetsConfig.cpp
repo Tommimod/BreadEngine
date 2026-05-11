@@ -1,8 +1,8 @@
 #include "assetsConfig.h"
 #include <fstream>
+#include <ranges>
 
 #include "raylib.h"
-#include "models/reservedFileNames.h"
 #include <yaml-cpp/yaml.h>
 #include <yaml-cpp/node/parse.h>
 #include "assetsConfigYaml.h"
@@ -15,6 +15,21 @@
 namespace BreadEngine {
     DEFINE_STATIC_PROPS(AssetsConfig)
     namespace fs = std::filesystem;
+
+    AssetsConfig::~AssetsConfig()
+    {
+        ConfigUndo.unsubscribeAll();
+        for (const auto asset: _guidToAsset | std::views::values)
+        {
+            delete asset;
+        }
+
+        _guidToAsset.clear();
+        _guidToFolder.clear();
+        _guidToFile.clear();
+        _pathToFolder.clear();
+        _pathToFile.clear();
+    }
 
     void AssetsConfig::serializeConfig()
     {
@@ -33,8 +48,8 @@ namespace BreadEngine {
         auto rawConfig = YAML::LoadFile(_filePath);
         if (rawConfig.IsNull())
         {
-            findAllAssets(_projectPath.c_str());
-            restoreAssets();
+            buildFullProjectTree(_projectPath.c_str());
+            restoreEngineAssetsByFiles(true);
             serializeConfig();
             return;
         }
@@ -46,17 +61,17 @@ namespace BreadEngine {
         AssetsDeserializer::deserialize(rawConfig);
 
         const FilePathList filesProvider = LoadDirectoryFiles(_projectPath.c_str());
-        if (!isValid(filesProvider))
-        {
-            findAllAssets(_projectPath.c_str());
-            serializeConfig();
-        }
-
+        removeUndefinedFoldersAndFiles();
+        restoreProjectTree(_rootFolder, filesProvider);
         UnloadDirectoryFiles(filesProvider);
-        initializeAssets(rawConfig);
+
+        serializeConfig();
+        buildIndexes();
+        restoreEngineAssetsByFiles(false);
+        initializeExistingEngineAssets();
     }
 
-    void AssetsConfig::findAllAssets(const char *projectPath)
+    void AssetsConfig::buildFullProjectTree(const char *projectPath)
     {
         ZoneScoped;
         _projectPath = projectPath;
@@ -273,8 +288,14 @@ namespace BreadEngine {
         const auto oldFolderPath = std::string(GetDirectoryPath(file->getFullPath().c_str()));
         auto oldFolder = _pathToFolder[oldFolderPath];
         if (oldFolder == nullptr) oldFolder = &_rootFolder;
-        deleteFileInternal(file->_pathFromRoot);
+        deleteFileInternal(file->getFullPath());
         oldFolder->removeFile(file);
+        if (_guidToAsset.contains(fileGuid))
+        {
+            delete _guidToAsset[fileGuid];
+            _guidToAsset.erase(fileGuid);
+        }
+
         buildIndexes();
         serialize();
     }
@@ -284,9 +305,19 @@ namespace BreadEngine {
         ZoneScoped;
         const auto folder = getFolderByGuid(folderGuid);
         const auto oldFolderPath = std::string(GetPrevDirectoryPath(folder->getFullPath().c_str()));
-        auto oldFolder = _pathToFolder[oldFolderPath];
+        const auto oldFolder = _pathToFolder[oldFolderPath];
         if (oldFolder == nullptr) return;
-        deleteFolderInternal(folder->_fullPath);
+        const auto &files = folder->getFiles();
+        for (auto &file: files)
+        {
+            if (_guidToAsset.contains(file.getGUID()))
+            {
+                delete _guidToAsset[file.getGUID()];
+                _guidToAsset.erase(file.getGUID());
+            }
+        }
+
+        deleteFolderInternal(folder->getFullPath());
         oldFolder->removeFolder(folder);
         buildIndexes();
         serialize();
@@ -294,7 +325,6 @@ namespace BreadEngine {
 
     void AssetsConfig::onFileCreated(const std::string &filePath)
     {
-        
     }
 
     void AssetsConfig::onFileDeleted(const std::string &filePath)
@@ -323,7 +353,104 @@ namespace BreadEngine {
         }
     }
 
-    void AssetsConfig::restoreAssets()
+    void AssetsConfig::removeUndefinedFoldersAndFiles()
+    {
+        auto pathForRemove = std::vector<std::string_view>{};
+        auto guidForRemove = std::vector<std::string_view>{};
+        for (auto &[path, folder]: _pathToFolder)
+        {
+            if (DirectoryExists(path.data())) continue;
+            pathForRemove.emplace_back(path);
+            guidForRemove.emplace_back(folder->getGUID());
+            const auto parentFolder = _pathToFolder[folder->getFullPath().data()];
+            if (!parentFolder) continue;
+            parentFolder->removeFolder(folder);
+        }
+
+        for (const auto &path: pathForRemove)
+        {
+            _pathToFolder.erase(path);
+        }
+
+        for (const auto &guid: guidForRemove)
+        {
+            _guidToFolder.erase(guid);
+        }
+
+        pathForRemove.clear();
+        guidForRemove.clear();
+        for (auto &[path, file]: _pathToFile)
+        {
+            if (FileExists(path.data())) continue;
+            pathForRemove.emplace_back(path);
+            guidForRemove.emplace_back(file->getGUID());
+            const auto parentFolder = _pathToFolder[GetPrevDirectoryPath(path.data())];
+            if (!parentFolder) continue;
+            parentFolder->removeFile(file);
+        }
+
+        for (const auto &path: pathForRemove)
+        {
+            _pathToFile.erase(path);
+        }
+
+        for (const auto &guid: guidForRemove)
+        {
+            _guidToFile.erase(guid);
+        }
+    }
+
+    void AssetsConfig::restoreProjectTree(Folder &folder, const FilePathList &filePathList)
+    {
+        ZoneScoped;
+        for (auto i = 0u; i < filePathList.count; i++)
+        {
+            const auto path = filePathList.paths[i];
+            const auto isFolder = AssetsConfig::isFolder(path);
+            if (!isFolder && _pathToFile.contains(path))
+            {
+                continue;
+            }
+
+            if (strncmp(path, _projectPath.c_str(), _projectPath.size()) != 0)
+            {
+                Logger::LogError("Path does not start with project path");
+                throw std::runtime_error("Path does not start with project path");
+            }
+
+            std::string relPath = path + _projectPath.size() + 1;
+            if (isFolder && !_pathToFolder.contains(path))
+            {
+                auto guid = getNewGUID();
+                auto subFolder = Folder(path, folder.getDepth() + 1, relPath, GetFileName(path), guid);
+                auto list = LoadDirectoryFiles(path);
+                restoreProjectTree(subFolder, list);
+                folder.getFolders().emplace_back(std::move(subFolder));
+                auto &link = folder.getFolders().back();
+                _pathToFolder[path] = &link;
+                _guidToFolder[guid] = &link;
+                UnloadDirectoryFiles(list);
+            }
+            else if (isFolder && _pathToFolder.contains(path))
+            {
+                auto list = LoadDirectoryFiles(path);
+                restoreProjectTree(*_pathToFolder[path], list);
+                UnloadDirectoryFiles(list);
+            }
+            else if (!isFolder)
+            {
+                const auto ext = GetFileExtension(path);
+                auto guid = getNewGUID();
+                auto file = File(path, relPath, ext, guid);
+                folder.getFiles().emplace_back(std::move(file));
+                auto &link = folder.getFiles().back();
+                _pathToFile[path] = &link;
+                _guidToFile[guid] = &link;
+            }
+        }
+    }
+
+    void AssetsConfig::restoreEngineAssetsByFiles(const bool withInitialize)
     {
         std::vector<Asset *> textures;
         std::vector<Asset *> models;
@@ -331,10 +458,13 @@ namespace BreadEngine {
         {
             if (_guidToAsset.contains(guid.data())) continue;
             auto asset = getAsset(file);
+            if (!withInitialize) continue;
+
             if (file->isImage()) textures.push_back(asset);
             if (file->is3DModel()) models.push_back(asset);
         }
 
+        if (!withInitialize) return;
         for (const auto asset: textures)
         {
             asset->loadToMemory();
@@ -346,7 +476,7 @@ namespace BreadEngine {
         }
     }
 
-    void AssetsConfig::initializeAssets(YAML::Node &rawConfig)
+    void AssetsConfig::initializeExistingEngineAssets()
     {
         std::vector<Asset *> textures;
         std::vector<Asset *> models;
@@ -393,35 +523,6 @@ namespace BreadEngine {
         {
             indexFolder(subfolder);
         }
-    }
-
-    bool AssetsConfig::isValid(const FilePathList &filePathList)
-    {
-        ZoneScoped;
-        for (auto i = 0u; i < filePathList.count; i++)
-        {
-            if (const auto path = filePathList.paths[i]; isFolder(path))
-            {
-                auto list = LoadDirectoryFiles(path);
-                if (!isValid(list))
-                {
-                    UnloadDirectoryFiles(list);
-                    return false;
-                }
-
-                UnloadDirectoryFiles(list);
-            }
-            else
-            {
-                const auto file = _pathToFile[path];
-                if (file == nullptr)
-                {
-                    return false;
-                }
-            }
-        }
-
-        return true;
     }
 
     void AssetsConfig::parseFolders(Folder &folder, const FilePathList &filePathList)
