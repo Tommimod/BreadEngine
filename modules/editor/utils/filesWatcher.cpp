@@ -16,7 +16,7 @@ namespace BreadEditor {
     void FilesWatcher::start(const char *path)
     {
         dmon_init();
-        dmon_watch(path, watch_callback, DMON_WATCHFLAGS_RECURSIVE, nullptr);
+        dmon_watch(path, watch_callback, 0, nullptr);
     }
 
     void FilesWatcher::stop()

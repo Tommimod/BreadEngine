@@ -339,6 +339,9 @@ namespace BreadEngine {
             auto &link = prevFolder->getFolders().back();
             _pathToFolder[filePath] = &link;
             _guidToFolder[guid] = &link;
+            const auto list = LoadDirectoryFiles(filePath.c_str());
+            restoreProjectTree(link, list);
+            UnloadDirectoryFiles(list);
         }
         else
         {
@@ -445,12 +448,6 @@ namespace BreadEngine {
                 continue;
             }
 
-            if (strncmp(path, _projectPath.c_str(), _projectPath.size()) != 0)
-            {
-                Logger::LogError("Path does not start with project path");
-                throw std::runtime_error("Path does not start with project path");
-            }
-
             std::string relPath = path + _projectPath.size() + 1;
             if (isFolder && !_pathToFolder.contains(path))
             {
@@ -479,6 +476,7 @@ namespace BreadEngine {
                 auto &link = folder.getFiles().back();
                 _pathToFile[path] = &link;
                 _guidToFile[guid] = &link;
+                getAsset(&link);
             }
         }
     }
