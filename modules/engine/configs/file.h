@@ -109,7 +109,7 @@ namespace BreadEngine {
         }
 
     private:
-        friend struct YAML::convert<File>;
+        friend struct YAML::convert<std::shared_ptr<File>>;
         friend struct AssetsConfig;
         std::string _guid;
         std::string _fullPath;

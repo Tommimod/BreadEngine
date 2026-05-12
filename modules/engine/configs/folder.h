@@ -27,8 +27,8 @@ namespace BreadEngine {
         [[nodiscard]] const std::string &getFullPath() const { return _fullPath; }
         [[nodiscard]] const std::string &getPathFromRoot() const { return _pathFromRoot; }
         [[nodiscard]] const std::string &getShortName() const { return _name; }
-        [[nodiscard]] std::vector<File> &getFiles() { return _files; }
-        [[nodiscard]] std::vector<Folder> &getFolders() { return _folders; }
+        [[nodiscard]] std::vector<std::shared_ptr<File>> &getFiles() { return _files; }
+        [[nodiscard]] std::vector<std::shared_ptr<Folder>> &getFolders() { return _folders; }
 
         bool operator==(const Folder &other) const
         {
@@ -40,11 +40,11 @@ namespace BreadEngine {
             return !(*this == other);
         }
 
-        void removeFile(const File *file)
+        void removeFile(const std::shared_ptr<File> &file)
         {
-            auto it = std::ranges::find_if(_files, [&](const File &f)
+            const auto it = std::ranges::find_if(_files, [&](const std::shared_ptr<File> &f)
             {
-                return f.getGUID() == file->getGUID();
+                return f->getGUID() == file->getGUID();
             });
             if (it != _files.end())
             {
@@ -52,11 +52,11 @@ namespace BreadEngine {
             }
         }
 
-        void removeFolder(const Folder *folder)
+        void removeFolder(const std::shared_ptr<Folder> &folder)
         {
-            auto it = std::ranges::find_if(_folders, [&](const Folder &f)
+            const auto it = std::ranges::find_if(_folders, [&](const std::shared_ptr<Folder> &f)
             {
-                return f.getGUID() == folder->getGUID();
+                return f->getGUID() == folder->getGUID();
             });
             if (it != _folders.end())
             {
@@ -64,16 +64,16 @@ namespace BreadEngine {
             }
         }
 
-        bool tryFindRecursive(const Folder *folder)
+        bool tryFindRecursive(const std::shared_ptr<Folder> &folder) const
         {
             for (auto &child: _folders)
             {
-                if (child.getGUID() == folder->getGUID())
+                if (child->getGUID() == folder->getGUID())
                 {
                     return true;
                 }
 
-                if (child.tryFindRecursive(folder))
+                if (child->tryFindRecursive(folder))
                 {
                     return true;
                 }
@@ -82,11 +82,11 @@ namespace BreadEngine {
             return false;
         }
 
-        bool tryFindRecursive(const File *file)
+        bool tryFindRecursive(const std::shared_ptr<File> &file) const
         {
             for (auto &childFile: _files)
             {
-                if (childFile.getGUID() == file->getGUID())
+                if (childFile->getGUID() == file->getGUID())
                 {
                     return true;
                 }
@@ -94,7 +94,7 @@ namespace BreadEngine {
 
             for (auto &childFolder: _folders)
             {
-                if (childFolder.tryFindRecursive(file))
+                if (childFolder->tryFindRecursive(file))
                 {
                     return true;
                 }
@@ -107,7 +107,7 @@ namespace BreadEngine {
         {
             for (auto &child: _folders)
             {
-                if (child.getGUID() == guid)
+                if (child->getGUID() == guid)
                 {
                     return true;
                 }
@@ -115,7 +115,7 @@ namespace BreadEngine {
 
             for (auto &child: _files)
             {
-                if (child.getGUID() == guid)
+                if (child->getGUID() == guid)
                 {
                     return true;
                 }
@@ -125,10 +125,10 @@ namespace BreadEngine {
         }
 
     private:
-        friend struct YAML::convert<Folder>;
+        friend struct YAML::convert<std::shared_ptr<Folder>>;
         friend struct AssetsConfig;
-        std::vector<Folder> _folders;
-        std::vector<File> _files;
+        std::vector<std::shared_ptr<Folder>> _folders;
+        std::vector<std::shared_ptr<File>> _files;
         std::string _fullPath;
         std::string _guid;
         std::string _pathFromRoot;

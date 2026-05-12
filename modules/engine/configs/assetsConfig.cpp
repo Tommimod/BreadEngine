@@ -1,6 +1,5 @@
 #include "assetsConfig.h"
 #include <fstream>
-#include <ranges>
 #include <sys/stat.h>
 
 #include "raylib.h"
@@ -17,19 +16,17 @@ namespace BreadEngine {
     DEFINE_STATIC_PROPS(AssetsConfig)
     namespace fs = std::filesystem;
 
+    AssetsConfig::AssetsConfig()
+    {
+    }
+
     AssetsConfig::~AssetsConfig()
     {
         onIndirectChange.unsubscribeAll();
-        for (const auto asset: _guidToAsset | std::views::values)
-        {
-            delete asset;
-        }
-
         _guidToAsset.clear();
         _guidToFolder.clear();
         _guidToFile.clear();
-        _pathToFolder.clear();
-        _pathToFile.clear();
+        _pathToGuid.clear();
     }
 
     void AssetsConfig::serializeConfig()
@@ -56,8 +53,8 @@ namespace BreadEngine {
         }
 
         const auto data = rawConfig.as<AssetsConfig>();
-        _projectPath = data._projectPath;
-        _rootFolder = data._rootFolder;
+        _projectPath = std::move(data._projectPath);
+        _rootFolder = std::move(data._rootFolder);
         buildIndexes();
         AssetsDeserializer::deserialize(rawConfig);
 
@@ -76,14 +73,14 @@ namespace BreadEngine {
     {
         ZoneScoped;
         _projectPath = projectPath;
-        _rootFolder = Folder(_projectPath, 0, "Project Files", "Project Files", "0");
+        _rootFolder = std::make_shared<Folder>(_projectPath, 0, "Project Files", "Project Files", "0");
         const FilePathList filesProvider = LoadDirectoryFiles(projectPath);
         parseFolders(_rootFolder, filesProvider);
         UnloadDirectoryFiles(filesProvider);
         buildIndexes();
     }
 
-    Asset *AssetsConfig::getAsset(const File *file)
+    std::shared_ptr<Asset> AssetsConfig::getAsset(const std::shared_ptr<File> &file)
     {
         auto &guid = file->getGUID();
         if (_guidToAsset.contains(guid))
@@ -93,11 +90,11 @@ namespace BreadEngine {
 
         if (file->is3DModel())
         {
-            _guidToAsset[guid] = new MeshAsset(guid);
+            _guidToAsset[guid] = std::make_shared<MeshAsset>(guid);
         }
         else if (file->isImage())
         {
-            _guidToAsset[guid] = new TextureAsset(guid);
+            _guidToAsset[guid] = std::make_shared<TextureAsset>(guid);
         }
 
         const auto asset = _guidToAsset[guid];
@@ -113,10 +110,10 @@ namespace BreadEngine {
         return isFolder;
     }
 
-    Folder *AssetsConfig::getRootFolder()
+    std::shared_ptr<Folder> AssetsConfig::getRootFolder() const
     {
         ZoneScoped;
-        return &_rootFolder;
+        return _rootFolder;
     }
 
     const std::string &AssetsConfig::getPathByGuid(const std::string &guid)
@@ -140,49 +137,43 @@ namespace BreadEngine {
     const std::string &AssetsConfig::getGuidByPath(const std::string &path)
     {
         ZoneScoped;
-        const auto folder_it = _pathToFolder.find(path);
-        if (folder_it != _pathToFolder.end())
+        if (const auto it = _pathToGuid.find(path); it != _pathToGuid.end())
         {
-            return folder_it->second->_guid;
-        }
-
-        const auto file_it = _pathToFile.find(path);
-        if (file_it != _pathToFile.end())
-        {
-            return file_it->second->_guid;
+            return it->second;
         }
 
         return _empty;
     }
 
-    File *AssetsConfig::getFileByGuid(const std::string &guid)
+    std::shared_ptr<File> AssetsConfig::getFileByGuid(const std::string &guid)
     {
         ZoneScoped;
-        if (!_guidToFile.contains(guid)) return nullptr;
+        if (guid.empty() || !_guidToFile.contains(guid)) return nullptr;
         return _guidToFile[guid];
     }
 
-    Folder *AssetsConfig::getFolderByGuid(const std::string &guid)
+    std::shared_ptr<Folder> AssetsConfig::getFolderByGuid(const std::string &guid)
     {
         ZoneScoped;
-        if (guid == _rootFolder.getGUID()) return &_rootFolder;
-        if (!_guidToFolder.contains(guid)) return nullptr;
+        if (guid == _rootFolder->getGUID()) return _rootFolder;
+        if (guid.empty() || !_guidToFolder.contains(guid)) return nullptr;
         return _guidToFolder[guid];
     }
 
-    File *AssetsConfig::getFileByPath(const std::string &path)
+    std::shared_ptr<File> AssetsConfig::getFileByPath(const std::string &path)
     {
         ZoneScoped;
-        if (!_pathToFile.contains(path)) return nullptr;
-        return _pathToFile[path];
+        const auto &guid = getGuidByPath(path);
+        if (guid.empty()) return nullptr;
+        return getFileByGuid(guid);
     }
 
-    Folder *AssetsConfig::getFolderByPath(const std::string &path)
+    std::shared_ptr<Folder> AssetsConfig::getFolderByPath(const std::string &path)
     {
         ZoneScoped;
-        if (path == _rootFolder.getFullPath()) return &_rootFolder;
-        if (!_pathToFolder.contains(path)) return nullptr;
-        return _pathToFolder[path];
+        const auto &guid = getGuidByPath(path);
+        if (guid.empty()) return nullptr;
+        return getFolderByGuid(guid);
     }
 
     void AssetsConfig::renameFile(const std::string &fileGuid, const std::string &nextName)
@@ -191,8 +182,8 @@ namespace BreadEngine {
         const auto file = _guidToFile[fileGuid];
         const auto oldPath = file->_fullPath;
         const auto folderPath = std::string(GetDirectoryPath(file->getFullPath().c_str()));
-        auto folder = _pathToFolder[folderPath];
-        if (folder == nullptr) folder = &_rootFolder;
+        auto folder = getFolderByPath(folderPath);
+        if (folder == nullptr) folder = _rootFolder;
 
         file->_shortName = nextName;
         file->_fullPath = folder->getFullPath() + "\\" + file->getShortName();
@@ -209,8 +200,8 @@ namespace BreadEngine {
         const auto folder = _guidToFolder[folderGuid];
         const auto oldPath = folder->_fullPath;
         const auto oldFolderPath = std::string(GetPrevDirectoryPath(folder->getFullPath().c_str()));
-        auto oldFolder = _pathToFolder[oldFolderPath];
-        if (oldFolder == nullptr) oldFolder = &_rootFolder;
+        auto oldFolder = getFolderByPath(oldFolderPath);
+        if (oldFolder == nullptr) oldFolder = _rootFolder;
 
         folder->_name = nextName;
         if (folder->getDepth() == 0)
@@ -235,13 +226,14 @@ namespace BreadEngine {
         auto file = _guidToFile[fileGuid];
         const auto oldPath = file->_fullPath;
         const auto oldFolderPath = std::string(GetDirectoryPath(file->getFullPath().c_str()));
-        auto oldFolder = _pathToFolder[oldFolderPath];
-        if (oldFolder == nullptr) oldFolder = &_rootFolder;
+        auto oldFolder = getFolderByPath(oldFolderPath);
+        if (oldFolder == nullptr) oldFolder = _rootFolder;
+
         const auto nextFolder = getFolderByGuid(nextFolderGuid);
-        nextFolder->getFiles().emplace_back(std::move(*file));
+        nextFolder->getFiles().emplace_back(std::move(file));
         oldFolder->removeFile(file);
 
-        file = &nextFolder->getFiles().back();
+        file = nextFolder->getFiles().back();
         file->_fullPath = nextFolder->getFullPath() + "\\" + file->getShortName();
         file->_pathFromRoot = nextFolder->_pathFromRoot + "\\" + file->getShortName();
         if (!withInternalOperations)
@@ -261,15 +253,16 @@ namespace BreadEngine {
         auto folder = _guidToFolder[folderGuid];
         const auto oldPath = folder->_fullPath;
         const auto oldFolderPath = std::string(GetPrevDirectoryPath(folder->getFullPath().c_str()));
-        auto oldFolder = _pathToFolder[oldFolderPath];
-        if (oldFolder == nullptr) oldFolder = &_rootFolder;
+        auto oldFolder = getFolderByPath(oldFolderPath);
+        if (oldFolder == nullptr) oldFolder = _rootFolder;
+
         const auto &nextFolderGuid_copy = nextFolderGuid;
         const auto nextFolder = getFolderByGuid(nextFolderGuid);
-        nextFolder->getFolders().emplace_back(std::move(*folder));
+        nextFolder->getFolders().emplace_back(std::move(folder));
         oldFolder->removeFolder(folder);
         buildIndexes();
 
-        folder = &getFolderByGuid(nextFolderGuid_copy)->getFolders().back();
+        folder = getFolderByGuid(nextFolderGuid_copy)->getFolders().back();
         const auto nextFolder_updated = getFolderByGuid(nextFolderGuid_copy);
         folder->_depth = nextFolder_updated->getDepth() + 1;
         folder->_fullPath = nextFolder_updated->getFullPath() + "\\" + folder->_name;
@@ -299,12 +292,11 @@ namespace BreadEngine {
         ZoneScoped;
         const auto file = getFileByGuid(fileGuid);
         const auto oldFolderPath = std::string(GetDirectoryPath(file->getFullPath().c_str()));
-        auto oldFolder = _pathToFolder[oldFolderPath];
-        if (oldFolder == nullptr) oldFolder = &_rootFolder;
+        auto oldFolder = getFolderByPath(oldFolderPath);
+        if (oldFolder == nullptr) oldFolder = _rootFolder;
         oldFolder->removeFile(file);
         if (_guidToAsset.contains(fileGuid))
         {
-            delete _guidToAsset[fileGuid];
             _guidToAsset.erase(fileGuid);
         }
 
@@ -324,19 +316,19 @@ namespace BreadEngine {
         ZoneScoped;
         const auto folder = getFolderByGuid(folderGuid);
         const auto oldFolderPath = std::string(GetPrevDirectoryPath(folder->getFullPath().c_str()));
-        auto oldFolder = _pathToFolder[oldFolderPath];
-        if (oldFolder == nullptr) oldFolder = &_rootFolder;
+        auto oldFolder = getFolderByPath(oldFolderPath);
+        if (oldFolder == nullptr) oldFolder = _rootFolder;
 
-        for (auto &childFolder: folder->getFolders())
+        for (const auto &childFolder: folder->getFolders())
         {
-            deleteFolder(childFolder.getGUID(), withInternalOperations);
+            deleteFolder(childFolder->getGUID(), withInternalOperations);
         }
-        for (auto &file: folder->getFiles())
+
+        for (const auto &file: folder->getFiles())
         {
-            if (_guidToAsset.contains(file.getGUID()))
+            if (_guidToAsset.contains(file->getGUID()))
             {
-                delete _guidToAsset[file.getGUID()];
-                _guidToAsset.erase(file.getGUID());
+                _guidToAsset.erase(file->getGUID());
             }
         }
 
@@ -354,30 +346,30 @@ namespace BreadEngine {
 
     void AssetsConfig::onEntityCreated(const std::string &filePath)
     {
-        auto prevFolder = _pathToFolder[GetDirectoryPath(filePath.c_str())];
-        prevFolder = prevFolder ? prevFolder : &_rootFolder;
+        auto prevFolder = getFolderByPath(GetDirectoryPath(filePath.c_str()));
+        prevFolder = prevFolder ? prevFolder : _rootFolder;
         const auto isFolder = AssetsConfig::isFolder(filePath.c_str());
         const auto ext = GetFileExtension(filePath.c_str());
         const auto guid = getNewGUID();
         const auto relPath = filePath.c_str() + _projectPath.size() + 1;
         if (isFolder)
         {
-            auto folder = Folder(filePath, prevFolder->getDepth() + 1, relPath, GetFileName(filePath.c_str()), guid);
+            auto folder = std::make_shared<Folder>(filePath, prevFolder->getDepth() + 1, relPath, GetFileName(filePath.c_str()), guid);
             prevFolder->getFolders().emplace_back(std::move(folder));
-            auto &link = prevFolder->getFolders().back();
-            _pathToFolder[filePath] = &link;
-            _guidToFolder[guid] = &link;
-            Logger::LogInfo("Folder created: " + link.getPathFromRoot());
+            const auto &link = prevFolder->getFolders().back();
+            _pathToGuid[filePath] = guid;
+            _guidToFolder[guid] = link;
+            Logger::LogInfo("Folder created: " + link->getPathFromRoot());
         }
         else
         {
-            auto file = File(filePath, relPath, ext, guid);
+            auto file = std::make_shared<File>(filePath, relPath, ext, guid);
             prevFolder->getFiles().emplace_back(std::move(file));
-            auto &link = prevFolder->getFiles().back();
-            _pathToFile[filePath] = &link;
-            _guidToFile[guid] = &link;
-            getAsset(&link);
-            Logger::LogInfo("File created: " + link.getPathFromRoot());
+            const auto &link = prevFolder->getFiles().back();
+            _pathToGuid[filePath] = guid;
+            _guidToFile[guid] = link;
+            getAsset(link);
+            Logger::LogInfo("File created: " + link->getPathFromRoot());
         }
 
         buildIndexes();
@@ -389,15 +381,15 @@ namespace BreadEngine {
     {
         if (isFolder(filePath.c_str()))
         {
-            if (!_pathToFolder.contains(filePath)) return;
-            auto &guid = _pathToFolder[filePath]->getGUID();
-            deleteFolder(guid, false);
+            if (!_pathToGuid.contains(filePath)) return;
+            const auto &guid = _pathToGuid[filePath];
+            deleteFolder(guid.data(), false);
         }
         else
         {
-            if (!_pathToFile.contains(filePath)) return;
-            auto &guid = _pathToFile[filePath]->getGUID();
-            deleteFile(guid, false);
+            if (!_pathToGuid.contains(filePath)) return;
+            const auto &guid = _pathToGuid[filePath];
+            deleteFile(guid.data(), false);
         }
 
         buildIndexes();
@@ -409,21 +401,21 @@ namespace BreadEngine {
     {
         if (isFolder(from.c_str()))
         {
-            if (!_pathToFolder.contains(from)) return;
-            auto &fromGuid = _pathToFolder[from]->getGUID();
-            const auto nextFolder = _pathToFolder[to];
-            if (nextFolder->contains(fromGuid)) return;
-            auto &toGuid = _pathToFolder[GetPrevDirectoryPath(to.c_str())]->getGUID();
-            moveFolder(fromGuid, toGuid, false);
+            if (!_pathToGuid.contains(from)) return;
+            const auto &fromGuid = _pathToGuid[from];
+            const auto nextFolder = getFolderByPath(GetPrevDirectoryPath(to.c_str()));
+            if (nextFolder->contains(fromGuid.data())) return;
+            auto &toGuid = nextFolder->getGUID();
+            moveFolder(fromGuid.data(), toGuid, false);
         }
         else
         {
-            if (!_pathToFile.contains(from)) return;
-            auto &fromGuid = _pathToFile[from]->getGUID();
-            const auto nextFolder = _pathToFolder[to];
-            if (nextFolder->contains(fromGuid)) return;
-            auto &toGuid = _pathToFolder[GetPrevDirectoryPath(to.c_str())]->getGUID();
-            moveFile(fromGuid, toGuid, false);
+            if (!_pathToGuid.contains(from)) return;
+            const auto &fromGuid = _pathToGuid[from];
+            const auto nextFolder = getFolderByPath(GetPrevDirectoryPath(to.c_str()));
+            if (nextFolder->contains(fromGuid.data())) return;
+            auto &toGuid = nextFolder->getGUID();
+            moveFile(fromGuid.data(), toGuid, false);
         }
 
         buildIndexes();
@@ -431,21 +423,21 @@ namespace BreadEngine {
         onIndirectChange.invoke();
     }
 
-    void AssetsConfig::updateIncludesAfterFolderChange(Folder *folder)
+    void AssetsConfig::updateIncludesAfterFolderChange(const std::shared_ptr<Folder> &folder)
     {
         ZoneScoped;
-        for (auto &file: folder->_files)
+        for (const auto &file: folder->_files)
         {
-            file._fullPath = folder->getFullPath() + "\\" + file.getShortName();
-            file._pathFromRoot = folder->_pathFromRoot + "\\" + file.getShortName();
+            file->_fullPath = folder->getFullPath() + "\\" + file->getShortName();
+            file->_pathFromRoot = folder->_pathFromRoot + "\\" + file->getShortName();
         }
 
         for (auto &childFolder: folder->_folders)
         {
-            childFolder._depth = folder->getDepth() + 1;
-            childFolder._fullPath = folder->getFullPath() + "\\" + childFolder.getShortName();
-            childFolder._pathFromRoot = folder->_pathFromRoot + "\\" + childFolder.getShortName();
-            updateIncludesAfterFolderChange(&childFolder);
+            childFolder->_depth = folder->getDepth() + 1;
+            childFolder->_fullPath = folder->getFullPath() + "\\" + childFolder->getShortName();
+            childFolder->_pathFromRoot = folder->_pathFromRoot + "\\" + childFolder->getShortName();
+            updateIncludesAfterFolderChange(childFolder);
         }
     }
 
@@ -453,24 +445,20 @@ namespace BreadEngine {
 
     void AssetsConfig::removeUndefinedFoldersAndFiles()
     {
-        auto pathForRemove = std::vector<std::string_view>{};
-        auto guidForRemove = std::vector<std::string_view>{};
-        for (auto &[path, folder]: _pathToFolder)
+        auto pathForRemove = std::vector<std::string>{};
+        auto guidForRemove = std::vector<std::string>{};
+        for (auto &[guid, folder]: _guidToFolder)
         {
+            auto &path = getPathByGuid(guid.data());
             if (stat(path.data(), &info) != 0)
             {
             }
             else if (info.st_mode & S_IFDIR) continue;
             pathForRemove.emplace_back(path);
-            guidForRemove.emplace_back(folder->getGUID());
-            auto parentFolder = _pathToFolder[GetPrevDirectoryPath(path.data())];
-            parentFolder = parentFolder ? parentFolder : &_rootFolder;
+            guidForRemove.emplace_back(guid);
+            auto parentFolder = getFolderByPath(GetPrevDirectoryPath(path.data()));
+            parentFolder = parentFolder ? parentFolder : _rootFolder;
             parentFolder->removeFolder(folder);
-        }
-
-        for (const auto &path: pathForRemove)
-        {
-            _pathToFolder.erase(path);
         }
 
         for (const auto &guid: guidForRemove)
@@ -478,21 +466,21 @@ namespace BreadEngine {
             _guidToFolder.erase(guid);
         }
 
-        pathForRemove.clear();
         guidForRemove.clear();
-        for (auto &[path, file]: _pathToFile)
+        for (auto &[guid, file]: _guidToFile)
         {
+            auto &path = getPathByGuid(guid.data());
             if (FileExists(path.data())) continue;
             pathForRemove.emplace_back(path);
-            guidForRemove.emplace_back(file->getGUID());
-            auto parentFolder = _pathToFolder[GetPrevDirectoryPath(path.data())];
-            parentFolder = parentFolder ? parentFolder : &_rootFolder;
+            guidForRemove.emplace_back(guid);
+            auto parentFolder = getFolderByPath(GetPrevDirectoryPath(path.data()));
+            parentFolder = parentFolder ? parentFolder : _rootFolder;
             parentFolder->removeFile(file);
         }
 
         for (const auto &path: pathForRemove)
         {
-            _pathToFile.erase(path);
+            _pathToGuid.erase(path);
         }
 
         for (const auto &guid: guidForRemove)
@@ -501,47 +489,47 @@ namespace BreadEngine {
         }
     }
 
-    void AssetsConfig::restoreProjectTree(Folder &folder, const FilePathList &filePathList)
+    void AssetsConfig::restoreProjectTree(std::shared_ptr<Folder> &folder, const FilePathList &filePathList)
     {
         ZoneScoped;
         for (auto i = 0u; i < filePathList.count; i++)
         {
             const auto path = filePathList.paths[i];
             const auto isFolder = AssetsConfig::isFolder(path);
-            if (!isFolder && _pathToFile.contains(path))
+            if (!isFolder && getFileByPath(path) != nullptr)
             {
                 continue;
             }
 
             std::string relPath = path + _projectPath.size() + 1;
-            if (isFolder && !_pathToFolder.contains(path))
+            if (auto folderByGuid = getFolderByPath(path); isFolder && folderByGuid == nullptr)
             {
                 auto guid = getNewGUID();
-                auto subFolder = Folder(path, folder.getDepth() + 1, relPath, GetFileName(path), guid);
+                auto subFolder = std::make_shared<Folder>(path, folder->getDepth() + 1, relPath, GetFileName(path), guid);
                 auto list = LoadDirectoryFiles(path);
                 restoreProjectTree(subFolder, list);
-                folder.getFolders().emplace_back(std::move(subFolder));
-                auto &link = folder.getFolders().back();
-                _pathToFolder[path] = &link;
-                _guidToFolder[guid] = &link;
+                folder->getFolders().emplace_back(std::move(subFolder));
+                const auto &link = folder->getFolders().back();
+                _pathToGuid[path] = guid;
+                _guidToFolder[guid] = link;
                 UnloadDirectoryFiles(list);
             }
-            else if (isFolder && _pathToFolder.contains(path))
+            else if (isFolder && folderByGuid != nullptr)
             {
                 auto list = LoadDirectoryFiles(path);
-                restoreProjectTree(*_pathToFolder[path], list);
+                restoreProjectTree(folderByGuid, list);
                 UnloadDirectoryFiles(list);
             }
             else if (!isFolder)
             {
                 const auto ext = GetFileExtension(path);
                 auto guid = getNewGUID();
-                auto file = File(path, relPath, ext, guid);
-                folder.getFiles().emplace_back(std::move(file));
-                auto &link = folder.getFiles().back();
-                _pathToFile[path] = &link;
-                _guidToFile[guid] = &link;
-                getAsset(&link);
+                auto file = std::make_shared<File>(path, relPath, ext, guid);
+                folder->getFiles().emplace_back(std::move(file));
+                const auto &link = folder->getFiles().back();
+                _pathToGuid[path] = guid;
+                _guidToFile[guid] = link;
+                getAsset(link);
             }
         }
     }
@@ -556,8 +544,8 @@ namespace BreadEngine {
             auto asset = getAsset(file);
             if (!withInitialize) continue;
 
-            if (file->isImage()) textures.push_back(asset);
-            if (file->is3DModel()) models.push_back(asset);
+            if (file->isImage()) textures.emplace_back(asset.get());
+            if (file->is3DModel()) models.emplace_back(asset.get());
         }
 
         if (!withInitialize) return;
@@ -580,8 +568,9 @@ namespace BreadEngine {
         {
             if (asset == nullptr) continue;
             const auto file = _guidToFile[guid.data()];
-            if (file->isImage()) textures.push_back(asset);
-            if (file->is3DModel()) models.push_back(asset);
+            if (file == nullptr) continue;
+            if (file->isImage()) textures.emplace_back(asset.get());
+            if (file->is3DModel()) models.emplace_back(asset.get());
         }
 
         for (const auto asset: textures)
@@ -600,28 +589,28 @@ namespace BreadEngine {
         ZoneScoped;
         _guidToFolder.clear();
         _guidToFile.clear();
-        _pathToFolder.clear();
-        _pathToFile.clear();
+        _pathToGuid.clear();
         indexFolder(_rootFolder);
     }
 
-    void AssetsConfig::indexFolder(Folder &folder)
+    void AssetsConfig::indexFolder(const std::shared_ptr<Folder> &folder)
     {
         ZoneScoped;
-        _guidToFolder[folder._guid] = &folder;
-        _pathToFolder[folder._fullPath] = &folder;
-        for (auto &file: folder._files)
+        _guidToFolder.emplace(folder->_guid, folder);
+        _pathToGuid.emplace(folder->_fullPath, folder->_guid);
+        for (auto &file: folder->_files)
         {
-            _guidToFile[file._guid] = &file;
-            _pathToFile[file._fullPath] = &file;
+            _guidToFile.emplace(file->_guid, file);
+            _pathToGuid.emplace(file->_fullPath, file->_guid);
+            Logger::LogInfo("File indexed: " + file->_fullPath + "; guid: " + file->_guid);
         }
-        for (auto &subfolder: folder._folders)
+        for (auto &subfolder: folder->_folders)
         {
             indexFolder(subfolder);
         }
     }
 
-    void AssetsConfig::parseFolders(Folder &folder, const FilePathList &filePathList)
+    void AssetsConfig::parseFolders(const std::shared_ptr<Folder> &folder, const FilePathList &filePathList)
     {
         ZoneScoped;
         for (auto i = 0u; i < filePathList.count; i++)
@@ -637,17 +626,17 @@ namespace BreadEngine {
             std::string relPath = path + _projectPath.size() + 1;
             if (isFolder)
             {
-                auto subFolder = Folder(path, folder.getDepth() + 1, relPath, GetFileName(path), getNewGUID());
+                auto subFolder = std::make_shared<Folder>(path, folder->getDepth() + 1, relPath, GetFileName(path), getNewGUID());
                 auto list = LoadDirectoryFiles(path);
                 parseFolders(subFolder, list);
-                folder.getFolders().push_back(std::move(subFolder));
+                folder->getFolders().push_back(std::move(subFolder));
                 UnloadDirectoryFiles(list);
             }
             else
             {
                 const auto ext = GetFileExtension(path);
-                auto file = File(path, relPath, ext, getNewGUID());
-                folder.getFiles().push_back(std::move(file));
+                auto file = std::make_shared<File>(path, relPath, ext, getNewGUID());
+                folder->getFiles().push_back(std::move(file));
             }
         }
     }

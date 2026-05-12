@@ -14,9 +14,14 @@
 namespace BreadEngine {
     struct AssetsConfig : BaseYamlConfig
     {
+        bool operator==(const AssetsConfig &other) const
+        {
+            return _projectPath == other._projectPath && _rootFolder == other._rootFolder;
+        }
+
         Action<> onIndirectChange{};
 
-        AssetsConfig() = default;
+        AssetsConfig();
 
         ~AssetsConfig() override;
 
@@ -26,23 +31,23 @@ namespace BreadEngine {
 
         void buildFullProjectTree(const char *projectPath);
 
-        Asset *getAsset(const File *file);
+        std::shared_ptr<Asset> getAsset(const std::shared_ptr<File> &file);
 
         [[nodiscard]] static bool isFolder(const char *path);
 
-        [[nodiscard]] Folder *getRootFolder();
+        [[nodiscard]] std::shared_ptr<Folder> getRootFolder() const;
 
         [[nodiscard]] const std::string &getPathByGuid(const std::string &guid);
 
         [[nodiscard]] const std::string &getGuidByPath(const std::string &path);
 
-        [[nodiscard]] File *getFileByGuid(const std::string &guid);
+        [[nodiscard]] std::shared_ptr<File> getFileByGuid(const std::string &guid);
 
-        [[nodiscard]] Folder *getFolderByGuid(const std::string &guid);
+        [[nodiscard]] std::shared_ptr<Folder> getFolderByGuid(const std::string &guid);
 
-        [[nodiscard]] File *getFileByPath(const std::string &path);
+        [[nodiscard]] std::shared_ptr<File> getFileByPath(const std::string &path);
 
-        [[nodiscard]] Folder *getFolderByPath(const std::string &path);
+        [[nodiscard]] std::shared_ptr<Folder> getFolderByPath(const std::string &path);
 
         void renameFile(const std::string &fileGuid, const std::string &nextName);
 
@@ -56,11 +61,6 @@ namespace BreadEngine {
 
         void deleteFolder(const std::string &folderGuid, bool withInternalOperations = true);
 
-        bool operator==(const AssetsConfig &other) const
-        {
-            return _projectPath == other._projectPath && _rootFolder == other._rootFolder;
-        }
-
         void onEntityCreated(const std::string &filePath);
 
         void onEntityDeleted(const std::string &filePath);
@@ -71,21 +71,20 @@ namespace BreadEngine {
         friend struct YAML::convert<AssetsConfig>;
         friend class AssetsDeserializer;
 
-        Folder _rootFolder;
-        std::unordered_map<std::string_view, Folder *> _guidToFolder{};
-        std::unordered_map<std::string_view, Folder *> _pathToFolder{};
-        std::unordered_map<std::string_view, File *> _guidToFile{};
-        std::unordered_map<std::string_view, File *> _pathToFile{};
-        std::map<std::string, Asset *> _guidToAsset{};
+        std::shared_ptr<Folder> _rootFolder;
+        std::map<std::string, std::shared_ptr<Folder> > _guidToFolder{};
+        std::map<std::string, std::shared_ptr<File> > _guidToFile{};
+        std::map<std::string, std::string> _pathToGuid{};
+        std::map<std::string, std::shared_ptr<Asset> > _guidToAsset{};
         std::string _empty;
         std::string _projectPath;
         std::string _filePath;
 
-        static void updateIncludesAfterFolderChange(Folder *folder);
+        static void updateIncludesAfterFolderChange(const std::shared_ptr<Folder> &folder);
 
         void removeUndefinedFoldersAndFiles();
 
-        void restoreProjectTree(Folder &folder, const FilePathList &filePathList);
+        void restoreProjectTree(std::shared_ptr<Folder> &folder, const FilePathList &filePathList);
 
         void restoreEngineAssetsByFiles(bool withInitialize);
 
@@ -93,9 +92,9 @@ namespace BreadEngine {
 
         void buildIndexes();
 
-        void indexFolder(Folder &folder);
+        void indexFolder(const std::shared_ptr<Folder> &folder);
 
-        void parseFolders(Folder &folder, const FilePathList &filePathList);
+        void parseFolders(const std::shared_ptr<Folder> &folder, const FilePathList &filePathList);
 
         static void moveInternal(const std::string &from, const std::string &to);
 

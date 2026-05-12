@@ -9,41 +9,41 @@
 
 namespace YAML {
     template<>
-    struct convert<BreadEngine::File>
+    struct convert<std::shared_ptr<BreadEngine::File> >
     {
-        static Node encode(const BreadEngine::File &rhs)
+        static Node encode(const std::shared_ptr<BreadEngine::File> &rhs)
         {
-            const auto fullPathName = NAMEOF(rhs._fullPath).c_str();
-            const auto pathFromRootName = NAMEOF(rhs._pathFromRoot).c_str();
-            const auto extensionName = NAMEOF(rhs._extension).c_str();
-            const auto guidName = NAMEOF(rhs._guid).c_str();
+            const auto fullPathName = NAMEOF(rhs->_fullPath).c_str();
+            const auto pathFromRootName = NAMEOF(rhs->_pathFromRoot).c_str();
+            const auto extensionName = NAMEOF(rhs->_extension).c_str();
+            const auto guidName = NAMEOF(rhs->_guid).c_str();
             Node node;
-            node[fullPathName] = rhs._fullPath;
-            node[pathFromRootName] = rhs._pathFromRoot;
-            node[extensionName] = rhs._extension;
-            node[guidName] = rhs._guid;
+            node[fullPathName] = rhs->_fullPath;
+            node[pathFromRootName] = rhs->_pathFromRoot;
+            node[extensionName] = rhs->_extension;
+            node[guidName] = rhs->_guid;
             return node;
         }
 
-        static bool decode(const Node &node, BreadEngine::File &rhs)
+        static bool decode(const Node &node, const std::shared_ptr<BreadEngine::File> &rhs)
         {
-            const auto fullPathName = NAMEOF(rhs._fullPath).c_str();
-            const auto pathFromRootName = NAMEOF(rhs._pathFromRoot).c_str();
-            const auto extensionName = NAMEOF(rhs._extension).c_str();
-            const auto guidName = NAMEOF(rhs._guid).c_str();
-            rhs._fullPath = node[fullPathName].as<std::string>();
-            rhs._pathFromRoot = node[pathFromRootName].as<std::string>();
-            rhs._extension = node[extensionName].as<std::string>();
-            rhs._guid = node[guidName].as<std::string>();
-            rhs._shortName = GetFileName(rhs._fullPath.c_str());
+            const auto fullPathName = NAMEOF(rhs->_fullPath).c_str();
+            const auto pathFromRootName = NAMEOF(rhs->_pathFromRoot).c_str();
+            const auto extensionName = NAMEOF(rhs->_extension).c_str();
+            const auto guidName = NAMEOF(rhs->_guid).c_str();
+            rhs->_fullPath = node[fullPathName].as<std::string>();
+            rhs->_pathFromRoot = node[pathFromRootName].as<std::string>();
+            rhs->_extension = node[extensionName].as<std::string>();
+            rhs->_guid = node[guidName].as<std::string>();
+            rhs->_shortName = GetFileName(rhs->_fullPath.c_str());
             return true;
         }
     };
 
     template<>
-    struct convert<std::vector<BreadEngine::File> >
+    struct convert<std::vector<std::shared_ptr<BreadEngine::File> > >
     {
-        static Node encode(const std::vector<BreadEngine::File> &rhs)
+        static Node encode(const std::vector<std::shared_ptr<BreadEngine::File> > &rhs)
         {
             Node node;
             for (const auto &rh: rhs)
@@ -53,55 +53,78 @@ namespace YAML {
             return node;
         }
 
-        static bool decode(const Node &node, std::vector<BreadEngine::File> &rhs)
+        static bool decode(const Node &node, std::vector<std::shared_ptr<BreadEngine::File> > &rhs)
         {
             for (auto i = 0u; i < node.size(); i++)
             {
-                rhs.push_back(node[i].as<BreadEngine::File>());
+                rhs.push_back(node[i].as<std::shared_ptr<BreadEngine::File> >());
             }
             return true;
         }
     };
 
     template<>
-    struct convert<BreadEngine::Folder>
+    struct convert<std::shared_ptr<BreadEngine::Folder> >
     {
-        static Node encode(const BreadEngine::Folder &rhs)
+        static Node encode(const std::shared_ptr<BreadEngine::Folder> &rhs)
         {
             Node node;
-            const auto fullPathName = NAMEOF(rhs._fullPath).c_str();
-            const auto depthName = NAMEOF(rhs._depth).c_str();
-            const auto guidName = NAMEOF(rhs._guid).c_str();
-            const auto pathFromRootName = NAMEOF(rhs._pathFromRoot).c_str();
-            const auto shortName = NAMEOF(rhs._name).c_str();
-            const auto filesName = NAMEOF(rhs._files).c_str();
-            const auto foldersName = NAMEOF(rhs._folders).c_str();
-            node[fullPathName] = rhs._fullPath;
-            node[depthName] = rhs._depth;
-            node[guidName] = rhs._guid;
-            node[pathFromRootName] = rhs._pathFromRoot;
-            node[shortName] = rhs._name;
-            node[filesName] = rhs._files;
-            node[foldersName] = rhs._folders;
+            const auto fullPathName = NAMEOF(rhs->_fullPath).c_str();
+            const auto depthName = NAMEOF(rhs->_depth).c_str();
+            const auto guidName = NAMEOF(rhs->_guid).c_str();
+            const auto pathFromRootName = NAMEOF(rhs->_pathFromRoot).c_str();
+            const auto shortName = NAMEOF(rhs->_name).c_str();
+            const auto filesName = NAMEOF(rhs->_files).c_str();
+            const auto foldersName = NAMEOF(rhs->_folders).c_str();
+            node[fullPathName] = rhs->_fullPath;
+            node[depthName] = rhs->_depth;
+            node[guidName] = rhs->_guid;
+            node[pathFromRootName] = rhs->_pathFromRoot;
+            node[shortName] = rhs->_name;
+            node[filesName] = rhs->_files;
+            node[foldersName] = rhs->_folders;
             return node;
         }
 
-        static bool decode(const Node &node, BreadEngine::Folder &rhs)
+        static bool decode(const Node &node, const std::shared_ptr<BreadEngine::Folder> &rhs)
         {
-            const auto fullPathName = NAMEOF(rhs._fullPath).c_str();
-            const auto depthName = NAMEOF(rhs._depth).c_str();
-            const auto guidName = NAMEOF(rhs._guid).c_str();
-            const auto pathFromRootName = NAMEOF(rhs._pathFromRoot).c_str();
-            const auto shortName = NAMEOF(rhs._name).c_str();
-            const auto filesName = NAMEOF(rhs._files).c_str();
-            const auto foldersName = NAMEOF(rhs._folders).c_str();
-            rhs._fullPath = node[fullPathName].as<std::string>();
-            rhs._depth = node[depthName].as<int>();
-            rhs._guid = node[guidName].as<std::string>();
-            rhs._pathFromRoot = node[pathFromRootName].as<std::string>();
-            rhs._name = node[shortName].as<std::string>();
-            rhs._files = node[filesName].as<std::vector<BreadEngine::File> >();
-            rhs._folders = node[foldersName].as<std::vector<BreadEngine::Folder> >();
+            const auto fullPathName = NAMEOF(rhs->_fullPath).c_str();
+            const auto depthName = NAMEOF(rhs->_depth).c_str();
+            const auto guidName = NAMEOF(rhs->_guid).c_str();
+            const auto pathFromRootName = NAMEOF(rhs->_pathFromRoot).c_str();
+            const auto shortName = NAMEOF(rhs->_name).c_str();
+            const auto filesName = NAMEOF(rhs->_files).c_str();
+            const auto foldersName = NAMEOF(rhs->_folders).c_str();
+            rhs->_fullPath = node[fullPathName].as<std::string>();
+            rhs->_depth = node[depthName].as<int>();
+            rhs->_guid = node[guidName].as<std::string>();
+            rhs->_pathFromRoot = node[pathFromRootName].as<std::string>();
+            rhs->_name = node[shortName].as<std::string>();
+            rhs->_files = node[filesName].as<std::vector<std::shared_ptr<BreadEngine::File> > >();
+            rhs->_folders = node[foldersName].as<std::vector<std::shared_ptr<BreadEngine::Folder> > >();
+            return true;
+        }
+    };
+
+    template<>
+    struct convert<std::vector<std::shared_ptr<BreadEngine::Folder> > >
+    {
+        static Node encode(const std::vector<std::shared_ptr<BreadEngine::Folder> > &rhs)
+        {
+            Node node;
+            for (const auto &rh: rhs)
+            {
+                node.push_back(rh);
+            }
+            return node;
+        }
+
+        static bool decode(const Node &node, std::vector<std::shared_ptr<BreadEngine::Folder> > &rhs)
+        {
+            for (auto i = 0u; i < node.size(); i++)
+            {
+                rhs.push_back(node[i].as<std::shared_ptr<BreadEngine::Folder> >());
+            }
             return true;
         }
     };
@@ -135,7 +158,7 @@ namespace YAML {
             const auto projectPathName = NAMEOF(rhs._projectPath).c_str();
             const auto folderName = NAMEOF(rhs._rootFolder).c_str();
             rhs._projectPath = node[projectPathName].as<std::string>();
-            rhs._rootFolder = node[folderName].as<BreadEngine::Folder>();
+            rhs._rootFolder = node[folderName].as<std::shared_ptr<BreadEngine::Folder> >();
             return true;
         }
     };

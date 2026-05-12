@@ -16,7 +16,8 @@ namespace BreadEngine {
         }
 
         _isLoaded = true;
-        const auto mesh = R3D_LoadModel(getAssetPath().c_str());
+        auto path= getAssetPath().c_str();
+        const auto mesh = R3D_LoadModel(path);
         for (int i = 0; i < mesh.materialCount; i++)
         {
             _materials.emplace_back();
