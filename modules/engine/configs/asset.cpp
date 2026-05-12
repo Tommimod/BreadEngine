@@ -11,6 +11,6 @@ namespace BreadEngine {
 
     File *Asset::getFile() const
     {
-        return Engine::getInstance().getAssetsConfig().getFileByGuid(_fileGuid);
+        return Engine::getInstance().getAssetsConfig().getFileByGuid(_fileGuid).get();
     }
 } // BreadEngine

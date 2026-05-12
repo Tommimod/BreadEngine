@@ -48,7 +48,7 @@ namespace BreadEditor {
     private:
         const std::vector<std::string> _options = {"Rename", "Delete"};
         AssetsConfig &_assetConfig;
-        File *_file = nullptr;
+        std::shared_ptr<File> _file = nullptr;
         UiLabelButton *_button = nullptr;
         std::string _fileGuid;
 

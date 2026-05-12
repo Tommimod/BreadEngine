@@ -48,7 +48,7 @@ namespace BreadEditor {
         {
             _highlightTimer -= deltaTime;
 
-            _currentShakeOffset += deltaForMove * _shakeDirection;
+            _currentShakeOffset += deltaForMove * static_cast<float>(_shakeDirection);
 
             if (std::abs(_currentShakeOffset) >= horizontalOffset)
             {

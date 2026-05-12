@@ -48,7 +48,7 @@ namespace BreadEngine {
         {
             const auto textureFile = assetsConfig.getFileByPath(TextFormat("%s%s", albedoPath.c_str(), format));
             if (!textureFile) continue;
-            const auto textureAsset = dynamic_cast<TextureAsset *>(assetsConfig.getAsset(textureFile));
+            const auto textureAsset = dynamic_cast<TextureAsset *>(assetsConfig.getAsset(textureFile).get());
             material.setAlbedoTexture(textureAsset);
         }
 
@@ -56,7 +56,7 @@ namespace BreadEngine {
         {
             const auto textureFile = assetsConfig.getFileByPath(TextFormat("%s%s", normalPath.c_str(), format));
             if (!textureFile) continue;
-            const auto textureAsset = dynamic_cast<TextureAsset *>(assetsConfig.getAsset(textureFile));
+            const auto textureAsset = dynamic_cast<TextureAsset *>(assetsConfig.getAsset(textureFile).get());
             material.setNormalTexture(textureAsset);
         }
 
@@ -64,7 +64,7 @@ namespace BreadEngine {
         {
             const auto textureFile = assetsConfig.getFileByPath(TextFormat("%s%s", omrPath.c_str(), format));
             if (!textureFile) continue;
-            const auto textureAsset = dynamic_cast<TextureAsset *>(assetsConfig.getAsset(textureFile));
+            const auto textureAsset = dynamic_cast<TextureAsset *>(assetsConfig.getAsset(textureFile).get());
             material.setOmrTexture(textureAsset);
         }
 
@@ -72,7 +72,7 @@ namespace BreadEngine {
         {
             const auto textureFile = assetsConfig.getFileByPath(TextFormat("%s%s", emissionPath.c_str(), format));
             if (!textureFile) continue;
-            const auto textureAsset = dynamic_cast<TextureAsset *>(assetsConfig.getAsset(textureFile));
+            const auto textureAsset = dynamic_cast<TextureAsset *>(assetsConfig.getAsset(textureFile).get());
             material.setEmissionTexture(textureAsset);
         }
 

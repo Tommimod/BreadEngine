@@ -45,7 +45,7 @@ namespace BreadEditor {
         UiWindow::awake();
 
         auto i = 0;
-        recalculateUiFolders(_assetConfig.getRootFolder(), i);
+        recalculateUiFolders(_assetConfig.getRootFolder().get(), i);
     }
 
     FolderUiElement *AssetsWindow::getFolderUiElementByEngineFolder(const Folder *folder) const
@@ -92,7 +92,7 @@ namespace BreadEditor {
         element->onExpandStateChanged.subscribe([this](const FolderUiElement *)
         {
             auto i = 0;
-            recalculateUiFolders(_assetConfig.getRootFolder(), i);
+            recalculateUiFolders(_assetConfig.getRootFolder().get(), i);
         });
 
         element->onDragStarted.subscribe([this](UiElement *uiElement) { onElementDragStarted(uiElement); });
@@ -146,12 +146,12 @@ namespace BreadEditor {
             element->isActive = false;
             for (auto &file: folder->getFiles())
             {
-                recalculateUiFiles(&file, nodeOrder, folder->getDepth(), false);
+                recalculateUiFiles(file.get(), nodeOrder, folder->getDepth(), false);
             }
 
             for (auto &fld: folder->getFolders())
             {
-                recalculateUiFolders(&fld, nodeOrder, false);
+                recalculateUiFolders(fld.get(), nodeOrder, false);
             }
             return;
         }
@@ -174,12 +174,12 @@ namespace BreadEditor {
         const auto isExpanded = element->getIsExpanded();
         for (auto &file: folder->getFiles())
         {
-            recalculateUiFiles(&file, nodeOrder, folder->getDepth(), isExpanded);
+            recalculateUiFiles(file.get(), nodeOrder, folder->getDepth(), isExpanded);
         }
 
         for (auto &fld: folder->getFolders())
         {
-            recalculateUiFolders(&fld, nodeOrder, isExpanded);
+            recalculateUiFolders(fld.get(), nodeOrder, isExpanded);
         }
     }
 
@@ -223,7 +223,7 @@ namespace BreadEditor {
         {
             inspectorWindow->lookupStruct(&Engine::getInstance().getAssetsConfig());
         }
-        else if (file->is3DModel() || file->isImage() || file->isAudio() || file->isVideo() || file->isText() || file->isConfig() || file->isText()) inspectorWindow->lookupStruct(_assetConfig.getAsset(file));
+        else if (file->is3DModel() || file->isImage() || file->isAudio() || file->isVideo() || file->isText() || file->isConfig() || file->isText()) inspectorWindow->lookupStruct(_assetConfig.getAsset(file).get());
     }
 
     void AssetsWindow::onElementDragStarted(UiElement *uiElement)
@@ -336,7 +336,7 @@ namespace BreadEditor {
         _folderUiElements.clear();
         _content->destroyAllChilds();
         auto i = 0;
-        recalculateUiFolders(_assetConfig.getRootFolder(), i);
+        recalculateUiFolders(_assetConfig.getRootFolder().get(), i);
     }
 
     void AssetsWindow::initializePanel()
@@ -374,7 +374,7 @@ namespace BreadEditor {
         Editor::getInstance().getEditorModel().onFileHighlightRequested.subscribe([this](const Asset *asset)
         {
             auto &guid = asset->getGuid();
-            const auto fileUiElement = getFileUiElementByPath(_assetConfig.getFileByGuid(guid));
+            const auto fileUiElement = getFileUiElementByPath(_assetConfig.getFileByGuid(guid).get());
             fileUiElement->highlight();
         });
     }

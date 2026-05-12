@@ -26,24 +26,24 @@ namespace BreadEditor {
 
         [[nodiscard]] bool getIsExpanded() const { return _isExpanded; }
 
-        void awake() override;
-
         void draw(float deltaTime) override;
 
         void update(float deltaTime) override;
 
         void dispose() override;
 
-        FolderUiElement *copy() const;
+        [[nodiscard]] FolderUiElement *copy() const;
 
     protected:
+        void awake() override;
+
         bool tryDeleteSelf() override;
 
         void handleSelectedOption(int index) override;
 
     private:
         AssetsConfig &_assetConfig;
-        Folder *_engineFolder = nullptr;
+        std::shared_ptr<Folder> _engineFolder = nullptr;
         UiLabelButton *_button = nullptr;
         UiButton *_expandButton = nullptr;
         std::string _folderGuid;

@@ -35,7 +35,7 @@ namespace BreadEngine {
     protected:
         std::string _fileGuid;
 
-        File *getFile() const;
+        [[nodiscard]] File *getFile() const;
 
         INSPECTOR_BEGIN(Asset)
         INSPECTOR_END()

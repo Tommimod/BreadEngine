@@ -87,7 +87,10 @@ namespace BreadEngine {
                 {
                     auto val = prop.get(this);
                     auto *strct = std::any_cast<InspectorStruct *>(val);
-                    strct->deserialize(subnode);
+                    if (strct)
+                    {
+                        strct->deserialize(subnode);
+                    }
                 }
                 else if (prop.type == PropertyType::VECTOR_L)
                 {
@@ -108,7 +111,10 @@ namespace BreadEngine {
                             {
                                 auto lastval = acc->get(acc->size() - 1);
                                 auto *strct = std::any_cast<InspectorStruct *>(lastval);
-                                strct->deserialize(elemn);
+                                if (strct)
+                                {
+                                    strct->deserialize(elemn);
+                                }
                             }
                             else
                             {
@@ -178,7 +184,11 @@ namespace BreadEngine {
             case PropertyType::INSPECTOR_STRUCT:
             {
                 auto *strct = std::any_cast<InspectorStruct *>(val);
-                return strct->serialize();
+                if (strct)
+                {
+                    return strct->serialize();
+                }
+                return YAML::Node(YAML::NodeType::Null);
             }
             case PropertyType::NODE_LINK:
             {
@@ -272,8 +282,19 @@ namespace BreadEngine {
                         }
                         case PropertyType::ENUM: seq.push_back(std::any_cast<int>(subval));
                             break;
-                        case PropertyType::INSPECTOR_STRUCT: seq.push_back(std::any_cast<InspectorStruct *>(subval)->serialize());
+                        case PropertyType::INSPECTOR_STRUCT:
+                        {
+                            auto *strct = std::any_cast<InspectorStruct *>(subval);
+                            if (strct)
+                            {
+                                seq.push_back(strct->serialize());
+                            }
+                            else
+                            {
+                                seq.push_back(YAML::Node(YAML::NodeType::Null));
+                            }
                             break;
+                        }
                         default: throw std::runtime_error("Unsupported element type in vector for serialization");
                     }
                 }
@@ -395,13 +416,19 @@ namespace BreadEngine {
 
                 // If not in deserialization phase, resolve immediately
                 auto &assetsConfig = Engine::getInstance().getAssetsConfig();
-                if (auto file = assetsConfig.getFileByGuid(targetGuid); !file)
+                auto file = assetsConfig.getFileByGuid(targetGuid);
+                if (!file)
                 {
                     TraceLog(LOG_ERROR, TextFormat("Failed to find asset by guid: %s", targetGuid.c_str()));
                     return Property::VariantT{static_cast<Asset *>(nullptr)};
                 }
-                auto asset = assetsConfig.getAsset(assetsConfig.getFileByGuid(targetGuid));
-                return Property::VariantT{asset};
+
+                auto asset = assetsConfig.getAsset(file);
+                if (asset)
+                {
+                    return Property::VariantT{asset.get()};
+                }
+                return Property::VariantT{static_cast<Asset *>(nullptr)};
             }
             default: throw std::runtime_error("Unsupported property type for deserialization");
         }
@@ -512,7 +539,7 @@ namespace BreadEngine {
                 continue;
             }
 
-            Asset *targetAsset = assetsConfig.getAsset(file);
+            auto targetAsset = assetsConfig.getAsset(file);
             if (!targetAsset)
             {
                 Logger::LogWarning(TextFormat("Could not resolve asset link: asset %s (%s) could not be loaded",

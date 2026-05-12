@@ -118,7 +118,7 @@ namespace BreadEditor {
             const auto &guid = fileUiElement->getFileGuid();
             auto &assetConfig = Engine::getInstance().getAssetsConfig();
             const auto file = assetConfig.getFileByGuid(guid);
-            if (const auto asset = assetConfig.getAsset(file); isAssetTypeValid(asset))
+            if (const auto asset = assetConfig.getAsset(file).get(); isAssetTypeValid(asset))
             {
                 setAsset(asset);
             }

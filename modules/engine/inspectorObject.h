@@ -132,6 +132,33 @@ namespace BreadEngine {
     };
 
     template<typename T>
+    struct DeducePropertyType<std::shared_ptr<T> >
+    {
+        static constexpr PropertyType value = []() constexpr
+        {
+            if constexpr (std::is_base_of_v<InspectorStruct, T>)
+            {
+                return PropertyType::INSPECTOR_STRUCT;
+            }
+            else
+            {
+                static_assert(false, "Unsupported shared_ptr type for inspector property. Only InspectorStruct-derived types are supported for shared_ptr.");
+                return PropertyType{};
+            }
+        }();
+    };
+
+    template<typename T>
+    struct is_shared_ptr : std::false_type
+    {
+    };
+
+    template<typename T>
+    struct is_shared_ptr<std::shared_ptr<T> > : std::true_type
+    {
+    };
+
+    template<typename T>
     constexpr PropertyType deducePropertyType()
     {
         return DeducePropertyType<T>::value;
@@ -220,11 +247,29 @@ namespace BreadEngine {
             {
                 throw std::out_of_range("Vector index out of range");
             }
-            if constexpr (std::is_base_of_v<InspectorStruct, typename VecT::value_type>)
+            using ValueType = VecT::value_type;
+            if constexpr (std::is_base_of_v<InspectorStruct, ValueType>)
             {
                 return std::any{const_cast<InspectorStruct *>(static_cast<const InspectorStruct *>(&vec[index]))};
             }
-            else if constexpr (std::is_enum_v<typename VecT::value_type>)
+            else if constexpr (is_shared_ptr<ValueType>::value)
+            {
+                using ElementType = ValueType::element_type;
+                if constexpr (std::is_base_of_v<InspectorStruct, ElementType>)
+                {
+                    return std::any{const_cast<InspectorStruct *>(static_cast<const InspectorStruct *>(vec[index].get()))};
+                }
+                else if constexpr (std::is_enum_v<ElementType>)
+                {
+                    auto enumIndex = magic_enum::enum_index(*vec[index]);
+                    return std::any{static_cast<int>(enumIndex.value_or(0))};
+                }
+                else
+                {
+                    return std::any{vec[index]};
+                }
+            }
+            else if constexpr (std::is_enum_v<ValueType>)
             {
                 auto enumIndex = magic_enum::enum_index(vec[index]);
                 return std::any{static_cast<int>(enumIndex.value_or(0))};
@@ -241,20 +286,43 @@ namespace BreadEngine {
             {
                 throw std::out_of_range("Vector index out of range");
             }
-            if constexpr (std::is_enum_v<typename VecT::value_type>)
+            using ValueType = VecT::value_type;
+            if constexpr (is_shared_ptr<ValueType>::value)
+            {
+                using ElementType = ValueType::element_type;
+                if constexpr (std::is_enum_v<ElementType>)
+                {
+                    const int enumIndex = std::any_cast<int>(value);
+                    if (auto enumValue = magic_enum::enum_cast<ElementType>(static_cast<size_t>(enumIndex)); enumValue.has_value()) *vec[index] = enumValue.value();
+                }
+                else
+                {
+                    vec[index] = std::any_cast<ValueType>(value);
+                }
+            }
+            else if constexpr (std::is_enum_v<ValueType>)
             {
                 const int enumIndex = std::any_cast<int>(value);
-                if (auto enumValue = magic_enum::enum_cast<typename VecT::value_type>(static_cast<size_t>(enumIndex)); enumValue.has_value()) vec[index] = enumValue.value();
+                if (auto enumValue = magic_enum::enum_cast<ValueType>(static_cast<size_t>(enumIndex)); enumValue.has_value()) vec[index] = enumValue.value();
             }
             else
             {
-                vec[index] = std::any_cast<typename VecT::value_type>(value);
+                vec[index] = std::any_cast<ValueType>(value);
             }
         }
 
         void add() override
         {
-            vec.push_back({});
+            using ValueType = typename VecT::value_type;
+            if constexpr (is_shared_ptr<ValueType>::value)
+            {
+                using ElementType = typename ValueType::element_type;
+                vec.push_back(std::make_shared<ElementType>());
+            }
+            else
+            {
+                vec.push_back({});
+            }
         }
 
         void remove(size_t index) override
@@ -268,11 +336,23 @@ namespace BreadEngine {
 
         void forEachInspectorStruct(const std::function<void(InspectorStruct *)> callback) override
         {
-            if constexpr (std::is_base_of_v<InspectorStruct, typename VecT::value_type>)
+            using ValueType = VecT::value_type;
+            if constexpr (std::is_base_of_v<InspectorStruct, ValueType>)
             {
                 for (auto &elem: vec)
                 {
                     callback(static_cast<InspectorStruct *>(&elem));
+                }
+            }
+            else if constexpr (is_shared_ptr<ValueType>::value)
+            {
+                using ElementType = ValueType::element_type;
+                if constexpr (std::is_base_of_v<InspectorStruct, ElementType>)
+                {
+                    for (auto &elem: vec)
+                    {
+                        callback(static_cast<InspectorStruct *>(elem.get()));
+                    }
                 }
             }
         }
@@ -286,6 +366,7 @@ namespace BreadEngine {
     struct InspectorStruct
     {
         bool isChangedFromEditor = false;
+
         virtual ~InspectorStruct() = default;
 
         [[nodiscard]] virtual std::vector<Property> &getInspectedProperties() const
@@ -355,38 +436,76 @@ namespace BreadEngine {
 
         if constexpr (constexpr PropertyType ptype = deducePropertyType<FieldType>(); ptype == PropertyType::INSPECTOR_STRUCT)
         {
-            props.emplace_back(Property{
-                .guid = InspectorStruct::getNewGUID(),
-                .name = std::string(fieldName),
-                .type = ptype,
-                .get = [memberPtr](const InspectorStruct *comp) -> Property::VariantT
-                {
-                    auto nonConstComp = const_cast<InspectorStruct *>(comp);
-                    auto nonConstObj = static_cast<LocalClass *>(nonConstComp);
-                    auto *structPtr = static_cast<InspectorStruct *>(&(nonConstObj->*memberPtr));
-                    return structPtr;
-                },
-                .set = [memberPtr](InspectorStruct *comp, const Property::VariantT &value)
-                {
-                    auto *obj = static_cast<LocalClass *>(comp);
-                    obj->*memberPtr = std::any_cast<FieldType>(value);
-                    comp->isChangedFromEditor = true;
-                },
-                .toStr = [](const Property::VariantT &val) -> std::string
-                {
-                    if (val.type() == typeid(std::string)) return std::any_cast<std::string>(val);
-                    if (val.type() == typeid(uint8_t)) return std::to_string(std::any_cast<uint8_t>(val));
-                    if (val.type() == typeid(int)) return std::to_string(std::any_cast<int>(val));
-                    if (val.type() == typeid(float)) return std::to_string(std::any_cast<float>(val));
-                    if (val.type() == typeid(long)) return std::to_string(std::any_cast<long>(val));
-                    if (val.type() == typeid(bool)) return std::any_cast<bool>(val) ? "true" : "false";
-                    if (val.type() == typeid(Vector2)) return std::to_string(std::any_cast<Vector2>(val).x) + "," + std::to_string(std::any_cast<Vector2>(val).y);
-                    if (val.type() == typeid(Vector3)) return std::to_string(std::any_cast<Vector3>(val).x) + "," + std::to_string(std::any_cast<Vector3>(val).y) + "," + std::to_string(std::any_cast<Vector3>(val).z);
-                    if (val.type() == typeid(Vector4)) return std::to_string(std::any_cast<Vector4>(val).x) + "," + std::to_string(std::any_cast<Vector4>(val).y) + "," + std::to_string(std::any_cast<Vector4>(val).z) + "," + std::to_string(std::any_cast<Vector4>(val).w);
-                    if (val.type() == typeid(Color)) return std::to_string(std::any_cast<Color>(val).r) + "," + std::to_string(std::any_cast<Color>(val).g) + "," + std::to_string(std::any_cast<Color>(val).b) + "," + std::to_string(std::any_cast<Color>(val).a);
-                    return "[unsupported]";
-                }
-            });
+            if constexpr (is_shared_ptr<FieldType>::value)
+            {
+                props.emplace_back(Property{
+                    .guid = InspectorStruct::getNewGUID(),
+                    .name = std::string(fieldName),
+                    .type = ptype,
+                    .get = [memberPtr](const InspectorStruct *comp) -> Property::VariantT
+                    {
+                        auto nonConstComp = const_cast<InspectorStruct *>(comp);
+                        auto nonConstObj = static_cast<LocalClass *>(nonConstComp);
+                        auto &sharedPtr = nonConstObj->*memberPtr;
+                        return static_cast<InspectorStruct *>(sharedPtr.get());
+                    },
+                    .set = [memberPtr](InspectorStruct *comp, const Property::VariantT &value)
+                    {
+                        auto *obj = static_cast<LocalClass *>(comp);
+                        obj->*memberPtr = std::any_cast<FieldType>(value);
+                        comp->isChangedFromEditor = true;
+                    },
+                    .toStr = [](const Property::VariantT &val) -> std::string
+                    {
+                        if (val.type() == typeid(std::string)) return std::any_cast<std::string>(val);
+                        if (val.type() == typeid(uint8_t)) return std::to_string(std::any_cast<uint8_t>(val));
+                        if (val.type() == typeid(int)) return std::to_string(std::any_cast<int>(val));
+                        if (val.type() == typeid(float)) return std::to_string(std::any_cast<float>(val));
+                        if (val.type() == typeid(long)) return std::to_string(std::any_cast<long>(val));
+                        if (val.type() == typeid(bool)) return std::any_cast<bool>(val) ? "true" : "false";
+                        if (val.type() == typeid(Vector2)) return std::to_string(std::any_cast<Vector2>(val).x) + "," + std::to_string(std::any_cast<Vector2>(val).y);
+                        if (val.type() == typeid(Vector3)) return std::to_string(std::any_cast<Vector3>(val).x) + "," + std::to_string(std::any_cast<Vector3>(val).y) + "," + std::to_string(std::any_cast<Vector3>(val).z);
+                        if (val.type() == typeid(Vector4)) return std::to_string(std::any_cast<Vector4>(val).x) + "," + std::to_string(std::any_cast<Vector4>(val).y) + "," + std::to_string(std::any_cast<Vector4>(val).z) + "," + std::to_string(std::any_cast<Vector4>(val).w);
+                        if (val.type() == typeid(Color)) return std::to_string(std::any_cast<Color>(val).r) + "," + std::to_string(std::any_cast<Color>(val).g) + "," + std::to_string(std::any_cast<Color>(val).b) + "," + std::to_string(std::any_cast<Color>(val).a);
+                        return "[unsupported]";
+                    }
+                });
+            }
+            else
+            {
+                props.emplace_back(Property{
+                    .guid = InspectorStruct::getNewGUID(),
+                    .name = std::string(fieldName),
+                    .type = ptype,
+                    .get = [memberPtr](const InspectorStruct *comp) -> Property::VariantT
+                    {
+                        auto nonConstComp = const_cast<InspectorStruct *>(comp);
+                        auto nonConstObj = static_cast<LocalClass *>(nonConstComp);
+                        auto *structPtr = static_cast<InspectorStruct *>(&(nonConstObj->*memberPtr));
+                        return structPtr;
+                    },
+                    .set = [memberPtr](InspectorStruct *comp, const Property::VariantT &value)
+                    {
+                        auto *obj = static_cast<LocalClass *>(comp);
+                        obj->*memberPtr = std::any_cast<FieldType>(value);
+                        comp->isChangedFromEditor = true;
+                    },
+                    .toStr = [](const Property::VariantT &val) -> std::string
+                    {
+                        if (val.type() == typeid(std::string)) return std::any_cast<std::string>(val);
+                        if (val.type() == typeid(uint8_t)) return std::to_string(std::any_cast<uint8_t>(val));
+                        if (val.type() == typeid(int)) return std::to_string(std::any_cast<int>(val));
+                        if (val.type() == typeid(float)) return std::to_string(std::any_cast<float>(val));
+                        if (val.type() == typeid(long)) return std::to_string(std::any_cast<long>(val));
+                        if (val.type() == typeid(bool)) return std::any_cast<bool>(val) ? "true" : "false";
+                        if (val.type() == typeid(Vector2)) return std::to_string(std::any_cast<Vector2>(val).x) + "," + std::to_string(std::any_cast<Vector2>(val).y);
+                        if (val.type() == typeid(Vector3)) return std::to_string(std::any_cast<Vector3>(val).x) + "," + std::to_string(std::any_cast<Vector3>(val).y) + "," + std::to_string(std::any_cast<Vector3>(val).z);
+                        if (val.type() == typeid(Vector4)) return std::to_string(std::any_cast<Vector4>(val).x) + "," + std::to_string(std::any_cast<Vector4>(val).y) + "," + std::to_string(std::any_cast<Vector4>(val).z) + "," + std::to_string(std::any_cast<Vector4>(val).w);
+                        if (val.type() == typeid(Color)) return std::to_string(std::any_cast<Color>(val).r) + "," + std::to_string(std::any_cast<Color>(val).g) + "," + std::to_string(std::any_cast<Color>(val).b) + "," + std::to_string(std::any_cast<Color>(val).a);
+                        return "[unsupported]";
+                    }
+                });
+            }
         }
         else if constexpr (ptype == PropertyType::VECTOR_L)
         {
@@ -469,8 +588,20 @@ namespace BreadEngine {
                     auto *obj = static_cast<LocalClass *>(comp);
                     if (value.has_value())
                     {
-                        Component *compPtr = std::any_cast<Component *>(value);
-                        obj->*memberPtr = dynamic_cast<FieldType>(compPtr);
+                        if (value.type() == typeid(Component *))
+                        {
+                            auto compPtr = std::any_cast<Component *>(value);
+                            obj->*memberPtr = dynamic_cast<FieldType>(compPtr);
+                        }
+                        else if (value.type() == typeid(std::shared_ptr<Component>))
+                        {
+                            const auto compSharedPtr = std::any_cast<std::shared_ptr<Component> >(value);
+                            obj->*memberPtr = dynamic_cast<FieldType>(compSharedPtr.get());
+                        }
+                        else
+                        {
+                            obj->*memberPtr = nullptr;
+                        }
                     }
                     else
                     {
@@ -501,8 +632,20 @@ namespace BreadEngine {
                     auto *obj = static_cast<LocalClass *>(comp);
                     if (value.has_value())
                     {
-                        Asset *assetPtr = std::any_cast<Asset *>(value);
-                        obj->*memberPtr = dynamic_cast<FieldType>(assetPtr);
+                        if (value.type() == typeid(Asset *))
+                        {
+                            auto assetPtr = std::any_cast<Asset *>(value);
+                            obj->*memberPtr = dynamic_cast<FieldType>(assetPtr);
+                        }
+                        else if (value.type() == typeid(std::shared_ptr<Asset>))
+                        {
+                            const auto assetSharedPtr = std::any_cast<std::shared_ptr<Asset> >(value);
+                            obj->*memberPtr = dynamic_cast<FieldType>(assetSharedPtr.get());
+                        }
+                        else
+                        {
+                            obj->*memberPtr = nullptr;
+                        }
                     }
                     else
                     {

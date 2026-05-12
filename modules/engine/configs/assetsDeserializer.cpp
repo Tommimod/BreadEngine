@@ -44,9 +44,8 @@ namespace BreadEngine {
             else if (TextIsEqual(dataType.c_str(), getTypeName(typeid(TextureAsset).name()).c_str()))
             {
                 auto data = iteratorValues.second.as<YAML::Node>();
-                rhs._guidToAsset[key] = new TextureAsset(key);
-                auto asset = dynamic_cast<TextureAsset *>(rhs._guidToAsset[key]);
-                asset->deserialize(data);
+                rhs._guidToAsset[key] = std::make_shared<TextureAsset>(key);
+                rhs._guidToAsset[key]->deserialize(data);
             }
         }
         InspectorStruct::resolveAllDeferredAssetLinks();
@@ -56,9 +55,8 @@ namespace BreadEngine {
         {
             auto key = iteratorValues.first.as<std::string>();
             auto data = iteratorValues.second.as<YAML::Node>();
-            rhs._guidToAsset[key] = new MeshAsset(key);
-            auto asset = dynamic_cast<MeshAsset *>(rhs._guidToAsset[key]);
-            asset->deserialize(data);
+            rhs._guidToAsset[key] = std::make_shared<MeshAsset>(key);
+            rhs._guidToAsset[key]->deserialize(data);
         }
     }
 } // BreadEngine

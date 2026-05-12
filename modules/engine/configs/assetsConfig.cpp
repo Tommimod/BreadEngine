@@ -122,13 +122,13 @@ namespace BreadEngine {
         const auto folder_it = _guidToFolder.find(guid);
         if (folder_it != _guidToFolder.end())
         {
-            return folder_it->second->_pathFromRoot;
+            return folder_it->second->_fullPath;
         }
 
         const auto file_it = _guidToFile.find(guid);
         if (file_it != _guidToFile.end())
         {
-            return file_it->second->_pathFromRoot;
+            return file_it->second->_fullPath;
         }
 
         return _empty;
@@ -230,7 +230,7 @@ namespace BreadEngine {
         if (oldFolder == nullptr) oldFolder = _rootFolder;
 
         const auto nextFolder = getFolderByGuid(nextFolderGuid);
-        nextFolder->getFiles().emplace_back(std::move(file));
+        nextFolder->getFiles().emplace_back(file);
         oldFolder->removeFile(file);
 
         file = nextFolder->getFiles().back();

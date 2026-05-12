@@ -34,6 +34,7 @@ bld/
 .cache/
 .idea/
 .vscode/
+.windsurf/
 build/
 cmake-build-debug/
 cmake-build-release/
