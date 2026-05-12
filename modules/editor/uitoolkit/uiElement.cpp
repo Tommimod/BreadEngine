@@ -584,10 +584,13 @@ namespace BreadEditor {
                 continue;
             }
 
-            if (!child->tryDeleteSelf())
+            if (!Engine::isShuttingDown())
             {
-                child->dispose();
-                delete child;
+                if (!child->tryDeleteSelf())
+                {
+                    child->dispose();
+                    delete child;
+                }
             }
         }
 

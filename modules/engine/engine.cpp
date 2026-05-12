@@ -16,6 +16,7 @@
 namespace BreadEngine {
     std::unique_ptr<Engine> Engine::_instance = std::make_unique<Engine>();
     Node Engine::_rootNode = {};
+    bool Engine::_isShuttingDown = false;
 
     void Engine::initializeSystems()
     {
@@ -86,6 +87,7 @@ namespace BreadEngine {
 
     void Engine::shutdown()
     {
+        _isShuttingDown = true;
         ComponentsProvider::setDisposed();
         unloadGameModule();
         _engineSystems.dispose(getDeltaTime());

@@ -230,7 +230,7 @@ DMON_API_DECL void dmon_unwatch(dmon_watch_id id);
 #endif
 
 #ifndef DMON_MAX_PATH
-#   define DMON_MAX_PATH 260
+#   define DMON_MAX_PATH 520
 #endif
 
 #define _DMON_UNUSED(x) (void)(x)
@@ -244,7 +244,7 @@ DMON_API_DECL void dmon_unwatch(dmon_watch_id id);
 #endif
 
 #ifndef DMON_SLEEP_INTERVAL
-#   define DMON_SLEEP_INTERVAL 10
+#   define DMON_SLEEP_INTERVAL 1000
 #endif
 
 #include <string.h>

@@ -20,7 +20,6 @@ namespace BreadEngine {
 
         if (cameraDirector == nullptr)
         {
-            Logger::LogError("CameraDirectorSystem: No camera director found");
             return;
         }
 

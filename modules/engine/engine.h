@@ -3,7 +3,6 @@
 #include "moduleLoader.h"
 #include <memory>
 #include "node.h"
-#include "objectPool.h"
 #include "configs/assetsConfig.h"
 #include "configs/projectSettings.h"
 #include "systems/core/systemsRegistry.h"
@@ -56,9 +55,12 @@ namespace BreadEngine {
 
         [[nodiscard]] static std::string getProjectPath();
 
+        [[nodiscard]] static bool isShuttingDown() { return _isShuttingDown; }
+
     private:
         static std::unique_ptr<Engine> _instance;
         static Node _rootNode;
+        static bool _isShuttingDown;
 
         AssetsConfig _fileSystem;
         ProjectSettings _projectSettings;

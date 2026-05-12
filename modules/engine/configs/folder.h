@@ -105,7 +105,7 @@ namespace BreadEngine {
 
         bool contains(const std::string &guid) const
         {
-            for (auto &child: _files)
+            for (auto &child: _folders)
             {
                 if (child.getGUID() == guid)
                 {
@@ -113,7 +113,7 @@ namespace BreadEngine {
                 }
             }
 
-            for (auto &child: _folders)
+            for (auto &child: _files)
             {
                 if (child.getGUID() == guid)
                 {
@@ -137,11 +137,11 @@ namespace BreadEngine {
 
         INSPECTOR_BEGIN(Folder)
 
-        INSPECT_FIELD (_depth);
-        INSPECT_FIELD (_guid);
-        INSPECT_FIELD (_pathFromRoot);
-        INSPECT_FIELD (_files);
-        INSPECT_FIELD (_folders);
+            INSPECT_FIELD(_depth);
+            INSPECT_FIELD(_guid);
+            INSPECT_FIELD(_pathFromRoot);
+            INSPECT_FIELD(_files);
+            INSPECT_FIELD(_folders);
 
         INSPECTOR_END()
     };

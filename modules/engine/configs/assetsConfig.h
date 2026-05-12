@@ -48,13 +48,13 @@ namespace BreadEngine {
 
         void renameFolder(const std::string &folderGuid, const std::string &nextName);
 
-        void moveFile(const std::string &fileGuid, const std::string &nextFolderGuid);
+        void moveFile(const std::string &fileGuid, const std::string &nextFolderGuid, bool withInternalOperations = true);
 
-        void moveFolder(const std::string &folderGuid, const std::string &nextFolderGuid);
+        void moveFolder(const std::string &folderGuid, const std::string &nextFolderGuid, bool withInternalOperations = true);
 
-        void deleteFile(const std::string &fileGuid);
+        void deleteFile(const std::string &fileGuid, bool withInternalOperations = true);
 
-        void deleteFolder(const std::string &folderGuid);
+        void deleteFolder(const std::string &folderGuid, bool withInternalOperations = true);
 
         bool operator==(const AssetsConfig &other) const
         {
