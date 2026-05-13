@@ -16,9 +16,7 @@ namespace BreadEngine {
     DEFINE_STATIC_PROPS(AssetsConfig)
     namespace fs = std::filesystem;
 
-    AssetsConfig::AssetsConfig()
-    {
-    }
+    AssetsConfig::AssetsConfig() = default;
 
     AssetsConfig::~AssetsConfig()
     {
@@ -53,8 +51,8 @@ namespace BreadEngine {
         }
 
         const auto data = rawConfig.as<AssetsConfig>();
-        _projectPath = std::move(data._projectPath);
-        _rootFolder = std::move(data._rootFolder);
+        _projectPath = data._projectPath;
+        _rootFolder = data._rootFolder;
         buildIndexes();
         AssetsDeserializer::deserialize(rawConfig);
 
@@ -97,7 +95,7 @@ namespace BreadEngine {
             _guidToAsset[guid] = std::make_shared<TextureAsset>(guid);
         }
 
-        const auto asset = _guidToAsset[guid];
+        auto asset = _guidToAsset[guid];
         if (asset == nullptr) return nullptr;
         asset->loadToMemory();
         return asset;
@@ -134,15 +132,25 @@ namespace BreadEngine {
         return _empty;
     }
 
+    std::string AssetsConfig::normalizePathSeparators(const std::string &path)
+    {
+        std::string normalized = path;
+        for (auto &c: normalized)
+        {
+            if (c == '/') c = '\\';
+        }
+        return normalized;
+    }
+
     const std::string &AssetsConfig::getGuidByPath(const std::string &path)
     {
         ZoneScoped;
-        if (const auto it = _pathToGuid.find(path); it != _pathToGuid.end())
+        if (!_pathToGuid.contains(path) || path.empty())
         {
-            return it->second;
+            return _empty;
         }
 
-        return _empty;
+        return _pathToGuid[path];
     }
 
     std::shared_ptr<File> AssetsConfig::getFileByGuid(const std::string &guid)
@@ -258,7 +266,7 @@ namespace BreadEngine {
 
         const auto &nextFolderGuid_copy = nextFolderGuid;
         const auto nextFolder = getFolderByGuid(nextFolderGuid);
-        nextFolder->getFolders().emplace_back(std::move(folder));
+        nextFolder->getFolders().emplace_back(folder);
         oldFolder->removeFolder(folder);
         buildIndexes();
 
@@ -344,8 +352,14 @@ namespace BreadEngine {
         serialize();
     }
 
-    void AssetsConfig::onEntityCreated(const std::string &filePath)
+    void AssetsConfig::onEntityCreated(std::string &filePath)
     {
+        filePath = normalizePathSeparators(filePath);
+        if (getFileByPath(filePath) != nullptr)
+        {
+            return;
+        }
+
         auto prevFolder = getFolderByPath(GetDirectoryPath(filePath.c_str()));
         prevFolder = prevFolder ? prevFolder : _rootFolder;
         const auto isFolder = AssetsConfig::isFolder(filePath.c_str());
@@ -377,19 +391,22 @@ namespace BreadEngine {
         onIndirectChange.invoke();
     }
 
-    void AssetsConfig::onEntityDeleted(const std::string &filePath)
+    void AssetsConfig::onEntityDeleted(std::string &filePath)
     {
+        filePath = normalizePathSeparators(filePath);
         if (isFolder(filePath.c_str()))
         {
             if (!_pathToGuid.contains(filePath)) return;
+            if (getFolderByPath(filePath) == nullptr) return;
             const auto &guid = _pathToGuid[filePath];
-            deleteFolder(guid.data(), false);
+            deleteFolder(guid, false);
         }
         else
         {
             if (!_pathToGuid.contains(filePath)) return;
+            if (getFileByPath(filePath) == nullptr) return;
             const auto &guid = _pathToGuid[filePath];
-            deleteFile(guid.data(), false);
+            deleteFile(guid, false);
         }
 
         buildIndexes();
@@ -397,25 +414,27 @@ namespace BreadEngine {
         onIndirectChange.invoke();
     }
 
-    void AssetsConfig::onEntityMoved(const std::string &from, const std::string &to)
+    void AssetsConfig::onEntityMoved(std::string &from, std::string &to)
     {
+        from = normalizePathSeparators(from);
+        to = normalizePathSeparators(to);
         if (isFolder(from.c_str()))
         {
             if (!_pathToGuid.contains(from)) return;
             const auto &fromGuid = _pathToGuid[from];
             const auto nextFolder = getFolderByPath(GetPrevDirectoryPath(to.c_str()));
-            if (nextFolder->contains(fromGuid.data())) return;
+            if (nextFolder->contains(fromGuid)) return;
             auto &toGuid = nextFolder->getGUID();
-            moveFolder(fromGuid.data(), toGuid, false);
+            moveFolder(fromGuid, toGuid, false);
         }
         else
         {
             if (!_pathToGuid.contains(from)) return;
             const auto &fromGuid = _pathToGuid[from];
             const auto nextFolder = getFolderByPath(GetPrevDirectoryPath(to.c_str()));
-            if (nextFolder->contains(fromGuid.data())) return;
+            if (nextFolder->contains(fromGuid)) return;
             auto &toGuid = nextFolder->getGUID();
-            moveFile(fromGuid.data(), toGuid, false);
+            moveFile(fromGuid, toGuid, false);
         }
 
         buildIndexes();
@@ -449,7 +468,7 @@ namespace BreadEngine {
         auto guidForRemove = std::vector<std::string>{};
         for (auto &[guid, folder]: _guidToFolder)
         {
-            auto &path = getPathByGuid(guid.data());
+            auto &path = getPathByGuid(guid);
             if (stat(path.data(), &info) != 0)
             {
             }
@@ -469,7 +488,7 @@ namespace BreadEngine {
         guidForRemove.clear();
         for (auto &[guid, file]: _guidToFile)
         {
-            auto &path = getPathByGuid(guid.data());
+            auto &path = getPathByGuid(guid);
             if (FileExists(path.data())) continue;
             pathForRemove.emplace_back(path);
             guidForRemove.emplace_back(guid);
@@ -489,7 +508,7 @@ namespace BreadEngine {
         }
     }
 
-    void AssetsConfig::restoreProjectTree(std::shared_ptr<Folder> &folder, const FilePathList &filePathList)
+    void AssetsConfig::restoreProjectTree(const std::shared_ptr<Folder> &folder, const FilePathList &filePathList)
     {
         ZoneScoped;
         for (auto i = 0u; i < filePathList.count; i++)
@@ -540,7 +559,7 @@ namespace BreadEngine {
         std::vector<Asset *> models;
         for (auto &[guid, file]: _guidToFile)
         {
-            if (_guidToAsset.contains(guid.data())) continue;
+            if (_guidToAsset.contains(guid)) continue;
             auto asset = getAsset(file);
             if (!withInitialize) continue;
 
@@ -596,12 +615,13 @@ namespace BreadEngine {
     void AssetsConfig::indexFolder(const std::shared_ptr<Folder> &folder)
     {
         ZoneScoped;
-        _guidToFolder.emplace(folder->_guid, folder);
-        _pathToGuid.emplace(folder->_fullPath, folder->_guid);
+        _guidToFolder.emplace(folder->getGUID(), folder);
+        _pathToGuid.emplace(folder->getFullPath(), folder->getGUID());
+        Logger::LogInfo("Folder indexed: " + folder->_fullPath + "; guid: " + folder->_guid);
         for (auto &file: folder->_files)
         {
-            _guidToFile.emplace(file->_guid, file);
-            _pathToGuid.emplace(file->_fullPath, file->_guid);
+            _guidToFile.emplace(file->getGUID(), file);
+            _pathToGuid.emplace(file->getFullPath(), file->getGUID());
             Logger::LogInfo("File indexed: " + file->_fullPath + "; guid: " + file->_guid);
         }
         for (auto &subfolder: folder->_folders)

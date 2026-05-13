@@ -8,7 +8,7 @@ namespace BreadEditor {
 
     MessageUiElement::~MessageUiElement() = default;
 
-    constexpr std::string empty = "";
+    constexpr std::string empty;
 
     MessageUiElement &MessageUiElement::setup(const std::string_view &id, UiElement *parentElement, const Logger::LogEntity &logEntity)
     {
@@ -38,7 +38,7 @@ namespace BreadEditor {
     {
         onClick.unsubscribeAll();
         _text.clear();
-        _logEntity = {};
+        _logEntity = Logger::LogEntity{};
         UiElement::dispose();
     }
 

@@ -577,21 +577,30 @@ namespace BreadEditor {
         if (_isDisposed) return;
 
         _isDisposed = true;
-        for (const auto child: getAllChilds())
+        const auto size = static_cast<int>(_childs.size());
+        for (int i = static_cast<int>(size) - 1; i >= 0; --i)
         {
+            auto child = _childs[i];
             if (child == nullptr)
             {
+                _childs.erase(_childs.begin() + i);
                 continue;
             }
 
             if (!Engine::isShuttingDown())
             {
+                _childs.erase(std::ranges::find(_childs, child));
                 if (!child->tryDeleteSelf())
                 {
                     child->dispose();
                     delete child;
                 }
             }
+        }
+
+        if (!_childs.empty() && !Engine::isShuttingDown())
+        {
+            Logger::LogError(TextFormat("%s UiElement: Childs not disposed. Count: %i", id.c_str(), _childs.size()));
         }
 
         _childs.clear();
@@ -945,7 +954,7 @@ namespace BreadEditor {
         }
 
         update(deltaTime);
-        for (const auto child: _childs)
+        for (const auto child: getAllChilds())
         {
             if (child == nullptr) continue;
             child->updateInternal(deltaTime);
@@ -970,7 +979,7 @@ namespace BreadEditor {
                 continue;
             }
 
-            _childs.erase(_childs.begin() + i);
+            _childs.erase(std::ranges::find(_childs, child));
             if (!child->tryDeleteSelf())
             {
                 child->dispose();

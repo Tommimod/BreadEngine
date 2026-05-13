@@ -41,6 +41,8 @@ namespace BreadEngine {
 
         [[nodiscard]] const std::string &getGuidByPath(const std::string &path);
 
+        static std::string normalizePathSeparators(const std::string &path);
+
         [[nodiscard]] std::shared_ptr<File> getFileByGuid(const std::string &guid);
 
         [[nodiscard]] std::shared_ptr<Folder> getFolderByGuid(const std::string &guid);
@@ -61,21 +63,21 @@ namespace BreadEngine {
 
         void deleteFolder(const std::string &folderGuid, bool withInternalOperations = true);
 
-        void onEntityCreated(const std::string &filePath);
+        void onEntityCreated(std::string &filePath);
 
-        void onEntityDeleted(const std::string &filePath);
+        void onEntityDeleted(std::string &filePath);
 
-        void onEntityMoved(const std::string &from, const std::string &to);
+        void onEntityMoved(std::string &from, std::string &to);
 
     private:
         friend struct YAML::convert<AssetsConfig>;
         friend class AssetsDeserializer;
 
         std::shared_ptr<Folder> _rootFolder;
-        std::map<std::string, std::shared_ptr<Folder> > _guidToFolder{};
-        std::map<std::string, std::shared_ptr<File> > _guidToFile{};
-        std::map<std::string, std::string> _pathToGuid{};
-        std::map<std::string, std::shared_ptr<Asset> > _guidToAsset{};
+        std::unordered_map<std::string, std::shared_ptr<Folder> > _guidToFolder{};
+        std::unordered_map<std::string, std::shared_ptr<File> > _guidToFile{};
+        std::unordered_map<std::string, std::string> _pathToGuid{};
+        std::unordered_map<std::string, std::shared_ptr<Asset> > _guidToAsset{};
         std::string _empty;
         std::string _projectPath;
         std::string _filePath;
@@ -84,7 +86,7 @@ namespace BreadEngine {
 
         void removeUndefinedFoldersAndFiles();
 
-        void restoreProjectTree(std::shared_ptr<Folder> &folder, const FilePathList &filePathList);
+        void restoreProjectTree(const std::shared_ptr<Folder> &folder, const FilePathList &filePathList);
 
         void restoreEngineAssetsByFiles(bool withInitialize);
 
