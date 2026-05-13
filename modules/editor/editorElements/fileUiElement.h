@@ -33,15 +33,12 @@ namespace BreadEditor {
 
         FileUiElement *copy() const;
 
-        [[nodiscard]] virtual const std::vector<std::string> &getOptions()
-        {
-            return _options;
-        }
-
         void highlight();
 
     protected:
         bool tryDeleteSelf() override;
+
+        std::vector<std::string> getOptions() override;
 
         void handleSelectedOption(int index) override;
 

@@ -1,24 +1,28 @@
 #include "mainToolbarSystem.h"
 #include <ranges>
 #include "commands/commandsHandler.h"
-#include "commands/mainToolbarCommands/createNewProjectCommand.h"
-#include "commands/mainToolbarCommands/openProjectCommand.h"
+#include "../commands/mainToolbarCommands/file/createNewProjectCommand.h"
+#include "../commands/mainToolbarCommands/file/openProjectCommand.h"
+#include "../commands/mainToolbarCommands/file/saveProjectCommand.h"
+#include "commands/mainToolbarCommands/create/createEmptyNodeCommand.h"
 
 namespace BreadEditor {
     static std::set<MainToolbarSystem::ToolbarOption> empty;
 
     MainToolbarSystem::MainToolbarSystem()
     {
-        _categoryToOptions =
-        {
-            {
-                "File", std::set
-                {
-                    ToolbarOption{"New project", [] { CommandsHandler::execute(std::make_unique<CreateNewProjectCommand>()); }},
-                    ToolbarOption{"Open project", [] { CommandsHandler::execute(std::make_unique<OpenProjectCommand>()); }},
-                }
-            }
-        };
+        _categoryToOptions.emplace("File", std::set
+                                   {
+                                       ToolbarOption{"New project", [] { CommandsHandler::execute(std::make_unique<CreateNewProjectCommand>()); }},
+                                       ToolbarOption{"Open project", [] { CommandsHandler::execute(std::make_unique<OpenProjectCommand>()); }},
+                                       ToolbarOption{"Save", [] { CommandsHandler::execute(std::make_unique<SaveProjectCommand>()); }}
+                                   });
+        _categoryToOptions.emplace("Create", std::set
+                                   {
+                                       ToolbarOption{
+                                           "Add Empty", [] { CommandsHandler::execute(std::make_unique<CreateEmptyNodeCommand>(&BreadEngine::Engine::getRootNode())); }
+                                       }
+                                   });
     }
 
     MainToolbarSystem::~MainToolbarSystem()
@@ -73,6 +77,7 @@ namespace BreadEditor {
             _keys.push_back(key);
         }
 
+        std::ranges::reverse(_keys);
         return _keys;
     }
 } // BreadEditor

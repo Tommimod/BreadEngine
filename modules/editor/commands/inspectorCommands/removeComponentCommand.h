@@ -9,15 +9,15 @@ namespace BreadEditor {
 
         ~RemoveComponentCommand() override = default;
 
-    private:
-        BreadEngine::Node *_node = nullptr;
-        std::unique_ptr<BreadEngine::Component> _originalComponent = nullptr;
-        std::type_index _type;
-
         bool withUndo() override { return true; }
 
         void execute() override;
 
         void undo() override;
+
+    private:
+        BreadEngine::Node *_node = nullptr;
+        std::unique_ptr<BreadEngine::Component> _originalComponent = nullptr;
+        std::type_index _type;
     };
 } // BreadEditor

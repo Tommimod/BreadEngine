@@ -26,7 +26,7 @@ namespace BreadEditor {
             onClicked.invoke(this);
         });
 
-        initializeOptionsOwner(this, getOptions());
+        initOptionsOwner(this);
         UiElement::setup(id, parentElement);
         return *this;
     }
@@ -110,6 +110,11 @@ namespace BreadEditor {
     {
         UiPool::fileUiElementPool.release(*this);
         return true;
+    }
+
+    std::vector<std::string> FileUiElement::getOptions()
+    {
+        return _options;
     }
 
     void FileUiElement::handleSelectedOption(const int index)

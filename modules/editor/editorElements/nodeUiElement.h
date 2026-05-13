@@ -26,8 +26,6 @@ namespace BreadEditor {
 
         NodeUiElement &setup(const std::string_view &id, UiElement *parentElement, Node *node);
 
-        void awake() override;
-
         void draw(float deltaTime) override;
 
         void update(float deltaTime) override;
@@ -55,7 +53,11 @@ namespace BreadEditor {
         void highlight();
 
     protected:
+        void awake() override;
+
         bool tryDeleteSelf() override;
+
+        std::vector<std::string> getOptions() override;
 
         void handleSelectedOption(int index) override;
 
@@ -63,7 +65,7 @@ namespace BreadEditor {
         Node *_engineNode = nullptr;
         NodeUiElement *_parentNode = nullptr;
         UiButton *_expandButton = nullptr;
-        const std::vector<std::string> _options{"Create empty","Copy", "Paste", "Duplicate", "Delete"};
+        const std::vector<std::string> _options{"Create empty", "Copy", "Paste", "Duplicate", "Delete"};
         GuiState _localStateBeforeMuted = STATE_NORMAL;
         GuiState _localState = STATE_NORMAL;
         bool _isExpanded = true;

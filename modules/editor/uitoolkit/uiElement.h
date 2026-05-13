@@ -156,6 +156,8 @@ namespace BreadEditor {
 
         void setIgnoreScrollLayout();
 
+        void disableCulling();
+
     protected:
         std::vector<UiElement *> _overlayChilds{};
         UiElement *_parent = nullptr;
@@ -174,6 +176,7 @@ namespace BreadEditor {
         bool _isRenderOnEndOfFrame = false;
         bool _isDeleted = false;
         bool _ignoreScrollLayout = false;
+        bool _isCullingDisabled = false;
 
         UiElement &setup(const std::string_view &newId);
 

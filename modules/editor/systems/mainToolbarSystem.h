@@ -50,6 +50,6 @@ namespace BreadEditor {
 
     private:
         std::vector<std::string_view> _keys;
-        std::map<std::string_view, std::set<ToolbarOption> > _categoryToOptions;
+        std::unordered_map<std::string_view, std::set<ToolbarOption> > _categoryToOptions;
     };
 } // BreadEditor

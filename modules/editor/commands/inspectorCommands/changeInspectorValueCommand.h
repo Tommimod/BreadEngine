@@ -51,15 +51,15 @@ namespace BreadEditor {
 
         ~ChangeInspectorValueCommand() override;
 
-    private:
-        VectorData _vectorData;
-        Data _data;
-        bool _isGenericData = false;
-
         bool withUndo() override { return true; }
 
         void execute() override;
 
         void undo() override;
+
+    private:
+        VectorData _vectorData;
+        Data _data;
+        bool _isGenericData = false;
     };
 } // BreadEditor

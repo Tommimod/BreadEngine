@@ -10,16 +10,16 @@ namespace BreadEditor {
 
         ~MoveAssetCommand() override = default;
 
-    private:
-        BreadEngine::AssetsConfig &_assetsConfig;
-        std::string _currentAssetGuid;
-        std::string _nextFolderGuid;
-        std::string _oldFolderGuid;
-
         bool withUndo() override { return true; }
 
         void execute() override;
 
         void undo() override;
+
+    private:
+        BreadEngine::AssetsConfig &_assetsConfig;
+        std::string _currentAssetGuid;
+        std::string _nextFolderGuid;
+        std::string _oldFolderGuid;
     };
 }

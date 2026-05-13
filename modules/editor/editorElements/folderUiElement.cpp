@@ -30,16 +30,16 @@ namespace BreadEditor {
             _expandButton->setPosition({-2, 5});
             _expandButton->setClickOutside(true);
             _expandButton->setTextSize(static_cast<int>(EditorStyle::FontSize::SmallMedium));
+            _expandButton->disableCulling();
             _expandButton->onClick.subscribe([this](UiButton *)
             {
                 _isExpanded = !_isExpanded;
                 updateExpandButtonText();
                 onExpandStateChanged.invoke(this);
             });
-
-            initializeOptionsOwner(this, {"Rename", "Delete"});
         }
 
+        initOptionsOwner(this);
         UiElement::setup(id, parentElement);
         return *this;
     }
@@ -48,7 +48,7 @@ namespace BreadEditor {
     {
         if (_expandButton != nullptr)
         {
-            const auto size = getSize().y * .5f;
+            const auto size = getSize().y * .55f;
             _expandButton->setSize({size, size});
         }
     }
@@ -98,6 +98,11 @@ namespace BreadEditor {
     {
         UiPool::folderUiElementPool.release(*this);
         return true;
+    }
+
+    std::vector<std::string> FolderUiElement::getOptions()
+    {
+        return {"Rename", "Delete"};
     }
 
     void FolderUiElement::handleSelectedOption(const int index)

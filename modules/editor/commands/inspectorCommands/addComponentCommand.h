@@ -9,14 +9,14 @@ namespace BreadEditor {
 
         ~AddComponentCommand() override = default;
 
-    private:
-        BreadEngine::Node *_node = nullptr;
-        std::string _componentType;
-
         bool withUndo() override { return true; }
 
         void execute() override;
 
         void undo() override;
+
+    private:
+        BreadEngine::Node *_node = nullptr;
+        std::string _componentType;
     };
 } // BreadEditor

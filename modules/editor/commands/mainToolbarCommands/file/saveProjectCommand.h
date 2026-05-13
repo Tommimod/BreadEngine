@@ -2,10 +2,9 @@
 #include "commands/command.h"
 
 namespace BreadEditor {
-    struct OpenProjectCommand : Command
+    struct SaveProjectCommand : Command
     {
-    private:
-        bool withUndo() override { return false; }
+        bool withUndo() override {return false;}
 
         void execute() override;
 

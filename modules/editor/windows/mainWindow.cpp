@@ -183,7 +183,7 @@ namespace BreadEditor {
             dropdown.setPosition({toolbar.getAllChilds()[index]->getPosition().x, 0});
             dropdown.setTextAlignment(TEXT_ALIGN_LEFT);
             dropdown.enableOverlayLayer();
-            dropdown.onOptionSelected.subscribe([&dropdown, &toolbar, this, &index, &categories](const int value)
+            dropdown.onOptionSelected.subscribe([&dropdown, &toolbar, this, index, &categories](const int value)
             {
                 toolbar.destroyChild(&dropdown);
                 if (value >= 1)

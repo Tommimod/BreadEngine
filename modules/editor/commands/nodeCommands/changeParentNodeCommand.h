@@ -9,15 +9,15 @@ namespace BreadEditor {
 
         ~ChangeParentNodeCommand() override = default;
 
-    private:
-        BreadEngine::Node *_node = nullptr;
-        BreadEngine::Node *_nextParent = nullptr;
-        BreadEngine::Node *_prevParent = nullptr;
-
         bool withUndo() override { return true; }
 
         void execute() override;
 
         void undo() override;
+
+    private:
+        BreadEngine::Node *_node = nullptr;
+        BreadEngine::Node *_nextParent = nullptr;
+        BreadEngine::Node *_prevParent = nullptr;
     };
 } // BreadEditor

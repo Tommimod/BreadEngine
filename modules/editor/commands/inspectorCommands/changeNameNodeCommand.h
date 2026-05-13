@@ -10,16 +10,16 @@ namespace BreadEditor {
 
         ~ChangeNameNodeCommand() override = default;
 
-    private:
-        BreadEngine::Node *_node = nullptr;
-        std::string _newName;
-        std::string _oldName;
-        std::string _renamedFileGuid;
-
         bool withUndo() override { return true; }
 
         void execute() override;
 
         void undo() override;
+
+    private:
+        BreadEngine::Node *_node = nullptr;
+        std::string _newName;
+        std::string _oldName;
+        std::string _renamedFileGuid;
     };
 } // BreadEditor

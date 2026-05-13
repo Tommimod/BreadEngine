@@ -1,9 +1,9 @@
 #include "nodeUiElement.h"
 
 #include "editor.h"
-#include "engine.h"
 #include "raygui.h"
 #include "commands/commandsHandler.h"
+#include "commands/mainToolbarCommands/create/createEmptyNodeCommand.h"
 #include "commands/nodeCommands/createNodeCommand.h"
 #include "commands/nodeCommands/destroyNodeCommand.h"
 #include "uitoolkit/uiPool.h"
@@ -20,12 +20,12 @@ namespace BreadEditor {
     NodeUiElement &NodeUiElement::setup(const std::string_view &id, UiElement *parentElement, Node *node)
     {
         this->_engineNode = node;
-        _isRootNode = _engineNode->getParent() == nullptr;
         _expandButton = &UiPool::buttonPool.get().setup(TextFormat("%s_expandButton", id), this, "");
         _expandButton->setAnchor(UI_LEFT_TOP);
         _expandButton->setPivot({1, 0});
         _expandButton->setPosition({-2, 5});
         _expandButton->setClickOutside(true);
+        _expandButton->disableCulling();
         _expandButton->onClick.subscribe([this](UiButton *)
         {
             _isExpanded = !_isExpanded;
@@ -33,14 +33,14 @@ namespace BreadEditor {
             onExpandStateChanged.invoke(this);
         });
         updateExpandButtonText();
-        initializeOptionsOwner(this, _isRootNode ? std::vector{_options[0], _options[1], _options[2]} : _options);
+        initOptionsOwner(this);
         UiElement::setup(id, parentElement);
         return *this;
     }
 
     void NodeUiElement::awake()
     {
-        const auto size = getSize().y * .5f;
+        const auto size = getSize().y * .55f;
         _expandButton->setSize({size, size});
     }
 
@@ -191,15 +191,17 @@ namespace BreadEditor {
         return true;
     }
 
+    std::vector<std::string> NodeUiElement::getOptions()
+    {
+        _isRootNode = _engineNode->getParent() == nullptr;
+        return _isRootNode ? std::vector{_options[0], _options[1], _options[2]} : _options;
+    }
+
     void NodeUiElement::handleSelectedOption(const int index)
     {
         if (index == 1) // Create empty
         {
-            auto &nextNode = NodeProvider::createNode();
-            nextNode.setName("Empty node");
-            auto data = Node::getDataForCopy(nextNode);
-            NodeProvider::destroyNode(nextNode);
-            CommandsHandler::execute(std::make_unique<CreateNodeCommand>(_engineNode, std::move(data)));
+            CommandsHandler::execute(std::make_unique<CreateEmptyNodeCommand>(_engineNode));
         }
         else if (index == 2) // Copy
         {

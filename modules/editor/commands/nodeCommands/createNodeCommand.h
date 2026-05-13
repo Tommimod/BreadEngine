@@ -11,16 +11,16 @@ namespace BreadEditor {
 
         ~CreateNodeCommand() override = default;
 
-    private:
-        BreadEngine::Node *_createdNode = nullptr;
-        BreadEngine::Node *_parentNode = nullptr;
-        YAML::Node _data{};
-        bool _withData = false;
-
         bool withUndo() override { return true; }
 
         void execute() override;
 
         void undo() override;
+
+    private:
+        BreadEngine::Node *_createdNode = nullptr;
+        BreadEngine::Node *_parentNode = nullptr;
+        YAML::Node _data{};
+        bool _withData = false;
     };
 } // BreadEditor

@@ -39,6 +39,8 @@ namespace BreadEditor {
 
         bool tryDeleteSelf() override;
 
+        std::vector<std::string> getOptions() override;
+
         void handleSelectedOption(int index) override;
 
     private:

@@ -6,8 +6,8 @@
 #include "node.h"
 #include <r3d.h>
 #include "commands/commandsHandler.h"
-#include "commands/mainToolbarCommands/reopenLastProjectCommand.h"
-#include "commands/mainToolbarCommands/saveProjectCommand.h"
+#include "commands/mainToolbarCommands/file/reopenLastProjectCommand.h"
+#include "commands/mainToolbarCommands/file/saveProjectCommand.h"
 #include "systems/core/filterOption.h"
 #include "tracy/Tracy.hpp"
 #include "validators/mandatoryEditorFilesValidator.h"

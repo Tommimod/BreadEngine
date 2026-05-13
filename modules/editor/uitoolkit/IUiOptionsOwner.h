@@ -10,10 +10,9 @@ namespace BreadEditor {
         virtual ~IUiOptionsOwner() = default;
 
     protected:
-        void initializeOptionsOwner(UiElement *element, std::vector<std::string> options)
+        void initOptionsOwner(UiElement *element)
         {
             _element = element;
-            setOptions(std::move(options));
         }
 
         void disposeOptionsOwner()
@@ -23,12 +22,9 @@ namespace BreadEditor {
             _options.clear();
         }
 
-        void setOptions(std::vector<std::string> options)
-        {
-            _options = std::move(options);
-        }
-
         void updateOptionsOwner();
+
+        virtual std::vector<std::string> getOptions() = 0;
 
         virtual void handleSelectedOption(int index) = 0;
 
@@ -36,6 +32,8 @@ namespace BreadEditor {
         UiDropdown *_dropdown = nullptr;
         UiElement *_element = nullptr;
         std::vector<std::string> _options;
+
+        void getOptionsInternal();
 
         void showOptionsDropdown();
     };

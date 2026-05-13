@@ -8,7 +8,6 @@ namespace BreadEditor {
 
         ~CreateNewProjectCommand() override;
 
-    private:
         void execute() override;
 
         void undo() override;

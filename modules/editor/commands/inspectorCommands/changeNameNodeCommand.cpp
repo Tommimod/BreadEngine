@@ -3,7 +3,7 @@
 #include "editor.h"
 #include "engine.h"
 #include "commands/commandsHandler.h"
-#include "commands/mainToolbarCommands/saveProjectCommand.h"
+#include "../mainToolbarCommands/file/saveProjectCommand.h"
 
 namespace BreadEditor {
     ChangeNameNodeCommand::ChangeNameNodeCommand(Node *node, const std::string &newName, const std::string &oldName)

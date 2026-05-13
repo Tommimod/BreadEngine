@@ -4,7 +4,6 @@
 namespace BreadEditor {
     struct ReopenLastProjectCommand : Command
     {
-    private:
         bool withUndo() override {return false;}
 
         void execute() override;

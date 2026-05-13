@@ -13,8 +13,23 @@ namespace BreadEditor {
         }
     }
 
+    std::vector<std::string> IUiOptionsOwner::getOptions()
+    {
+        return {};
+    }
+
+    void IUiOptionsOwner::handleSelectedOption(int index)
+    {
+    }
+
+    void IUiOptionsOwner::getOptionsInternal()
+    {
+        _options = getOptions();
+    }
+
     void IUiOptionsOwner::showOptionsDropdown()
     {
+        getOptionsInternal();
         if (_options.empty()) return;
         const auto root = &Editor::getInstance().mainWindow;
         _dropdown = &UiPool::dropdownPool.get().setup(_element->id + "_optionsDropdown", root, _options, false);

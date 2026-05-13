@@ -628,6 +628,7 @@ namespace BreadEditor {
         _ignoreScrollLayout = false;
         isActive = true;
         isStatic = false;
+        _isCullingDisabled = false;
     }
 
     void UiElement::drawDebugRect() const
@@ -768,14 +769,17 @@ namespace BreadEditor {
 
     void UiElement::setRenderOnEndOfFrame()
     {
-        ZoneScoped;
         _isRenderOnEndOfFrame = true;
     }
 
     void UiElement::setIgnoreScrollLayout()
     {
-        ZoneScoped;
         _ignoreScrollLayout = true;
+    }
+
+    void UiElement::disableCulling()
+    {
+        _isCullingDisabled = true;
     }
 
     Vector2 UiElement::getAnchorPoint(const Rectangle &effectiveParentBounds) const
@@ -930,6 +934,12 @@ namespace BreadEditor {
             }
         }
 
+        for (const auto child: _childs)
+        {
+            if (child == nullptr || child->_isDeleted) continue;
+            if (!child->_isRenderOnEndOfFrame) continue;
+            child->drawInternal(deltaTime, nextState);
+        }
         onFrameEnd(deltaTime);
     }
 
@@ -1055,9 +1065,14 @@ namespace BreadEditor {
 
     bool UiElement::isShouldBeCulled() const
     {
-        if (_onOverlayLayer || _parent == nullptr) return false;
+        if (_isCullingDisabled || _onOverlayLayer || _parent == nullptr) return false;
 
         const auto &parentBounds = _parent->getBounds();
-        return !CheckCollisionRecs(parentBounds, _bounds);
+        const auto isLeftTopInside = CheckCollisionPointRec(Vector2(_bounds.x, _bounds.y), parentBounds);
+        const auto isRightBottomInside = CheckCollisionPointRec(Vector2(_bounds.x + _bounds.width, _bounds.y + _bounds.height), parentBounds);
+        const auto isLeftBottomInside = CheckCollisionPointRec(Vector2(_bounds.x, _bounds.y + _bounds.height), parentBounds);
+        const auto isRightTopInside = CheckCollisionPointRec(Vector2(_bounds.x + _bounds.width, _bounds.y), parentBounds);
+        const auto isFullyOutside = !isLeftTopInside && !isRightBottomInside && !isLeftBottomInside && !isRightTopInside;
+        return isFullyOutside;
     }
 } // namespace BreadEditor

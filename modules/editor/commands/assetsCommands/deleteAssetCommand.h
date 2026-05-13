@@ -10,14 +10,14 @@ namespace BreadEditor {
 
         ~DeleteAssetCommand() override = default;
 
-    private:
-        BreadEngine::AssetsConfig &_assetsConfig;
-        std::string _assetGuid;
-
         bool withUndo() override { return false; }
 
         void execute() override;
 
         void undo() override;
+
+    private:
+        BreadEngine::AssetsConfig &_assetsConfig;
+        std::string _assetGuid;
     };
 } // BreadEditor
