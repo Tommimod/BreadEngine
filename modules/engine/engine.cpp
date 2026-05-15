@@ -63,9 +63,9 @@ namespace BreadEngine {
         InitWindow(width, height, title);
         MaximizeWindow();
         R3D_Init(width, height);
+        SetExitKey(KEY_NULL);
 
-        const auto isValid = MandatoryProjectFilesValidator::validateAndInitialize();
-        if (!isValid)
+        if (const auto isValid = MandatoryProjectFilesValidator::validateAndInitialize(); !isValid)
         {
             return false;
         }

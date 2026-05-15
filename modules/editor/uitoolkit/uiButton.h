@@ -25,6 +25,8 @@ namespace BreadEditor {
 
         void setTextAlignment(const GuiTextAlignment alignment) { _textAlignment = alignment; }
 
+        void setTextVerticalAlignment(const GuiTextAlignmentVertical alignment) { _verticalAlignment = alignment; }
+
         void setTextSize(const int textSize) { _textSize = textSize; }
 
         void setText(const std::string &newText) { _text = newText; }
@@ -35,9 +37,10 @@ namespace BreadEditor {
         bool tryDeleteSelf() override;
 
     private:
-        bool _canClickOutside = false;
-        int _textSize = static_cast<int>(EditorStyle::FontSize::Medium);
-        std::string _text;
         GuiTextAlignment _textAlignment = TEXT_ALIGN_CENTER;
+        GuiTextAlignmentVertical _verticalAlignment = TEXT_ALIGN_MIDDLE;
+        std::string _text;
+        int _textSize = static_cast<int>(EditorStyle::FontSize::Medium);
+        bool _canClickOutside = false;
     };
 } // namespace BreadEditor

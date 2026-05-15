@@ -29,7 +29,7 @@ namespace BreadEngine {
             return {static_cast<int>(_act.size() - 1)};
         }
 
-        void unsubscribe(SubscriptionHandle handle)
+        void unsubscribe(SubscriptionHandle &handle)
         {
             if (!handle.isValid() || handle.id >= static_cast<int>(_act.size()))
             {
@@ -37,6 +37,7 @@ namespace BreadEngine {
             }
             std::swap(_act[handle.id], _act.back());
             _act.pop_back();
+            handle.id = -1;
         }
 
         void unsubscribeAll()
@@ -88,7 +89,7 @@ namespace BreadEngine {
             return {static_cast<int>(_act.size() - 1)};
         }
 
-        void unsubscribe(SubscriptionHandle handle)
+        void unsubscribe(SubscriptionHandle &handle)
         {
             if (!handle.isValid() || handle.id >= static_cast<int>(_act.size()))
             {
@@ -96,6 +97,7 @@ namespace BreadEngine {
             }
             std::swap(_act[handle.id], _act.back());
             _act.pop_back();
+            handle.id = -1;
         }
 
         void unsubscribeAll()

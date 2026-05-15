@@ -1,5 +1,6 @@
 ﻿#include "viewportWindow.h"
 #include "editor.h"
+#include "r3d_core.h"
 #include "raymath.h"
 #include "rlgl.h"
 #include "uitoolkit/uiPool.h"
@@ -106,12 +107,19 @@ namespace BreadEditor {
         const auto texture = Editor::getInstance().getViewportRenderTexture();
         if (!texture) return;
 
+        const auto nextViewportSize = Vector2{static_cast<float>(texture->texture.width), static_cast<float>(texture->texture.height)};
+        if (nextViewportSize.x != _prevViewportSize.x || nextViewportSize.y != _prevViewportSize.y)
+        {
+            R3D_SetResolution(texture->texture.width, texture->texture.height);
+        }
+
         DrawTexturePro(texture->texture,
-                       (Rectangle){0, 0, static_cast<float>(texture->texture.width), -static_cast<float>(texture->texture.height)},
+                       (Rectangle){0, 0, nextViewportSize.x, -nextViewportSize.y},
                        getViewportSize(),
                        (Vector2){0, 0},
                        0,
                        WHITE);
+        _prevViewportSize = nextViewportSize;
 
         if (isMouseOver())
         {
@@ -146,7 +154,8 @@ namespace BreadEditor {
 
     void ViewportWindow::dispose()
     {
-        _mousePosition = {};
+        _mousePosition = Vector2();
+        _prevViewportSize = Vector2();
         _warningPanel = nullptr;
         UiWindow::dispose();
     }

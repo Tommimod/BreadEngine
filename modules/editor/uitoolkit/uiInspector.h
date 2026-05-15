@@ -18,7 +18,7 @@ namespace BreadEditor {
 
         UiInspector();
 
-        UiInspector &setup(const std::string_view &id, UiElement *parentElement, bool isStatic);
+        UiInspector &setup(const std::string_view &id, UiElement *parentElement, bool isStatic, bool nonInspectorBehavior = false);
 
         ~UiInspector() override;
 
@@ -62,11 +62,14 @@ namespace BreadEditor {
         bool _isStatic = false;
         bool _isPermanent = false;
         bool _hasNextInspectorStruct = false;
+        bool _nonInspectorBehavior = false;
 
         void cleanUp();
 
         void initializeProperties(InspectorStruct *inspectorStruct, std::vector<Property> &properties, int &depth, float horizonDepth, int continueFrom = 0, int vectorIndex = -1);
 
         void createSingleElement(int order, InspectorStruct *inspectorStruct, Property &property, VectorAccessor *vectorAccessor, int vectorIndex, int &depth, float horizonDepth);
+
+        void addCloseButton();
     };
 } // BreadEditor

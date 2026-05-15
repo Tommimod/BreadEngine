@@ -3,6 +3,7 @@
 #include <algorithm>
 
 namespace BreadEditor {
+    std::vector<std::function<void()> > CommandsHandler::_functions{};
     std::byte CommandsHandler::_historySize{32};
     std::vector<std::unique_ptr<Command> > CommandsHandler::_history{};
 
@@ -24,5 +25,22 @@ namespace BreadEditor {
         if (_history.empty()) return;
         _history.back()->undo();
         _history.erase(std::ranges::find(_history.begin(), _history.end(), _history.back()));
+    }
+
+    void CommandsHandler::addFunction(std::function<void()> func)
+    {
+        _functions.push_back(std::move(func));
+    }
+
+    void CommandsHandler::update()
+    {
+        if (_functions.empty()) return;
+
+        for (auto &func: _functions)
+        {
+            func();
+        }
+
+        _functions.clear();
     }
 } // BreadEditor

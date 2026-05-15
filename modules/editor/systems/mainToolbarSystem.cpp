@@ -4,6 +4,7 @@
 #include "../commands/mainToolbarCommands/file/createNewProjectCommand.h"
 #include "../commands/mainToolbarCommands/file/openProjectCommand.h"
 #include "../commands/mainToolbarCommands/file/saveProjectCommand.h"
+#include "commands/mainToolbarCommands/create/сreatePrimitiveCommand.h"
 #include "commands/mainToolbarCommands/create/createEmptyNodeCommand.h"
 
 namespace BreadEditor {
@@ -20,7 +21,37 @@ namespace BreadEditor {
         _categoryToOptions.emplace("Create", std::set
                                    {
                                        ToolbarOption{
-                                           "Add Empty", [] { CommandsHandler::execute(std::make_unique<CreateEmptyNodeCommand>(&BreadEngine::Engine::getRootNode())); }
+                                           "Add Empty", [] { CommandsHandler::execute(std::make_unique<CreateEmptyNodeCommand>(&Engine::getRootNode())); }
+                                       },
+                                       ToolbarOption{
+                                           "Add Cube", [] { CommandsHandler::execute(std::make_unique<CreatePrimitiveCommand>(&Engine::getRootNode(), MeshPrimitiveType::Cube)); }
+                                       },
+                                       ToolbarOption{
+                                           "Add Sphere", [] { CommandsHandler::execute(std::make_unique<CreatePrimitiveCommand>(&Engine::getRootNode(), MeshPrimitiveType::Sphere)); }
+                                       },
+                                       ToolbarOption{
+                                           "Add HalfSphere", [] { CommandsHandler::execute(std::make_unique<CreatePrimitiveCommand>(&Engine::getRootNode(), MeshPrimitiveType::HalfSphere)); }
+                                       },
+                                       ToolbarOption{
+                                           "Add Cylinder", [] { CommandsHandler::execute(std::make_unique<CreatePrimitiveCommand>(&Engine::getRootNode(), MeshPrimitiveType::Cylinder)); }
+                                       },
+                                       ToolbarOption{
+                                           "Add Capsule", [] { CommandsHandler::execute(std::make_unique<CreatePrimitiveCommand>(&Engine::getRootNode(), MeshPrimitiveType::Capsule)); }
+                                       },
+                                       ToolbarOption{
+                                           "Add Plane", [] { CommandsHandler::execute(std::make_unique<CreatePrimitiveCommand>(&Engine::getRootNode(), MeshPrimitiveType::Plane)); }
+                                       },
+                                       ToolbarOption{
+                                           "Add Quad", [] { CommandsHandler::execute(std::make_unique<CreatePrimitiveCommand>(&Engine::getRootNode(), MeshPrimitiveType::Quad)); }
+                                       },
+                                       ToolbarOption{
+                                           "Add Slope", [] { CommandsHandler::execute(std::make_unique<CreatePrimitiveCommand>(&Engine::getRootNode(), MeshPrimitiveType::Slope)); }
+                                       },
+                                       ToolbarOption{
+                                           "Add Torus", [] { CommandsHandler::execute(std::make_unique<CreatePrimitiveCommand>(&Engine::getRootNode(), MeshPrimitiveType::Torus)); }
+                                       },
+                                       ToolbarOption{
+                                           "Add FreePoly", [] { CommandsHandler::execute(std::make_unique<CreatePrimitiveCommand>(&Engine::getRootNode(), MeshPrimitiveType::FreePoly)); }
                                        }
                                    });
     }

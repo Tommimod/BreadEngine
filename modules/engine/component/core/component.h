@@ -14,6 +14,8 @@ namespace BreadEngine {
 
         ~Component() override;
 
+        virtual void onCreate();
+
         virtual void onDestroy();
 
         [[nodiscard]] virtual std::string toString() const;

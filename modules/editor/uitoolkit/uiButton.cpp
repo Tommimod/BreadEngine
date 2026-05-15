@@ -27,6 +27,7 @@ namespace BreadEditor {
         onClick.unsubscribeAll();
         _text.clear();
         _textAlignment = TEXT_ALIGN_CENTER;
+        _verticalAlignment = TEXT_ALIGN_MIDDLE;
         _textSize = static_cast<int>(EditorStyle::FontSize::Medium);
         _canClickOutside = false;
         UiElement::dispose();
@@ -36,6 +37,7 @@ namespace BreadEditor {
     {
         EditorStyle::setFontSize(_textSize);
         EditorStyle::setButtonTextAlignment(_textAlignment);
+        EditorStyle::setGlobalTextVerticalAlignment(_verticalAlignment);
         if (GuiButton(_bounds, _text.c_str()))
         {
             const auto mousePos = GetMousePosition();

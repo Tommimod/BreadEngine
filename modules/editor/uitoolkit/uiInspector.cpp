@@ -10,9 +10,10 @@ namespace BreadEditor {
 
     UiInspector::~UiInspector() = default;
 
-    UiInspector &UiInspector::setup(const std::string_view &id, UiElement *parentElement, const bool isStatic)
+    UiInspector &UiInspector::setup(const std::string_view &id, UiElement *parentElement, const bool isStatic, bool nonInspectorBehavior)
     {
         _isStatic = isStatic;
+        _nonInspectorBehavior = nonInspectorBehavior;
         UiElement::setup(id, parentElement);
         return *this;
     }
@@ -29,6 +30,7 @@ namespace BreadEditor {
         _nextInspectorStruct = nullptr;
         _lastSelectedNodeLink = nullptr;
         _hasNextInspectorStruct = false;
+        _nonInspectorBehavior = false;
 
         UiElement::dispose();
     }
@@ -540,6 +542,26 @@ namespace BreadEditor {
         _fields.emplace_back(createdElement);
     }
 
+    void UiInspector::addCloseButton()
+    {
+        constexpr float height = 20.0f;
+
+        computeBounds();
+        auto size = getSize();
+        size.y += height + 10;
+        setSize(size);
+        auto &button = UiPool::buttonPool.get().setup(id + "_apply_button", this, "Apply");
+        button.setAnchor(UI_CENTER_BOTTOM);
+        button.setPivot({.5f, 1});
+        button.setSize({0, height});
+        button.setSizePercentPermanent({.4f, -1});
+        button.setPosition({0, -6});
+        button.onClick.subscribe([this](UiButton *)
+        {
+            getParentElement()->destroyChild(this);
+        });
+    }
+
     void UiInspector::draw(const float deltaTime)
     {
         EditorStyle::setFontSize(EditorStyle::FontSize::Medium);
@@ -599,6 +621,10 @@ namespace BreadEditor {
             _isPermanent = _isStatic || _componentName == transformName;
             int depth = 0;
             initializeProperties(_nextInspectorStruct, _nextInspectorStruct->getInspectedProperties(), depth, 1);
+            if (_nonInspectorBehavior)
+            {
+                addCloseButton();
+            }
             onUpdated.invoke(this);
         }
     }

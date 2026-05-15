@@ -135,6 +135,7 @@ namespace BreadEditor {
         if (!_initialized) return;
 
         processInput();
+        CommandsHandler::update();
         _isFrameEnded = false;
         mainWindow.updateInternal(deltaTime);
         _cameraSystem.update(deltaTime);

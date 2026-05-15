@@ -14,6 +14,10 @@ namespace BreadEngine {
 
     Component::~Component() = default;
 
+    void Component::onCreate()
+    {
+    }
+
     void Component::onDestroy()
     {
     }
