@@ -171,16 +171,21 @@ namespace BreadEditor {
             const auto &nextOptions = _mainToolbarSystem.getOptions(categories[index]);
             std::vector<std::string> options{};
             options.reserve(nextOptions.size());
+            std::string maxText = nextOptions.begin()->optionName;
             for (const auto &nextOption: nextOptions)
             {
                 options.push_back(nextOption.optionName);
+                if (nextOption.optionName.size() > maxText.size())
+                {
+                    maxText = nextOption.optionName;
+                }
             }
 
             auto &dropdown = UiPool::dropdownPool.get().setup(id + "_toolbarDropdown", &toolbar, options, false);
             dropdown.setAnchor(UI_LEFT_CENTER);
             dropdown.setPivot({0, 0});
-            dropdown.setSize({80, 15});
-            dropdown.setPosition({toolbar.getAllChilds()[index]->getPosition().x, 0});
+            dropdown.setSize({static_cast<float>(GuiGetTextWidth(maxText.c_str())) + 10, 15});
+            dropdown.setPosition({toolbar.getAllChilds()[index]->getPosition().x, uiElement->getSize().y * .5f});
             dropdown.setTextAlignment(TEXT_ALIGN_LEFT);
             dropdown.enableOverlayLayer();
             dropdown.onOptionSelected.subscribe([&dropdown, &toolbar, this, index, &categories](const int value)

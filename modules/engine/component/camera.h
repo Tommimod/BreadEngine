@@ -10,6 +10,12 @@ namespace BreadEngine {
             CAMERA_ORTHOGRAPHIC
         };
 
+        enum BackgroundMode
+        {
+            SOLID_COLOR = 0,
+            SKYBOX
+        };
+
         Camera();
 
         explicit Camera(Node *owner);
@@ -28,6 +34,7 @@ namespace BreadEngine {
         friend struct CameraDirector;
 
         Camera3D _nativeCamera{};
+        BackgroundMode _backgroundMode = SOLID_COLOR;
         CameraType _projection = CAMERA_PERSPECTIVE;
         float _fov = 45.0f;
         int _index = 0;
@@ -35,6 +42,7 @@ namespace BreadEngine {
         void setupCamera();
 
         INSPECTOR_BEGIN(Camera)
+            INSPECT_FIELD(_backgroundMode);
             INSPECT_FIELD(_projection);
             INSPECT_FIELD(_fov);
         INSPECTOR_END()
