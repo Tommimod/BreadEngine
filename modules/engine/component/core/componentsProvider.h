@@ -74,6 +74,7 @@ namespace BreadEngine {
             }
 
             auto &baseChunk = *it->second;
+            comp->onCreate();
             baseChunk.addComponent(ownerId, std::move(comp), true);
         }
 
@@ -97,6 +98,7 @@ namespace BreadEngine {
             }
 
             auto &baseChunk = *it->second;
+            component->onCreate();
             baseChunk.addComponent(ownerId, std::move(component), true);
         }
 
@@ -113,6 +115,8 @@ namespace BreadEngine {
             InspectorStruct::setCurrentDeserializingOwnerId(ownerId);
             comp->deserialize(node);
             InspectorStruct::setCurrentDeserializingComponent(nullptr);
+            InspectorStruct::setCurrentDeserializingOwnerId(0);
+
             comp->setOwner(NodeProvider::getNode(ownerId));
 
             auto &chunks = getChunks();
@@ -125,6 +129,7 @@ namespace BreadEngine {
             }
 
             auto &baseChunk = *it->second;
+            comp->onCreate();
             baseChunk.addComponent(ownerId, std::move(comp), true);
         }
 
@@ -312,6 +317,7 @@ namespace BreadEngine {
         static T &addImpl(unsigned int ownerId, T component)
         {
             auto &chunk = emplaceChunk<T>();
+            component.onCreate();
             return chunk.add(ownerId, std::move(component), false);
         }
 

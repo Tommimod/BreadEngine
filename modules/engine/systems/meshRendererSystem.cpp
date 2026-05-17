@@ -17,12 +17,12 @@ namespace BreadEngine {
                 meshRenderer.loadModel();
             }
 
-            if (!meshRenderer.isLoaded()) continue;
             if (meshRenderer.isChangedFromEditor)
             {
                 meshRenderer.unload();
                 meshRenderer.loadModel();
             }
+            if (!meshRenderer.isLoaded()) continue;
 
             auto &transform = node->get<Transform>();
             if (R3D_IsMeshValid(meshRenderer._nativeMesh))

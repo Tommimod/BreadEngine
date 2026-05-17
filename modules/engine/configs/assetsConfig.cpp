@@ -80,23 +80,20 @@ namespace BreadEngine {
 
     std::shared_ptr<Asset> AssetsConfig::getAsset(const std::shared_ptr<File> &file)
     {
-        auto &guid = file->getGUID();
-        if (_guidToAsset.contains(guid))
+        const auto &guid = file->getGUID();
+
+        if (const auto it = _guidToAsset.find(guid); it != _guidToAsset.end())
         {
-            return _guidToAsset[guid];
+            return it->second;
         }
 
-        if (file->is3DModel())
-        {
-            _guidToAsset[guid] = std::make_shared<MeshAsset>(guid);
-        }
-        else if (file->isImage())
-        {
-            _guidToAsset[guid] = std::make_shared<TextureAsset>(guid);
-        }
+        std::shared_ptr<Asset> asset;
 
-        auto asset = _guidToAsset[guid];
-        if (asset == nullptr) return nullptr;
+        if (file->is3DModel()) asset = std::make_shared<MeshAsset>(guid);
+        else if (file->isImage()) asset = std::make_shared<TextureAsset>(guid);
+        else return nullptr;
+
+        _guidToAsset[guid] = asset;
         asset->loadToMemory();
         return asset;
     }

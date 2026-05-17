@@ -190,24 +190,6 @@ namespace BreadEngine {
         }
     };
 
-    struct DeferredNodeLink
-    {
-        unsigned int sourceOwnerId = 0;
-        std::string sourceComponentType;
-        std::string propertyName;
-        unsigned int targetNodeId = 0;
-        std::string targetComponentType;
-    };
-
-    struct DeferredAssetLink
-    {
-        unsigned int sourceOwnerId = 0;
-        std::string sourceComponentType;
-        std::string propertyName;
-        std::string targetAssetGuid;
-        std::string targetAssetType;
-    };
-
     struct VectorAccessor
     {
         virtual ~VectorAccessor() = default;
@@ -363,6 +345,24 @@ namespace BreadEngine {
         }
     };
 
+    struct DeferredNodeLink
+    {
+        unsigned int sourceOwnerId = 0;
+        std::string sourceComponentType;
+        std::string propertyPath;
+        unsigned int targetNodeId = 0;
+        std::string targetComponentType;
+    };
+
+    struct DeferredAssetLink
+    {
+        unsigned int sourceOwnerId = 0;
+        std::string sourceComponentType;
+        std::string propertyPath;
+        std::string targetAssetGuid;
+        std::string targetAssetType;
+    };
+
     struct InspectorStruct
     {
         bool isChangedFromEditor = false;
@@ -383,6 +383,8 @@ namespace BreadEngine {
 
         void deserialize(const YAML::Node &node);
 
+        void deserialize(const YAML::Node &node, const std::string &parentPath);
+
         static void beginDeserializationPhase();
 
         static void endDeserializationPhase();
@@ -392,6 +394,8 @@ namespace BreadEngine {
         static void resolveAllDeferredNodeLinks();
 
         static void resolveAllDeferredAssetLinks();
+
+        static bool setPropertyByPath(InspectorStruct *obj, const std::string &path, const Property::VariantT &value, PropertyType expectedType);
 
         static void setCurrentDeserializingComponent(Component *comp);
 
@@ -409,7 +413,7 @@ namespace BreadEngine {
         static Property::VariantT yamlToVariant(PropertyType type, const YAML::Node &node);
 
     private:
-        static std::vector<DeferredNodeLink> &getDeferredLinks();
+        static std::vector<DeferredNodeLink> &getDeferredNodeLinks();
 
         static std::vector<DeferredAssetLink> &getDeferredAssetLinks();
 
@@ -425,13 +429,13 @@ namespace BreadEngine {
 
     template<typename MemberPtr>
     using member_pointer_result_t = std::remove_cv_t<std::remove_reference_t<
-        decltype((std::declval<std::remove_pointer_t<std::decay_t<MemberPtr> > >()
-                  .*std::declval<std::decay_t<MemberPtr> >()))> >;
+        decltype(std::declval<std::remove_pointer_t<std::decay_t<MemberPtr> > >()
+                 .*std::declval<std::decay_t<MemberPtr> >())> >;
 
     template<typename LocalClass, typename T>
     void addInspectedProperty(std::vector<Property> &props, const char *fieldName, T LocalClass::*memberPtr)
     {
-        using RawFieldType = std::remove_cvref_t<decltype( (static_cast<LocalClass *>(nullptr)->*memberPtr) )>;
+        using RawFieldType = std::remove_cvref_t<decltype( static_cast<LocalClass *>(nullptr)->*memberPtr )>;
         using FieldType = std::conditional_t<std::is_reference_v<RawFieldType>, std::remove_reference_t<RawFieldType>, RawFieldType>;
 
         if constexpr (constexpr PropertyType ptype = deducePropertyType<FieldType>(); ptype == PropertyType::INSPECTOR_STRUCT)

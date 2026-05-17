@@ -26,7 +26,6 @@ namespace BreadEngine {
     {
         if (_meshPrimitiveData.empty()) return;
         deserializeMeshData(_meshPrimitiveData);
-        _materials = {Material()};
         _isLoaded = true;
     }
 
@@ -34,6 +33,7 @@ namespace BreadEngine {
     {
         if (_meshAsset == nullptr)
         {
+            _isLoaded = true;
             return;
         }
 
@@ -54,11 +54,10 @@ namespace BreadEngine {
         else
         {
             R3D_UnloadModel(_nativeMeshRenderer, false);
-        }
-
-        for (auto &material: _materials)
-        {
-            material.unload();
+            for (auto &material: _materials)
+            {
+                material.unload();
+            }
         }
 
         _isLoaded = false;
@@ -82,6 +81,11 @@ namespace BreadEngine {
     void MeshRenderer::setGeneratedMesh(const R3D_Mesh &mesh, MeshPrimitiveData &primitiveData)
     {
         unload();
+        for (auto &material: _materials)
+        {
+            material.unload();
+        }
+
         std::ostringstream stream;
         stream << primitiveData.serialize();
         _meshPrimitiveData = serializeMeshData(primitiveData);
@@ -176,7 +180,5 @@ namespace BreadEngine {
             case MeshPrimitiveType::None:
             default: break;
         }
-
-        _materials = {Material()};
     }
 } // BreadEngine

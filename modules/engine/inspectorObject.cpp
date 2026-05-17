@@ -77,19 +77,26 @@ namespace BreadEngine {
 
     void InspectorStruct::deserialize(const YAML::Node &node)
     {
+        deserialize(node, "");
+    }
+
+    void InspectorStruct::deserialize(const YAML::Node &node, const std::string &parentPath)
+    {
         ZoneScoped;
         for (const auto &prop: getInspectedProperties())
         {
             if (node[prop.name])
             {
                 const auto &subnode = node[prop.name];
+                std::string fullPath = parentPath.empty() ? prop.name : parentPath + "." + prop.name;
+                
                 if (prop.type == PropertyType::INSPECTOR_STRUCT)
                 {
                     auto val = prop.get(this);
                     auto *strct = std::any_cast<InspectorStruct *>(val);
                     if (strct)
                     {
-                        strct->deserialize(subnode);
+                        strct->deserialize(subnode, fullPath);
                     }
                 }
                 else if (prop.type == PropertyType::VECTOR_L)
@@ -104,8 +111,9 @@ namespace BreadEngine {
                         {
                             throw std::runtime_error("Nested vectors not supported for deserialization");
                         }
-                        for (const auto &elemn: subnode)
+                        for (size_t i = 0; i < subnode.size(); ++i)
                         {
+                            const auto &elemn = subnode[i];
                             acc->add();
                             if (elType == PropertyType::INSPECTOR_STRUCT)
                             {
@@ -113,12 +121,13 @@ namespace BreadEngine {
                                 auto *strct = std::any_cast<InspectorStruct *>(lastval);
                                 if (strct)
                                 {
-                                    strct->deserialize(elemn);
+                                    std::string elementPath = fullPath + "[" + std::to_string(i) + "]";
+                                    strct->deserialize(elemn, elementPath);
                                 }
                             }
                             else
                             {
-                                Property::VariantT subval = yamlToVariant(elType, elemn);
+                                Property::VariantT subval = yamlToVariant(elType, elemn, fullPath);
                                 acc->set(acc->size() - 1, subval);
                             }
                         }
@@ -126,7 +135,7 @@ namespace BreadEngine {
                 }
                 else
                 {
-                    Property::VariantT val = yamlToVariant(prop.type, subnode, prop.name);
+                    Property::VariantT val = yamlToVariant(prop.type, subnode, fullPath);
                     prop.set(this, val);
                 }
             }
@@ -369,10 +378,10 @@ namespace BreadEngine {
                                                    : getCurrentDeserializingOwnerId();
                         deferred.sourceOwnerId = ownerId;
                         deferred.sourceComponentType = currentComp->getTypeName();
-                        deferred.propertyName = propertyName;
+                        deferred.propertyPath = propertyName;
                         deferred.targetNodeId = targetNodeId;
                         deferred.targetComponentType = targetType;
-                        getDeferredLinks().push_back(std::move(deferred));
+                        getDeferredNodeLinks().push_back(std::move(deferred));
                     }
                     return Property::VariantT{static_cast<Component *>(nullptr)};
                 }
@@ -406,7 +415,7 @@ namespace BreadEngine {
                                                    : getCurrentDeserializingOwnerId();
                         deferred.sourceOwnerId = ownerId;
                         deferred.sourceComponentType = currentComp->getTypeName();
-                        deferred.propertyName = propertyName;
+                        deferred.propertyPath = propertyName;
                         deferred.targetAssetGuid = targetGuid;
                         deferred.targetAssetType = targetType;
                         getDeferredAssetLinks().push_back(std::move(deferred));
@@ -414,7 +423,6 @@ namespace BreadEngine {
                     return Property::VariantT{static_cast<Asset *>(nullptr)};
                 }
 
-                // If not in deserialization phase, resolve immediately
                 auto &assetsConfig = Engine::getInstance().getAssetsConfig();
                 auto file = assetsConfig.getFileByGuid(targetGuid);
                 if (!file)
@@ -434,7 +442,7 @@ namespace BreadEngine {
         }
     }
 
-    std::vector<DeferredNodeLink> &InspectorStruct::getDeferredLinks()
+    std::vector<DeferredNodeLink> &InspectorStruct::getDeferredNodeLinks()
     {
         static std::vector<DeferredNodeLink> deferredLinks;
         return deferredLinks;
@@ -454,7 +462,7 @@ namespace BreadEngine {
 
     void InspectorStruct::beginDeserializationPhase()
     {
-        getDeferredLinks().clear();
+        getDeferredNodeLinks().clear();
         getDeferredAssetLinks().clear();
         getDeserializationFlag() = true;
     }
@@ -469,10 +477,136 @@ namespace BreadEngine {
         return getDeserializationFlag();
     }
 
+    bool InspectorStruct::setPropertyByPath(InspectorStruct *obj, const std::string &path, const Property::VariantT &value, PropertyType expectedType)
+    {
+        ZoneScoped;
+        if (!obj || path.empty()) return false;
+
+        std::string remainingPath = path;
+        InspectorStruct *currentObj = obj;
+
+        while (true)
+        {
+            size_t dotPos = remainingPath.find('.');
+            size_t bracketPos = remainingPath.find('[');
+            
+            std::string currentSegment;
+            std::string nextPath;
+            
+            if (bracketPos != std::string::npos && (dotPos == std::string::npos || bracketPos < dotPos))
+            {
+                currentSegment = remainingPath.substr(0, bracketPos);
+                size_t closeBracket = remainingPath.find(']', bracketPos);
+                if (closeBracket == std::string::npos) return false;
+                
+                std::string indexStr = remainingPath.substr(bracketPos + 1, closeBracket - bracketPos - 1);
+                int index = std::stoi(indexStr);
+                
+                size_t nextDot = remainingPath.find('.', closeBracket);
+                if (nextDot != std::string::npos)
+                {
+                    nextPath = remainingPath.substr(nextDot + 1);
+                }
+                else
+                {
+                    nextPath = "";
+                }
+                
+                for (auto &prop: currentObj->getInspectedProperties())
+                {
+                    if (prop.name == currentSegment)
+                    {
+                        if (prop.type == PropertyType::VECTOR_L)
+                        {
+                            auto acc = std::any_cast<std::shared_ptr<VectorAccessor>>(prop.get(currentObj));
+                            if (index >= 0 && index < static_cast<int>(acc->size()))
+                            {
+                                if (nextPath.empty())
+                                {
+                                    Property::VariantT val = value;
+                                    acc->set(index, val);
+                                    return true;
+                                }
+                                else
+                                {
+                                    auto elemVal = acc->get(index);
+                                    auto *strct = std::any_cast<InspectorStruct *>(elemVal);
+                                    if (strct)
+                                    {
+                                        currentObj = strct;
+                                        remainingPath = nextPath;
+                                        break;
+                                    }
+                                }
+                            }
+                        }
+                        break;
+                    }
+                }
+                
+                if (nextPath.empty()) return false;
+            }
+            else if (dotPos != std::string::npos)
+            {
+                currentSegment = remainingPath.substr(0, dotPos);
+                nextPath = remainingPath.substr(dotPos + 1);
+                
+                bool found = false;
+                for (auto &prop: currentObj->getInspectedProperties())
+                {
+                    if (prop.name == currentSegment)
+                    {
+                        if (prop.type == PropertyType::INSPECTOR_STRUCT)
+                        {
+                            auto val = prop.get(currentObj);
+                            auto *strct = std::any_cast<InspectorStruct *>(val);
+                            if (strct)
+                            {
+                                currentObj = strct;
+                                remainingPath = nextPath;
+                                found = true;
+                                break;
+                            }
+                        }
+                        else if (prop.type == PropertyType::VECTOR_L)
+                        {
+                            auto acc = std::any_cast<std::shared_ptr<VectorAccessor>>(prop.get(currentObj));
+                            for (size_t i = 0; i < acc->size(); ++i)
+                            {
+                                auto elemVal = acc->get(i);
+                                auto *strct = std::any_cast<InspectorStruct *>(elemVal);
+                                if (strct && setPropertyByPath(strct, nextPath, value, expectedType))
+                                {
+                                    return true;
+                                }
+                            }
+                            return false;
+                        }
+                    }
+                }
+                
+                if (!found) return false;
+            }
+            else
+            {
+                currentSegment = remainingPath;
+                for (auto &prop: currentObj->getInspectedProperties())
+                {
+                    if (prop.name == currentSegment && prop.type == expectedType)
+                    {
+                        prop.set(currentObj, value);
+                        return true;
+                    }
+                }
+                return false;
+            }
+        }
+    }
+
     void InspectorStruct::resolveAllDeferredNodeLinks()
     {
         ZoneScoped;
-        for (const auto &link: getDeferredLinks())
+        for (const auto &link: getDeferredNodeLinks())
         {
             const auto allComps = ComponentsProvider::getAllComponents(link.targetNodeId);
             Component *targetComp = nullptr;
@@ -510,17 +644,14 @@ namespace BreadEngine {
                 continue;
             }
 
-            for (auto &prop: sourceComp->getInspectedProperties())
+            if (!setPropertyByPath(sourceComp, link.propertyPath, Property::VariantT{targetComp}, PropertyType::NODE_LINK))
             {
-                if (prop.name == link.propertyName && prop.type == PropertyType::NODE_LINK)
-                {
-                    prop.set(sourceComp, targetComp);
-                    break;
-                }
+                Logger::LogWarning(TextFormat("Could not resolve node link: property path %s not found in component %s",
+                                              link.propertyPath.c_str(), link.sourceComponentType.c_str()));
             }
         }
 
-        getDeferredLinks().clear();
+        getDeferredNodeLinks().clear();
         getDeserializationFlag() = false;
     }
 
@@ -565,13 +696,10 @@ namespace BreadEngine {
                 continue;
             }
 
-            for (auto &prop: sourceComp->getInspectedProperties())
+            if (!setPropertyByPath(sourceComp, link.propertyPath, Property::VariantT{targetAsset.get()}, PropertyType::ASSET_LINK))
             {
-                if (prop.name == link.propertyName && prop.type == PropertyType::ASSET_LINK)
-                {
-                    prop.set(sourceComp, targetAsset);
-                    break;
-                }
+                Logger::LogWarning(TextFormat("Could not resolve asset link: property path %s not found in component %s",
+                                              link.propertyPath.c_str(), link.sourceComponentType.c_str()));
             }
         }
 
