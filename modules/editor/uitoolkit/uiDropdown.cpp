@@ -59,7 +59,7 @@ namespace BreadEditor {
         {
             getParentElement()->destroyChild(this);
         }
-        else if (!_isShouldBeDeleted)
+        else if (!_isShouldBeDeleted && _state != STATE_DISABLED)
         {
             if (Engine::isCollisionPointRec(GetMousePosition(), _bounds))
             {

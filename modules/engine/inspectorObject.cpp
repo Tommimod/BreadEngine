@@ -89,7 +89,7 @@ namespace BreadEngine {
             {
                 const auto &subnode = node[prop.name];
                 std::string fullPath = parentPath.empty() ? prop.name : parentPath + "." + prop.name;
-                
+
                 if (prop.type == PropertyType::INSPECTOR_STRUCT)
                 {
                     auto val = prop.get(this);
@@ -489,19 +489,19 @@ namespace BreadEngine {
         {
             size_t dotPos = remainingPath.find('.');
             size_t bracketPos = remainingPath.find('[');
-            
+
             std::string currentSegment;
             std::string nextPath;
-            
+
             if (bracketPos != std::string::npos && (dotPos == std::string::npos || bracketPos < dotPos))
             {
                 currentSegment = remainingPath.substr(0, bracketPos);
                 size_t closeBracket = remainingPath.find(']', bracketPos);
                 if (closeBracket == std::string::npos) return false;
-                
+
                 std::string indexStr = remainingPath.substr(bracketPos + 1, closeBracket - bracketPos - 1);
                 int index = std::stoi(indexStr);
-                
+
                 size_t nextDot = remainingPath.find('.', closeBracket);
                 if (nextDot != std::string::npos)
                 {
@@ -511,14 +511,14 @@ namespace BreadEngine {
                 {
                     nextPath = "";
                 }
-                
+
                 for (auto &prop: currentObj->getInspectedProperties())
                 {
                     if (prop.name == currentSegment)
                     {
                         if (prop.type == PropertyType::VECTOR_L)
                         {
-                            auto acc = std::any_cast<std::shared_ptr<VectorAccessor>>(prop.get(currentObj));
+                            auto acc = std::any_cast<std::shared_ptr<VectorAccessor> >(prop.get(currentObj));
                             if (index >= 0 && index < static_cast<int>(acc->size()))
                             {
                                 if (nextPath.empty())
@@ -543,14 +543,14 @@ namespace BreadEngine {
                         break;
                     }
                 }
-                
+
                 if (nextPath.empty()) return false;
             }
             else if (dotPos != std::string::npos)
             {
                 currentSegment = remainingPath.substr(0, dotPos);
                 nextPath = remainingPath.substr(dotPos + 1);
-                
+
                 bool found = false;
                 for (auto &prop: currentObj->getInspectedProperties())
                 {
@@ -570,7 +570,7 @@ namespace BreadEngine {
                         }
                         else if (prop.type == PropertyType::VECTOR_L)
                         {
-                            auto acc = std::any_cast<std::shared_ptr<VectorAccessor>>(prop.get(currentObj));
+                            auto acc = std::any_cast<std::shared_ptr<VectorAccessor> >(prop.get(currentObj));
                             for (size_t i = 0; i < acc->size(); ++i)
                             {
                                 auto elemVal = acc->get(i);
@@ -584,7 +584,7 @@ namespace BreadEngine {
                         }
                     }
                 }
-                
+
                 if (!found) return false;
             }
             else

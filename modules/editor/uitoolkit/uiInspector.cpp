@@ -45,6 +45,7 @@ namespace BreadEditor {
     {
         for (int i = 0; i < static_cast<int>(properties.size()); i++)
         {
+            if (properties[i].isHidden()) continue;
             createSingleElement(i + continueFrom, inspectorStruct, properties[i], nullptr, vectorIndex, depth, horizonDepth);
         }
     }
@@ -537,6 +538,11 @@ namespace BreadEditor {
         else
         {
             createdElement->setPosition({horOffset, verOffset});
+        }
+
+        if (property.isReadOnly())
+        {
+            createdElement->setState(STATE_DISABLED);
         }
 
         _fields.emplace_back(createdElement);

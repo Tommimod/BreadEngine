@@ -166,6 +166,13 @@ namespace BreadEngine {
 
     struct Property
     {
+        enum Options
+        {
+            NONE = 0,
+            READONLY = 1 << 0,
+            HIDDEN = 1 << 1
+        };
+
         using VariantT = std::any;
         std::string guid;
         std::string name;
@@ -178,6 +185,21 @@ namespace BreadEngine {
         std::function<std::string(const VariantT &)> toStr;
         std::function<std::vector<std::string>()> getEnumNames{};
         std::function<VariantT(int)> enumIndexToValue{};
+        Options options = NONE;
+        bool isConditional = false;
+        std::function<bool(const InspectorStruct *)> conditionFunc;
+
+        bool isReadOnly() const { return options & READONLY; }
+        bool isHidden() const { return options & HIDDEN; }
+        bool isConditionSatisfied(const InspectorStruct *obj) const
+        {
+            if (!isConditional)
+            {
+                return true;
+            }
+
+            return conditionFunc(obj);
+        }
 
         bool operator==(const Property &other) const
         {
@@ -295,10 +317,10 @@ namespace BreadEngine {
 
         void add() override
         {
-            using ValueType = typename VecT::value_type;
+            using ValueType = VecT::value_type;
             if constexpr (is_shared_ptr<ValueType>::value)
             {
-                using ElementType = typename ValueType::element_type;
+                using ElementType = ValueType::element_type;
                 vec.push_back(std::make_shared<ElementType>());
             }
             else
@@ -433,7 +455,28 @@ namespace BreadEngine {
                  .*std::declval<std::decay_t<MemberPtr> >())> >;
 
     template<typename LocalClass, typename T>
+    void addInspectedProperty(std::vector<Property> &props, const char *fieldName, T LocalClass::*memberPtr, Property::Options options, std::function<bool(const InspectorStruct *)> conditionFunc);
+
+    template<typename LocalClass, typename T>
     void addInspectedProperty(std::vector<Property> &props, const char *fieldName, T LocalClass::*memberPtr)
+    {
+        addInspectedProperty(props, fieldName, memberPtr, Property::Options::NONE, nullptr);
+    }
+
+    template<typename LocalClass, typename T>
+    void addInspectedProperty(std::vector<Property> &props, const char *fieldName, T LocalClass::*memberPtr, Property::Options options)
+    {
+        addInspectedProperty(props, fieldName, memberPtr, options, nullptr);
+    }
+
+    template<typename LocalClass, typename T>
+    void addInspectedProperty(std::vector<Property> &props, const char *fieldName, T LocalClass::*memberPtr, std::function<bool(const InspectorStruct *)> conditionFunc)
+    {
+        addInspectedProperty(props, fieldName, memberPtr, Property::Options::NONE, conditionFunc);
+    }
+
+    template<typename LocalClass, typename T>
+    void addInspectedProperty(std::vector<Property> &props, const char *fieldName, T LocalClass::*memberPtr, Property::Options options, std::function<bool(const InspectorStruct *)> conditionFunc)
     {
         using RawFieldType = std::remove_cvref_t<decltype( static_cast<LocalClass *>(nullptr)->*memberPtr )>;
         using FieldType = std::conditional_t<std::is_reference_v<RawFieldType>, std::remove_reference_t<RawFieldType>, RawFieldType>;
@@ -472,7 +515,10 @@ namespace BreadEngine {
                         if (val.type() == typeid(Vector4)) return std::to_string(std::any_cast<Vector4>(val).x) + "," + std::to_string(std::any_cast<Vector4>(val).y) + "," + std::to_string(std::any_cast<Vector4>(val).z) + "," + std::to_string(std::any_cast<Vector4>(val).w);
                         if (val.type() == typeid(Color)) return std::to_string(std::any_cast<Color>(val).r) + "," + std::to_string(std::any_cast<Color>(val).g) + "," + std::to_string(std::any_cast<Color>(val).b) + "," + std::to_string(std::any_cast<Color>(val).a);
                         return "[unsupported]";
-                    }
+                    },
+                    .options = options,
+                    .isConditional = conditionFunc != nullptr,
+                    .conditionFunc = conditionFunc
                 });
             }
             else
@@ -507,7 +553,10 @@ namespace BreadEngine {
                         if (val.type() == typeid(Vector4)) return std::to_string(std::any_cast<Vector4>(val).x) + "," + std::to_string(std::any_cast<Vector4>(val).y) + "," + std::to_string(std::any_cast<Vector4>(val).z) + "," + std::to_string(std::any_cast<Vector4>(val).w);
                         if (val.type() == typeid(Color)) return std::to_string(std::any_cast<Color>(val).r) + "," + std::to_string(std::any_cast<Color>(val).g) + "," + std::to_string(std::any_cast<Color>(val).b) + "," + std::to_string(std::any_cast<Color>(val).a);
                         return "[unsupported]";
-                    }
+                    },
+                    .options = options,
+                    .isConditional = conditionFunc != nullptr,
+                    .conditionFunc = conditionFunc
                 });
             }
         }
@@ -536,7 +585,10 @@ namespace BreadEngine {
                 .toStr = [](const Property::VariantT &) -> std::string
                 {
                     return "[vector]";
-                }
+                },
+                .options = options,
+                .isConditional = conditionFunc != nullptr,
+                .conditionFunc = conditionFunc
             });
         }
         else if constexpr (ptype == PropertyType::ENUM)
@@ -570,7 +622,10 @@ namespace BreadEngine {
                 {
                     if (auto enumValue = magic_enum::enum_cast<FieldType>(static_cast<size_t>(index)); enumValue.has_value()) return Property::VariantT{static_cast<std::underlying_type_t<FieldType>>(enumValue.value())};
                     return Property::VariantT{};
-                }
+                },
+                .options = options,
+                .isConditional = conditionFunc != nullptr,
+                .conditionFunc = conditionFunc
             });
         }
         else if constexpr (ptype == PropertyType::NODE_LINK)
@@ -614,7 +669,10 @@ namespace BreadEngine {
 
                     comp->isChangedFromEditor = true;
                 },
-                .toStr = {}
+                .toStr = {},
+                .options = options,
+                .isConditional = conditionFunc != nullptr,
+                .conditionFunc = conditionFunc
             });
         }
         else if constexpr (ptype == PropertyType::ASSET_LINK)
@@ -658,7 +716,10 @@ namespace BreadEngine {
 
                     comp->isChangedFromEditor = true;
                 },
-                .toStr = {}
+                .toStr = {},
+                .options = options,
+                .isConditional = conditionFunc != nullptr,
+                .conditionFunc = conditionFunc
             });
         }
         else
@@ -679,7 +740,10 @@ namespace BreadEngine {
                     obj->*memberPtr = std::any_cast<FieldType>(value);
                     comp->isChangedFromEditor = true;
                 },
-                .toStr = {}
+                .toStr = {},
+                .options = options,
+                .isConditional = conditionFunc != nullptr,
+                .conditionFunc = conditionFunc
             });
         }
     }
@@ -696,9 +760,15 @@ namespace BreadEngine {
         static std::vector<Property> buildInspectedProps() { \
             std::vector<Property> props; \
             using LocalClass = ClassName;
-
 #define INSPECT_FIELD(FieldName) \
             addInspectedProperty<LocalClass>(props, #FieldName, &LocalClass::FieldName);
+#define INSPECT_FIELD_OPT(FieldName, FieldOptions) \
+            addInspectedProperty<LocalClass>(props, #FieldName, &LocalClass::FieldName, FieldOptions);
+#define INSPECT_FIELD_COND(FieldName, ConditionBoolFunc) \
+            addInspectedProperty<LocalClass>(props, #FieldName, &LocalClass::FieldName, [](const InspectorStruct *obj) -> bool { \
+                auto *localObj = static_cast<const LocalClass *>(obj); \
+                return ConditionBoolFunc(localObj); \
+            });
 #define INSPECTOR_END() \
             return props; \
         }

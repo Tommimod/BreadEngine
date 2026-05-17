@@ -1,4 +1,4 @@
-﻿#pragma once
+#pragma once
 #include "core/component.h"
 
 namespace BreadEngine {
@@ -34,6 +34,7 @@ namespace BreadEngine {
         friend struct CameraDirector;
 
         Camera3D _nativeCamera{};
+        Color _backgroundColor;
         BackgroundMode _backgroundMode = SOLID_COLOR;
         CameraType _projection = CAMERA_PERSPECTIVE;
         float _fov = 45.0f;
@@ -43,7 +44,8 @@ namespace BreadEngine {
 
         INSPECTOR_BEGIN(Camera)
             INSPECT_FIELD(_backgroundMode);
-            INSPECT_FIELD(_projection);
+            INSPECT_FIELD_COND(_backgroundColor, [](const Camera* cam) {return cam->_backgroundMode == SOLID_COLOR;});
+            INSPECT_FIELD_OPT(_projection, Property::READONLY);
             INSPECT_FIELD(_fov);
         INSPECTOR_END()
     };
