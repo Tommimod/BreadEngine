@@ -34,7 +34,7 @@ namespace BreadEngine {
         friend struct CameraDirector;
 
         Camera3D _nativeCamera{};
-        Color _backgroundColor;
+        Color _backgroundColor = WHITE;
         BackgroundMode _backgroundMode = SOLID_COLOR;
         CameraType _projection = CAMERA_PERSPECTIVE;
         float _fov = 45.0f;

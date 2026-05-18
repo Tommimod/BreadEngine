@@ -23,6 +23,7 @@ namespace BreadEditor {
         onDelete.unsubscribeAll();
         onUpdated.unsubscribeAll();
         _uiListData.clear();
+        _conditionalProps.clear();
         _isStatic = false;
         _isPermanent = false;
         _componentName.clear();
@@ -43,10 +44,22 @@ namespace BreadEditor {
 
     void UiInspector::initializeProperties(InspectorStruct *inspectorStruct, std::vector<Property> &properties, int &depth, const float horizonDepth, const int continueFrom, const int vectorIndex)
     {
+        auto skippedElementsCount = 0;
         for (int i = 0; i < static_cast<int>(properties.size()); i++)
         {
-            if (properties[i].isHidden()) continue;
-            createSingleElement(i + continueFrom, inspectorStruct, properties[i], nullptr, vectorIndex, depth, horizonDepth);
+            auto &prop = properties[i];
+            if (prop.isHidden()) continue;
+            if (prop.isConditional)
+            {
+                _conditionalProps[inspectorStruct] = &prop;
+                if (!prop.conditionFunc(inspectorStruct))
+                {
+                    skippedElementsCount++;
+                    continue;
+                }
+            }
+
+            createSingleElement(i + continueFrom - skippedElementsCount, inspectorStruct, prop, nullptr, vectorIndex, depth, horizonDepth);
         }
     }
 
@@ -321,7 +334,39 @@ namespace BreadEditor {
         }
         else if (propType == PropertyType::COLOR)
         {
-            //TODO
+            function<Color()> getFunc;
+            if (isSimpleProp)
+            {
+                getFunc = [inspectorStruct, property]
+                {
+                    return std::any_cast<Color>(property.get(inspectorStruct));
+                };
+
+                createdElement = &UiPool::colorPool.get().setup(TextFormat("Color %s%i", property.name.c_str(), depth), this, getFunc);
+            }
+            else
+            {
+                getFunc = [vectorAccessor, vectorIndex]
+                {
+                    return std::any_cast<Color>(vectorAccessor->get(vectorIndex));
+                };
+
+                createdElement = &UiPool::colorPool.get().setup(TextFormat("Color %s%i", property.name.c_str(), depth), this, getFunc);
+            }
+            const auto element = dynamic_cast<UiColor *>(createdElement);
+            element->onValueChanged.subscribe([inspectorStruct, property, getFunc](const Color &value)
+            {
+                CommandsHandler::execute(std::make_unique<ChangeInspectorValueCommand>(ChangeInspectorValueCommand::Data(property, inspectorStruct, value, getFunc())));
+            });
+            element->onSelectorRequested.subscribe([&element](const Color &value)
+            {
+                auto &root = Editor::getInstance().mainWindow;
+                auto &colorSelector = UiPool::colorSelectorPool.get().setup("ColorSelector", &root, value, element);
+                colorSelector.setSize({400, 400});
+                colorSelector.enableOverlayLayer();
+                colorSelector.setPivot({.5f, .5f});
+                colorSelector.setAnchor(UI_CENTER_CENTER);
+            });
         }
         else if (propType == PropertyType::NODE_LINK)
         {
@@ -568,6 +613,18 @@ namespace BreadEditor {
         });
     }
 
+    bool UiInspector::hasChangedConditions()
+    {
+        auto isChanged = false;
+        for (auto &[inspectorStr, prop]: _conditionalProps)
+        {
+            const auto isChangedLoc = prop->isConditionSatisfied(inspectorStr);
+            if (!isChanged && isChangedLoc) isChanged = true;
+        }
+
+        return isChanged;
+    }
+
     void UiInspector::draw(const float deltaTime)
     {
         EditorStyle::setFontSize(EditorStyle::FontSize::Medium);
@@ -592,7 +649,7 @@ namespace BreadEditor {
             }
 
             const auto height = child->getBounds().y + child->getBounds().height + 1.5f;
-            DrawLine(getBounds().x + 5, height, getBounds().x + getBounds().width - 5, height, LIGHTGRAY);
+            DrawLine(getBounds().x + 5, height, getBounds().x + getBounds().width - 5, height, ::LIGHTGRAY);
             i++;
         }
     }
@@ -602,6 +659,13 @@ namespace BreadEditor {
         if (IsKeyPressed(KEY_BACKSPACE) && _lastSelectedNodeLink)
         {
             _lastSelectedNodeLink->setComponent(nullptr);
+        }
+
+        if (hasChangedConditions())
+        {
+            track(_inspectorStruct);
+            _uiListData.clear();
+            _conditionalProps.clear();
         }
 
         if (_nextInspectorStruct == nullptr || !_hasNextInspectorStruct)

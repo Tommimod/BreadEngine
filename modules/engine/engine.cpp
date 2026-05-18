@@ -259,7 +259,7 @@ namespace BreadEngine {
             ::DrawFPS(posX, posY);
         }
 
-        void clearBackground(const Color color)
+        void clearBackground(const ::Color color)
         {
             ::ClearBackground(color);
         }

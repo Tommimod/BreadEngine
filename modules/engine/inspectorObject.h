@@ -188,17 +188,22 @@ namespace BreadEngine {
         Options options = NONE;
         bool isConditional = false;
         std::function<bool(const InspectorStruct *)> conditionFunc;
+        bool oldConditionState = false;
 
-        bool isReadOnly() const { return options & READONLY; }
-        bool isHidden() const { return options & HIDDEN; }
-        bool isConditionSatisfied(const InspectorStruct *obj) const
+        [[nodiscard]] bool isReadOnly() const { return options & READONLY; }
+        [[nodiscard]] bool isHidden() const { return options & HIDDEN; }
+
+        [[nodiscard]] bool isConditionSatisfied(const InspectorStruct *obj)
         {
             if (!isConditional)
             {
                 return true;
             }
 
-            return conditionFunc(obj);
+            auto newState = conditionFunc(obj);
+            const auto isChanged = newState != oldConditionState;
+            oldConditionState = std::move(newState);
+            return isChanged;
         }
 
         bool operator==(const Property &other) const

@@ -1,7 +1,7 @@
 ﻿#pragma once
 #include "inspectorObject.h"
 #include "r3d_lighting.h"
-#include "data/color.h"
+#include "utils/colorUtils.h"
 
 namespace BreadEngine {
     struct LightSettings : InspectorStruct
@@ -16,7 +16,7 @@ namespace BreadEngine {
         bool operator==(const LightSettings &other) const
         {
             return lightType == other.lightType &&
-                   color == other.color &&
+                   ColorUtils::IsCompare(color, other.color) &&
                    withShadows == other.withShadows;
         }
 

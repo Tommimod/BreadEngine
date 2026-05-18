@@ -133,4 +133,16 @@ namespace BreadEditor {
         return new UiAssetLink();
     };
     ObjectPool<UiAssetLink> UiPool::assetLinkPool(UiAssetLinkFactory, 1);
+
+    auto UiColorFactory = []() -> UiColor *
+    {
+        return new UiColor();
+    };
+    ObjectPool<UiColor> UiPool::colorPool(UiColorFactory, 1);
+
+    auto UiColorSelectorFactory = []() -> UiColorSelector *
+    {
+        return new UiColorSelector();
+    };
+    ObjectPool<UiColorSelector> UiPool::colorSelectorPool(UiColorSelectorFactory, 1);
 } // BreadEditor

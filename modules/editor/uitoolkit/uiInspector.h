@@ -56,7 +56,8 @@ namespace BreadEditor {
         UiAssetLink *_lastSelectedAssetLink = nullptr;
         InspectorStruct *_inspectorStruct = nullptr;
         InspectorStruct *_nextInspectorStruct = nullptr;
-        std::map<std::string, UiListData> _uiListData{};
+        std::unordered_map<std::string, UiListData> _uiListData{};
+        std::unordered_map<InspectorStruct *, Property *> _conditionalProps{};
         std::vector<UiElement *> _fields{};
         std::string _componentName;
         bool _isStatic = false;
@@ -71,5 +72,7 @@ namespace BreadEditor {
         void createSingleElement(int order, InspectorStruct *inspectorStruct, Property &property, VectorAccessor *vectorAccessor, int vectorIndex, int &depth, float horizonDepth);
 
         void addCloseButton();
+
+        bool hasChangedConditions();
     };
 } // BreadEditor

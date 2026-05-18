@@ -1,7 +1,6 @@
 ﻿#pragma once
 #include <r3d.h>
 #include "core/component.h"
-#include "data/color.h"
 #include "data/lightSettings.h"
 
 namespace BreadEngine {

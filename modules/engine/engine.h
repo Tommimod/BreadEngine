@@ -108,7 +108,7 @@ namespace BreadEngine {
 
         void drawFPS(int posX, int posY);
 
-        void clearBackground(Color color);
+        void clearBackground(::Color color);
     } // namespace Rendering
 
     namespace Time {

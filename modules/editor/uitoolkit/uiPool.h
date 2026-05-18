@@ -7,6 +7,8 @@
 #include "uiAssetLink.h"
 #include "uiButton.h"
 #include "uiCheckBox.h"
+#include "uiColor.h"
+#include "uiColorSelector.h"
 #include "uiInspector.h"
 #include "uiDropdown.h"
 #include "uiEmpty.h"
@@ -50,5 +52,7 @@ namespace BreadEditor {
         static ObjectPool<MessageUiElement> messageUiElementPool;
         static ObjectPool<UiNodeLink> nodeLinkPool;
         static ObjectPool<UiAssetLink> assetLinkPool;
+        static ObjectPool<UiColor> colorPool;
+        static ObjectPool<UiColorSelector> colorSelectorPool;
     };
 } // BreadEditor

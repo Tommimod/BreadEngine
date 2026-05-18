@@ -31,9 +31,9 @@ namespace BreadEngine {
 
     void Light::setColor(const Color &color)
     {
-        if (color == _settings.color) return;
+        if (ColorUtils::IsCompare(_settings.color, color)) return;
         _settings.color = color;
-        R3D_SetLightColorV(_nativeLight, _settings.color.asVector3());
+        R3D_SetLightColorV(_nativeLight, ColorUtils::ToVector3(color));
     }
 
     Color Light::getColor() const
