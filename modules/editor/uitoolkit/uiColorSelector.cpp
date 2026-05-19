@@ -48,7 +48,7 @@ namespace BreadEditor {
             if (_uiColorElement != nullptr)
             {
                 _uiColorElement->setUpdateState(true);
-                _uiColorElement->setColor(Color(_internalColor->r, _internalColor->g, _internalColor->b, _internalValue4->w), true);
+                _uiColorElement->setColor(Color(_internalColor->r, _internalColor->g, _internalColor->b, static_cast<unsigned char>(static_cast<int>(_internalValue4->w) * 255)), true);
             }
             return;
         }
@@ -64,7 +64,7 @@ namespace BreadEditor {
     void UiColorSelector::update(float deltaTime)
     {
         if (_uiColorElement == nullptr) return;
-        _uiColorElement->setColor(Color(_internalColor->r, _internalColor->g, _internalColor->b, _internalValue4->w), false);
+        _uiColorElement->setColor(Color(_internalColor->r, _internalColor->g, _internalColor->b, static_cast<unsigned char>(static_cast<int>(_internalValue4->w) * 255)), false);
     }
 
     void UiColorSelector::dispose()

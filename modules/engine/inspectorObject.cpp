@@ -183,10 +183,10 @@ namespace BreadEngine {
             {
                 auto c = std::any_cast<Color>(val);
                 YAML::Node n;
-                n["r"] = c.r;
-                n["g"] = c.g;
-                n["b"] = c.b;
-                n["a"] = c.a;
+                n["r"] = static_cast<int>(c.r);
+                n["g"] = static_cast<int>(c.g);
+                n["b"] = static_cast<int>(c.b);
+                n["a"] = static_cast<int>(c.a);
                 return n;
             }
             case PropertyType::ENUM: return YAML::Node(std::any_cast<int>(val));
@@ -282,10 +282,10 @@ namespace BreadEngine {
                         {
                             auto c = std::any_cast<Color>(subval);
                             YAML::Node nn;
-                            nn["r"] = c.r;
-                            nn["g"] = c.g;
-                            nn["b"] = c.b;
-                            nn["a"] = c.a;
+                            nn["r"] = static_cast<int>(c.r);
+                            nn["g"] = static_cast<int>(c.g);
+                            nn["b"] = static_cast<int>(c.b);
+                            nn["a"] = static_cast<int>(c.a);
                             seq.push_back(nn);
                             break;
                         }
@@ -355,10 +355,10 @@ namespace BreadEngine {
             case PropertyType::COLOR:
             {
                 Color c;
-                c.r = n["r"].as<unsigned char>();
-                c.g = n["g"].as<unsigned char>();
-                c.b = n["b"].as<unsigned char>();
-                c.a = n["a"].as<unsigned char>();
+                c.r = static_cast<unsigned char>(n["r"].as<int>());
+                c.g = static_cast<unsigned char>(n["g"].as<int>());
+                c.b = static_cast<unsigned char>(n["b"].as<int>());
+                c.a = static_cast<unsigned char>(n["a"].as<int>());
                 return Property::VariantT{c};
             }
             case PropertyType::ENUM: return Property::VariantT{n.as<int>()};
