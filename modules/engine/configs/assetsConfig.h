@@ -111,8 +111,8 @@ namespace BreadEngine {
         static void deleteFolderInternal(const std::string &from);
 
         INSPECTOR_BEGIN(AssetsConfig)
-            INSPECT_FIELD(_projectPath);
-            INSPECT_FIELD(_rootFolder);
+            INSPECT_FIELD_OPT(_projectPath, Property::Options::READONLY)
+            INSPECT_FIELD_OPT(_rootFolder, Property::Options::READONLY)
         INSPECTOR_END()
     };
 } // BreadEngine

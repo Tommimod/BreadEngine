@@ -45,7 +45,7 @@ namespace BreadEngine {
         INSPECTOR_BEGIN(Camera)
             INSPECT_FIELD(_backgroundMode);
             INSPECT_FIELD_COND(_backgroundColor, [](const Camera* cam) {return cam->_backgroundMode == SOLID_COLOR;});
-            INSPECT_FIELD_OPT(_projection, Property::READONLY);
+            INSPECT_FIELD(_projection);
             INSPECT_FIELD(_fov);
         INSPECTOR_END()
     };

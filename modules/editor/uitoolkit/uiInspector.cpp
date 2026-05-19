@@ -8,15 +8,15 @@ using namespace BreadEngine;
 namespace BreadEditor {
     UiInspector::UiInspector() = default;
 
-    UiInspector::~UiInspector() = default;
-
-    UiInspector &UiInspector::setup(const std::string_view &id, UiElement *parentElement, const bool isStatic, bool nonInspectorBehavior)
+    UiInspector &UiInspector::setup(const std::string_view &id, UiElement *parentElement, const bool isStatic, const bool nonInspectorBehavior)
     {
         _isStatic = isStatic;
         _nonInspectorBehavior = nonInspectorBehavior;
         UiElement::setup(id, parentElement);
         return *this;
     }
+
+    UiInspector::~UiInspector() = default;
 
     void UiInspector::dispose()
     {
@@ -42,13 +42,104 @@ namespace BreadEditor {
         _hasNextInspectorStruct = true;
     }
 
+    void UiInspector::draw(const float deltaTime)
+    {
+        EditorStyle::setFontSize(EditorStyle::FontSize::Medium);
+        if (_isPermanent)
+        {
+            GuiPanel(_bounds, _componentName.c_str());
+        }
+        else
+        {
+            if (GuiWindowBox(_bounds, _componentName.c_str()))
+            {
+                onDelete.invoke(ComponentRegistry::getEntry(_inspectorStruct->getTypeName())->ti);
+            }
+        }
+
+        int i = 1;
+        for (const auto &child: _fields)
+        {
+            if (i == getChildCount() - 1)
+            {
+                break;
+            }
+
+            const auto height = child->getBounds().y + child->getBounds().height + 1.5f;
+            DrawLine(getBounds().x + 5, height, getBounds().x + getBounds().width - 5, height, ::LIGHTGRAY);
+            i++;
+        }
+    }
+
+    void UiInspector::update(const float deltaTime)
+    {
+        if (IsKeyPressed(KEY_BACKSPACE) && _lastSelectedNodeLink)
+        {
+            _lastSelectedNodeLink->setComponent(nullptr);
+        }
+
+        if (hasChangedConditions())
+        {
+            track(_inspectorStruct);
+            _uiListData.clear();
+            _conditionalProps.clear();
+        }
+
+        if (_nextInspectorStruct == nullptr || !_hasNextInspectorStruct)
+        {
+            return;
+        }
+
+        if (_inspectorStruct != _nextInspectorStruct)
+        {
+            _uiListData.clear();
+        }
+
+        if (getChildCount() > 0)
+        {
+            cleanUp();
+        }
+        else
+        {
+            _hasNextInspectorStruct = false;
+            constexpr std::string transformName = "Transform";
+            _inspectorStruct = _nextInspectorStruct;
+            _componentName = _nextInspectorStruct->getTypeName();
+            _isPermanent = _isStatic || _componentName == transformName;
+            int depth = 0;
+            initializeProperties(_nextInspectorStruct, _nextInspectorStruct->getInspectedProperties(), depth, 1);
+            if (_nonInspectorBehavior)
+            {
+                addCloseButton();
+            }
+            onUpdated.invoke(this);
+        }
+    }
+
+    bool UiInspector::tryDeleteSelf()
+    {
+        UiPool::componentPool.release(*this);
+        return true;
+    }
+
+    void UiInspector::cleanUp()
+    {
+        destroyAllChilds();
+        _fields.clear();
+    }
+
     void UiInspector::initializeProperties(InspectorStruct *inspectorStruct, std::vector<Property> &properties, int &depth, const float horizonDepth, const int continueFrom, const int vectorIndex)
     {
         auto skippedElementsCount = 0;
         for (int i = 0; i < static_cast<int>(properties.size()); i++)
         {
             auto &prop = properties[i];
-            if (prop.isHidden()) continue;
+            if (prop.isHidden())
+            {
+                skippedElementsCount++;
+                continue;
+            }
+
             if (prop.isConditional)
             {
                 _conditionalProps[inspectorStruct] = &prop;
@@ -108,6 +199,14 @@ namespace BreadEditor {
         {
             depth = order + 1;
             auto *structPtr = std::any_cast<InspectorStruct *>(property.get(inspectorStruct));
+            if (property.isReadOnly())
+            {
+                for (auto &prop: structPtr->getInspectedProperties())
+                {
+                    prop.options = static_cast<Property::Options>(prop.options | Property::Options::READONLY);
+                }
+            }
+
             initializeProperties(structPtr, structPtr->getInspectedProperties(), depth, horizonDepth + 1);
             depth += static_cast<int>(structPtr->getInspectedProperties().size()) - 2;
         }
@@ -482,6 +581,7 @@ namespace BreadEditor {
         }
         else if (propType == PropertyType::VECTOR_L)
         {
+            auto isReadOnly = property.isReadOnly();
             auto accessorAny = property.get(inspectorStruct);
             const auto *sharedPtr = std::any_cast<std::shared_ptr<VectorAccessor> >(&accessorAny);
 
@@ -521,36 +621,48 @@ namespace BreadEditor {
             auto offset = 0;
             auto originalOrder = order;
             depth++;
-            auto propNameWidth = isSimpleProp ? static_cast<float>(GuiGetTextWidth(propName.c_str())) + horOffset + 15 : uiPropNameLabelWidth;
-            auto addButton = &UiPool::buttonPool.get().setup(TextFormat("AddL %s%i", property.name.c_str(), depth), this, "+");
-            addButton->setAnchor(UI_LEFT_TOP);
-            addButton->setSize({15, 15});
-            addButton->setPosition({propNameWidth, verOffset});
-            addButton->setTextSize(static_cast<int>(EditorStyle::FontSize::Medium));
-            addButton->onClick.subscribe([this, &property, order](UiButton *)
+            if (!isReadOnly)
             {
-                const auto buttonKey = TextFormat("%s%i", property.name.c_str(), order);
-                _uiListData[buttonKey].accessor->add();
-                track(_inspectorStruct);
-            });
+                auto propNameWidth = isSimpleProp ? static_cast<float>(GuiGetTextWidth(propName.c_str())) + horOffset + 15 : uiPropNameLabelWidth;
+                auto addButton = &UiPool::buttonPool.get().setup(TextFormat("AddL %s%i", property.name.c_str(), depth), this, "+");
+                addButton->setAnchor(UI_LEFT_TOP);
+                addButton->setSize({15, 15});
+                addButton->setPosition({propNameWidth, verOffset});
+                addButton->setTextSize(static_cast<int>(EditorStyle::FontSize::Medium));
+                addButton->onClick.subscribe([this, &property, order](UiButton *)
+                {
+                    const auto buttonKey = TextFormat("%s%i", property.name.c_str(), order);
+                    _uiListData[buttonKey].accessor->add();
+                    track(_inspectorStruct);
+                });
 
-            auto removeButton = &UiPool::buttonPool.get().setup(TextFormat("RemoveL %s%i", property.name.c_str(), depth), this, "-");
-            removeButton->setAnchor(UI_LEFT_TOP);
-            removeButton->setSize({15, 15});
-            removeButton->setPosition({propNameWidth + 20, verOffset});
-            removeButton->setTextSize(static_cast<int>(EditorStyle::FontSize::Medium));
-            removeButton->onClick.subscribe([this, &property, order](UiButton *)
-            {
-                const auto buttonKey = TextFormat("%s%i", property.name.c_str(), order);
-                const auto acc = _uiListData[buttonKey].accessor;
-                acc->remove(acc->size() - 1);
-                track(_inspectorStruct);
-            });
+                auto removeButton = &UiPool::buttonPool.get().setup(TextFormat("RemoveL %s%i", property.name.c_str(), depth), this, "-");
+                removeButton->setAnchor(UI_LEFT_TOP);
+                removeButton->setSize({15, 15});
+                removeButton->setPosition({propNameWidth + 20, verOffset});
+                removeButton->setTextSize(static_cast<int>(EditorStyle::FontSize::Medium));
+                removeButton->onClick.subscribe([this, &property, order](UiButton *)
+                {
+                    const auto buttonKey = TextFormat("%s%i", property.name.c_str(), order);
+                    const auto acc = _uiListData[buttonKey].accessor;
+                    acc->remove(acc->size() - 1);
+                    track(_inspectorStruct);
+                });
+            }
+
             for (auto index = 0; index < static_cast<int>(accessor.size()); index++)
             {
                 if (accessor.elementType() == PropertyType::INSPECTOR_STRUCT)
                 {
                     auto structPtr = std::any_cast<InspectorStruct *>(accessor.get(index));
+                    if (isReadOnly)
+                    {
+                        for (auto &prop: structPtr->getInspectedProperties())
+                        {
+                            prop.options = static_cast<Property::Options>(prop.options | Property::Options::READONLY);
+                        }
+                    }
+
                     initializeProperties(structPtr, structPtr->getInspectedProperties(), depth, horizonDepth + 1, order, index);
                     offset += static_cast<int>(structPtr->getInspectedProperties().size());
                     order = originalOrder + offset;
@@ -623,91 +735,5 @@ namespace BreadEditor {
         }
 
         return isChanged;
-    }
-
-    void UiInspector::draw(const float deltaTime)
-    {
-        EditorStyle::setFontSize(EditorStyle::FontSize::Medium);
-        if (_isPermanent)
-        {
-            GuiPanel(_bounds, _componentName.c_str());
-        }
-        else
-        {
-            if (GuiWindowBox(_bounds, _componentName.c_str()))
-            {
-                onDelete.invoke(ComponentRegistry::getEntry(_inspectorStruct->getTypeName())->ti);
-            }
-        }
-
-        int i = 1;
-        for (const auto &child: _fields)
-        {
-            if (i == getChildCount() - 1)
-            {
-                break;
-            }
-
-            const auto height = child->getBounds().y + child->getBounds().height + 1.5f;
-            DrawLine(getBounds().x + 5, height, getBounds().x + getBounds().width - 5, height, ::LIGHTGRAY);
-            i++;
-        }
-    }
-
-    void UiInspector::update(const float deltaTime)
-    {
-        if (IsKeyPressed(KEY_BACKSPACE) && _lastSelectedNodeLink)
-        {
-            _lastSelectedNodeLink->setComponent(nullptr);
-        }
-
-        if (hasChangedConditions())
-        {
-            track(_inspectorStruct);
-            _uiListData.clear();
-            _conditionalProps.clear();
-        }
-
-        if (_nextInspectorStruct == nullptr || !_hasNextInspectorStruct)
-        {
-            return;
-        }
-
-        if (_inspectorStruct != _nextInspectorStruct)
-        {
-            _uiListData.clear();
-        }
-
-        if (getChildCount() > 0)
-        {
-            cleanUp();
-        }
-        else
-        {
-            _hasNextInspectorStruct = false;
-            constexpr std::string transformName = "Transform";
-            _inspectorStruct = _nextInspectorStruct;
-            _componentName = _nextInspectorStruct->getTypeName();
-            _isPermanent = _isStatic || _componentName == transformName;
-            int depth = 0;
-            initializeProperties(_nextInspectorStruct, _nextInspectorStruct->getInspectedProperties(), depth, 1);
-            if (_nonInspectorBehavior)
-            {
-                addCloseButton();
-            }
-            onUpdated.invoke(this);
-        }
-    }
-
-    bool UiInspector::tryDeleteSelf()
-    {
-        UiPool::componentPool.release(*this);
-        return true;
-    }
-
-    void UiInspector::cleanUp()
-    {
-        destroyAllChilds();
-        _fields.clear();
     }
 }

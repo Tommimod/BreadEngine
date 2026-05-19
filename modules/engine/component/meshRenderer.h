@@ -42,7 +42,7 @@ namespace BreadEngine {
         void deserializeMeshData(const std::string &data);
 
         INSPECTOR_BEGIN(MeshRenderer)
-            INSPECT_FIELD(_meshPrimitiveData)
+            INSPECT_FIELD_OPT(_meshPrimitiveData, Property::Options::HIDDEN)
             INSPECT_FIELD(_meshAsset)
             INSPECT_FIELD(_materials)
         INSPECTOR_END()
