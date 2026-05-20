@@ -11,7 +11,7 @@ namespace BreadEditor {
 
         UiColorSelector &setup(const std::string_view &id, UiElement *parentElement, Color color);
 
-        UiColorSelector &setup(const std::string_view &id, UiElement *parentElement, Color color, UiColor *uiColorElement);
+        UiColorSelector &setup(const std::string_view &id, UiElement *parentElement, Color color, UiElement *uiColorElement);
 
         void draw(float deltaTime) override;
 

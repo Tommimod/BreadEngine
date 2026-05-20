@@ -5,7 +5,7 @@
 #include "node.h"
 #include "core/component.h"
 #include "component/core/componentsProvider.h"
-#include "configs/asset.h"
+#include "configs/assets/asset.h"
 #include "tracy/Tracy.hpp"
 #include "raylib.h"
 
@@ -726,6 +726,59 @@ namespace BreadEngine {
     {
         static unsigned int ownerId = 0;
         return ownerId;
+    }
+
+    std::string InspectorStruct::getPrettyFieldName(const std::string &fieldName)
+    {
+        constexpr std::string empty = "";
+        if (fieldName.empty())
+            return empty;
+
+        std::string result;
+        result.reserve(fieldName.size() + 8);
+        auto isNewWord = true;
+        auto prevWasDigitOrLetter = false;
+
+        for (const auto &c : fieldName)
+        {
+            if (c == '_')
+            {
+                isNewWord = true;
+                prevWasDigitOrLetter = false;
+                continue;
+            }
+
+            if (std::isupper(static_cast<unsigned char>(c)) && !isNewWord)
+            {
+                if (!result.empty())
+                    result += ' ';
+                isNewWord = true;
+            }
+            else if (std::isdigit(static_cast<unsigned char>(c)) && prevWasDigitOrLetter && !std::isdigit(result.back()))
+            {
+                result += ' ';
+                isNewWord = true;
+            }
+            else if (std::islower(static_cast<unsigned char>(c)) && prevWasDigitOrLetter && std::isdigit(result.back()))
+            {
+                result += ' ';
+                isNewWord = true;
+            }
+
+            if (isNewWord)
+            {
+                result += static_cast<char>(std::toupper(static_cast<unsigned char>(c)));
+                isNewWord = false;
+            }
+            else
+            {
+                result += c;
+            }
+
+            prevWasDigitOrLetter = std::isalnum(static_cast<unsigned char>(c));
+        }
+
+        return result;
     }
 
     void InspectorStruct::setCurrentDeserializingOwnerId(const unsigned int ownerId)

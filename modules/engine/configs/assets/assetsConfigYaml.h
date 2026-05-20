@@ -3,8 +3,6 @@
 
 #include "asset.h"
 #include "assetsConfig.h"
-#include "meshAsset.h"
-#include "textureAsset.h"
 #include "nameof.h"
 
 namespace YAML {

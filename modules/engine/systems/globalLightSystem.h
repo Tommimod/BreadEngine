@@ -1,0 +1,21 @@
+﻿#pragma once
+#include "configs/light/globalLightSettings.h"
+#include "core/disposeSystem.h"
+#include "core/startFrameSystem.h"
+
+namespace BreadEngine {
+    class GlobalLightSystem : public StartFrameSystem, public DisposeSystem
+    {
+    public:
+        void startFrame(const std::vector<Node *> &nodes, float deltaTime) override;
+
+        void onDispose(const std::vector<Node *> &nodes, float deltaTime) override;
+
+    private:
+        static void updateProceduralSkybox(GlobalLightSettings &globalLight);
+
+        static void updateCubemapSkybox(GlobalLightSettings &globalLight);
+
+        static void updateCustomSkybox(GlobalLightSettings &globalLight);
+    };
+} // BreadEngine

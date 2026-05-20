@@ -1,6 +1,6 @@
 ﻿#pragma once
 #include "r3d_mesh.h"
-#include "configs/textureAsset.h"
+#include "../configs/assets/textureAsset.h"
 #include "core/component.h"
 #include "data/material.h"
 

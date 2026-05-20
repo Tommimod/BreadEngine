@@ -6,6 +6,7 @@ namespace BreadEditor {
     {
         Editor::getInstance().mainWindow.getNodeTree().save();
         Engine::getInstance().getAssetsConfig().serializeConfig();
+        Engine::getInstance().getGlobalLightSettings().serializeConfig();
     }
 
     void SaveProjectCommand::undo()

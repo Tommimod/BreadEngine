@@ -3,7 +3,7 @@
 #include <string>
 #include <vector>
 #include <yaml-cpp/node/node.h>
-#include "baseYamlConfig.h"
+#include "../baseYamlConfig.h"
 #include "raylib.h"
 #include <unordered_map>
 #include <string_view>

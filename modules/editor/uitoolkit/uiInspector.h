@@ -38,8 +38,9 @@ namespace BreadEditor {
         {
             bool isExpanded;
             std::shared_ptr<VectorAccessor> accessor;
+            InspectorStruct *inspectorStruct;
 
-            UiListData() : isExpanded(false), accessor(nullptr)
+            UiListData() : isExpanded(false), accessor(nullptr), inspectorStruct(nullptr)
             {
             }
 
@@ -47,6 +48,14 @@ namespace BreadEditor {
             {
                 this->isExpanded = isExpanded;
                 this->accessor = *shared;
+                this->inspectorStruct = nullptr;
+            }
+
+            UiListData(const bool isExpanded, InspectorStruct *shared)
+            {
+                this->isExpanded = isExpanded;
+                this->accessor = nullptr;
+                this->inspectorStruct = shared;
             }
 
             ~UiListData() = default;

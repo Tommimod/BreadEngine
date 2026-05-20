@@ -1,7 +1,7 @@
 ﻿#pragma once
 #include "editorElements/fileUiElement.h"
 #include "editorElements/folderUiElement.h"
-#include "../../engine/configs/assetsConfig.h"
+#include "../../engine/configs/assets/assetsConfig.h"
 #include "models/editorModel.h"
 #include "uitoolkit/uiElement.h"
 #include "uitoolkit/uiWindow.h"

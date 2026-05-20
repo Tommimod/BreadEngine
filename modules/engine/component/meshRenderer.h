@@ -3,7 +3,7 @@
 
 #include "data/primitives/meshPrimitiveData.h"
 #include "r3d_model.h"
-#include "configs/meshAsset.h"
+#include "configs/assets/meshAsset.h"
 #include "core/component.h"
 #include "data/material.h"
 

@@ -1,7 +1,7 @@
 ﻿#pragma once
 #include "inspectorObject.h"
 #include "r3d_material.h"
-#include "configs/textureAsset.h"
+#include "../configs/assets/textureAsset.h"
 
 namespace BreadEngine {
     struct Material : InspectorStruct

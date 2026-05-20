@@ -3,8 +3,9 @@
 #include "moduleLoader.h"
 #include <memory>
 #include "node.h"
-#include "configs/assetsConfig.h"
+#include "configs/assets/assetsConfig.h"
 #include "configs/projectSettings.h"
+#include "configs/light/globalLightSettings.h"
 #include "systems/core/systemsRegistry.h"
 
 namespace BreadEngine {
@@ -53,6 +54,8 @@ namespace BreadEngine {
 
         [[nodiscard]] ProjectSettings &getProjectSettings() { return _projectSettings; }
 
+        [[nodiscard]] GlobalLightSettings &getGlobalLightSettings() { return _globalLightSettings; }
+
         [[nodiscard]] static std::string getProjectPath();
 
         [[nodiscard]] static bool isShuttingDown() { return _isShuttingDown; }
@@ -63,8 +66,9 @@ namespace BreadEngine {
         static bool _isShuttingDown;
 
         AssetsConfig _fileSystem;
-        ProjectSettings _projectSettings;
+        GlobalLightSettings _globalLightSettings;
         SystemsRegistry _engineSystems;
+        ProjectSettings _projectSettings;
         ModuleLoader *_gameModuleLoader = nullptr;
 
         typedef void (*GameInitFunc)();

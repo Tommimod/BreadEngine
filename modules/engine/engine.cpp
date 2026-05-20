@@ -11,6 +11,7 @@
 #include "systems/lightSystem.h"
 #include "systems/meshRendererSystem.h"
 #include "systems/spriteRendererSystem.h"
+#include "systems/globalLightSystem.h"
 #include "validators/mandatoryProjectFilesValidator.h"
 
 namespace BreadEngine {
@@ -24,7 +25,8 @@ namespace BreadEngine {
                 .addSystem<CameraSystem>()
                 .addSystem<CameraDirectorSystem>()
                 .addSystem<SpriteRendererSystem>()
-                .addSystem<MeshRendererSystem>();
+                .addSystem<MeshRendererSystem>()
+                .addSystem<GlobalLightSystem>();
 
         _engineSystems.initialize();
     }

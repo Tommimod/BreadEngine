@@ -99,8 +99,8 @@ namespace BreadEngine {
         friend struct NodeRawData;
 
         std::vector<Node *> _childs{};
-        Node *_parent = nullptr;
         std::string _name;
+        Node *_parent = nullptr;
         unsigned int _id = 0;
         bool _isActive = true;
 
@@ -110,8 +110,8 @@ namespace BreadEngine {
     struct NodeRawData
     {
         std::vector<unsigned int> ChildsIds{};
-        unsigned int ParentId = INT_MAX;
         std::string Name;
+        unsigned int ParentId = INT_MAX;
         unsigned int Id = 0;
         bool IsActive = true;
         bool IsCopyPipeline = false;

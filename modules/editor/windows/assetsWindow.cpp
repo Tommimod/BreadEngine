@@ -219,9 +219,17 @@ namespace BreadEditor {
         const auto file = _assetConfig.getFileByGuid(fileUiElement->getFileGuid());
         const auto fileName = file->getShortName().c_str();
         const auto inspectorWindow = &Editor::getInstance().mainWindow.getPropertyInspector();
-        if (strcmp(fileName, BreadEngine::ReservedFileNames::ASSETS_REGISTRY_NAME) == 0)
+        if (strcmp(fileName, BreadEngine::ReservedFileNames::ASSETS_REGISTRY_NAME) == 0) //TODO Make this more generic
         {
             inspectorWindow->lookupStruct(&Engine::getInstance().getAssetsConfig());
+        }
+        else if (strcmp(fileName, BreadEngine::ReservedFileNames::PROJECT_SETTINGS_NAME) == 0)
+        {
+            inspectorWindow->lookupStruct(&Engine::getInstance().getProjectSettings());
+        }
+        else if (strcmp(fileName, BreadEngine::ReservedFileNames::GLOBAL_LIGHT_SETTINGS_NAME) == 0)
+        {
+            inspectorWindow->lookupStruct(&Engine::getInstance().getGlobalLightSettings());
         }
         else if (file->is3DModel() || file->isImage() || file->isAudio() || file->isVideo() || file->isText() || file->isConfig() || file->isText()) inspectorWindow->lookupStruct(_assetConfig.getAsset(file).get());
     }

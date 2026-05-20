@@ -17,7 +17,7 @@ namespace BreadEngine {
 
     Camera::~Camera() = default;
 
-    void Camera::setPerspective(const CameraType type)
+    void Camera::setCameraType(const CameraType type)
     {
         _projection = type;
     }

@@ -167,7 +167,7 @@ namespace BreadEditor {
         computeBounds();
 
         auto propType = isSimpleProp ? property.type : vectorAccessor->elementType();
-        auto propName = propType == PropertyType::INSPECTOR_STRUCT || property.type == PropertyType::VECTOR_L ? property.name + ":" : property.name;
+        auto propName = propType == PropertyType::INSPECTOR_STRUCT || property.type == PropertyType::VECTOR_L ? property.prettyName + ":" : property.prettyName;
         if (propType == PropertyType::VECTOR_L)
         {
             auto accessorAny = property.get(inspectorStruct);
@@ -180,16 +180,17 @@ namespace BreadEditor {
         }
         if (isSimpleProp)
         {
-            auto uiPropNameLabel = &UiPool::labelPool.get().setup(TextFormat("PropName %s%i", property.name.c_str(), depth), this, propName);
+            auto uiPropNameLabel = &UiPool::labelPool.get().setup(TextFormat("PropName %s%i", property.prettyName.c_str(), depth), this, propName);
             uiPropNameLabel->setAnchor(UI_LEFT_TOP);
             auto multiplier = 1.0f;
-            if (propType == PropertyType::VECTOR_L)
+            auto isSpecialType = propType == PropertyType::VECTOR_L || propType == PropertyType::INSPECTOR_STRUCT;
+            if (isSpecialType)
             {
                 multiplier = 3;
             }
 
             uiPropNameLabel->setSize({uiPropNameLabelWidth * multiplier, heightSize});
-            uiPropNameLabel->setPosition({horOffset, verOffset});
+            uiPropNameLabel->setPosition({isSpecialType ? horOffset + 10 : horizonDepth, verOffset});
             uiPropNameLabel->setTextAlignment(TEXT_ALIGN_LEFT);
         }
 
@@ -197,18 +198,47 @@ namespace BreadEditor {
         auto isSingleField = true;
         if (propType == PropertyType::INSPECTOR_STRUCT)
         {
-            depth = order + 1;
+            depth++;
             auto *structPtr = std::any_cast<InspectorStruct *>(property.get(inspectorStruct));
+            auto key = TextFormat("%s%i", property.name.c_str(), order);
+            if (!_uiListData.contains(key))
+            {
+                _uiListData[key] = UiListData(false, structPtr);
+            }
+
+            const auto isExpanded = _uiListData[key].isExpanded;
+            auto expandButton = &UiPool::labelButtonPool.get().setup(TextFormat("Expand %s%i", property.name.c_str(), depth), this,
+                                                                     isExpanded ? GuiIconText(ICON_ARROW_DOWN, nullptr) : GuiIconText(ICON_ARROW_RIGHT, nullptr));
+            expandButton->setAnchor(UI_LEFT_TOP);
+            expandButton->setSize({15, 15});
+            expandButton->setPosition({0, verOffset});
+            expandButton->onClick.subscribe([this, &property, order](UiLabelButton *button)
+            {
+                const auto buttonKey = TextFormat("%s%i", property.name.c_str(), order);
+                _uiListData[buttonKey].isExpanded = !_uiListData[buttonKey].isExpanded;
+                const auto expanded = _uiListData[buttonKey].isExpanded;
+                button->setText(expanded ? GuiIconText(ICON_ARROW_DOWN, nullptr) : GuiIconText(ICON_ARROW_RIGHT, nullptr));
+                track(_inspectorStruct);
+            });
+
+            if (!isExpanded)
+            {
+                depth--;
+                return;
+            }
+
+            auto &nextProps = structPtr->getInspectedProperties();
             if (property.isReadOnly())
             {
-                for (auto &prop: structPtr->getInspectedProperties())
+                for (auto &prop: nextProps)
                 {
                     prop.options = static_cast<Property::Options>(prop.options | Property::Options::READONLY);
                 }
             }
 
-            initializeProperties(structPtr, structPtr->getInspectedProperties(), depth, horizonDepth + 1);
-            depth += static_cast<int>(structPtr->getInspectedProperties().size()) - 2;
+            initializeProperties(structPtr, nextProps, depth, horizonDepth + 1, order);
+            depth += static_cast<int>(nextProps.size()) - 1;
+            //order += static_cast<int>(nextProps.size()) - 2;
         }
         else if (propType == PropertyType::INT)
         {
@@ -232,9 +262,10 @@ namespace BreadEditor {
                 createdElement = &UiPool::numberBoxPool.get().setup(TextFormat("IntBox %s%i", property.name.c_str(), depth), this, emptyLabel, getFunc);
             }
             const auto element = dynamic_cast<UiNumberBox *>(createdElement);
-            element->onValueChanged.subscribe([inspectorStruct, property, getFunc](const int &value)
+            element->onValueChanged.subscribe([inspectorStruct, property, getFunc, this](const int &value)
             {
                 CommandsHandler::execute(std::make_unique<ChangeInspectorValueCommand>(ChangeInspectorValueCommand::Data(property, inspectorStruct, value, getFunc())));
+                _inspectorStruct->isChangedFromEditor = true;
             });
         }
         else if (propType == PropertyType::FLOAT)
@@ -259,9 +290,10 @@ namespace BreadEditor {
                 createdElement = &UiPool::numberBoxPool.get().setup(TextFormat("FloatBox %s%i", property.name.c_str(), depth), this, emptyLabel, getFunc);
             }
             const auto element = dynamic_cast<UiNumberBox *>(createdElement);
-            element->onValueChanged.subscribe([inspectorStruct, property, getFunc](const float &value)
+            element->onValueChanged.subscribe([inspectorStruct, property, getFunc, this](const float &value)
             {
                 CommandsHandler::execute(std::make_unique<ChangeInspectorValueCommand>(ChangeInspectorValueCommand::Data(property, inspectorStruct, value, getFunc())));
+                _inspectorStruct->isChangedFromEditor = true;
             });
         }
         else if (propType == PropertyType::LONG)
@@ -286,9 +318,10 @@ namespace BreadEditor {
                 createdElement = &UiPool::numberBoxPool.get().setup(TextFormat("LongBox %s%i", property.name.c_str(), depth), this, emptyLabel, getFunc);
             }
             const auto element = dynamic_cast<UiNumberBox *>(createdElement);
-            element->onValueChanged.subscribe([inspectorStruct, property, getFunc](const long &value)
+            element->onValueChanged.subscribe([inspectorStruct, property, getFunc, this](const long &value)
             {
                 CommandsHandler::execute(std::make_unique<ChangeInspectorValueCommand>(ChangeInspectorValueCommand::Data(property, inspectorStruct, value, getFunc())));
+                _inspectorStruct->isChangedFromEditor = true;
             });
         }
         else if (propType == PropertyType::BOOL)
@@ -313,9 +346,10 @@ namespace BreadEditor {
                 createdElement = &UiPool::checkBoxPool.get().setup(TextFormat("CheckBox %s%i", property.name.c_str(), depth), this, emptyLabel, getFunc);
             }
             const auto element = dynamic_cast<UiCheckBox *>(createdElement);
-            element->onValueChanged.subscribe([inspectorStruct, property, getFunc](const bool &value)
+            element->onValueChanged.subscribe([inspectorStruct, property, getFunc, this](const bool &value)
             {
                 CommandsHandler::execute(std::make_unique<ChangeInspectorValueCommand>(ChangeInspectorValueCommand::Data(property, inspectorStruct, value, getFunc())));
+                _inspectorStruct->isChangedFromEditor = true;
             });
             element->setSizeMax({heightSize, heightSize});
         }
@@ -341,9 +375,10 @@ namespace BreadEditor {
                 createdElement = &UiPool::textBoxPool.get().setup(TextFormat("TextBox %s%i", property.name.c_str(), depth), this, getFunc);
             }
             const auto element = dynamic_cast<UiTextBox *>(createdElement);
-            element->onValueChanged.subscribe([inspectorStruct, property, getFunc](const std::string &value)
+            element->onValueChanged.subscribe([inspectorStruct, property, getFunc, this](const std::string &value)
             {
                 CommandsHandler::execute(std::make_unique<ChangeInspectorValueCommand>(ChangeInspectorValueCommand::Data(property, inspectorStruct, value, getFunc())));
+                _inspectorStruct->isChangedFromEditor = true;
             });
             element->setTextSize(static_cast<int>(EditorStyle::FontSize::Medium));
         }
@@ -370,9 +405,10 @@ namespace BreadEditor {
                 createdElement = UiPool::vector2DPool.get().setup(TextFormat("Vector2D %s%i", property.name.c_str(), depth), this, getFunc);
             }
             const auto element = dynamic_cast<UiVector2D *>(createdElement);
-            element->onChanged.subscribe([inspectorStruct, property, getFunc](const Vector2 &value)
+            element->onChanged.subscribe([inspectorStruct, property, getFunc, this](const Vector2 &value)
             {
                 CommandsHandler::execute(std::make_unique<ChangeInspectorValueCommand>(ChangeInspectorValueCommand::Data(property, inspectorStruct, value, getFunc())));
+                _inspectorStruct->isChangedFromEditor = true;
             });
         }
         else if (propType == PropertyType::VECTOR3)
@@ -398,9 +434,10 @@ namespace BreadEditor {
                 createdElement = UiPool::vector3DPool.get().setup(TextFormat("Vector3D %s%i", property.name.c_str(), depth), this, getFunc);
             }
             const auto element = dynamic_cast<UiVector3D *>(createdElement);
-            element->onChanged.subscribe([inspectorStruct, property, getFunc](const Vector3 &value)
+            element->onChanged.subscribe([inspectorStruct, property, getFunc, this](const Vector3 &value)
             {
                 CommandsHandler::execute(std::make_unique<ChangeInspectorValueCommand>(ChangeInspectorValueCommand::Data(property, inspectorStruct, value, getFunc())));
+                _inspectorStruct->isChangedFromEditor = true;
             });
         }
         else if (propType == PropertyType::VECTOR4)
@@ -426,9 +463,10 @@ namespace BreadEditor {
                 createdElement = UiPool::vector4DPool.get().setup(TextFormat("Vector4D %s%i", property.name.c_str(), depth), this, getFunc);
             }
             const auto element = dynamic_cast<UiVector4D *>(createdElement);
-            element->onChanged.subscribe([inspectorStruct, property, getFunc](const Vector4 &value)
+            element->onChanged.subscribe([inspectorStruct, property, getFunc, this](const Vector4 &value)
             {
                 CommandsHandler::execute(std::make_unique<ChangeInspectorValueCommand>(ChangeInspectorValueCommand::Data(property, inspectorStruct, value, getFunc())));
+                _inspectorStruct->isChangedFromEditor = true;
             });
         }
         else if (propType == PropertyType::COLOR)
@@ -453,14 +491,15 @@ namespace BreadEditor {
                 createdElement = &UiPool::colorPool.get().setup(TextFormat("Color %s%i", property.name.c_str(), depth), this, getFunc);
             }
             const auto element = dynamic_cast<UiColor *>(createdElement);
-            element->onValueChanged.subscribe([inspectorStruct, property, getFunc](const Color &value)
+            element->onValueChanged.subscribe([inspectorStruct, property, getFunc, this](const Color &value)
             {
                 CommandsHandler::execute(std::make_unique<ChangeInspectorValueCommand>(ChangeInspectorValueCommand::Data(property, inspectorStruct, value, getFunc())));
+                _inspectorStruct->isChangedFromEditor = true;
             });
-            element->onSelectorRequested.subscribe([&element](const Color &value)
+            element->onSelectorRequested.subscribe([createdElement](const Color &value)
             {
                 auto &root = Editor::getInstance().mainWindow;
-                auto &colorSelector = UiPool::colorSelectorPool.get().setup("ColorSelector", &root, value, element);
+                auto &colorSelector = UiPool::colorSelectorPool.get().setup("ColorSelector", &root, value, createdElement);
                 colorSelector.setSize({400, 400});
                 colorSelector.enableOverlayLayer();
                 colorSelector.setPivot({.5f, .5f});
@@ -496,9 +535,10 @@ namespace BreadEditor {
                 if (component == nullptr) return;
                 Editor::getInstance().getEditorModel().invokeNodeHighlightRequested(component->getOwner());
             });
-            element->onValueChanged.subscribe([inspectorStruct, property, getFunc](Component *value)
+            element->onValueChanged.subscribe([inspectorStruct, property, getFunc, this](Component *value)
             {
                 CommandsHandler::execute(std::make_unique<ChangeInspectorValueCommand>(ChangeInspectorValueCommand::Data(property, inspectorStruct, value, getFunc())));
+                _inspectorStruct->isChangedFromEditor = true;
             });
         }
         else if (propType == PropertyType::ASSET_LINK)
@@ -530,9 +570,10 @@ namespace BreadEditor {
                 if (asset == nullptr) return;
                 Editor::getInstance().getEditorModel().invokeFileHighlightRequested(asset);
             });
-            element->onValueChanged.subscribe([inspectorStruct, property, getFunc](Asset *value)
+            element->onValueChanged.subscribe([inspectorStruct, property, getFunc, this](Asset *value)
             {
                 CommandsHandler::execute(std::make_unique<ChangeInspectorValueCommand>(ChangeInspectorValueCommand::Data(property, inspectorStruct, value, getFunc())));
+                _inspectorStruct->isChangedFromEditor = true;
             });
         }
         else if (propType == PropertyType::ENUM)
@@ -556,9 +597,10 @@ namespace BreadEditor {
                 auto *dropdown = dynamic_cast<UiDropdown *>(createdElement);
                 dropdown->setSelected(currentIndex);
                 dropdown->setTextAlignment(TEXT_ALIGN_LEFT);
-                dropdown->onOptionSelected.subscribe([inspectorStruct, property, currentIndex](const int selectedIndex)
+                dropdown->onOptionSelected.subscribe([inspectorStruct, property, currentIndex, this](const int selectedIndex)
                 {
                     CommandsHandler::execute(std::make_unique<ChangeInspectorValueCommand>(ChangeInspectorValueCommand::Data(property, inspectorStruct, selectedIndex - 1, currentIndex)));
+                    _inspectorStruct->isChangedFromEditor = true;
                 });
             }
             else
@@ -573,9 +615,10 @@ namespace BreadEditor {
                 auto *dropdown = dynamic_cast<UiDropdown *>(createdElement);
                 dropdown->setSelected(currentIndex);
                 dropdown->setTextAlignment(TEXT_ALIGN_LEFT);
-                dropdown->onOptionSelected.subscribe([vectorAccessor, vectorIndex, currentIndex](const int selectedIndex)
+                dropdown->onOptionSelected.subscribe([vectorAccessor, vectorIndex, currentIndex, this](const int selectedIndex)
                 {
                     CommandsHandler::execute(std::make_unique<ChangeInspectorValueCommand>(ChangeInspectorValueCommand::VectorData(vectorAccessor, vectorIndex, selectedIndex - 1, currentIndex)));
+                    _inspectorStruct->isChangedFromEditor = true;
                 });
             }
         }

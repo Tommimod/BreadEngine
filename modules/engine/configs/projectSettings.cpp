@@ -3,6 +3,7 @@
 #include <fstream>
 
 #include "engine.h"
+#include "models/reservedFileNames.h"
 
 namespace BreadEngine {
     DEFINE_STATIC_PROPS(ProjectSettings)
@@ -11,7 +12,7 @@ namespace BreadEngine {
     {
         std::ofstream process(_filePath);
         process.clear();
-        process << YAML::Node(*this);
+        process << serialize();
         process.close();
     }
 
@@ -33,7 +34,6 @@ namespace BreadEngine {
             return;
         }
 
-        const auto data = rawConfig.as<ProjectSettings>();
-        startNodeGuid = data.startNodeGuid;
+        deserialize(rawConfig);
     }
 } // BreadEngine

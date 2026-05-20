@@ -2,7 +2,7 @@
 #include "action.h"
 #include "uiElement.h"
 #include "uiLabelButton.h"
-#include "configs/asset.h"
+#include "../../engine/configs/assets/asset.h"
 
 namespace BreadEditor {
     class UiAssetLink : public UiElement

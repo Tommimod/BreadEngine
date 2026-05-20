@@ -922,16 +922,23 @@ namespace BreadEditor {
 
         if (_parent == nullptr) // only for root
         {
+            std::vector<UiElement*> forRemove = {};
             for (const auto child: _overlayChilds)
             {
                 if (child == nullptr || child->_isDeleted) continue;
                 if (!child->_onOverlayLayer)
                 {
-                    _overlayChilds.erase(std::ranges::find(_overlayChilds, child));
+                    forRemove.emplace_back(child);
                     continue;
                 }
                 child->drawInternal(deltaTime, nextState);
             }
+
+            for (const auto child: forRemove)
+            {
+                _overlayChilds.erase(std::ranges::find(_overlayChilds, child));
+            }
+            forRemove.clear();
         }
 
         for (const auto child: _childs)

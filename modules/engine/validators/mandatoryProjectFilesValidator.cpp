@@ -40,6 +40,14 @@ namespace BreadEngine {
             }
             Engine::getInstance().getAssetsConfig().deserializeConfig(filePath);
 
+            filePath = TextFormat("%s%s", path.c_str(), ReservedFileNames::GLOBAL_LIGHT_SETTINGS_NAME);
+            if (!FileExists(filePath))
+            {
+                std::ofstream outfile(filePath);
+                outfile.close();
+            }
+            Engine::getInstance().getGlobalLightSettings().deserializeConfig(filePath);
+
             return true;
         }
         catch (std::exception &ex)

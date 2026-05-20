@@ -1,6 +1,6 @@
 ﻿#pragma once
 #include <string>
-#include "configs/assetsConfig.h"
+#include "../../../engine/configs/assets/assetsConfig.h"
 #include "commands/command.h"
 
 namespace BreadEditor {

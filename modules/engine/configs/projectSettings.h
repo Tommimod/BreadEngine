@@ -19,28 +19,7 @@ namespace BreadEngine {
 
     private:
         INSPECTOR_BEGIN(ProjectSettings)
-            INSPECT_FIELD(startNodeGuid)
+            INSPECT_FIELD_OPT(startNodeGuid, Property::Options::READONLY)
         INSPECTOR_END()
     };
 } // BreadEngine
-
-namespace YAML {
-    template<>
-    struct convert<BreadEngine::ProjectSettings>
-    {
-        static Node encode(const BreadEngine::ProjectSettings &rhs)
-        {
-            const auto startNodeGuidName = NAMEOF(rhs.startNodeGuid).c_str();
-            Node node;
-            node[startNodeGuidName] = rhs.startNodeGuid;
-            return node;
-        }
-
-        static bool decode(const Node &node, BreadEngine::ProjectSettings &rhs)
-        {
-            const auto startNodeGuidName = NAMEOF(rhs.startNodeGuid).c_str();
-            rhs.startNodeGuid = node[startNodeGuidName].as<std::string>();
-            return true;
-        }
-    };
-}

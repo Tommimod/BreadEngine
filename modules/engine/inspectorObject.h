@@ -176,6 +176,7 @@ namespace BreadEngine {
         using VariantT = std::any;
         std::string guid;
         std::string name;
+        std::string prettyName;
         PropertyType type;
         PropertyType elementType = PropertyType{};
         std::type_index expectedComponentType{typeid(void)};
@@ -406,6 +407,8 @@ namespace BreadEngine {
 
         static std::string getNewGUID();
 
+        static std::string getPrettyFieldName(const std::string &fieldName);
+
         virtual YAML::Node serialize();
 
         void deserialize(const YAML::Node &node);
@@ -481,7 +484,7 @@ namespace BreadEngine {
     }
 
     template<typename LocalClass, typename T>
-    void addInspectedProperty(std::vector<Property> &props, const char *fieldName, T LocalClass::*memberPtr, Property::Options options, std::function<bool(const InspectorStruct *)> conditionFunc)
+    void addInspectedProperty(std::vector<Property> &props, const char *fieldName, T LocalClass::*memberPtr, const Property::Options options, const std::function<bool(const InspectorStruct *)> conditionFunc)
     {
         using RawFieldType = std::remove_cvref_t<decltype( static_cast<LocalClass *>(nullptr)->*memberPtr )>;
         using FieldType = std::conditional_t<std::is_reference_v<RawFieldType>, std::remove_reference_t<RawFieldType>, RawFieldType>;
@@ -493,6 +496,7 @@ namespace BreadEngine {
                 props.emplace_back(Property{
                     .guid = InspectorStruct::getNewGUID(),
                     .name = std::string(fieldName),
+                    .prettyName = InspectorStruct::getPrettyFieldName(fieldName),
                     .type = ptype,
                     .get = [memberPtr](const InspectorStruct *comp) -> Property::VariantT
                     {
@@ -531,6 +535,7 @@ namespace BreadEngine {
                 props.emplace_back(Property{
                     .guid = InspectorStruct::getNewGUID(),
                     .name = std::string(fieldName),
+                    .prettyName = InspectorStruct::getPrettyFieldName(fieldName),
                     .type = ptype,
                     .get = [memberPtr](const InspectorStruct *comp) -> Property::VariantT
                     {
@@ -570,6 +575,7 @@ namespace BreadEngine {
             props.emplace_back(Property{
                 .guid = InspectorStruct::getNewGUID(),
                 .name = std::string(fieldName),
+                .prettyName = InspectorStruct::getPrettyFieldName(fieldName),
                 .type = ptype,
                 .elementType = deducePropertyType<typename FieldType::value_type>(),
                 .get = [memberPtr](const InspectorStruct *comp) -> Property::VariantT
@@ -601,6 +607,7 @@ namespace BreadEngine {
             props.emplace_back(Property{
                 .guid = InspectorStruct::getNewGUID(),
                 .name = std::string(fieldName),
+                .prettyName = InspectorStruct::getPrettyFieldName(fieldName),
                 .type = ptype,
                 .get = [memberPtr](const InspectorStruct *comp) -> Property::VariantT
                 {
@@ -639,6 +646,7 @@ namespace BreadEngine {
             props.emplace_back(Property{
                 .guid = InspectorStruct::getNewGUID(),
                 .name = std::string(fieldName),
+                .prettyName = InspectorStruct::getPrettyFieldName(fieldName),
                 .type = ptype,
                 .expectedComponentType = std::type_index(typeid(ComponentType)),
                 .get = [memberPtr](const InspectorStruct *comp) -> Property::VariantT
@@ -686,6 +694,7 @@ namespace BreadEngine {
             props.emplace_back(Property{
                 .guid = InspectorStruct::getNewGUID(),
                 .name = std::string(fieldName),
+                .prettyName = InspectorStruct::getPrettyFieldName(fieldName),
                 .type = ptype,
                 .expectedAssetType = std::type_index(typeid(AssetType)),
                 .get = [memberPtr](const InspectorStruct *comp) -> Property::VariantT
@@ -732,6 +741,7 @@ namespace BreadEngine {
             props.emplace_back(Property{
                 .guid = InspectorStruct::getNewGUID(),
                 .name = std::string(fieldName),
+                .prettyName = InspectorStruct::getPrettyFieldName(fieldName),
                 .type = ptype,
                 .get = [memberPtr](const InspectorStruct *comp) -> Property::VariantT
                 {
@@ -771,7 +781,7 @@ namespace BreadEngine {
             addInspectedProperty<LocalClass>(props, #FieldName, &LocalClass::FieldName, FieldOptions);
 #define INSPECT_FIELD_COND(FieldName, ConditionBoolFunc) \
             addInspectedProperty<LocalClass>(props, #FieldName, &LocalClass::FieldName, [](const InspectorStruct *obj) -> bool { \
-                auto *localObj = static_cast<const LocalClass *>(obj); \
+                auto *localObj = dynamic_cast<const LocalClass *>(obj); \
                 return ConditionBoolFunc(localObj); \
             });
 #define INSPECTOR_END() \

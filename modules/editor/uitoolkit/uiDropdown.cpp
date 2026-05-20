@@ -61,7 +61,7 @@ namespace BreadEditor {
         }
         else if (!_isShouldBeDeleted && _state != STATE_DISABLED)
         {
-            if (Engine::isCollisionPointRec(GetMousePosition(), _bounds))
+            if (IsMouseButtonPressed(MOUSE_BUTTON_LEFT) && Engine::isCollisionPointRec(GetMousePosition(), _bounds))
             {
                 _inOpenState = true;
                 enableOverlayLayer();

@@ -4,13 +4,13 @@
 namespace BreadEngine {
     struct Camera final : Component
     {
-        enum CameraType
+        enum CameraType : uint8_t
         {
             CAMERA_PERSPECTIVE = 0,
             CAMERA_ORTHOGRAPHIC
         };
 
-        enum BackgroundMode
+        enum BackgroundMode : uint8_t
         {
             SOLID_COLOR = 0,
             SKYBOX
@@ -22,11 +22,15 @@ namespace BreadEngine {
 
         ~Camera() override;
 
-        void setPerspective(CameraType type);
+        void setCameraType(CameraType type);
 
         void setFov(float fov);
 
         Camera3D &getNativeCamera() { return _nativeCamera; }
+
+        [[nodiscard]] BackgroundMode getBackgroundMode() const { return _backgroundMode; }
+
+        [[nodiscard]] Color getBackgroundColor() const { return _backgroundColor; }
 
     private:
         friend class CameraDirectorSystem;
