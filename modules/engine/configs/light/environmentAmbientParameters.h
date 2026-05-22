@@ -6,7 +6,7 @@ namespace BreadEngine {
     struct EnvironmentAmbientParameters : InspectorStruct
     {
         Color color = WHITE; ///< Ambient light color when there is no ambient map
-        float energy; ///< Energy multiplier for ambient light (map or color)
+        float energy = 0; ///< Energy multiplier for ambient light (map or color)
         R3D_AmbientMap map{}; ///< IBL environment map, can be generated from skybox
 
         EnvironmentAmbientParameters() = default;
@@ -15,7 +15,7 @@ namespace BreadEngine {
 
         EnvironmentAmbientParameters &fromNative(const R3D_EnvAmbient &nativeData);
 
-        R3D_EnvAmbient toNative() const;
+        [[nodiscard]] R3D_EnvAmbient toNative() const;
 
         void generateFromCubemap(const R3D_Cubemap &cubemap);
 

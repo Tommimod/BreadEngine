@@ -614,12 +614,10 @@ namespace BreadEngine {
         ZoneScoped;
         _guidToFolder.emplace(folder->getGUID(), folder);
         _pathToGuid.emplace(folder->getFullPath(), folder->getGUID());
-        Logger::LogInfo("Folder indexed: " + folder->_fullPath + "; guid: " + folder->_guid);
         for (auto &file: folder->_files)
         {
             _guidToFile.emplace(file->getGUID(), file);
             _pathToGuid.emplace(file->getFullPath(), file->getGUID());
-            Logger::LogInfo("File indexed: " + file->_fullPath + "; guid: " + file->_guid);
         }
         for (auto &subfolder: folder->_folders)
         {

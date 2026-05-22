@@ -10,8 +10,8 @@ namespace BreadEngine {
         R3D_Cubemap sky{}; ///< Skybox asset (used if ID is non-zero)
         Quaternion rotation{}; ///< Skybox rotation (pitch, yaw, roll as quaternion)
         Color color = WHITE; ///< Background color when there is no skybox
-        float energy; ///< Energy multiplier applied to background (skybox or color)
-        float skyBlur; ///< Sky blur factor [0,1], based on mipmaps, very fast
+        float energy = 0; ///< Energy multiplier applied to background (skybox or color)
+        float skyBlur = 0; ///< Sky blur factor [0,1], based on mipmaps, very fast
 
         EnvironmentBackgroudParameters() = default;
 
@@ -19,7 +19,7 @@ namespace BreadEngine {
 
         EnvironmentBackgroudParameters &fromNative(const R3D_EnvBackground &nativeData);
 
-        R3D_EnvBackground toNative() const;
+        [[nodiscard]] R3D_EnvBackground toNative() const;
 
         void setTexture(TextureAsset *texture);
 

@@ -1,5 +1,4 @@
 #pragma once
-#include <any>
 #include <ranges>
 #include <typeindex>
 #include <unordered_map>
@@ -155,6 +154,7 @@ namespace BreadEngine {
             const auto it = getChunks().find(ti);
             if (it == getChunks().end())
             {
+                Logger::LogWarning(TextFormat("Component %s was added in GET method. Use HAS before GET", ti.name()));
                 emplaceChunk<T>();
                 return add<T>(ownerId);
             }

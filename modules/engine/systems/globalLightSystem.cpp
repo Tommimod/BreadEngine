@@ -13,17 +13,27 @@ namespace BreadEngine {
         {
             globalLight._nativeEnvironment = R3D_GetEnvironment();
             R3D_SetEnvironment(globalLight._nativeEnvironment);
-            globalLight._environmentBackgroud = globalLight._environmentBackgroud.fromNative(globalLight._nativeEnvironment->background);
-            globalLight._environmentAmbient = globalLight._environmentAmbient.fromNative(globalLight._nativeEnvironment->ambient);
+            if (!globalLight.isChangedFromEditor)
+            {
+                globalLight._background = globalLight._background.fromNative(globalLight._nativeEnvironment->background);
+                globalLight._ambient = globalLight._ambient.fromNative(globalLight._nativeEnvironment->ambient);
+                globalLight._ssao = globalLight._ssao.fromNative(globalLight._nativeEnvironment->ssao);
+                globalLight._ssil = globalLight._ssil.fromNative(globalLight._nativeEnvironment->ssil);
+                globalLight._ssgi = globalLight._ssgi.fromNative(globalLight._nativeEnvironment->ssgi);
+                globalLight._ssr = globalLight._ssr.fromNative(globalLight._nativeEnvironment->ssr);
+                globalLight._bloom = globalLight._bloom.fromNative(globalLight._nativeEnvironment->bloom);
+                globalLight._fog = globalLight._fog.fromNative(globalLight._nativeEnvironment->fog);
+                globalLight._depthOfField = globalLight._depthOfField.fromNative(globalLight._nativeEnvironment->dof);
+                globalLight._tonemap = globalLight._tonemap.fromNative(globalLight._nativeEnvironment->tonemap);
+                globalLight._finalColor = globalLight._finalColor.fromNative(globalLight._nativeEnvironment->color);
+            }
         }
 
         for (const auto node: nodes)
         {
+            if (!node->has<CameraDirector>()) continue;
             const auto camera = node->get<CameraDirector>().getActiveCamera();
-            if (!camera)
-            {
-                continue;
-            }
+            if (!camera) continue;
 
             const auto mode = camera->getBackgroundMode();
             const auto isSolidColorUpdate = mode == Camera::SOLID_COLOR && !ColorUtils::IsCompare(globalLight._nativeEnvironment->background.color, camera->getBackgroundColor());
@@ -59,13 +69,19 @@ namespace BreadEngine {
                     }
                 }
 
-                globalLight._nativeEnvironment->background.color = WHITE;
-                globalLight._nativeEnvironment->ambient.color = WHITE;
-                globalLight._nativeEnvironment->background = globalLight._environmentBackgroud.toNative();
-                globalLight._nativeEnvironment->ambient = globalLight._environmentAmbient.toNative();
+                globalLight._nativeEnvironment->background = globalLight._background.toNative();
+                globalLight._nativeEnvironment->ambient = globalLight._ambient.toNative();
             }
 
-            globalLight._nativeEnvironment->tonemap.mode = globalLight._tonemap;
+            globalLight._nativeEnvironment->ssao = globalLight._ssao.toNative();
+            globalLight._nativeEnvironment->ssil = globalLight._ssil.toNative();
+            globalLight._nativeEnvironment->ssgi = globalLight._ssgi.toNative();
+            globalLight._nativeEnvironment->ssr = globalLight._ssr.toNative();
+            globalLight._nativeEnvironment->bloom = globalLight._bloom.toNative();
+            globalLight._nativeEnvironment->fog = globalLight._fog.toNative();
+            globalLight._nativeEnvironment->dof = globalLight._depthOfField.toNative();
+            globalLight._nativeEnvironment->tonemap = globalLight._tonemap.toNative();
+            globalLight._nativeEnvironment->color = globalLight._finalColor.toNative();
         }
     }
 
@@ -73,8 +89,8 @@ namespace BreadEngine {
     {
         auto &globalLight = Engine::getInstance().getGlobalLightSettings();
 
-        globalLight._environmentBackgroud.clearTexture();
-        globalLight._environmentAmbient.clear();
+        globalLight._background.clearTexture();
+        globalLight._ambient.clear();
 
         delete globalLight._nativeEnvironment;
     }
@@ -87,8 +103,8 @@ namespace BreadEngine {
         }
         else
         {
-            globalLight._environmentBackgroud.clearTexture();
-            globalLight._environmentAmbient.clear();
+            globalLight._background.clearTexture();
+            globalLight._ambient.clear();
         }
 
         globalLight._nativeProceduralSky = R3D_ProceduralSky{
@@ -105,8 +121,8 @@ namespace BreadEngine {
             .sunSize = globalLight._proceduralSkyboxSettings.sunSize,
             .sunEnergy = globalLight._proceduralSkyboxSettings.sunEnergy
         };
-        globalLight._environmentBackgroud.sky = R3D_GenProceduralSky(1024, globalLight._nativeProceduralSky);
-        globalLight._environmentAmbient.generateFromCubemap(globalLight._environmentBackgroud.sky);
+        globalLight._background.sky = R3D_GenProceduralSky(1024, globalLight._nativeProceduralSky);
+        globalLight._ambient.generateFromCubemap(globalLight._background.sky);
     }
 
     void GlobalLightSystem::updateCubemapSkybox(GlobalLightSettings &globalLight)
