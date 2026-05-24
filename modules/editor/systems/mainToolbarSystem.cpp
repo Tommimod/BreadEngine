@@ -6,6 +6,7 @@
 #include "../commands/mainToolbarCommands/file/saveProjectCommand.h"
 #include "commands/mainToolbarCommands/create/сreatePrimitiveCommand.h"
 #include "commands/mainToolbarCommands/create/createEmptyNodeCommand.h"
+#include "commands/mainToolbarCommands/create/createLightCommand.h"
 
 namespace BreadEditor {
     static std::set<MainToolbarSystem::ToolbarOption> empty;
@@ -52,6 +53,15 @@ namespace BreadEditor {
                                        },
                                        ToolbarOption{
                                            "Add FreePoly", [] { CommandsHandler::execute(std::make_unique<CreatePrimitiveCommand>(&Engine::getRootNode(), MeshPrimitiveType::FreePoly)); }
+                                       },
+                                       ToolbarOption{
+                                           "Add Dir Light", [] { CommandsHandler::execute(std::make_unique<CreateLightCommand>(&Engine::getRootNode(), R3D_LIGHT_DIR)); }
+                                       },
+                                       ToolbarOption{
+                                           "Add Spot Light", [] { CommandsHandler::execute(std::make_unique<CreateLightCommand>(&Engine::getRootNode(), R3D_LIGHT_SPOT)); }
+                                       },
+                                       ToolbarOption{
+                                           "Add Omni Light", [] { CommandsHandler::execute(std::make_unique<CreateLightCommand>(&Engine::getRootNode(), R3D_LIGHT_OMNI)); }
                                        }
                                    });
     }

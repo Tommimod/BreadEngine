@@ -88,11 +88,9 @@ namespace BreadEngine {
     void GlobalLightSystem::onDispose(const std::vector<Node *> &nodes, float deltaTime)
     {
         auto &globalLight = Engine::getInstance().getGlobalLightSettings();
-
         globalLight._background.clearTexture();
         globalLight._ambient.clear();
-
-        delete globalLight._nativeEnvironment;
+        globalLight._nativeEnvironment = nullptr;
     }
 
     void GlobalLightSystem::updateProceduralSkybox(GlobalLightSettings &globalLight)

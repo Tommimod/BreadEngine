@@ -1,6 +1,5 @@
 ﻿#pragma once
 #include "engine.h"
-#include "meshRenderer.h"
 #include "commands/command.h"
 #include "data/primitives/cubePrimitiveData.h"
 #include "uitoolkit/uiInspector.h"

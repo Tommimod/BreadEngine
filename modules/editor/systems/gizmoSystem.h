@@ -20,7 +20,10 @@ namespace BreadEditor {
     private:
         GizmoFlags _mode = GIZMO_TRANSLATE;
         ::Transform _transform{};
+        ::Transform _prevTransform{};
         BreadEngine::Transform *_nodeTransform{};
         ViewportWindow *_viewportWindow = nullptr;
+
+        bool isPrevTransformInitialized() const;
     };
 } // BreadEditor
