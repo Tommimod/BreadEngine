@@ -12,6 +12,7 @@
 #include "systems/meshRendererSystem.h"
 #include "systems/spriteRendererSystem.h"
 #include "systems/globalLightSystem.h"
+#include "systems/resetChangedFromEditorSystem.h"
 #include "validators/mandatoryProjectFilesValidator.h"
 
 namespace BreadEngine {
@@ -21,12 +22,16 @@ namespace BreadEngine {
 
     void Engine::initializeSystems()
     {
-        _engineSystems.addSystem<LightSystem>()
+        _engineSystems
+                .addSystem<LightSystem>()
                 .addSystem<CameraSystem>()
                 .addSystem<CameraDirectorSystem>()
                 .addSystem<SpriteRendererSystem>()
                 .addSystem<MeshRendererSystem>()
-                .addSystem<GlobalLightSystem>();
+                .addSystem<GlobalLightSystem>()
+
+                //reset
+                .addSystem<ResetChangedFromEditorSystem>();
 
         _engineSystems.initialize();
     }

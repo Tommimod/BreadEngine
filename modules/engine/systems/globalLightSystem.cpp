@@ -2,6 +2,8 @@
 
 #include "cameraDirector.h"
 #include "engine.h"
+#include "transform.h"
+#include "component/light.h"
 #include "utils/colorUtils.h"
 
 namespace BreadEngine {
@@ -37,7 +39,11 @@ namespace BreadEngine {
 
             const auto mode = camera->getBackgroundMode();
             const auto isSolidColorUpdate = mode == Camera::SOLID_COLOR && !ColorUtils::IsCompare(globalLight._nativeEnvironment->background.color, camera->getBackgroundColor());
-            if (!globalLight.isChangedFromEditor && !isFirstCall && !isSolidColorUpdate) return;
+            if (!globalLight.isChangedFromEditor && !isFirstCall && !isSolidColorUpdate)
+            {
+                continue;
+            }
+
             globalLight.isChangedFromEditor = false;
 
             if (mode == Camera::SOLID_COLOR || (globalLight._type == GlobalLightSettings::Type::Cubemap && globalLight._skyboxTexture == nullptr))
@@ -83,6 +89,8 @@ namespace BreadEngine {
             globalLight._nativeEnvironment->tonemap = globalLight._tonemap.toNative();
             globalLight._nativeEnvironment->color = globalLight._finalColor.toNative();
         }
+
+        updateProceduralSunPosition(globalLight);
     }
 
     void GlobalLightSystem::onDispose(const std::vector<Node *> &nodes, float deltaTime)
@@ -129,5 +137,42 @@ namespace BreadEngine {
 
     void GlobalLightSystem::updateCustomSkybox(GlobalLightSettings &globalLight)
     {
+    }
+
+    void GlobalLightSystem::updateProceduralSunPosition(GlobalLightSettings &globalLight)
+    {
+        auto &nodes = NodeProvider::getAllNodes();
+        Light *light = nullptr;
+        for (const auto n: nodes)
+        {
+            if (n->has<Light>())
+            {
+                auto &l = n->get<Light>();
+                if (l.lightType == R3D_LIGHT_DIR)
+                {
+                    light = &l;
+                    break;
+                }
+            }
+        }
+
+        if (light == nullptr)
+        {
+            return;
+        }
+
+        const auto &transform = light->getOwner()->get<Transform>();
+        if (!transform.isChangedFromEditor && !light->isChangedFromEditor)
+        {
+            return;
+        }
+
+        const auto forward = transform.getForward();
+        globalLight._proceduralSkyboxSettings.sunDirection = forward;
+        globalLight._nativeProceduralSky.sunDirection = globalLight._proceduralSkyboxSettings.sunDirection;
+        globalLight._proceduralSkyboxSettings.sunColor = light->color;
+        globalLight._nativeProceduralSky.sunColor = globalLight._proceduralSkyboxSettings.sunColor;
+        globalLight._proceduralSkyboxSettings.sunEnergy = light->intensity;
+        globalLight._nativeProceduralSky.sunEnergy = globalLight._proceduralSkyboxSettings.sunEnergy;
     }
 } // BreadEngine

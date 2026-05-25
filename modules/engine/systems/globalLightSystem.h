@@ -17,5 +17,7 @@ namespace BreadEngine {
         static void updateCubemapSkybox(GlobalLightSettings &globalLight);
 
         static void updateCustomSkybox(GlobalLightSettings &globalLight);
+
+        static void updateProceduralSunPosition(GlobalLightSettings &globalLight);
     };
 } // BreadEngine

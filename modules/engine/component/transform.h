@@ -54,16 +54,24 @@ namespace BreadEngine {
         [[nodiscard]] Vector3 getUp() const;
 
     private:
+        friend class TransformSyncSystem;
         Vector3 _localPosition{};
-        Quaternion _localRotation{};
+        Vector3 _localRotation{};
+        Quaternion _localRotationQ{};
         Vector3 _localScale{};
 
         INSPECTOR_BEGIN(Transform)
-            INSPECT_FIELD(_localPosition);
-            INSPECT_FIELD(_localRotation);
-            INSPECT_FIELD(_localScale);
+            INSPECT_FIELD(_localPosition)
+            INSPECT_FIELD(_localRotationQ)
+            INSPECT_FIELD(_localScale)
         INSPECTOR_END()
 
         [[nodiscard]] Transform *getParentTransform() const;
+
+        [[nodiscard]] static Vector3 QuaternionToEulerDegrees(const Quaternion &quaternion);
+
+        [[nodiscard]] static Vector3 QuaternionToEulerClosest(const Quaternion &quaternion, const Vector3 &reference);
+
+        void setLocalRotationEditor(const Vector3 &localRotation);
     };
 } // namespace BreadEngine

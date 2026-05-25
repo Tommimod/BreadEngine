@@ -42,11 +42,8 @@ namespace BreadEngine {
             INSPECT_FIELD(groundHorizonCurve)
             INSPECT_FIELD(groundEnergy)
 
-            INSPECT_FIELD(sunDirection)
-            INSPECT_FIELD(sunColor)
             INSPECT_FIELD(sunSize)
             INSPECT_FIELD(sunCurve)
-            INSPECT_FIELD(sunEnergy)
         INSPECTOR_END()
     };
 } // BreadEngine
