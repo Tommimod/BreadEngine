@@ -7,7 +7,7 @@
 #include "utils/colorUtils.h"
 
 namespace BreadEngine {
-    void GlobalLightSystem::startFrame(const std::vector<Node *> &nodes, const float deltaTime)
+    void GlobalLightSystem::startFrame(Node *node, const float deltaTime)
     {
         auto &globalLight = Engine::getInstance().getGlobalLightSettings();
         const auto isFirstCall = globalLight._nativeEnvironment == nullptr;
@@ -31,17 +31,16 @@ namespace BreadEngine {
             }
         }
 
-        for (const auto node: nodes)
+        if (node->has<CameraDirector>())
         {
-            if (!node->has<CameraDirector>()) continue;
             const auto camera = node->get<CameraDirector>().getActiveCamera();
-            if (!camera) continue;
+            if (!camera) return;
 
             const auto mode = camera->getBackgroundMode();
             const auto isSolidColorUpdate = mode == Camera::SOLID_COLOR && !ColorUtils::IsCompare(globalLight._nativeEnvironment->background.color, camera->getBackgroundColor());
             if (!globalLight.isChangedFromEditor && !isFirstCall && !isSolidColorUpdate)
             {
-                continue;
+                return;
             }
 
             globalLight.isChangedFromEditor = false;
@@ -78,22 +77,22 @@ namespace BreadEngine {
                 globalLight._nativeEnvironment->background = globalLight._background.toNative();
                 globalLight._nativeEnvironment->ambient = globalLight._ambient.toNative();
             }
-
-            globalLight._nativeEnvironment->ssao = globalLight._ssao.toNative();
-            globalLight._nativeEnvironment->ssil = globalLight._ssil.toNative();
-            globalLight._nativeEnvironment->ssgi = globalLight._ssgi.toNative();
-            globalLight._nativeEnvironment->ssr = globalLight._ssr.toNative();
-            globalLight._nativeEnvironment->bloom = globalLight._bloom.toNative();
-            globalLight._nativeEnvironment->fog = globalLight._fog.toNative();
-            globalLight._nativeEnvironment->dof = globalLight._depthOfField.toNative();
-            globalLight._nativeEnvironment->tonemap = globalLight._tonemap.toNative();
-            globalLight._nativeEnvironment->color = globalLight._finalColor.toNative();
         }
+
+        globalLight._nativeEnvironment->ssao = globalLight._ssao.toNative();
+        globalLight._nativeEnvironment->ssil = globalLight._ssil.toNative();
+        globalLight._nativeEnvironment->ssgi = globalLight._ssgi.toNative();
+        globalLight._nativeEnvironment->ssr = globalLight._ssr.toNative();
+        globalLight._nativeEnvironment->bloom = globalLight._bloom.toNative();
+        globalLight._nativeEnvironment->fog = globalLight._fog.toNative();
+        globalLight._nativeEnvironment->dof = globalLight._depthOfField.toNative();
+        globalLight._nativeEnvironment->tonemap = globalLight._tonemap.toNative();
+        globalLight._nativeEnvironment->color = globalLight._finalColor.toNative();
 
         updateProceduralSunPosition(globalLight);
     }
 
-    void GlobalLightSystem::onDispose(const std::vector<Node *> &nodes, float deltaTime)
+    void GlobalLightSystem::onDispose(Node *node, float deltaTime)
     {
         auto &globalLight = Engine::getInstance().getGlobalLightSettings();
         globalLight._background.clearTexture();

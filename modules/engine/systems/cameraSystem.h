@@ -5,6 +5,6 @@ namespace BreadEngine {
     class CameraSystem : public UpdateSystem
     {
     public:
-        void update(const std::vector<Node *> &nodes, float deltaTime) override;
+        void update(Node *node, float deltaTime) override;
     };
 } // BreadEngine

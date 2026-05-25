@@ -9,15 +9,14 @@ namespace BreadEngine {
 
         [[nodiscard]] bool isStartOnFrame() const override { return true; }
 
-        [[nodiscard]] bool isValid(Node &node) override;
+        [[nodiscard]] bool isValid(const Node *node) override;
 
-        virtual void startFrame(const std::vector<Node *> &nodes, float deltaTime) = 0;
+        virtual void startFrame(Node *node, float deltaTime) = 0;
 
     private:
         friend class SystemsRegistry;
-        std::vector<Node *> _sortedNodes;
         bool _isValidLogicEnabled = true;
 
-        void startFrameInternal(float deltaTime);
+        void startFrameInternal(Node *node, float deltaTime);
     };
 } // BreadEngine

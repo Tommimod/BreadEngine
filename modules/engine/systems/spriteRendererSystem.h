@@ -6,8 +6,8 @@ namespace BreadEngine {
     class SpriteRendererSystem : public StartFrameSystem, public DisposeSystem
     {
     public:
-        void startFrame(const std::vector<Node *> &nodes, float deltaTime) override;
+        void startFrame(Node *node, float deltaTime) override;
 
-        void onDispose(const std::vector<Node *> &nodes, float deltaTime) override;
+        void onDispose(Node *node, float deltaTime) override;
     };
 } // BreadEngine

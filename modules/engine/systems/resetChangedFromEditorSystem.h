@@ -5,6 +5,6 @@ namespace BreadEngine {
     class ResetChangedFromEditorSystem : public EndOfFrameSystem
     {
     public:
-        void endOnFrame(const std::vector<Node *> &nodes, float deltaTime) override;
+        void endOnFrame(Node *node, float deltaTime) override;
     };
 } // BreadEngine

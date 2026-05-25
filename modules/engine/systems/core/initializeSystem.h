@@ -10,15 +10,14 @@ namespace BreadEngine {
 
         [[nodiscard]] bool isInitialize() const override { return true; }
 
-        [[nodiscard]] bool isValid(Node &node) override;
+        [[nodiscard]] bool isValid(const Node *node) override;
 
-        virtual void initialize(const std::vector<Node *> &nodes) = 0;
+        virtual void initialize(Node *node) = 0;
 
     private:
         friend class SystemsRegistry;
-        std::vector<Node *> _sortedNodes;
         bool _isValidLogicEnabled = true;
 
-        void initializeInternal();
+        void initializeInternal(Node *node);
     };
 } // BreadEngine

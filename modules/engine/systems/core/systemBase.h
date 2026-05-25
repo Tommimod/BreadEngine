@@ -16,6 +16,6 @@ namespace BreadEngine {
         [[nodiscard]] virtual bool isEndOnFrame() const { return false; }
         [[nodiscard]] virtual bool isDispose() const { return false; }
 
-        [[nodiscard]] virtual bool isValid(Node &node);
+        [[nodiscard]] virtual bool isValid(const Node *node);
     };
 } // BreadEngine

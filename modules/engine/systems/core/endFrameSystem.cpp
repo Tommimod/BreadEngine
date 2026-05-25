@@ -1,29 +1,23 @@
 ﻿#include "endFrameSystem.h"
 
 namespace BreadEngine {
-    bool EndOfFrameSystem::isValid(Node &node)
+    bool EndOfFrameSystem::isValid(const Node *node)
     {
         _isValidLogicEnabled = false;
         return SystemBase::isValid(node);
     }
 
-    void EndOfFrameSystem::endOnFrame(const std::vector<Node *> &nodes, float deltaTime)
+    void EndOfFrameSystem::endOnFrame(Node *node, float deltaTime)
     {
     }
 
-    void EndOfFrameSystem::endOfFrameInternal(const float deltaTime)
+    void EndOfFrameSystem::endOfFrameInternal(Node *node, const float deltaTime)
     {
         if (_isValidLogicEnabled)
         {
-            _sortedNodes.clear();
-            for (auto &allNodes = NodeProvider::getAllNodes(); auto node: allNodes)
-            {
-                if (!isValid(*node)) continue;
-                _sortedNodes.emplace_back(node);
-            }
-
-            endOnFrame(_sortedNodes, deltaTime);
+            if (!isValid(node)) return;
+            endOnFrame(node, deltaTime);
         }
-        else endOnFrame(NodeProvider::getAllNodes(), deltaTime);
+        else endOnFrame(node, deltaTime);
     }
 } // BreadEngine

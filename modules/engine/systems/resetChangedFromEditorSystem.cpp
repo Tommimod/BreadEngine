@@ -1,15 +1,12 @@
 ﻿#include "resetChangedFromEditorSystem.h"
 
 namespace BreadEngine {
-    void ResetChangedFromEditorSystem::endOnFrame(const std::vector<Node *> &nodes, float deltaTime)
+    void ResetChangedFromEditorSystem::endOnFrame(Node *node, float deltaTime)
     {
-        for (const auto node: nodes)
+        const auto allComponents = ComponentsProvider::getAllComponents(node->getId());
+        for (const auto &component: allComponents)
         {
-            auto allComponents = ComponentsProvider::getAllComponents(node->getId());
-            for (const auto &component: allComponents)
-            {
-                component->isChangedFromEditor = false;
-            }
+            component->isChangedFromEditor = false;
         }
     }
 } // BreadEngine

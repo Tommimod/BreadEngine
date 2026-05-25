@@ -10,15 +10,14 @@ namespace BreadEngine {
 
         [[nodiscard]] bool isUpdate() const override { return true; }
 
-        [[nodiscard]] bool isValid(Node &node) override;
+        [[nodiscard]] bool isValid(const Node *node) override;
 
-        virtual void update(const std::vector<Node *> &nodes, float deltaTime) = 0;
+        virtual void update(Node* node, float deltaTime) = 0;
 
     private:
         friend class SystemsRegistry;
-        std::vector<Node *> _sortedNodes;
         bool _isValidLogicEnabled = true;
 
-        void updateInternal(float deltaTime);
+        void updateInternal(Node *node, float deltaTime);
     };
 } // BreadEngine

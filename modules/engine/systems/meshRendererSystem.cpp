@@ -5,50 +5,45 @@
 #include "transform.h"
 
 namespace BreadEngine {
-    void MeshRendererSystem::startFrame(const std::vector<Node *> &nodes, float deltaTime)
+    void MeshRendererSystem::startFrame(Node *node, float deltaTime)
     {
-        for (const auto node: nodes)
+        if (!node->getIsActive()) return;
+        if (!node->has<MeshRenderer>()) return;
+
+        auto &meshRenderer = node->get<MeshRenderer>();
+        if (!meshRenderer.isLoaded())
         {
-            if (!node->has<MeshRenderer>()) continue;
+            meshRenderer.loadModel();
+        }
 
-            auto &meshRenderer = node->get<MeshRenderer>();
-            if (!meshRenderer.isLoaded())
+        if (meshRenderer.isChangedFromEditor)
+        {
+            meshRenderer.unload();
+            meshRenderer.loadModel();
+        }
+        if (!meshRenderer.isLoaded()) return;
+
+        auto &transform = node->get<Transform>();
+        if (R3D_IsMeshValid(meshRenderer._nativeMesh))
+        {
+            R3D_DrawMeshEx(meshRenderer._nativeMesh, meshRenderer._materials[0].getNativeMaterial(), transform.getPosition(), transform.getRotationQuaternion(), transform.getScale());
+        }
+        else
+        {
+            for (auto i = 0; i < static_cast<int>(meshRenderer._materials.size()); i++)
             {
-                meshRenderer.loadModel();
+                meshRenderer._nativeMeshRenderer.materials[i] = meshRenderer._materials[i].getNativeMaterial();
             }
 
-            if (meshRenderer.isChangedFromEditor)
-            {
-                meshRenderer.unload();
-                meshRenderer.loadModel();
-            }
-            if (!meshRenderer.isLoaded()) continue;
-
-            auto &transform = node->get<Transform>();
-            if (R3D_IsMeshValid(meshRenderer._nativeMesh))
-            {
-                R3D_DrawMeshEx(meshRenderer._nativeMesh, meshRenderer._materials[0].getNativeMaterial(), transform.getPosition(), transform.getRotationQuaternion(), transform.getScale());
-            }
-            else
-            {
-                for (auto i = 0; i < static_cast<int>(meshRenderer._materials.size()); i++)
-                {
-                    meshRenderer._nativeMeshRenderer.materials[i] = meshRenderer._materials[i].getNativeMaterial();
-                }
-
-                R3D_DrawModelEx(meshRenderer._nativeMeshRenderer, transform.getPosition(), transform.getRotationQuaternion(), transform.getScale());
-            }
+            R3D_DrawModelEx(meshRenderer._nativeMeshRenderer, transform.getPosition(), transform.getRotationQuaternion(), transform.getScale());
         }
     }
 
-    void MeshRendererSystem::onDispose(const std::vector<Node *> &nodes, float deltaTime)
+    void MeshRendererSystem::onDispose(Node *node, float deltaTime)
     {
-        for (const auto node: nodes)
-        {
-            if (!node->has<MeshRenderer>()) continue;
+        if (!node->has<MeshRenderer>()) return;
 
-            auto &meshRenderer = node->get<MeshRenderer>();
-            meshRenderer.unload();
-        }
+        auto &meshRenderer = node->get<MeshRenderer>();
+        meshRenderer.unload();
     }
 } // BreadEngine

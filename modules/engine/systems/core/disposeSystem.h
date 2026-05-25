@@ -9,15 +9,14 @@ namespace BreadEngine {
 
         [[nodiscard]] bool isDispose() const override { return true; }
 
-        [[nodiscard]] bool isValid(Node &node) override;
+        [[nodiscard]] bool isValid(const Node *node) override;
 
-        virtual void onDispose(const std::vector<Node *> &nodes, float deltaTime) = 0;
+        virtual void onDispose(Node *node, float deltaTime) = 0;
 
     private:
         friend class SystemsRegistry;
-        std::vector<Node *> _sortedNodes;
         bool _isValidLogicEnabled = true;
 
-        void onDisposeInternal(float deltaTime);
+        void onDisposeInternal(Node *node, float deltaTime);
     };
 } // BreadEngine

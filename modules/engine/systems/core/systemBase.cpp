@@ -1,7 +1,7 @@
 ﻿#include "systemBase.h"
 
 namespace BreadEngine {
-    bool SystemBase::isValid(Node &node)
+    bool SystemBase::isValid(const Node *node)
     {
         return true;
     }

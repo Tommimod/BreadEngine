@@ -1,29 +1,23 @@
 ﻿#include "initializeSystem.h"
 
 namespace BreadEngine {
-    bool InitializeSystem::isValid(Node &node)
+    bool InitializeSystem::isValid(const Node *node)
     {
         _isValidLogicEnabled = false;
         return SystemBase::isValid(node);
     }
 
-    void InitializeSystem::initialize(const std::vector<Node *> &nodes)
+    void InitializeSystem::initialize(Node *node)
     {
     }
 
-    void InitializeSystem::initializeInternal()
+    void InitializeSystem::initializeInternal(Node *node)
     {
         if (_isValidLogicEnabled)
         {
-            _sortedNodes.clear();
-            for (auto &allNodes = NodeProvider::getAllNodes(); auto node: allNodes)
-            {
-                if (!isValid(*node)) continue;
-                _sortedNodes.emplace_back(node);
-            }
-
-            initialize(_sortedNodes);
+            if (!isValid(node)) return;
+            initialize(node);
         }
-        else initialize(NodeProvider::getAllNodes());
+        else initialize(node);
     }
 } // BreadEngine

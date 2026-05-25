@@ -2,20 +2,16 @@
 #include "component/cameraDirector.h"
 
 namespace BreadEngine {
-    void CameraDirectorSystem::update(const std::vector<Node *> &nodes, const float deltaTime)
+    void CameraDirectorSystem::update(Node *node, const float deltaTime)
     {
         CameraDirector *cameraDirector = nullptr;
-        _cameras.clear();
-        for (auto *node: nodes)
+        if (node->has<CameraDirector>())
         {
-            if (node->has<CameraDirector>())
-            {
-                cameraDirector = &node->get<CameraDirector>();
-            }
-            else if (node->has<Camera>())
-            {
-                _cameras.emplace_back(&node->get<Camera>());
-            }
+            cameraDirector = &node->get<CameraDirector>();
+        }
+        else if (node->has<Camera>())
+        {
+            _cameras.emplace_back(&node->get<Camera>());
         }
 
         if (cameraDirector == nullptr)
@@ -25,5 +21,6 @@ namespace BreadEngine {
 
         cameraDirector->_cameras.clear();
         cameraDirector->_cameras.insert(cameraDirector->_cameras.end(), _cameras.begin(), _cameras.end());
+        _cameras.clear();
     }
 } // BreadEngine
