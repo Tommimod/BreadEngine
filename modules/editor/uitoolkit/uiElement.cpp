@@ -922,7 +922,7 @@ namespace BreadEditor {
 
         if (_parent == nullptr) // only for root
         {
-            std::vector<UiElement*> forRemove = {};
+            std::vector<UiElement *> forRemove = {};
             for (const auto child: _overlayChilds)
             {
                 if (child == nullptr || child->_isDeleted) continue;
@@ -1079,7 +1079,12 @@ namespace BreadEditor {
         const auto isRightBottomInside = CheckCollisionPointRec(Vector2(_bounds.x + _bounds.width, _bounds.y + _bounds.height), parentBounds);
         const auto isLeftBottomInside = CheckCollisionPointRec(Vector2(_bounds.x, _bounds.y + _bounds.height), parentBounds);
         const auto isRightTopInside = CheckCollisionPointRec(Vector2(_bounds.x + _bounds.width, _bounds.y), parentBounds);
-        const auto isFullyOutside = !isLeftTopInside && !isRightBottomInside && !isLeftBottomInside && !isRightTopInside;
+        auto isFullyOutside = !isLeftTopInside && !isRightBottomInside && !isLeftBottomInside && !isRightTopInside;
+        if (isFullyOutside)
+        {
+            isFullyOutside = parentBounds.y + parentBounds.height > _bounds.y + _bounds.height && parentBounds.x + parentBounds.width > _bounds.x + _bounds.width;
+        }
+
         return isFullyOutside;
     }
 } // namespace BreadEditor

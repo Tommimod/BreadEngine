@@ -136,7 +136,8 @@ namespace BreadEditor {
             field->setPivot({0, 0});
             field->setSizePercentPermanent({.12f, 1});
             field->setPosition({lastSizeX, 0});
-            field->setSizeMax({100, 0});
+            field->setSizeMax({50, 0});
+            field->setSizeMin({25, 0});
         }
     }
 

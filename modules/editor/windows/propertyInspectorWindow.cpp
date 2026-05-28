@@ -165,9 +165,10 @@ namespace BreadEditor {
         _componentsDropdown->isActive = false;
 
         _addComponentButton = &UiPool::buttonPool.get().setup(id + "_addComponentButton", this, "Add Component");
-        _addComponentButton->setAnchor(UI_LEFT_TOP);
+        _addComponentButton->setAnchor(UI_CENTER_TOP);
         _addComponentButton->setPivot({.5f, -1});
         _addComponentButton->setSizePercentPermanent({.55f, -1});
+        _addComponentButton->setSizeMax({_addComponentButton->getSize().x, 0});
         _addComponentButton->setSize({-1, 25});
         _addComponentButton->onClick.subscribe([this](UiButton *)
         {
@@ -314,7 +315,7 @@ namespace BreadEditor {
     void PropertyInspectorWindow::adjustAddComponentButtonPosition() const
     {
         const auto lastInspector = _content->getAllChilds()[0];
-        const auto size = Vector2{lastInspector->getPosition().x + lastInspector->getSize().x * .5f, lastInspector->getPosition().y + lastInspector->getSize().y + 10};
+        const auto size = Vector2{0, lastInspector->getPosition().y + lastInspector->getSize().y + 10};
         _addComponentButton->setPosition(size);
         _content->calculateRectForScroll(_addComponentButton);
     }

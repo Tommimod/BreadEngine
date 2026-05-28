@@ -158,7 +158,7 @@ namespace BreadEditor {
     {
         constexpr std::string emptyLabel;
         constexpr int uiPropNameLabelWidth = 70;
-        auto isSimpleProp = vectorAccessor == nullptr;
+        auto isSingleProperty = vectorAccessor == nullptr;
         auto withVectorIndex = vectorIndex >= 0;
         float horOffset = 5.0f * horizonDepth;
         constexpr float heightSize = 17;
@@ -166,7 +166,7 @@ namespace BreadEditor {
         setSize({_localSize.x, verOffset + heightSize + horOffset});
         computeBounds();
 
-        auto propType = isSimpleProp ? property.type : vectorAccessor->elementType();
+        auto propType = isSingleProperty ? property.type : vectorAccessor->elementType();
         auto propName = propType == PropertyType::INSPECTOR_STRUCT || property.type == PropertyType::VECTOR_L ? property.prettyName + ":" : property.prettyName;
         if (propType == PropertyType::VECTOR_L)
         {
@@ -178,7 +178,7 @@ namespace BreadEditor {
         {
             propName = TextFormat("[%i]%s", vectorIndex, propName.c_str());
         }
-        if (isSimpleProp)
+        if (isSingleProperty)
         {
             auto uiPropNameLabel = &UiPool::labelPool.get().setup(TextFormat("PropName %s%i", property.prettyName.c_str(), depth), this, propName);
             uiPropNameLabel->setAnchor(UI_LEFT_TOP);
@@ -243,7 +243,7 @@ namespace BreadEditor {
         else if (propType == PropertyType::INT)
         {
             function<variant<int, float, long>()> getFunc;
-            if (isSimpleProp)
+            if (isSingleProperty)
             {
                 getFunc = [inspectorStruct, property]
                 {
@@ -271,7 +271,7 @@ namespace BreadEditor {
         else if (propType == PropertyType::FLOAT)
         {
             function<variant<int, float, long>()> getFunc;
-            if (isSimpleProp)
+            if (isSingleProperty)
             {
                 getFunc = [inspectorStruct, property]
                 {
@@ -299,7 +299,7 @@ namespace BreadEditor {
         else if (propType == PropertyType::LONG)
         {
             function<variant<int, float, long>()> getFunc;
-            if (isSimpleProp)
+            if (isSingleProperty)
             {
                 getFunc = [inspectorStruct, property]
                 {
@@ -327,7 +327,7 @@ namespace BreadEditor {
         else if (propType == PropertyType::BOOL)
         {
             std::function<bool()> getFunc;
-            if (isSimpleProp)
+            if (isSingleProperty)
             {
                 getFunc = [inspectorStruct, property]
                 {
@@ -356,7 +356,7 @@ namespace BreadEditor {
         else if (propType == PropertyType::STRING)
         {
             std::function<std::string()> getFunc;
-            if (isSimpleProp)
+            if (isSingleProperty)
             {
                 getFunc = [inspectorStruct, property]
                 {
@@ -386,7 +386,7 @@ namespace BreadEditor {
         {
             isSingleField = false;
             function<Vector2()> getFunc;
-            if (isSimpleProp)
+            if (isSingleProperty)
             {
                 getFunc = [inspectorStruct, property]
                 {
@@ -415,7 +415,7 @@ namespace BreadEditor {
         {
             isSingleField = false;
             function<Vector3()> getFunc;
-            if (isSimpleProp)
+            if (isSingleProperty)
             {
                 getFunc = [inspectorStruct, property]
                 {
@@ -444,7 +444,7 @@ namespace BreadEditor {
         {
             isSingleField = false;
             function<Vector4()> getFunc;
-            if (isSimpleProp)
+            if (isSingleProperty)
             {
                 getFunc = [inspectorStruct, property]
                 {
@@ -472,7 +472,7 @@ namespace BreadEditor {
         else if (propType == PropertyType::COLOR)
         {
             function<Color()> getFunc;
-            if (isSimpleProp)
+            if (isSingleProperty)
             {
                 getFunc = [inspectorStruct, property]
                 {
@@ -509,7 +509,7 @@ namespace BreadEditor {
         else if (propType == PropertyType::NODE_LINK)
         {
             std::function<Component *()> getFunc;
-            if (isSimpleProp)
+            if (isSingleProperty)
             {
                 getFunc = [inspectorStruct, property]
                 {
@@ -544,7 +544,7 @@ namespace BreadEditor {
         else if (propType == PropertyType::ASSET_LINK)
         {
             std::function<Asset *()> getFunc;
-            if (isSimpleProp)
+            if (isSingleProperty)
             {
                 getFunc = [inspectorStruct, property]
                 {
@@ -585,7 +585,7 @@ namespace BreadEditor {
                 return;
             }
 
-            if (isSimpleProp)
+            if (isSingleProperty)
             {
                 auto currentIndex = std::any_cast<int>(property.get(inspectorStruct));
                 createdElement = &UiPool::dropdownPool.get().setup(
@@ -666,7 +666,7 @@ namespace BreadEditor {
             depth++;
             if (!isReadOnly)
             {
-                auto propNameWidth = isSimpleProp ? static_cast<float>(GuiGetTextWidth(propName.c_str())) + horOffset + 15 : uiPropNameLabelWidth;
+                auto propNameWidth = isSingleProperty ? static_cast<float>(GuiGetTextWidth(propName.c_str())) + horOffset + 15 : uiPropNameLabelWidth;
                 auto addButton = &UiPool::buttonPool.get().setup(TextFormat("AddL %s%i", property.name.c_str(), depth), this, "+");
                 addButton->setAnchor(UI_LEFT_TOP);
                 addButton->setSize({15, 15});
@@ -721,23 +721,33 @@ namespace BreadEditor {
 
         if (!createdElement) return;
 
-        auto propNameWidth = isSimpleProp ? uiPropNameLabelWidth + horOffset : uiPropNameLabelWidth;
+        auto propNameWidth = isSingleProperty ? uiPropNameLabelWidth + horOffset : uiPropNameLabelWidth;
         if (propType == PropertyType::VECTOR_L)
         {
             propNameWidth += 15;
         }
 
-        createdElement->setAnchor(UI_LEFT_TOP);
-        createdElement->setSize({0, heightSize});
+        createdElement->setPivot(Vector2{1, 0});
+        createdElement->setAnchor(UI_RIGHT_TOP);
+        createdElement->setSize(Vector2{0, heightSize});
         auto sizeInPercent = isSingleField ? .6f : 1;
-        createdElement->setSizePercentPermanent({sizeInPercent, -1});
-        if (isSimpleProp)
+        createdElement->setSizePercentPermanent(Vector2{sizeInPercent, -1});
+        createdElement->computeBounds();
+
+        if (isSingleProperty)
         {
-            createdElement->setPosition({propNameWidth, verOffset});
+            if (isSingleField)
+            {
+                createdElement->setPosition(Vector2{-heightSize, verOffset});
+            }
+            else
+            {
+                createdElement->setPosition(Vector2{heightSize + propNameWidth, verOffset});
+            }
         }
         else
         {
-            createdElement->setPosition({horOffset, verOffset});
+            createdElement->setPosition(Vector2{-horOffset, verOffset});
         }
 
         if (property.isReadOnly())
