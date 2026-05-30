@@ -19,6 +19,7 @@ namespace BreadEditor {
 
     NodeUiElement &NodeUiElement::setup(const std::string_view &id, UiElement *parentElement, Node *node)
     {
+        UiElement::setup(id, parentElement);
         this->_engineNode = node;
         _expandButton = &UiPool::buttonPool.get().setup(TextFormat("%s_expandButton", id), this, "");
         _expandButton->setAnchor(UI_LEFT_TOP);
@@ -34,7 +35,6 @@ namespace BreadEditor {
         });
         updateExpandButtonText();
         initOptionsOwner(this);
-        UiElement::setup(id, parentElement);
         return *this;
     }
 

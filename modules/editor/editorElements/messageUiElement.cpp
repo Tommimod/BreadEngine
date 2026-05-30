@@ -12,8 +12,8 @@ namespace BreadEditor {
 
     MessageUiElement &MessageUiElement::setup(const std::string_view &id, UiElement *parentElement, const Logger::LogEntity &logEntity)
     {
-        _logEntity = logEntity;
         UiElement::setup(id, parentElement);
+        _logEntity = logEntity;
 
         GuiIconName icon = ICON_NONE;
         if (logEntity.level == Logger::Info) icon = ICON_INFO;

@@ -23,8 +23,6 @@ namespace BreadEditor {
 
         void initialize();
 
-        void awake() override;
-
         [[nodiscard]] vector<std::string> &getWindowsOptions();
 
         [[nodiscard]] UiToolbar &getToolbar() const;
@@ -44,9 +42,12 @@ namespace BreadEditor {
         void render3D(float deltaTime);
 
     protected:
+        void awake() override;
+
         bool tryDeleteSelf() override;
 
     private:
+        friend class Editor;
         unique_ptr<UiSide> _leftSide;
         unique_ptr<UiSide> _rightSide;
         unique_ptr<UiSide> _bottomSide;
@@ -61,5 +62,9 @@ namespace BreadEditor {
         [[nodiscard]] UiToolbar &getToolbar();
 
         void resize();
+
+        void processRaycast(Vector2 ray) const;
+
+        static void fillChildListByDepth(const UiElement *element, std::array<std::vector<UiElement *>, maxChildsDepth> &result);
     };
 } // namespace BreadEditor

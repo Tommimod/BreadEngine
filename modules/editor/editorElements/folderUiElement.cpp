@@ -11,6 +11,7 @@ namespace BreadEditor {
 
     FolderUiElement &FolderUiElement::setup(const std::string_view &id, UiElement *parentElement, const std::string &folderGuid)
     {
+        UiElement::setup(id, parentElement);
         _isExpanded = true;
         _folderGuid = folderGuid;
         _engineFolder = _assetConfig.getFolderByGuid(_folderGuid);
@@ -40,7 +41,6 @@ namespace BreadEditor {
         }
 
         initOptionsOwner(this);
-        UiElement::setup(id, parentElement);
         return *this;
     }
 

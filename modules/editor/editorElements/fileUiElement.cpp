@@ -15,6 +15,7 @@ namespace BreadEditor {
 
     FileUiElement &FileUiElement::setup(const std::string_view &id, UiElement *parentElement, const std::string &fileGuid)
     {
+        UiElement::setup(id, parentElement);
         _fileGuid = fileGuid;
         _file = _assetConfig.getFileByGuid(_fileGuid);
         _button = &UiPool::labelButtonPool.get().setup(TextFormat("%s_button", id), this, "");
@@ -27,7 +28,6 @@ namespace BreadEditor {
         });
 
         initOptionsOwner(this);
-        UiElement::setup(id, parentElement);
         return *this;
     }
 

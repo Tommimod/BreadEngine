@@ -217,14 +217,14 @@ namespace BreadEngine {
         Logger::LogInfo("Game module unloaded.");
     }
 
-    bool Engine::isCollisionPointRec(const Vector2 point, const Rectangle rec)
+    bool Engine::isCollisionPointRec(const Vector2 point, const Rectangle &rec)
     {
         ZoneScoped;
         return point.x >= rec.x && point.x <= rec.x + rec.width &&
                point.y >= rec.y && point.y <= rec.y + rec.height;
     }
 
-    bool Engine::isCollisionPointRec(const Vector2 point, const Rectangle rec, const Rectangle subtraction)
+    bool Engine::isCollisionPointRec(const Vector2 point, const Rectangle &rec, const Rectangle &subtraction)
     {
         ZoneScoped;
         const auto inMainRect = isCollisionPointRec(point, rec);

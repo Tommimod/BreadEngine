@@ -10,15 +10,15 @@ namespace BreadEditor {
 
     UiButton &UiButton::setup(const std::string_view &id, const std::string &newText)
     {
-        this->_text = newText;
         UiElement::setup(id);
+        this->_text = newText;
         return *this;
     }
 
     UiButton &UiButton::setup(const std::string_view &id, UiElement *parentElement, const std::string &newText)
     {
-        this->_text = newText;
         UiElement::setup(id, parentElement);
+        this->_text = newText;
         return *this;
     }
 

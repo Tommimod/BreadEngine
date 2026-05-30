@@ -14,8 +14,6 @@ namespace BreadEditor {
 
         CustomDropdownUiElement &setup(const std::string_view &id, UiElement *parentElement, const std::vector<std::string> &options);
 
-        void awake() override;
-
         void draw(float deltaTime) override;
 
         void dispose() override;
@@ -23,6 +21,9 @@ namespace BreadEditor {
         void setOptions(const std::vector<std::string> &options);
 
         void close();
+
+    protected:
+        void awake() override;
 
     private:
         UiLabelButton *_lastClickedButton = nullptr;

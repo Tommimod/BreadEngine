@@ -8,12 +8,14 @@ namespace BreadEditor {
 
     UiPanel &UiPanel::setup(const std::string_view &id)
     {
-        return dynamic_cast<UiPanel &>(UiElement::setup(id));
+        UiElement::setup(id);
+        return *this;
     }
 
     UiPanel &UiPanel::setup(const std::string_view &id, UiElement *parentElement)
     {
-        return dynamic_cast<UiPanel &>(UiElement::setup(id, parentElement));
+        UiElement::setup(id, parentElement);
+        return *this;
     }
 
     UiPanel::~UiPanel()

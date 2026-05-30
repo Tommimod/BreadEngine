@@ -6,10 +6,10 @@
 namespace BreadEditor {
     RenameUiElement &RenameUiElement::setup(const std::string &fromName)
     {
-        _text = fromName;
         const auto root = &Editor::getInstance().mainWindow;
         UiElement::setup(_title, root);
 
+        _text = fromName;
         setAnchor(UI_CENTER_CENTER);
         setPivot({.5f, .5f});
         setSize({200, 80});

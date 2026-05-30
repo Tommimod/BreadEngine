@@ -10,9 +10,10 @@ namespace BreadEditor {
 
     UiToolbar &UiToolbar::setup(const string_view &id, UiElement *parentElement, const vector<string_view> &buttonNames, const bool isVisualAsLabel)
     {
+        UiElement::setup(id, parentElement);
         _isVisualAsLabel = isVisualAsLabel;
         replaceButtons(buttonNames);
-        return dynamic_cast<UiToolbar &>(UiElement::setup(id, parentElement));
+        return *this;
     }
 
     UiToolbar::~UiToolbar() = default;

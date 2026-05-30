@@ -7,28 +7,29 @@
 namespace BreadEditor {
     UiColorSelector &UiColorSelector::setup(const std::string_view &id, const Color color)
     {
+        UiElement::setup(id);
         _color = color;
         _color4 = ColorUtils::ToVector4(color);
         _internalColor = &_color;
         _internalValue4 = &_color4;
         _internalAlpha = &_color4.w;
-        UiElement::setup(id);
         return *this;
     }
 
     UiColorSelector &UiColorSelector::setup(const std::string_view &id, UiElement *parentElement, const Color color)
     {
+        UiElement::setup(id, parentElement);
         _color = color;
         _color4 = ColorUtils::ToVector4(color);
         _internalColor = &_color;
         _internalValue4 = &_color4;
         _internalAlpha = &_color4.w;
-        UiElement::setup(id, parentElement);
         return *this;
     }
 
     UiColorSelector &UiColorSelector::setup(const std::string_view &id, UiElement *parentElement, const Color color, UiElement *uiColorElement)
     {
+        UiElement::setup(id, parentElement);
         _color = color;
         _color4 = ColorUtils::ToVector4(color);
         _internalColor = &_color;
@@ -36,7 +37,6 @@ namespace BreadEditor {
         _internalAlpha = &_color4.w;
         _uiColorElement = dynamic_cast<UiColor *>(uiColorElement);
         _uiColorElement->setUpdateState(false);
-        UiElement::setup(id, parentElement);
         return *this;
     }
 

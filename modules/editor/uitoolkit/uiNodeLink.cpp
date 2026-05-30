@@ -10,29 +10,29 @@
 namespace BreadEditor {
     UiNodeLink &UiNodeLink::setup(const std::string_view &id, Component *component)
     {
-        _component = component;
         UiElement::setup(id);
+        _component = component;
         return *this;
     }
 
     UiNodeLink &UiNodeLink::setup(const std::string_view &id, std::function<Component *()> getFunc)
     {
-        _getFunc = std::move(getFunc);
         UiElement::setup(id);
+        _getFunc = std::move(getFunc);
         return *this;
     }
 
     UiNodeLink &UiNodeLink::setup(const std::string_view &id, UiElement *parentElement, Component *component)
     {
-        _component = component;
         UiElement::setup(id, parentElement);
+        _component = component;
         return *this;
     }
 
     UiNodeLink &UiNodeLink::setup(const std::string_view &id, UiElement *parentElement, std::function<Component *()> getFunc)
     {
-        _getFunc = std::move(getFunc);
         UiElement::setup(id, parentElement);
+        _getFunc = std::move(getFunc);
         return *this;
     }
 

@@ -8,23 +8,23 @@ namespace BreadEditor {
 
     UiColor &UiColor::setup(const std::string_view &id, const Color color)
     {
-        _value = color;
         UiElement::setup(id);
+        _value = color;
         return *this;
     }
 
     UiColor &UiColor::setup(const std::string_view &id, UiElement *parentElement, const Color color)
     {
-        _value = color;
         UiElement::setup(id, parentElement);
+        _value = color;
         return *this;
     }
 
     UiColor &UiColor::setup(const std::string_view &id, UiElement *parentElement, const std::function<Color()> &getFunc)
     {
+        UiElement::setup(id, parentElement);
         _getFunc = getFunc;
         _value = getFunc();
-        UiElement::setup(id, parentElement);
         return *this;
     }
 

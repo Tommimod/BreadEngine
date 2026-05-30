@@ -43,6 +43,8 @@ namespace BreadEditor {
     class UiElement : public BreadEngine::IDisposable
     {
     public:
+        constexpr static int maxChildsDepth = 6;
+
         std::string id;
         bool isActive = true;
         bool isStatic = false;
@@ -119,6 +121,8 @@ namespace BreadEditor {
         [[nodiscard]] int getIndex() const;
 
         [[nodiscard]] bool getIsIgnoreScrollLayout() const;
+
+        [[nodiscard]] int getDepth() const;
 
         void setLayoutType(LAYOUT_TYPE layout);
 
@@ -200,10 +204,16 @@ namespace BreadEditor {
 
         [[nodiscard]] static bool IsNullRectangle(const Rectangle &rectangle);
 
+        virtual void onClickedRay();
+
+        virtual bool isCollisionPointRec(Vector2 pos, Rectangle &bounds);
+
     private:
         friend class Editor;
+        friend class MainWindow;
         std::vector<UiElement *> _childs{};
         Vector2 _scrollOffset{0, 0};
+        int _depth = -1;
         bool _isDirty = true;
         bool _onOverlayLayer = false;
 
@@ -223,5 +233,9 @@ namespace BreadEditor {
 
         [[nodiscard]]
         bool isShouldBeCulled() const;
+
+        bool tryClickInternal(Vector2 clickPos);
+
+        void setDepth(int depth);
     };
 } // namespace BreadEditor

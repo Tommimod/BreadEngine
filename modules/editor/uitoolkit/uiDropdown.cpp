@@ -12,8 +12,8 @@ namespace BreadEditor {
 
     UiDropdown &UiDropdown::setup(const std::string_view &id, const std::vector<std::string> &options, const bool isPermanent)
     {
-        changeOptions(options);
         UiElement::setup(id);
+        changeOptions(options);
         _isShouldBeDeleted = !isPermanent;
         _inOpenState = _isShouldBeDeleted;
 
@@ -23,8 +23,8 @@ namespace BreadEditor {
 
     UiDropdown &UiDropdown::setup(const std::string_view &id, UiElement *parentElement, const std::vector<std::string> &options, const bool isPermanent)
     {
-        changeOptions(options);
         UiElement::setup(id, parentElement);
+        changeOptions(options);
         _isShouldBeDeleted = !isPermanent;
         _inOpenState = _isShouldBeDeleted;
 
@@ -43,7 +43,7 @@ namespace BreadEditor {
         EditorStyle::setDrowDownBoxTextAlignment(_textAlignment);
         if (GuiDropdownBox(_bounds, _optionsForGui, &_selectedOption, _inOpenState))
         {
-            if (!isCollisionPointRec(GetMousePosition()))
+            if (!isCollisionPointRec(GetMousePosition(), _bounds))
             {
                 _selectedOption = -2;
             }
@@ -54,7 +54,7 @@ namespace BreadEditor {
 
     void UiDropdown::update(const float deltaTime)
     {
-        if (_isShouldBeDeleted && !isCollisionPointRec(GetMousePosition())
+        if (_isShouldBeDeleted && !isCollisionPointRec(GetMousePosition(), _bounds)
             && (IsMouseButtonPressed(MOUSE_RIGHT_BUTTON) || IsMouseButtonPressed(MOUSE_LEFT_BUTTON)))
         {
             getParentElement()->destroyChild(this);
@@ -67,7 +67,7 @@ namespace BreadEditor {
                 enableOverlayLayer();
             }
 
-            if (_inOpenState && !isCollisionPointRec(GetMousePosition()))
+            if (_inOpenState && !isCollisionPointRec(GetMousePosition(), _bounds))
             {
                 _inOpenState = false;
                 disableOverlayLayer();
@@ -114,10 +114,10 @@ namespace BreadEditor {
         return true;
     }
 
-    bool UiDropdown::isCollisionPointRec(const Vector2 point) const
+    bool UiDropdown::isCollisionPointRec(const Vector2 point, Rectangle &bounds)
     {
-        const auto elementsSize = (_bounds.height + static_cast<float>(GuiGetStyle(DROPDOWNBOX, DROPDOWN_ITEMS_SPACING))) * static_cast<float>(_elementsCount);
-        return point.x >= _bounds.x && point.x <= _bounds.x + _bounds.width &&
-               point.y >= _bounds.y && point.y <= _bounds.y + _bounds.height + elementsSize;
+        const auto elementsSize = (bounds.height + static_cast<float>(GuiGetStyle(DROPDOWNBOX, DROPDOWN_ITEMS_SPACING))) * static_cast<float>(_elementsCount);
+        return point.x >= bounds.x && point.x <= bounds.x + bounds.width &&
+               point.y >= bounds.y && point.y <= bounds.y + bounds.height + elementsSize;
     }
 } // BreadEditor

@@ -6,10 +6,12 @@
 
 namespace BreadEditor {
     constexpr int BUFFER_SIZE = 127;
+
     UiTextBox::UiTextBox() = default;
 
     UiTextBox &UiTextBox::setup(const std::string_view &id, const std::string &defaultText, const int defaultTextSize, const bool defaultEditMode)
     {
+        UiElement::setup(id);
         _internalText = defaultText;
         _textSize = defaultTextSize;
         _textBuffer.resize(BUFFER_SIZE + 1);
@@ -17,12 +19,12 @@ namespace BreadEditor {
         _textBuffer[BUFFER_SIZE] = '\0';
         _text = _textBuffer.data();
         _editMode = defaultEditMode;
-        UiElement::setup(id);
         return *this;
     }
 
     UiTextBox &UiTextBox::setup(const std::string_view &id, UiElement *parentElement, const std::string &defaultText, const int defaultTextSize, const bool defaultEditMode)
     {
+        UiElement::setup(id, parentElement);
         _internalText = defaultText;
         _textSize = defaultTextSize;
         _textBuffer.resize(BUFFER_SIZE + 1);
@@ -30,12 +32,12 @@ namespace BreadEditor {
         _textBuffer[BUFFER_SIZE] = '\0';
         _text = _textBuffer.data();
         _editMode = defaultEditMode;
-        UiElement::setup(id, parentElement);
         return *this;
     }
 
     UiTextBox &UiTextBox::setup(const std::string_view &id, UiElement *parentElement, std::function<std::string()> getFunc, const int defaultTextSize, const bool defaultEditMode)
     {
+        UiElement::setup(id, parentElement);
         _getFunc = std::move(getFunc);
         _internalText = _getFunc();
         _textSize = defaultTextSize;
@@ -44,7 +46,6 @@ namespace BreadEditor {
         _textBuffer[BUFFER_SIZE] = '\0';
         _text = _textBuffer.data();
         _editMode = defaultEditMode;
-        UiElement::setup(id, parentElement);
         return *this;
     }
 

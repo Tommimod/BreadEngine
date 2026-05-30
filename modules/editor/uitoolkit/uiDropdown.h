@@ -31,10 +31,10 @@ namespace BreadEditor {
 
         [[nodiscard]] int getSelected() const { return _selectedOption; }
 
-        [[nodiscard]] bool isCollisionPointRec(Vector2 point) const;
-
     protected:
         bool tryDeleteSelf() override;
+
+        [[nodiscard]] bool isCollisionPointRec(Vector2 point, Rectangle &bounds) override;
 
     private:
         GuiTextAlignment _textAlignment = TEXT_ALIGN_CENTER;

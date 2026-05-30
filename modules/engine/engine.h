@@ -45,10 +45,10 @@ namespace BreadEngine {
         void initializeSystems();
 
         // Check if point is inside rectangle
-        static bool isCollisionPointRec(Vector2 point, Rectangle rec);
+        static bool isCollisionPointRec(Vector2 point, const Rectangle &rec);
 
         // Check if point is inside rectangle with hole
-        static bool isCollisionPointRec(Vector2 point, Rectangle rec, Rectangle subtraction);
+        static bool isCollisionPointRec(Vector2 point, const Rectangle &rec, const Rectangle &subtraction);
 
         [[nodiscard]] AssetsConfig &getAssetsConfig() { return _fileSystem; }
 

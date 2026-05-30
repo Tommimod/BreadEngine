@@ -6,29 +6,29 @@
 namespace BreadEditor {
     UiAssetLink &UiAssetLink::setup(const std::string_view &id, Asset *asset)
     {
-        _asset = asset;
         UiElement::setup(id);
+        _asset = asset;
         return *this;
     }
 
     UiAssetLink &UiAssetLink::setup(const std::string_view &id, std::function<Asset *()> getFunc)
     {
-        _getFunc = std::move(getFunc);
         UiElement::setup(id);
+        _getFunc = std::move(getFunc);
         return *this;
     }
 
     UiAssetLink &UiAssetLink::setup(const std::string_view &id, UiElement *parentElement, Asset *asset)
     {
-        _asset = asset;
         UiElement::setup(id, parentElement);
+        _asset = asset;
         return *this;
     }
 
     UiAssetLink &UiAssetLink::setup(const std::string_view &id, UiElement *parentElement, std::function<Asset *()> getFunc)
     {
-        _getFunc = std::move(getFunc);
         UiElement::setup(id, parentElement);
+        _getFunc = std::move(getFunc);
         return *this;
     }
 
