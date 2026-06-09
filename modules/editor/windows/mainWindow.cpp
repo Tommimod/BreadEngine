@@ -214,7 +214,7 @@ namespace BreadEditor {
     void MainWindow::processRaycast(const Vector2 ray) const
     {
         std::array<std::vector<UiElement *>, maxChildsDepth> result;
-        fillChildListByDepth(this, result);
+        fillChildListByDepth(this, ray, result);
         for (int i = maxChildsDepth - 1; i >= 0; i--)
         {
             auto &childsByDepth = result[i];
@@ -228,7 +228,7 @@ namespace BreadEditor {
         }
     }
 
-    void MainWindow::fillChildListByDepth(const UiElement *element, std::array<std::vector<UiElement *>, maxChildsDepth> &result)
+    void MainWindow::fillChildListByDepth(const UiElement *element, const Vector2 &ray, std::array<std::vector<UiElement *>, maxChildsDepth> &result)
     {
         const auto childs = element->getAllChilds();
         if (childs.empty()) return;
@@ -240,8 +240,13 @@ namespace BreadEditor {
 
         for (auto child: childs)
         {
+            if (!child->isCollisionPointRec(ray, child->getBounds()))
+            {
+                continue;
+            }
+
             result[child->getDepth()].emplace_back(child);
-            //fillChildListByDepth(child, result);
+            fillChildListByDepth(child, ray, result);
         }
     }
 } // namespace BreadEditor
