@@ -43,8 +43,6 @@ namespace BreadEditor {
     class UiElement : public BreadEngine::IDisposable
     {
     public:
-        constexpr static int maxChildsDepth = 6;
-
         std::string id;
         bool isActive = true;
         bool isStatic = false;
@@ -204,8 +202,6 @@ namespace BreadEditor {
 
         [[nodiscard]] static bool IsNullRectangle(const Rectangle &rectangle);
 
-        virtual void onClickedRay();
-
         virtual bool isCollisionPointRec(Vector2 pos, Rectangle &bounds);
 
     private:
@@ -233,8 +229,6 @@ namespace BreadEditor {
 
         [[nodiscard]]
         bool isShouldBeCulled() const;
-
-        bool tryClickInternal(Vector2 clickPos);
 
         void setDepth(int depth);
     };

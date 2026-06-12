@@ -134,10 +134,6 @@ namespace BreadEditor {
         mainWindow.updateInternal(deltaTime);
         _cameraSystem.update(deltaTime);
         CursorSystem::draw();
-        if (IsMouseButtonPressed(MOUSE_LEFT_BUTTON))
-        {
-            mainWindow.processRaycast(GetMousePosition());
-        }
     }
 
     void Editor::render2D(RenderTexture2D &renderTexture, const float deltaTime)

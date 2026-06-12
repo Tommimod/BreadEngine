@@ -62,9 +62,5 @@ namespace BreadEditor {
         [[nodiscard]] UiToolbar &getToolbar();
 
         void resize();
-
-        void processRaycast(Vector2 ray) const;
-
-        static void fillChildListByDepth(const UiElement *element, const Vector2 &ray, std::array<std::vector<UiElement *>, maxChildsDepth> &result);
     };
 } // namespace BreadEditor

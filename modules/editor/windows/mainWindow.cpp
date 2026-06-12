@@ -210,43 +210,4 @@ namespace BreadEditor {
         _bottomSide->setSizePercentOneTime(_bottomSide->getSizeInPercent());
         _rightSide->setSizePercentOneTime(_rightSide->getSizeInPercent());
     }
-
-    void MainWindow::processRaycast(const Vector2 ray) const
-    {
-        std::array<std::vector<UiElement *>, maxChildsDepth> result;
-        fillChildListByDepth(this, ray, result);
-        for (int i = maxChildsDepth - 1; i >= 0; i--)
-        {
-            auto &childsByDepth = result[i];
-            for (const auto child: childsByDepth)
-            {
-                if (child->tryClickInternal(ray))
-                {
-                    return;
-                }
-            }
-        }
-    }
-
-    void MainWindow::fillChildListByDepth(const UiElement *element, const Vector2 &ray, std::array<std::vector<UiElement *>, maxChildsDepth> &result)
-    {
-        const auto childs = element->getAllChilds();
-        if (childs.empty()) return;
-
-        if (static_cast<int>(childs.size()) > static_cast<int>(result[childs[0]->getDepth()].size()))
-        {
-            result[childs[0]->getDepth()].reserve(static_cast<int>(childs.size()));
-        }
-
-        for (auto child: childs)
-        {
-            if (!child->isCollisionPointRec(ray, child->getBounds()))
-            {
-                continue;
-            }
-
-            result[child->getDepth()].emplace_back(child);
-            fillChildListByDepth(child, ray, result);
-        }
-    }
 } // namespace BreadEditor

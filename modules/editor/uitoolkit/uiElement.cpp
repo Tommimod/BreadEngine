@@ -653,7 +653,7 @@ namespace BreadEditor {
 
     void UiElement::enableOverlayLayer()
     {
-        setDepth(maxChildsDepth - 1);
+        setDepth(100);
         _onOverlayLayer = true;
         const auto root = getRootElement();
         root->_overlayChilds.emplace_back(this);
@@ -661,6 +661,7 @@ namespace BreadEditor {
 
     void UiElement::disableOverlayLayer()
     {
+        setDepth(getParentElement()->getDepth() + 1);
         _onOverlayLayer = false;
         const auto root = getRootElement();
         std::erase(root->_overlayChilds, this);
@@ -829,11 +830,6 @@ namespace BreadEditor {
                rectangle.y == 0 &&
                rectangle.width == 1 &&
                rectangle.height == 1;
-    }
-
-    void UiElement::onClickedRay()
-    {
-        Logger::LogInfo(TextFormat("%s clicked", id.c_str()));
     }
 
     bool UiElement::isCollisionPointRec(const Vector2 pos, Rectangle &bounds)
@@ -1049,24 +1045,12 @@ namespace BreadEditor {
         return isFullyOutside;
     }
 
-    bool UiElement::tryClickInternal(const Vector2 clickPos)
-    {
-        if (isCollisionPointRec(clickPos, _bounds))
-        {
-            onClickedRay();
-            return true;
-        }
-
-        return false;
-    }
-
     void UiElement::setDepth(const int depth)
     {
-        const auto nextDepth = std::min(depth, maxChildsDepth - 1);
-        _depth = nextDepth;
+        _depth = depth;
         for (const auto child: getAllChilds())
         {
-            child->setDepth(nextDepth + 1);
+            child->setDepth(depth + 1);
         }
     }
 } // namespace BreadEditor
