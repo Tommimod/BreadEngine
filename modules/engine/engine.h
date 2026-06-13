@@ -60,10 +60,15 @@ namespace BreadEngine {
 
         [[nodiscard]] static bool isShuttingDown() { return _isShuttingDown; }
 
+        [[nodiscard]] static bool isRuntime() { return _isRuntime; }
+
+        static void setRuntime(const bool runtime) { _isRuntime = runtime; }
+
     private:
         static std::unique_ptr<Engine> _instance;
         static Node _rootNode;
         static bool _isShuttingDown;
+        static bool _isRuntime;
 
         AssetsConfig _fileSystem;
         GlobalLightSettings _globalLightSettings;

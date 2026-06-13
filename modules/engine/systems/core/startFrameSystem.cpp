@@ -1,5 +1,7 @@
 ﻿#include "startFrameSystem.h"
 
+#include "engine.h"
+
 namespace BreadEngine {
     bool StartFrameSystem::isValid(const Node *node)
     {
@@ -13,6 +15,7 @@ namespace BreadEngine {
 
     void StartFrameSystem::startFrameInternal(Node *node, const float deltaTime)
     {
+        if (onlyRuntime() && !Engine::isRuntime()) return;
         if (_isValidLogicEnabled)
         {
             if (!isValid(node)) return;

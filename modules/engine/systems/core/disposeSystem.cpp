@@ -1,5 +1,7 @@
 ﻿#include "disposeSystem.h"
 
+#include "engine.h"
+
 namespace BreadEngine {
     bool DisposeSystem::isValid(const Node *node)
     {
@@ -13,6 +15,7 @@ namespace BreadEngine {
 
     void DisposeSystem::onDisposeInternal(Node *node, const float deltaTime)
     {
+        if (onlyRuntime() && !Engine::isRuntime()) return;
         if (_isValidLogicEnabled)
         {
             if (!isValid(node)) return;

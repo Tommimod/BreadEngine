@@ -1,5 +1,7 @@
 ﻿#include "updateSystem.h"
 
+#include "engine.h"
+
 namespace BreadEngine {
     bool UpdateSystem::isValid(const Node *node)
     {
@@ -13,6 +15,7 @@ namespace BreadEngine {
 
     void UpdateSystem::updateInternal(Node *node, const float deltaTime)
     {
+        if (onlyRuntime() && !Engine::isRuntime()) return;
         if (_isValidLogicEnabled)
         {
             if (!isValid(node)) return;

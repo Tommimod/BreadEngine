@@ -17,5 +17,8 @@ namespace BreadEngine {
         [[nodiscard]] virtual bool isDispose() const { return false; }
 
         [[nodiscard]] virtual bool isValid(const Node *node);
+
+    protected:
+        virtual bool onlyRuntime() const { return false; }
     };
 } // BreadEngine

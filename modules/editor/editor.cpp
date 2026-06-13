@@ -231,6 +231,8 @@ namespace BreadEditor {
         Logger::LogInfo(gamePath);
         Engine::getInstance().loadGameModule(gamePath.c_str());
         _isPlayMode = true;
+        Engine::setRuntime(_isPlayMode);
+        Logger::LogInfo("Game started");
         return true;
     }
 
@@ -239,6 +241,8 @@ namespace BreadEditor {
         ZoneScoped;
         Engine::getInstance().unloadGameModule();
         _isPlayMode = false;
+        Engine::setRuntime(_isPlayMode);
+        Logger::LogInfo("Game stopped");
     }
 
     void Editor::pauseGame()

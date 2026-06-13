@@ -12,6 +12,7 @@
 #include "systems/meshRendererSystem.h"
 #include "systems/spriteRendererSystem.h"
 #include "systems/globalLightSystem.h"
+#include "systems/lerpPositionSystem.h"
 #include "systems/resetChangedFromEditorSystem.h"
 #include "validators/mandatoryProjectFilesValidator.h"
 
@@ -19,6 +20,7 @@ namespace BreadEngine {
     std::unique_ptr<Engine> Engine::_instance = std::make_unique<Engine>();
     Node Engine::_rootNode = {};
     bool Engine::_isShuttingDown = false;
+    bool Engine::_isRuntime = false;
 
     void Engine::initializeSystems()
     {
@@ -29,6 +31,7 @@ namespace BreadEngine {
                 .addSystem<SpriteRendererSystem>()
                 .addSystem<MeshRendererSystem>()
                 .addSystem<GlobalLightSystem>()
+                .addSystem<LerpPositionSystem>()
 
                 //reset
                 .addSystem<ResetChangedFromEditorSystem>();

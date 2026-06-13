@@ -1,5 +1,7 @@
 ﻿#include "fixedUpdateSystem.h"
 
+#include "engine.h"
+
 namespace BreadEngine {
     bool FixedUpdateSystem::isValid(const Node *node)
     {
@@ -13,6 +15,7 @@ namespace BreadEngine {
 
     void FixedUpdateSystem::fixedUpdateInternal(Node *node, const float fixedDeltaTime)
     {
+        if (onlyRuntime() && !Engine::isRuntime()) return;
         if (_isValidLogicEnabled)
         {
             if (!isValid(node)) fixedUpdate(node, fixedDeltaTime);

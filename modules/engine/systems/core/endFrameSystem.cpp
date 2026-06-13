@@ -1,5 +1,7 @@
 ﻿#include "endFrameSystem.h"
 
+#include "engine.h"
+
 namespace BreadEngine {
     bool EndOfFrameSystem::isValid(const Node *node)
     {
@@ -13,6 +15,7 @@ namespace BreadEngine {
 
     void EndOfFrameSystem::endOfFrameInternal(Node *node, const float deltaTime)
     {
+        if (onlyRuntime() && !Engine::isRuntime()) return;
         if (_isValidLogicEnabled)
         {
             if (!isValid(node)) return;
