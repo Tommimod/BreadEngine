@@ -33,10 +33,10 @@ namespace BreadEngine {
         INSPECTOR_BEGIN(LerpPosition)
             INSPECT_FIELD(_isPongMode)
             INSPECT_FIELD(_isSpeedMode)
-            INSPECT_FIELD_COND(speed, [](const LerpPosition* lerp) {return lerp->_isSpeedMode;})
+            INSPECT_FIELD_COND(speed, [](const LerpPosition* lerp) {return lerp->_isSpeedMode == true;})
             INSPECT_FIELD(duration)
             INSPECT_FIELD(position)
-            INSPECT_FIELD_COND(backPosition, [](const LerpPosition* lerp) {return lerp->_isPongMode;})
+            INSPECT_FIELD_COND(backPosition, [](const LerpPosition* lerp) {return lerp->_isPongMode == true;})
         INSPECTOR_END()
     };
 } // BreadEngine

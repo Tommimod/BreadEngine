@@ -234,6 +234,25 @@ namespace BreadEditor {
             }
         });
         UiWindow::subscribe();
+
+        ComponentsProvider::onComponentRemoved.subscribe([this](const unsigned int ownerId, const std::type_index type)
+        {
+            if (_engineNode == nullptr) return;
+            if (_engineNode->getId() != ownerId) return;
+            for (int i = 0; i < static_cast<int>(_trackedComponents.size()); i++)
+            {
+                const auto component = _trackedComponents[i];
+                auto componentType = std::type_index(typeid(*component));
+                if (componentType == type)
+                {
+                    _trackedComponents.erase(_trackedComponents.begin() + i);
+                    _content->destroyChild(_uiComponentElements[i]);
+                    _uiComponentElements.erase(_uiComponentElements.begin() + i);
+                    adjustAddComponentButtonPosition();
+                    break;
+                }
+            }
+        });
     }
 
     void PropertyInspectorWindow::unsubscribe()

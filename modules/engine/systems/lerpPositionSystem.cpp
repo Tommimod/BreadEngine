@@ -28,17 +28,25 @@ namespace BreadEngine {
                 const auto direction = Vector3Subtract(finishPosition, currentPosition);
                 const auto normal = Vector3Normalize(direction);
                 currentPosition = Vector3Add(currentPosition, Vector3Scale(normal, lerpPosition.speed * deltaTime));
-                lerpPosition._progress = 0;
+
+                const auto startDistance = Vector3Distance(lerpPosition._startPosition, finishPosition);
+                const auto currentDistance = Vector3Distance(currentPosition, finishPosition);
+                lerpPosition._progress = 1.0f - (currentDistance / startDistance);
+                if (lerpPosition._progress >= 1.0f)
+                {
+                    lerpPosition._progress = 0;
+                    currentPosition = finishPosition;
+                }
             }
             else
             {
                 lerpPosition._progress += deltaTime;
-                currentPosition = Vector3Lerp(lerpPosition._startPosition, finishPosition, lerpPosition._progress);
-                if (lerpPosition._progress >= lerpPosition.duration)
+                const auto progress = lerpPosition._progress / lerpPosition.duration;
+                currentPosition = Vector3Lerp(lerpPosition._startPosition, finishPosition, progress);
+                if (progress >= 1.0f)
                 {
-                    lerpPosition._isFinished = true;
                     lerpPosition._progress = 0;
-                    lerpPosition._startPosition = currentPosition;
+                    currentPosition = finishPosition;
                 }
             }
         }
@@ -52,23 +60,40 @@ namespace BreadEngine {
 
                 const auto startDistance = Vector3Distance(lerpPosition._startPosition, finishPosition);
                 const auto currentDistance = Vector3Distance(currentPosition, finishPosition);
-                lerpPosition._progress = currentDistance / startDistance;
+                lerpPosition._progress = 1.0f - (currentDistance / startDistance);
+                if (lerpPosition._progress >= 1.0f)
+                {
+                    currentPosition = finishPosition;
+                }
             }
             else
             {
                 lerpPosition._progress += deltaTime;
-                currentPosition = Vector3Lerp(lerpPosition._startPosition, finishPosition, lerpPosition._progress);
-                if (lerpPosition._progress >= lerpPosition.duration)
+                const auto progress = lerpPosition._progress / lerpPosition.duration;
+                currentPosition = Vector3Lerp(lerpPosition._startPosition, finishPosition, progress);
+                if (progress >= 1.0f)
                 {
-                    lerpPosition._isFinished = true;
+                    currentPosition = finishPosition;
                 }
             }
         }
 
         transform.setLocalPosition(currentPosition);
-        if (Vector3Distance(currentPosition, finishPosition) < 0.001f)
+        const auto distance = Vector3Distance(currentPosition, finishPosition);
+        if (distance < 0.001f)
         {
-            lerpPosition._isFinished = true;
+            lerpPosition._isFinished = !lerpPosition._isFinished;
+            lerpPosition._startPosition = currentPosition;
+        }
+    }
+
+    void LerpPositionSystem::endOnFrame(Node *node, float deltaTime)
+    {
+        if (!node->has<LerpPosition>()) return;
+        const auto &lerpPosition = node->get<LerpPosition>();
+        if (lerpPosition._isFinished && !lerpPosition._isPongMode)
+        {
+            node->remove<LerpPosition>();
         }
     }
 } // BreadEngine

@@ -58,7 +58,7 @@ namespace BreadEditor {
         }
 
         int i = 1;
-        for (const auto &child: _fields)
+        for (const auto child: _fields)
         {
             if (i == getChildCount() - 1)
             {

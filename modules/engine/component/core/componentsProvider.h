@@ -19,6 +19,9 @@ namespace BreadEngine {
         static constexpr size_t MAX_MASK_COUNT = (MAX_COMPONENTS + 63) / 64;
         using ComponentMaskArray = std::array<uint64_t, MAX_MASK_COUNT>;
 
+        static Action<unsigned int, std::type_index> onComponentAdded;
+        static Action<unsigned int, std::type_index> onComponentRemoved;
+
         static ComponentMaskArray GetComponentMasks(const unsigned int ownerId, const int maskCount)
         {
             ComponentMaskArray masks{};
@@ -75,6 +78,7 @@ namespace BreadEngine {
             auto &baseChunk = *it->second;
             comp->onCreate();
             baseChunk.addComponent(ownerId, std::move(comp), true);
+            onComponentAdded.invoke(ownerId, ti);
         }
 
         static void addDynamic(const unsigned int ownerId, const std::type_index type, std::unique_ptr<Component> component)
@@ -99,6 +103,7 @@ namespace BreadEngine {
             auto &baseChunk = *it->second;
             component->onCreate();
             baseChunk.addComponent(ownerId, std::move(component), true);
+            onComponentAdded.invoke(ownerId, ti);
         }
 
         static void addDynamic(const unsigned int ownerId, const std::string &componentType, const YAML::Node &node)
@@ -130,6 +135,7 @@ namespace BreadEngine {
             auto &baseChunk = *it->second;
             comp->onCreate();
             baseChunk.addComponent(ownerId, std::move(comp), true);
+            onComponentAdded.invoke(ownerId, ti);
         }
 
         template<typename T, std::enable_if_t<std::is_base_of_v<Component, T>, int> = 0>
@@ -183,6 +189,7 @@ namespace BreadEngine {
             const auto ti = std::type_index(typeid(T));
             if (const auto it = getChunks().find(ti); it != getChunks().end())
             {
+                onComponentRemoved.invoke(ownerId, ti);
                 auto &baseChunk = *it->second;
                 auto &chunk = dynamic_cast<ComponentChunk<T> &>(baseChunk);
                 chunk.remove(ownerId);
@@ -197,6 +204,7 @@ namespace BreadEngine {
         {
             if (const auto it = getChunks().find(type); it != getChunks().end())
             {
+                onComponentRemoved.invoke(ownerId, type);
                 auto &baseChunk = *it->second;
                 baseChunk.remove(ownerId);
                 if (baseChunk.isEmpty())
@@ -210,6 +218,7 @@ namespace BreadEngine {
         {
             if (const auto it = getChunks().find(type); it != getChunks().end())
             {
+                onComponentRemoved.invoke(ownerId, type);
                 auto &baseChunk = *it->second;
                 auto comp = baseChunk.removeAndGetOwnership(ownerId);
                 if (baseChunk.isEmpty())
@@ -228,6 +237,7 @@ namespace BreadEngine {
             const auto type = std::type_index(typeid(ComponentRegistry::getEntry(componentType)->ti));
             if (const auto it = getChunks().find(type); it != getChunks().end())
             {
+                onComponentRemoved.invoke(ownerId, type);
                 auto &baseChunk = *it->second;
                 baseChunk.remove(ownerId);
                 if (baseChunk.isEmpty())
@@ -318,7 +328,9 @@ namespace BreadEngine {
         {
             auto &chunk = emplaceChunk<T>();
             component.onCreate();
-            return chunk.add(ownerId, std::move(component), false);
+            auto &comp = chunk.add(ownerId, std::move(component), false);
+            onComponentAdded.invoke(ownerId, std::type_index(typeid(T)));
+            return comp;
         }
 
         static size_t &GetNextComponentID() noexcept
