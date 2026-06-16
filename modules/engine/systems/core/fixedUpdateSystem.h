@@ -1,22 +1,31 @@
-﻿#pragma once
+#pragma once
 #include "systemBase.h"
 
 namespace BreadEngine {
-    class FixedUpdateSystem : public SystemBase
+    class IFixedUpdateSystem : public virtual SystemBase
+    {
+        friend class SystemsRegistry;
+        virtual void fixedUpdateInternal(Node *node, float fixedDeltaTime) = 0;
+    };
+
+    template<typename Derived>
+    class FixedUpdateSystem : public IFixedUpdateSystem
     {
     public:
-        FixedUpdateSystem() = default;
-
-        [[nodiscard]] bool isFixedUpdate() const override { return true; }
-
-        [[nodiscard]] bool isValid(const Node *node) override;
-
         virtual void fixedUpdate(Node *node, float fixedDeltaTime) = 0;
 
     private:
-        friend class SystemsRegistry;
-        bool _isValidLogicEnabled = true;
-
-        void fixedUpdateInternal(Node *node, float fixedDeltaTime);
+        void fixedUpdateInternal(Node *node, const float fixedDeltaTime) final
+        {
+            if constexpr (Derived::kOnlyRuntime)
+            {
+                if (!isEngineRuntime()) return;
+            }
+            if constexpr (HasCustomIsValid<Derived>)
+            {
+                if (!static_cast<Derived *>(this)->isValid(node)) return;
+            }
+            static_cast<Derived *>(this)->fixedUpdate(node, fixedDeltaTime);
+        }
     };
-} // BreadEngine
+} // namespace BreadEngine

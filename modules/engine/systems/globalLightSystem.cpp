@@ -1,16 +1,19 @@
-﻿#include "globalLightSystem.h"
+#include "globalLightSystem.h"
 
 #include "cameraDirector.h"
 #include "engine.h"
+#include "nodeProvider.h"
 #include "transform.h"
 #include "component/light.h"
+#include "systems/core/filterOption.h"
 #include "utils/colorUtils.h"
 
 namespace BreadEngine {
-    void GlobalLightSystem::startFrame(Node *node, const float deltaTime)
+    void GlobalLightSystem::startFrame(const float deltaTime)
     {
         auto &globalLight = Engine::getInstance().getGlobalLightSettings();
-        const auto isFirstCall = globalLight._nativeEnvironment == nullptr;
+        const bool isFirstCall = globalLight._nativeEnvironment == nullptr;
+
         if (isFirstCall)
         {
             globalLight._nativeEnvironment = R3D_GetEnvironment();
@@ -31,51 +34,54 @@ namespace BreadEngine {
             }
         }
 
-        if (node->has<CameraDirector>())
+        static const FilterOption kCameraDirectorFilter = FilterOption::empty().with<CameraDirector>();
+        Node *cameraDirectorNode = nullptr;
+        for (const auto node: NodeProvider::getAllNodes())
         {
-            const auto camera = node->get<CameraDirector>().getActiveCamera();
-            if (!camera) return;
-
-            const auto mode = camera->getBackgroundMode();
-            const auto isSolidColorUpdate = mode == Camera::SOLID_COLOR && !ColorUtils::IsCompare(globalLight._nativeEnvironment->background.color, camera->getBackgroundColor());
-            if (!globalLight.isChangedFromEditor && !isFirstCall && !isSolidColorUpdate)
+            if (kCameraDirectorFilter.isValid(*node))
             {
-                return;
+                cameraDirectorNode = node;
+                break;
             }
+        }
 
-            globalLight.isChangedFromEditor = false;
+        if (cameraDirectorNode != nullptr)
+        {
+            const auto camera = cameraDirectorNode->get<CameraDirector>().getActiveCamera();
+            if (camera != nullptr)
+            {
+                const auto mode = camera->getBackgroundMode();
+                const bool isSolidColorUpdate = mode == Camera::SOLID_COLOR &&
+                                                !ColorUtils::IsCompare(globalLight._nativeEnvironment->background.color, camera->getBackgroundColor());
 
-            if (mode == Camera::SOLID_COLOR || (globalLight._type == GlobalLightSettings::Type::Cubemap && globalLight._skyboxTexture == nullptr))
-            {
-                const auto color = camera->getBackgroundColor();
-                globalLight._nativeEnvironment->background.color = color;
-                globalLight._nativeEnvironment->ambient.color = color;
-                globalLight._nativeEnvironment->background.sky = R3D_Cubemap{};
-                globalLight._nativeEnvironment->ambient.map = R3D_AmbientMap{};
-            }
-            else //SKYBOX
-            {
-                switch (globalLight._type)
+                if (globalLight.isChangedFromEditor || isFirstCall || isSolidColorUpdate)
                 {
-                    case GlobalLightSettings::Type::Procedural:
+                    globalLight.isChangedFromEditor = false;
+
+                    if (mode == Camera::SOLID_COLOR ||
+                        (globalLight._type == GlobalLightSettings::Type::Cubemap && globalLight._skyboxTexture == nullptr))
                     {
-                        updateProceduralSkybox(globalLight);
-                        break;
+                        const auto color = camera->getBackgroundColor();
+                        globalLight._nativeEnvironment->background.color = color;
+                        globalLight._nativeEnvironment->ambient.color = color;
+                        globalLight._nativeEnvironment->background.sky = R3D_Cubemap{};
+                        globalLight._nativeEnvironment->ambient.map = R3D_AmbientMap{};
                     }
-                    case GlobalLightSettings::Type::Cubemap:
+                    else
                     {
-                        updateCubemapSkybox(globalLight);
-                        break;
-                    }
-                    case GlobalLightSettings::Type::Custom:
-                    {
-                        updateCustomSkybox(globalLight);
-                        break;
+                        switch (globalLight._type)
+                        {
+                            case GlobalLightSettings::Type::Procedural: updateProceduralSkybox(globalLight);
+                                break;
+                            case GlobalLightSettings::Type::Cubemap: updateCubemapSkybox(globalLight);
+                                break;
+                            case GlobalLightSettings::Type::Custom: updateCustomSkybox(globalLight);
+                                break;
+                        }
+                        globalLight._nativeEnvironment->background = globalLight._background.toNative();
+                        globalLight._nativeEnvironment->ambient = globalLight._ambient.toNative();
                     }
                 }
-
-                globalLight._nativeEnvironment->background = globalLight._background.toNative();
-                globalLight._nativeEnvironment->ambient = globalLight._ambient.toNative();
             }
         }
 
@@ -92,7 +98,7 @@ namespace BreadEngine {
         updateProceduralSunPosition(globalLight);
     }
 
-    void GlobalLightSystem::onDispose(Node *node, float deltaTime)
+    void GlobalLightSystem::onDispose(const float deltaTime)
     {
         auto &globalLight = Engine::getInstance().getGlobalLightSettings();
         globalLight._background.clearTexture();
@@ -155,16 +161,10 @@ namespace BreadEngine {
             }
         }
 
-        if (light == nullptr)
-        {
-            return;
-        }
+        if (light == nullptr) return;
 
         const auto &transform = light->getOwner()->get<Transform>();
-        if (!transform.isChangedFromEditor && !light->isChangedFromEditor)
-        {
-            return;
-        }
+        if (!transform.isChangedFromEditor && !light->isChangedFromEditor) return;
 
         const auto forward = transform.getForward();
         globalLight._proceduralSkyboxSettings.sunDirection = forward;
@@ -174,4 +174,4 @@ namespace BreadEngine {
         globalLight._proceduralSkyboxSettings.sunEnergy = light->intensity;
         globalLight._nativeProceduralSky.sunEnergy = globalLight._proceduralSkyboxSettings.sunEnergy;
     }
-} // BreadEngine
+} // namespace BreadEngine

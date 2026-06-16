@@ -1,23 +1,31 @@
-﻿#pragma once
-#include "node.h"
+#pragma once
 #include "systemBase.h"
 
 namespace BreadEngine {
-    class EndOfFrameSystem : public SystemBase
+    class IEndOfFrameSystem : public virtual SystemBase
+    {
+        friend class SystemsRegistry;
+        virtual void endOfFrameInternal(Node *node, float deltaTime) = 0;
+    };
+
+    template<typename Derived>
+    class EndOfFrameSystem : public IEndOfFrameSystem
     {
     public:
-        EndOfFrameSystem() = default;
-
-        [[nodiscard]] bool isEndOnFrame() const override { return true; }
-
-        [[nodiscard]] bool isValid(const Node *node) override;
-
         virtual void endOnFrame(Node *node, float deltaTime) = 0;
 
     private:
-        friend class SystemsRegistry;
-        bool _isValidLogicEnabled = true;
-
-        void endOfFrameInternal(Node *node, float deltaTime);
+        void endOfFrameInternal(Node *node, const float deltaTime) final
+        {
+            if constexpr (Derived::kOnlyRuntime)
+            {
+                if (!isEngineRuntime()) return;
+            }
+            if constexpr (HasCustomIsValid<Derived>)
+            {
+                if (!static_cast<Derived *>(this)->isValid(node)) return;
+            }
+            static_cast<Derived *>(this)->endOnFrame(node, deltaTime);
+        }
     };
-} // BreadEngine
+} // namespace BreadEngine

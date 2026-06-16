@@ -1,10 +1,10 @@
-﻿#pragma once
+#pragma once
 #include "core/updateSystem.h"
 
 namespace BreadEngine {
-    class CameraSystem : public UpdateSystem
+    class CameraSystem final : public UpdateSystem<CameraSystem>
     {
     public:
         void update(Node *node, float deltaTime) override;
     };
-} // BreadEngine
+} // namespace BreadEngine

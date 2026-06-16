@@ -1,9 +1,9 @@
-﻿#pragma once
+#pragma once
 #include "component/camera.h"
 #include "core/updateSystem.h"
 
 namespace BreadEngine {
-    class CameraDirectorSystem : public UpdateSystem
+    class CameraDirectorSystem final : public UpdateSystem<CameraDirectorSystem>
     {
     public:
         void update(Node *node, float deltaTime) override;
@@ -11,4 +11,4 @@ namespace BreadEngine {
     private:
         std::vector<Camera *> _cameras;
     };
-} // BreadEngine
+} // namespace BreadEngine

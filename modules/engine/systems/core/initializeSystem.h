@@ -1,23 +1,27 @@
-﻿#pragma once
-#include "node.h"
+#pragma once
 #include "systemBase.h"
 
 namespace BreadEngine {
-    class InitializeSystem : public SystemBase
+    class IInitializeSystem : public virtual SystemBase
+    {
+        friend class SystemsRegistry;
+        virtual void initializeInternal(Node *node) = 0;
+    };
+
+    template<typename Derived>
+    class InitializeSystem : public IInitializeSystem
     {
     public:
-        InitializeSystem() = default;
-
-        [[nodiscard]] bool isInitialize() const override { return true; }
-
-        [[nodiscard]] bool isValid(const Node *node) override;
-
         virtual void initialize(Node *node) = 0;
 
     private:
-        friend class SystemsRegistry;
-        bool _isValidLogicEnabled = true;
-
-        void initializeInternal(Node *node);
+        void initializeInternal(Node *node) final
+        {
+            if constexpr (HasCustomIsValid<Derived>)
+            {
+                if (!static_cast<Derived *>(this)->isValid(node)) return;
+            }
+            static_cast<Derived *>(this)->initialize(node);
+        }
     };
-} // BreadEngine
+} // namespace BreadEngine

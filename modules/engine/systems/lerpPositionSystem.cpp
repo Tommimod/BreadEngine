@@ -5,7 +5,7 @@
 #include "transform.h"
 
 namespace BreadEngine {
-    void LerpPositionSystem::update(Node *node, const float deltaTime) //TODO scene snapshot on game start for restore
+    void LerpPositionSystem::update(Node *node, const float deltaTime)
     {
         if (!node->has<LerpPosition>()) return;
         auto &lerpPosition = node->get<LerpPosition>();

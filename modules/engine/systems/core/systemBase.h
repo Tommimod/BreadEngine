@@ -1,4 +1,4 @@
-﻿#pragma once
+#pragma once
 #include "node.h"
 
 namespace BreadEngine {
@@ -6,19 +6,19 @@ namespace BreadEngine {
     {
     public:
         SystemBase() = default;
-
         virtual ~SystemBase() = default;
 
-        [[nodiscard]] virtual bool isInitialize() const { return false; }
-        [[nodiscard]] virtual bool isUpdate() const { return false; }
-        [[nodiscard]] virtual bool isFixedUpdate() const { return false; }
-        [[nodiscard]] virtual bool isStartOnFrame() const { return false; }
-        [[nodiscard]] virtual bool isEndOnFrame() const { return false; }
-        [[nodiscard]] virtual bool isDispose() const { return false; }
+        static constexpr bool kOnlyRuntime = false;
 
         [[nodiscard]] virtual bool isValid(const Node *node);
 
     protected:
-        virtual bool onlyRuntime() const { return false; }
+        [[nodiscard]] static bool isEngineRuntime() noexcept;
     };
-} // BreadEngine
+
+    template<typename T>
+    concept HasCustomIsValid = !std::is_same_v<
+        decltype(&T::isValid),
+        decltype(&SystemBase::isValid)
+    >;
+} // namespace BreadEngine

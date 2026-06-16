@@ -1,10 +1,10 @@
-﻿#pragma once
+#pragma once
 #include "core/endFrameSystem.h"
 
 namespace BreadEngine {
-    class ResetChangedFromEditorSystem : public EndOfFrameSystem
+    class ResetChangedFromEditorSystem final : public EndOfFrameSystem<ResetChangedFromEditorSystem>
     {
     public:
         void endOnFrame(Node *node, float deltaTime) override;
     };
-} // BreadEngine
+} // namespace BreadEngine
