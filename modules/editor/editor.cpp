@@ -230,6 +230,10 @@ namespace BreadEditor {
 #endif
         Logger::LogInfo(gamePath);
         Engine::getInstance().loadGameModule(gamePath.c_str());
+
+        const auto tempFilePath = projectPath + "snapshot.yaml";
+        auto _ = Engine::getRootNode().serialize(tempFilePath);
+
         _isPlayMode = true;
         Engine::setRuntime(_isPlayMode);
         Logger::LogInfo("Game started");
@@ -242,6 +246,22 @@ namespace BreadEditor {
         Engine::getInstance().unloadGameModule();
         _isPlayMode = false;
         Engine::setRuntime(_isPlayMode);
+
+        const auto &projectPath = getEditorModel().getProjectPath();
+        const auto tempFilePath = projectPath + "snapshot.yaml";
+        auto &rootNode = Engine::getRootNode();
+        for (const auto node: rootNode.getAllChilds())
+        {
+            rootNode.destroyChild(node);
+        }
+
+        NodeProvider::destroyNode(rootNode);
+        auto &node = NodeProvider::createNode();
+        node.setName("Root");
+        Engine::setNodeAsRoot(node);
+        Node::deserialize(tempFilePath);
+        std::remove(tempFilePath.c_str());
+
         Logger::LogInfo("Game stopped");
     }
 
