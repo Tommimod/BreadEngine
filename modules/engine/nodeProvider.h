@@ -23,6 +23,10 @@ namespace BreadEngine {
 
         [[nodiscard]] static Node &createNode();
 
+        [[nodiscard]] static Node &createNode(unsigned int id);
+
+        static void assignId(Node &node, unsigned int id);
+
         static void destroyNode(Node &node);
 
     private:

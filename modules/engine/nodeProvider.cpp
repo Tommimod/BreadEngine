@@ -1,7 +1,10 @@
 #include "nodeProvider.h"
 #include "node.h"
 #include "objectPool.h"
+#include "logger.h"
+#include "raylib.h"
 #include "tracy/Tracy.hpp"
+#include <algorithm>
 
 namespace BreadEngine {
     auto nodeFactory = []() -> Node *
@@ -66,6 +69,34 @@ namespace BreadEngine {
     {
         auto &node = nodePool.get();
         return node;
+    }
+
+    Node &NodeProvider::createNode(const unsigned int id)
+    {
+        auto &node = nodePool.get();
+        assignId(node, id);
+        return node;
+    }
+
+    void NodeProvider::assignId(Node &node, const unsigned int id)
+    {
+        ZoneScoped;
+        if (const auto *existing = getNode(id); existing != nullptr && existing != &node)
+        {
+            Logger::LogWarning(TextFormat("NodeProvider: id %u is already assigned to another live node, overriding could cause conflicts", id));
+        }
+
+        if (const auto it = std::ranges::find(_freeIds, id); it != _freeIds.end())
+        {
+            _freeIds.erase(it);
+        }
+
+        if (id > _id)
+        {
+            _id = id;
+        }
+
+        node._id = id;
     }
 
     void NodeProvider::destroyNode(Node &node)
