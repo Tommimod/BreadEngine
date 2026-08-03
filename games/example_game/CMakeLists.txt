@@ -69,20 +69,7 @@ set_target_properties(ExampleGame PROPERTIES
     VS_DEBUGGER_WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}
 )
 
-add_custom_command(TARGET ExampleGame POST_BUILD
-        COMMAND ${CMAKE_COMMAND} -E copy_if_different
-        "${CMAKE_SOURCE_DIR}/lib/engine/libr3d.dll"
-        "${CMAKE_BINARY_DIR}/bin"
-        COMMAND ${CMAKE_COMMAND} -E copy_if_different
-        "${CMAKE_SOURCE_DIR}/lib/engine/libraylib.dll"
-        "${CMAKE_BINARY_DIR}/bin"
-        COMMAND ${CMAKE_COMMAND} -E copy_if_different
-        "${CMAKE_SOURCE_DIR}/lib/engine/assimp/libassimp-6.dll"
-        "${CMAKE_BINARY_DIR}/bin"
-        COMMAND ${CMAKE_COMMAND} -E copy_if_different
-        "${CMAKE_SOURCE_DIR}/lib/libc++.dll"
-        "${CMAKE_BINARY_DIR}/bin"
-)
+bread_copy_runtime_dlls(ExampleGame)
 
 message(STATUS "ExampleGame executable configured")
 message(STATUS "  Working directory will be: ${CMAKE_SOURCE_DIR}")

@@ -1,6 +1,6 @@
 ﻿#pragma once
 #include "inspectorObject.h"
-#include "models/reservedFileNames.h"
+#include "../../models/reservedFileNames.h"
 #include <yaml-cpp/node/node.h>
 #include <string>
 
