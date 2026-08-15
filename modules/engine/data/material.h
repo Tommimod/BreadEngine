@@ -1,7 +1,7 @@
-﻿#pragma once
+#pragma once
 #include "inspectorObject.h"
-#include "r3d_material.h"
 #include "../configs/assets/textureAsset.h"
+#include "../rendering/renderTypes.h"
 
 namespace BreadEngine {
     struct Material : InspectorStruct
@@ -12,15 +12,8 @@ namespace BreadEngine {
 
         void unload();
 
-        R3D_Material const &getNativeMaterial();
-
-        Texture2D const &getAlbedoTexture();
-
-        Texture2D const &getNormalTexture();
-
-        Texture2D const &getOmrTexture();
-
-        Texture2D const &getEmissionTexture();
+        /// Resolves the linked texture assets, starting the load of any that aren't resident.
+        const MaterialData &getData();
 
         void setAlbedoTexture(TextureAsset *texture) { _albedoTexture = texture; }
         void setNormalTexture(TextureAsset *texture) { _normalTexture = texture; }
@@ -29,12 +22,15 @@ namespace BreadEngine {
 
     private:
         std::string _shaderPath;
-        R3D_Material _nativeMaterial = R3D_GetDefaultMaterial();
+        MaterialData _data{};
         TextureAsset *_albedoTexture = nullptr;
         TextureAsset *_normalTexture = nullptr;
         TextureAsset *_omrTexture = nullptr;
         TextureAsset *_emissionTexture = nullptr;
 
+        // Edited and serialized, but not yet fed to the renderer. Wiring them up needs a
+        // migration first: materials saved so far carry _uvScale {0, 0}, which would collapse
+        // every UV the moment it starts being applied.
         Vector2 _uvOffset{};
         Vector2 _uvScale{};
         float _alphaCutoff = 0.01f;

@@ -1,8 +1,8 @@
-﻿#include "spriteRendererSystem.h"
+#include "spriteRendererSystem.h"
 
-#include "r3d_draw.h"
 #include "spriteRenderer.h"
 #include "transform.h"
+#include "rendering/renderer.h"
 
 namespace BreadEngine {
     void SpriteRendererSystem::startFrame(Node *node, float deltaTime)
@@ -18,13 +18,13 @@ namespace BreadEngine {
         }
 
         if (!spriteRenderer.isLoaded()) return;
-        if (spriteRenderer._material.getAlbedoTexture().id != spriteRenderer._textureAsset->getTexture().id)
+        if (spriteRenderer._material.getData().albedo != spriteRenderer._textureAsset->getTexture())
         {
             spriteRenderer.unload();
             spriteRenderer.loadSprite(transform.getForward());
         }
 
-        R3D_DrawMeshEx(spriteRenderer._nativeMeshRenderer, spriteRenderer._material.getNativeMaterial(), transform.getPosition(), transform.getRotationQuaternion(), transform.getScale());
+        Renderer::get().drawMesh(spriteRenderer._mesh, spriteRenderer._material.getData(), transform.getPosition(), transform.getRotationQuaternion(), transform.getScale());
     }
 
     void SpriteRendererSystem::onDispose(Node *node, float deltaTime)

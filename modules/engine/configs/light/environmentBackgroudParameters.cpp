@@ -35,7 +35,7 @@ namespace BreadEngine {
         }
 
         _skyboxTexture = texture;
-        sky = _skyboxTexture->getCubemap();
+        sky = R3D_LoadCubemap(_skyboxTexture->getAssetPath().c_str(), R3D_CUBEMAP_LAYOUT_AUTO_DETECT);
     }
 
     void EnvironmentBackgroudParameters::clearTexture()

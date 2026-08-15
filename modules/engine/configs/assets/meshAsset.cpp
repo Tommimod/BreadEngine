@@ -1,7 +1,7 @@
 ﻿#include "meshAsset.h"
 
 #include "engine.h"
-#include "r3d_model.h"
+#include "rendering/renderer.h"
 
 namespace BreadEngine {
     DEFINE_STATIC_PROPS(MeshAsset)
@@ -16,14 +16,13 @@ namespace BreadEngine {
         }
 
         _isLoaded = true;
-        auto path= getAssetPath().c_str();
-        const auto mesh = R3D_LoadModel(path);
-        for (int i = 0; i < mesh.materialCount; i++)
+        const auto materialCount = Renderer::get().getModelMaterialCount(getAssetPath());
+        for (int i = 0; i < materialCount; i++)
         {
             _materials.emplace_back();
         }
 
-        if (mesh.materialCount == 0) return;
+        if (materialCount == 0) return;
 
         const char *folder = "textures";
         const char *albedo_name = "_albedo";
@@ -75,7 +74,5 @@ namespace BreadEngine {
             const auto textureAsset = dynamic_cast<TextureAsset *>(assetsConfig.getAsset(textureFile).get());
             material.setEmissionTexture(textureAsset);
         }
-
-        R3D_UnloadModel(mesh, true);
     }
 } // BreadEngine

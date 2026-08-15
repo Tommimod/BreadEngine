@@ -1,4 +1,6 @@
 ﻿#pragma once
+#include <thread>
+
 #include "engine.h"
 #include "commands/command.h"
 #include "data/primitives/cubePrimitiveData.h"

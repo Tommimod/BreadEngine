@@ -1,6 +1,6 @@
-﻿#include "meshRenderer.h"
+#include "meshRenderer.h"
 
-#include <iostream>
+#include <sstream>
 
 #include "node.h"
 #include "transform.h"
@@ -12,6 +12,7 @@
 #include "data/primitives/slopePrimitiveData.h"
 #include "data/primitives/spherePrimitiveData.h"
 #include "data/primitives/torusPrimitiveData.h"
+#include "rendering/renderer.h"
 
 namespace BreadEngine {
     DEFINE_STATIC_PROPS(MeshRenderer)
@@ -25,35 +26,38 @@ namespace BreadEngine {
     void MeshRenderer::onCreate()
     {
         if (_meshPrimitiveData.empty()) return;
-        deserializeMeshData(_meshPrimitiveData);
-        _isLoaded = true;
+        load();
     }
 
-    void MeshRenderer::loadModel()
+    void MeshRenderer::load()
     {
+        isChangedFromEditor = false;
         if (_meshAsset == nullptr)
         {
+            if (!_meshPrimitiveData.empty()) deserializeMeshData(_meshPrimitiveData);
             _isLoaded = true;
             return;
         }
 
-        const auto path = _meshAsset->getAssetPath().c_str();
-        _nativeMeshRenderer = R3D_LoadModelEx(path, 0);
+        _model = Renderer::get().loadModel(_meshAsset->getAssetPath());
         _materials = _meshAsset->getMaterials();
-        _isLoaded = _nativeMeshRenderer.meshes != nullptr;
-        isChangedFromEditor = false;
+        _isLoaded = _model.isValid();
     }
 
     void MeshRenderer::unload()
     {
         if (!_isLoaded) return;
-        if (R3D_IsMeshValid(_nativeMesh))
+
+        auto &renderer = Renderer::get();
+        if (_mesh.isValid())
         {
-            R3D_UnloadMesh(_nativeMesh);
+            renderer.destroyMesh(_mesh);
+            _mesh = {};
         }
         else
         {
-            R3D_UnloadModel(_nativeMeshRenderer, false);
+            renderer.destroyModel(_model);
+            _model = {};
             for (auto &material: _materials)
             {
                 material.unload();
@@ -65,7 +69,7 @@ namespace BreadEngine {
 
     bool MeshRenderer::isLoaded() const
     {
-        return _isLoaded && (_meshAsset != nullptr || R3D_IsMeshValid(_nativeMesh));
+        return _isLoaded && (_meshAsset != nullptr || _mesh.isValid());
     }
 
     void MeshRenderer::setMeshAsset(MeshAsset *meshAsset)
@@ -74,11 +78,11 @@ namespace BreadEngine {
         if (_isLoaded)
         {
             unload();
-            loadModel();
+            load();
         }
     }
 
-    void MeshRenderer::setGeneratedMesh(const R3D_Mesh &mesh, MeshPrimitiveData &primitiveData)
+    void MeshRenderer::setGeneratedMesh(MeshPrimitiveData &primitiveData)
     {
         unload();
         for (auto &material: _materials)
@@ -86,10 +90,8 @@ namespace BreadEngine {
             material.unload();
         }
 
-        std::ostringstream stream;
-        stream << primitiveData.serialize();
         _meshPrimitiveData = serializeMeshData(primitiveData);
-        _nativeMesh = mesh;
+        _mesh = Renderer::get().createPrimitive(primitiveData, _owner->get<Transform>().getForward());
         _materials = {Material()};
         _isLoaded = true;
     }
@@ -105,76 +107,73 @@ namespace BreadEngine {
 
     void MeshRenderer::deserializeMeshData(const std::string &data)
     {
-        switch (auto rawNode = YAML::Load(data); static_cast<MeshPrimitiveType>(rawNode["type"].as<int>()))
+        const auto rawNode = YAML::Load(data);
+        const auto build = [&](MeshPrimitiveData &primitiveData)
+        {
+            primitiveData.deserialize(rawNode);
+            _mesh = Renderer::get().createPrimitive(primitiveData, _owner->get<Transform>().getForward());
+        };
+
+        switch (static_cast<MeshPrimitiveType>(rawNode["type"].as<int>()))
         {
             case MeshPrimitiveType::Cube:
             {
-                auto convertedData = CubePrimitiveData();
-                convertedData.deserialize(rawNode);
-                _nativeMesh = R3D_GenMeshCube(convertedData.width, convertedData.height, convertedData.depth);
+                CubePrimitiveData cube;
+                build(cube);
                 break;
             }
             case MeshPrimitiveType::Sphere:
             {
-                auto convertedData = SpherePrimitiveData();
-                convertedData.deserialize(rawNode);
-                _nativeMesh = R3D_GenMeshSphere(convertedData.radius, convertedData.rings, convertedData.slices);
+                SpherePrimitiveData sphere;
+                build(sphere);
                 break;
             }
             case MeshPrimitiveType::HalfSphere:
             {
-                auto &convertedData = SpherePrimitiveData().asHalf();
-                convertedData.deserialize(rawNode);
-                _nativeMesh = R3D_GenMeshHemiSphere(convertedData.radius, convertedData.rings, convertedData.slices);
+                SpherePrimitiveData sphere;
+                build(sphere.asHalf());
                 break;
             }
             case MeshPrimitiveType::Cylinder:
             {
-                auto convertedData = CylinderPrimitiveData();
-                convertedData.deserialize(rawNode);
-                _nativeMesh = R3D_GenMeshCylinderEx(convertedData.bottomRadius, convertedData.topRadius, convertedData.height, convertedData.slices, convertedData.stacks, convertedData.bottomCap, convertedData.topCap);
+                CylinderPrimitiveData cylinder;
+                build(cylinder);
                 break;
             }
             case MeshPrimitiveType::Capsule:
             {
-                auto convertedData = CapsulePrimitiveData();
-                convertedData.deserialize(rawNode);
-                _nativeMesh = R3D_GenMeshCapsule(convertedData.radius, convertedData.height, convertedData.rings, convertedData.slices);
+                CapsulePrimitiveData capsule;
+                build(capsule);
                 break;
             }
             case MeshPrimitiveType::Plane:
             {
-                auto convertedData = PlanePrimitiveData();
-                convertedData.deserialize(rawNode);
-                _nativeMesh = R3D_GenMeshPlane(convertedData.width, convertedData.height, convertedData.resX, convertedData.resZ);
+                PlanePrimitiveData plane;
+                build(plane);
                 break;
             }
             case MeshPrimitiveType::Quad:
             {
-                auto &convertedData = PlanePrimitiveData().asQuad();
-                convertedData.deserialize(rawNode);
-                _nativeMesh = R3D_GenMeshQuad(convertedData.width, convertedData.height, convertedData.resX, convertedData.resZ, _owner->get<Transform>().getForward());
+                PlanePrimitiveData quad;
+                build(quad.asQuad());
                 break;
             }
             case MeshPrimitiveType::Slope:
             {
-                auto convertedData = SlopePrimitiveData();
-                convertedData.deserialize(rawNode);
-                _nativeMesh = R3D_GenMeshSlope(convertedData.width, convertedData.height, convertedData.length, convertedData.normal);
+                SlopePrimitiveData slope;
+                build(slope);
                 break;
             }
             case MeshPrimitiveType::Torus:
             {
-                auto convertedData = TorusPrimitiveData();
-                convertedData.deserialize(rawNode);
-                _nativeMesh = R3D_GenMeshTorus(convertedData.radius, convertedData.size, convertedData.radiusSegments, convertedData.sides);
+                TorusPrimitiveData torus;
+                build(torus);
                 break;
             }
             case MeshPrimitiveType::FreePoly:
             {
-                auto convertedData = FreePolyPrimitiveData();
-                convertedData.deserialize(rawNode);
-                _nativeMesh = R3D_GenMeshPoly(convertedData.sides, convertedData.size, _owner->get<Transform>().getForward());
+                FreePolyPrimitiveData poly;
+                build(poly);
                 break;
             }
             case MeshPrimitiveType::None:

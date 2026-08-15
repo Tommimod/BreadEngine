@@ -1,59 +1,35 @@
-﻿#include "textureAsset.h"
+#include "textureAsset.h"
 
-#include <thread>
+#include "rendering/renderer.h"
 
 namespace BreadEngine {
-    Texture2D const &TextureAsset::getTexture()
+    TextureHandle TextureAsset::getTexture()
     {
-        if (_isLoaded) return _nativeTexture;
-        if (_loadThread.joinable()) _loadThread.join();
-        if (IsImageValid(_nativeRawImage))
-        {
-            _nativeTexture = R3D_LoadTextureFromImageEx(_nativeRawImage, _textureWrap, _textureFilter, _withColor);
-        }
-        else
-        {
-            _nativeTexture = R3D_LoadTextureEx(getFile()->getFullPath().c_str(), _textureWrap, _textureFilter, _withColor);
-        }
-
-        _isLoaded = true;
-        return _nativeTexture;
+        loadToMemory();
+        return _handle;
     }
 
-    R3D_Cubemap const &TextureAsset::getCubemap(const R3D_CubemapLayout layout)
+    TextureSize TextureAsset::getSize()
     {
-        if (_isLoaded) return _nativeCubemap;
-        if (_loadThread.joinable()) _loadThread.join();
-        if (IsImageValid(_nativeRawImage))
-        {
-            _nativeCubemap = R3D_LoadCubemapFromImage(_nativeRawImage, layout);
-        }
-        else
-        {
-            _nativeCubemap = R3D_LoadCubemap(getFile()->getFullPath().c_str(), layout);
-        }
-
-        _isLoaded = true;
-        return _nativeCubemap;
+        return Renderer::get().getTextureSize(getTexture());
     }
 
     void TextureAsset::loadToMemory()
     {
-        if (_isLoaded || _loadThread.joinable() || IsImageValid(_nativeRawImage)) return;
+        if (_handle.isValid()) return;
 
-        auto path = getFile()->getFullPath().c_str();
-        auto func = [this, path]
-        {
-            _nativeRawImage = LoadImage(path);
-        };
-        _loadThread = std::thread(func);
-        _loadThread.detach();
+        _handle = Renderer::get().createTexture(TextureDesc{
+            .path = getAssetPath(),
+            .filter = _textureFilter,
+            .wrap = _textureWrap,
+            .isColor = _withColor
+        });
     }
 
     void TextureAsset::unload()
     {
-        if (_isLoaded) R3D_UnloadTexture(_nativeTexture);
-        _isLoaded = false;
+        Renderer::get().destroyTexture(_handle);
+        _handle = {};
     }
 
     void TextureAsset::setTextureType(const TextureType textureType)

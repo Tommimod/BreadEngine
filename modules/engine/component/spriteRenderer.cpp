@@ -1,8 +1,14 @@
-﻿#include "spriteRenderer.h"
+#include "spriteRenderer.h"
+
+#include "data/primitives/planePrimitiveData.h"
+#include "rendering/renderer.h"
 
 namespace BreadEngine {
     DEFINE_STATIC_PROPS(SpriteRenderer)
     REGISTER_COMPONENT(SpriteRenderer)
+
+    /// Pixels per world unit for a sprite quad.
+    constexpr float SPRITE_SCALE = .01f;
 
     SpriteRenderer::SpriteRenderer(Node *owner)
     {
@@ -16,8 +22,13 @@ namespace BreadEngine {
             return;
         }
 
-        const auto &texture = _textureAsset->getTexture();
-        _nativeMeshRenderer = R3D_GenMeshQuad(texture.width * .01f, texture.height * .01f, 1, 1, forward);
+        const auto size = _textureAsset->getSize();
+        PlanePrimitiveData quad;
+        quad.asQuad();
+        quad.width = static_cast<float>(size.width) * SPRITE_SCALE;
+        quad.height = static_cast<float>(size.height) * SPRITE_SCALE;
+
+        _mesh = Renderer::get().createPrimitive(quad, forward);
         _material = Material();
         _material.setAlbedoTexture(_textureAsset);
         _isLoaded = true;
@@ -25,12 +36,12 @@ namespace BreadEngine {
 
     void SpriteRenderer::unload()
     {
-        if (_isLoaded && R3D_IsMeshValid(_nativeMeshRenderer))
-        {
-            R3D_UnloadMesh(_nativeMeshRenderer);
-            _isLoaded = false;
-            _material.unload();
-        }
+        if (!_isLoaded) return;
+
+        Renderer::get().destroyMesh(_mesh);
+        _mesh = {};
+        _isLoaded = false;
+        _material.unload();
     }
 
     bool SpriteRenderer::isLoaded() const

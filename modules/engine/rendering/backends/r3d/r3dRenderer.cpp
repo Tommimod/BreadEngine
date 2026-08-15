@@ -1,29 +1,41 @@
 #include "r3dRenderer.h"
 
-#include <utility>
-
+#include "data/primitives/capsulePrimitiveData.h"
+#include "data/primitives/cubePrimitiveData.h"
+#include "data/primitives/cylinderPrimitiveData.h"
+#include "data/primitives/freePolyPrimitiveData.h"
+#include "data/primitives/planePrimitiveData.h"
+#include "data/primitives/slopePrimitiveData.h"
+#include "data/primitives/spherePrimitiveData.h"
+#include "data/primitives/torusPrimitiveData.h"
 #include "utils/colorUtils.h"
 
 namespace BreadEngine {
     void R3DRenderer::initialize()
     {
-        // r3d itself is still brought up by Engine::initialize() (R3D_Init) - moving window
-        // and device lifetime behind the seam is its own migration sub-phase.
+        _defaultMaterial = R3D_GetDefaultMaterial();
     }
 
     void R3DRenderer::shutdown()
     {
-        for (auto &slot: _lights)
+        _lights.forEachAlive([](LightSlot &slot)
         {
-            if (slot.alive && R3D_IsLightExist(slot.native))
-            {
-                R3D_DestroyLight(slot.native);
-            }
-        }
+            if (R3D_IsLightExist(slot.native)) R3D_DestroyLight(slot.native);
+        });
+        _textures.forEachAlive(releaseTexture);
+        _meshes.forEachAlive([](R3D_Mesh &mesh)
+        {
+            if (R3D_IsMeshValid(mesh)) R3D_UnloadMesh(mesh);
+        });
+        _models.forEachAlive([](R3D_Model &model) { R3D_UnloadModel(model, false); });
 
         _lights.clear();
-        _freeLightSlots.clear();
+        _textures.clear();
+        _meshes.clear();
+        _models.clear();
     }
+
+    // --- lights ---
 
     R3D_LightType R3DRenderer::toNative(const LightType type)
     {
@@ -38,65 +50,33 @@ namespace BreadEngine {
 
     LightHandle R3DRenderer::createLight(const LightType type)
     {
-        uint32_t index;
-        if (!_freeLightSlots.empty())
-        {
-            index = _freeLightSlots.back();
-            _freeLightSlots.pop_back();
-        }
-        else
-        {
-            index = static_cast<uint32_t>(_lights.size());
-            _lights.emplace_back();
-        }
-
-        auto &slot = _lights[index];
-        slot.native = R3D_CreateLight(toNative(type));
-        slot.applied = LightState{};
-        slot.applied.type = type;
-        slot.hasApplied = false;
-        slot.alive = true;
-
-        return LightHandle{.index = index, .generation = slot.generation};
+        return _lights.add(LightSlot{.native = R3D_CreateLight(toNative(type))});
     }
 
     void R3DRenderer::destroyLight(const LightHandle handle)
     {
-        auto *slot = resolveLight(handle);
+        const auto *slot = _lights.get(handle);
         if (slot == nullptr) return;
 
-        if (R3D_IsLightExist(slot->native))
-        {
-            R3D_DestroyLight(slot->native);
-        }
-
-        slot->native = -1;
-        slot->alive = false;
-        slot->hasApplied = false;
-        // Invalidate every handle still pointing here before the slot can be handed out again.
-        slot->generation++;
-        _freeLightSlots.push_back(handle.index);
+        if (R3D_IsLightExist(slot->native)) R3D_DestroyLight(slot->native);
+        _lights.remove(handle);
     }
 
     bool R3DRenderer::isLightValid(const LightHandle handle) const
     {
-        const auto *slot = resolveLight(handle);
+        const auto *slot = _lights.get(handle);
         return slot != nullptr && R3D_IsLightExist(slot->native);
     }
 
     void R3DRenderer::updateLight(const LightHandle handle, const LightState &state)
     {
-        auto *slot = resolveLight(handle);
+        auto *slot = _lights.get(handle);
         if (slot == nullptr) return;
 
         // A light's type is baked into the r3d object, so a type change means a new one.
-        // The pool slot (and therefore the caller's handle) survives it.
         if (!R3D_IsLightExist(slot->native) || R3D_GetLightType(slot->native) != toNative(state.type))
         {
-            if (R3D_IsLightExist(slot->native))
-            {
-                R3D_DestroyLight(slot->native);
-            }
+            if (R3D_IsLightExist(slot->native)) R3D_DestroyLight(slot->native);
 
             slot->native = R3D_CreateLight(toNative(state.type));
             slot->hasApplied = false;
@@ -107,14 +87,8 @@ namespace BreadEngine {
 
         if (forceApply || state.castShadows != applied.castShadows)
         {
-            if (state.castShadows)
-            {
-                R3D_EnableShadow(slot->native);
-            }
-            else
-            {
-                R3D_DisableShadow(slot->native);
-            }
+            if (state.castShadows) R3D_EnableShadow(slot->native);
+            else R3D_DisableShadow(slot->native);
         }
 
         if (forceApply || !ColorUtils::IsCompare(applied.color, state.color))
@@ -142,35 +116,257 @@ namespace BreadEngine {
             R3D_SetLightActive(slot->native, state.active);
         }
 
-        // Direction and position stay unconditional, matching the pre-seam lightSystem:
-        // r3d may key shadow-map refreshes off these setters, so skipping a redundant call
-        // is not provably a no-op the way the diffed scalars above are.
-        if (state.type != LightType::Omni)
-        {
-            R3D_SetLightDirection(slot->native, state.direction);
-        }
-
-        if (state.type != LightType::Directional)
-        {
-            R3D_SetLightPosition(slot->native, state.position);
-        }
+        // Unconditional: r3d may key shadow-map refreshes off these setters, so skipping a
+        // redundant call is not provably a no-op the way skipping a scalar setter is.
+        if (state.type != LightType::Omni) R3D_SetLightDirection(slot->native, state.direction);
+        if (state.type != LightType::Directional) R3D_SetLightPosition(slot->native, state.position);
 
         slot->applied = state;
         slot->hasApplied = true;
     }
 
-    R3DRenderer::LightSlot *R3DRenderer::resolveLight(const LightHandle handle)
+    // --- textures ---
+
+    TextureWrap R3DRenderer::toNative(const TextureWrapMode wrap)
     {
-        return const_cast<LightSlot *>(std::as_const(*this).resolveLight(handle));
+        switch (wrap)
+        {
+            case TextureWrapMode::Clamp: return TEXTURE_WRAP_CLAMP;
+            case TextureWrapMode::MirrorRepeat: return TEXTURE_WRAP_MIRROR_REPEAT;
+            case TextureWrapMode::MirrorClamp: return TEXTURE_WRAP_MIRROR_CLAMP;
+            case TextureWrapMode::Repeat:
+            default: return TEXTURE_WRAP_REPEAT;
+        }
     }
 
-    const R3DRenderer::LightSlot *R3DRenderer::resolveLight(const LightHandle handle) const
+    TextureFilter R3DRenderer::toNative(const TextureFilterMode filter)
     {
-        if (!handle.isValid() || handle.index >= _lights.size()) return nullptr;
+        switch (filter)
+        {
+            case TextureFilterMode::Bilinear: return TEXTURE_FILTER_BILINEAR;
+            case TextureFilterMode::Trilinear: return TEXTURE_FILTER_TRILINEAR;
+            case TextureFilterMode::Anisotropic4x: return TEXTURE_FILTER_ANISOTROPIC_4X;
+            case TextureFilterMode::Anisotropic8x: return TEXTURE_FILTER_ANISOTROPIC_8X;
+            case TextureFilterMode::Anisotropic16x: return TEXTURE_FILTER_ANISOTROPIC_16X;
+            case TextureFilterMode::Point:
+            default: return TEXTURE_FILTER_POINT;
+        }
+    }
 
-        const auto &slot = _lights[handle.index];
-        if (!slot.alive || slot.generation != handle.generation) return nullptr;
+    void R3DRenderer::finalizeTexture(TextureSlot &slot)
+    {
+        if (slot.uploaded) return;
+        if (slot.decodeJob.joinable()) slot.decodeJob.join();
 
-        return &slot;
+        const auto wrap = toNative(slot.desc.wrap);
+        const auto filter = toNative(slot.desc.filter);
+        if (IsImageValid(slot.decoded))
+        {
+            // R3D_LoadTextureFromImageEx takes ownership of the pixel data - unloading the
+            // image afterwards is a double free. Dropping the handle is all that is left.
+            slot.native = R3D_LoadTextureFromImageEx(slot.decoded, wrap, filter, slot.desc.isColor);
+            slot.decoded = {};
+        }
+        else
+        {
+            slot.native = R3D_LoadTextureEx(slot.desc.path.c_str(), wrap, filter, slot.desc.isColor);
+        }
+
+        slot.uploaded = true;
+    }
+
+    void R3DRenderer::releaseTexture(TextureSlot &slot)
+    {
+        if (slot.decodeJob.joinable()) slot.decodeJob.join();
+        // Only reached for an image that was decoded but never uploaded; once uploaded, the
+        // pixel data belongs to r3d and slot.decoded has been cleared.
+        if (IsImageValid(slot.decoded)) UnloadImage(slot.decoded);
+        if (slot.uploaded) R3D_UnloadTexture(slot.native);
+    }
+
+    TextureHandle R3DRenderer::createTexture(const TextureDesc &desc)
+    {
+        const auto handle = _textures.add(TextureSlot{.desc = desc});
+        auto *slot = _textures.get(handle);
+
+        // Pool slots keep a stable address, so the decode job may capture one directly.
+        slot->decodeJob = std::jthread([slot] { slot->decoded = LoadImage(slot->desc.path.c_str()); });
+        return handle;
+    }
+
+    void R3DRenderer::destroyTexture(const TextureHandle handle)
+    {
+        auto *slot = _textures.get(handle);
+        if (slot == nullptr) return;
+
+        releaseTexture(*slot);
+        _textures.remove(handle);
+    }
+
+    TextureSize R3DRenderer::getTextureSize(const TextureHandle handle)
+    {
+        auto *slot = _textures.get(handle);
+        if (slot == nullptr) return {};
+
+        finalizeTexture(*slot);
+        return {.width = slot->native.width, .height = slot->native.height};
+    }
+
+    // --- materials ---
+
+    void R3DRenderer::applyTexture(const TextureHandle handle, Texture2D &target)
+    {
+        auto *slot = _textures.get(handle);
+        if (slot == nullptr) return;
+
+        finalizeTexture(*slot);
+        target = slot->native;
+    }
+
+    R3D_Material R3DRenderer::buildMaterial(const MaterialData &material)
+    {
+        auto native = _defaultMaterial;
+        applyTexture(material.albedo, native.albedo.texture);
+        applyTexture(material.normal, native.normal.texture);
+        applyTexture(material.orm, native.orm.texture);
+        applyTexture(material.emission, native.emission.texture);
+        return native;
+    }
+
+    // --- meshes ---
+
+    MeshHandle R3DRenderer::createPrimitive(const MeshPrimitiveData &data, const Vector3 forward)
+    {
+        R3D_Mesh mesh{};
+        switch (data.getMeshType())
+        {
+            case MeshPrimitiveType::Cube:
+            {
+                const auto &cube = static_cast<const CubePrimitiveData &>(data);
+                mesh = R3D_GenMeshCube(cube.width, cube.height, cube.depth);
+                break;
+            }
+            case MeshPrimitiveType::Sphere:
+            {
+                const auto &sphere = static_cast<const SpherePrimitiveData &>(data);
+                mesh = R3D_GenMeshSphere(sphere.radius, sphere.rings, sphere.slices);
+                break;
+            }
+            case MeshPrimitiveType::HalfSphere:
+            {
+                const auto &sphere = static_cast<const SpherePrimitiveData &>(data);
+                mesh = R3D_GenMeshHemiSphere(sphere.radius, sphere.rings, sphere.slices);
+                break;
+            }
+            case MeshPrimitiveType::Cylinder:
+            {
+                const auto &cylinder = static_cast<const CylinderPrimitiveData &>(data);
+                mesh = R3D_GenMeshCylinderEx(cylinder.bottomRadius, cylinder.topRadius, cylinder.height, cylinder.slices, cylinder.stacks, cylinder.bottomCap, cylinder.topCap);
+                break;
+            }
+            case MeshPrimitiveType::Capsule:
+            {
+                const auto &capsule = static_cast<const CapsulePrimitiveData &>(data);
+                mesh = R3D_GenMeshCapsule(capsule.radius, capsule.height, capsule.rings, capsule.slices);
+                break;
+            }
+            case MeshPrimitiveType::Plane:
+            {
+                const auto &plane = static_cast<const PlanePrimitiveData &>(data);
+                mesh = R3D_GenMeshPlane(plane.width, plane.height, plane.resX, plane.resZ);
+                break;
+            }
+            case MeshPrimitiveType::Quad:
+            {
+                const auto &quad = static_cast<const PlanePrimitiveData &>(data);
+                mesh = R3D_GenMeshQuad(quad.width, quad.height, quad.resX, quad.resZ, forward);
+                break;
+            }
+            case MeshPrimitiveType::Slope:
+            {
+                const auto &slope = static_cast<const SlopePrimitiveData &>(data);
+                mesh = R3D_GenMeshSlope(slope.width, slope.height, slope.length, slope.normal);
+                break;
+            }
+            case MeshPrimitiveType::Torus:
+            {
+                const auto &torus = static_cast<const TorusPrimitiveData &>(data);
+                mesh = R3D_GenMeshTorus(torus.radius, torus.size, torus.radiusSegments, torus.sides);
+                break;
+            }
+            case MeshPrimitiveType::FreePoly:
+            {
+                const auto &poly = static_cast<const FreePolyPrimitiveData &>(data);
+                mesh = R3D_GenMeshPoly(poly.sides, poly.size, forward);
+                break;
+            }
+            case MeshPrimitiveType::None:
+            default: return {};
+        }
+
+        if (!R3D_IsMeshValid(mesh)) return {};
+        return _meshes.add(std::move(mesh));
+    }
+
+    void R3DRenderer::destroyMesh(const MeshHandle handle)
+    {
+        const auto *mesh = _meshes.get(handle);
+        if (mesh == nullptr) return;
+
+        if (R3D_IsMeshValid(*mesh)) R3D_UnloadMesh(*mesh);
+        _meshes.remove(handle);
+    }
+
+    void R3DRenderer::drawMesh(const MeshHandle handle, const MaterialData &material, const Vector3 position, const Quaternion rotation, const Vector3 scale)
+    {
+        const auto *mesh = _meshes.get(handle);
+        if (mesh == nullptr) return;
+
+        R3D_DrawMeshEx(*mesh, buildMaterial(material), position, rotation, scale);
+    }
+
+    // --- models ---
+
+    ModelHandle R3DRenderer::loadModel(const std::string &path)
+    {
+        auto model = R3D_LoadModelEx(path.c_str(), 0);
+        if (model.meshes == nullptr) return {};
+
+        return _models.add(std::move(model));
+    }
+
+    void R3DRenderer::destroyModel(const ModelHandle handle)
+    {
+        const auto *model = _models.get(handle);
+        if (model == nullptr) return;
+
+        // Materials are not unloaded here: setModelMaterial overwrites them with textures
+        // the engine's TextureAssets own.
+        R3D_UnloadModel(*model, false);
+        _models.remove(handle);
+    }
+
+    int R3DRenderer::getModelMaterialCount(const std::string &path)
+    {
+        const auto model = R3D_LoadModel(path.c_str());
+        const auto count = model.materialCount;
+        R3D_UnloadModel(model, true);
+        return count;
+    }
+
+    void R3DRenderer::setModelMaterial(const ModelHandle handle, const int slot, const MaterialData &material)
+    {
+        auto *model = _models.get(handle);
+        if (model == nullptr || slot < 0 || slot >= model->materialCount) return;
+
+        model->materials[slot] = buildMaterial(material);
+    }
+
+    void R3DRenderer::drawModel(const ModelHandle handle, const Vector3 position, const Quaternion rotation, const Vector3 scale)
+    {
+        const auto *model = _models.get(handle);
+        if (model == nullptr) return;
+
+        R3D_DrawModelEx(*model, position, rotation, scale);
     }
 } // namespace BreadEngine

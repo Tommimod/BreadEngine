@@ -1,8 +1,8 @@
-﻿#include "meshRendererSystem.h"
+#include "meshRendererSystem.h"
 
 #include "meshRenderer.h"
-#include "r3d_draw.h"
 #include "transform.h"
+#include "rendering/renderer.h"
 
 namespace BreadEngine {
     void MeshRendererSystem::startFrame(Node *node, float deltaTime)
@@ -13,30 +13,32 @@ namespace BreadEngine {
         auto &meshRenderer = node->get<MeshRenderer>();
         if (!meshRenderer.isLoaded())
         {
-            meshRenderer.loadModel();
+            meshRenderer.load();
         }
 
         if (meshRenderer.isChangedFromEditor)
         {
             meshRenderer.unload();
-            meshRenderer.loadModel();
+            meshRenderer.load();
         }
         if (!meshRenderer.isLoaded()) return;
 
         auto &transform = node->get<Transform>();
-        if (R3D_IsMeshValid(meshRenderer._nativeMesh))
+        auto &renderer = Renderer::get();
+        if (meshRenderer._mesh.isValid())
         {
-            R3D_DrawMeshEx(meshRenderer._nativeMesh, meshRenderer._materials[0].getNativeMaterial(), transform.getPosition(), transform.getRotationQuaternion(), transform.getScale());
+            renderer.drawMesh(meshRenderer._mesh, meshRenderer._materials[0].getData(), transform.getPosition(), transform.getRotationQuaternion(), transform.getScale());
+            return;
         }
-        else
-        {
-            for (auto i = 0; i < static_cast<int>(meshRenderer._materials.size()); i++)
-            {
-                meshRenderer._nativeMeshRenderer.materials[i] = meshRenderer._materials[i].getNativeMaterial();
-            }
 
-            R3D_DrawModelEx(meshRenderer._nativeMeshRenderer, transform.getPosition(), transform.getRotationQuaternion(), transform.getScale());
+        if (!meshRenderer._model.isValid()) return;
+
+        for (auto i = 0; i < static_cast<int>(meshRenderer._materials.size()); i++)
+        {
+            renderer.setModelMaterial(meshRenderer._model, i, meshRenderer._materials[i].getData());
         }
+
+        renderer.drawModel(meshRenderer._model, transform.getPosition(), transform.getRotationQuaternion(), transform.getScale());
     }
 
     void MeshRendererSystem::onDispose(Node *node, float deltaTime)

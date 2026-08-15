@@ -1,9 +1,7 @@
-﻿#pragma once
-#include <thread>
-
+#pragma once
 #include "asset.h"
-#include "r3d_cubemap.h"
-#include "r3d_texture.h"
+#include "rendering/renderHandles.h"
+#include "rendering/renderTypes.h"
 
 namespace BreadEngine {
     struct TextureAsset : Asset
@@ -25,9 +23,9 @@ namespace BreadEngine {
 
         ~TextureAsset() override = default;
 
-        Texture2D const &getTexture();
+        [[nodiscard]] TextureHandle getTexture();
 
-        R3D_Cubemap const &getCubemap(R3D_CubemapLayout layout = R3D_CUBEMAP_LAYOUT_AUTO_DETECT);
+        [[nodiscard]] TextureSize getSize();
 
         void loadToMemory() override;
 
@@ -39,14 +37,10 @@ namespace BreadEngine {
 
     private:
         TextureType _textureType = TextureType::Default;
-        Image _nativeRawImage{};
-        Texture2D _nativeTexture{};
-        R3D_Cubemap _nativeCubemap{};
-        TextureWrap _textureWrap = TEXTURE_WRAP_REPEAT;
-        TextureFilter _textureFilter = TEXTURE_FILTER_POINT;
-        std::thread _loadThread{};
+        TextureHandle _handle{};
+        TextureWrapMode _textureWrap = TextureWrapMode::Repeat;
+        TextureFilterMode _textureFilter = TextureFilterMode::Point;
         bool _withColor = true;
-        bool _isLoaded = false;
 
         INSPECTOR_BEGIN(TextureAsset)
             INSPECT_FIELD(_textureType);

@@ -1,19 +1,18 @@
 #pragma once
 #include <cstdint>
+#include <string>
+
 #include "raylib.h"
+#include "renderHandles.h"
 
 namespace BreadEngine {
     /**
-     * Engine-native replacement for R3D_LightType.
-     *
-     * IMPORTANT - do not reorder: the inspector serializes enums by *declaration index*
-     * (magic_enum::enum_index, see inspectorObject.h), not by name and not by underlying
-     * value. Directional/Spot/Omni therefore has to stay in R3D_LightType's original
-     * DIR/SPOT/OMNI order so already-saved .nd scene files keep deserializing to the same
-     * light type they had before the seam went in. (R3D_LIGHT_TYPE_COUNT was index 3 and
-     * used to show up as a selectable entry in the inspector's dropdown - dropping it is
-     * safe precisely because it was last.)
+     * Enums below are serialized by *declaration index* (magic_enum::enum_index, see
+     * inspectorObject.h) - not by name, not by underlying value. Reordering or inserting a
+     * value silently changes what already-saved .nd / .cnf files deserialize to, so append
+     * only.
      */
+
     enum class LightType : uint8_t
     {
         Directional = 0,
@@ -21,13 +20,27 @@ namespace BreadEngine {
         Omni
     };
 
+    enum class TextureFilterMode : uint8_t
+    {
+        Point = 0,
+        Bilinear,
+        Trilinear,
+        Anisotropic4x,
+        Anisotropic8x,
+        Anisotropic16x
+    };
+
+    enum class TextureWrapMode : uint8_t
+    {
+        Repeat = 0,
+        Clamp,
+        MirrorRepeat,
+        MirrorClamp
+    };
+
     /**
-     * The complete desired state of one light, pushed to the renderer each frame.
-     *
-     * The backend - not the caller - owns diffing this against what it has already applied.
-     * A light is an object with setters in r3d, but under Diligent it will be one entry in a
-     * lights constant buffer plus a shadow-map slot, so the seam describes *what the light
-     * is* rather than mirroring r3d's setter-by-setter API.
+     * Desired state of one light, pushed to the renderer every frame; the renderer diffs it
+     * against what it has already applied.
      */
     struct LightState
     {
@@ -40,5 +53,29 @@ namespace BreadEngine {
         float shadowSoftness = 1.0f;
         bool castShadows = true;
         bool active = true;
+    };
+
+    struct TextureDesc
+    {
+        std::string path;
+        TextureFilterMode filter = TextureFilterMode::Point;
+        TextureWrapMode wrap = TextureWrapMode::Repeat;
+        /// Sample through the sRGB color space. False for data maps (normal, ORM).
+        bool isColor = true;
+    };
+
+    struct TextureSize
+    {
+        int width = 0;
+        int height = 0;
+    };
+
+    /// PBR texture set of a surface. An invalid handle leaves the renderer's default in place.
+    struct MaterialData
+    {
+        TextureHandle albedo;
+        TextureHandle normal;
+        TextureHandle orm;
+        TextureHandle emission;
     };
 } // namespace BreadEngine

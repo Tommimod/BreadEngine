@@ -3,17 +3,11 @@
 
 namespace BreadEngine {
     /**
-     * Opaque, backend-agnostic reference to a resource owned by the active IRenderer.
+     * Reference to a resource owned by the renderer.
      *
-     * Deliberately a plain value type: only one backend is alive at a time (see
-     * BREAD_RENDER_BACKEND), so a handle only has to be unambiguous inside that backend's own
-     * pool - there is nothing to dispatch on, and components stay copyable/trivially
-     * serializable-around. `generation` is bumped when a slot is reused, so a handle kept
-     * across a destroy (a stale handle) resolves to nothing instead of silently addressing
-     * whatever resource landed in that slot next.
-     *
-     * The Tag parameter only exists to keep the handle families from implicitly converting
-     * into each other.
+     * `generation` is bumped when a slot is freed, so a handle kept past a destroy resolves
+     * to nothing instead of addressing whatever resource lands in that slot next. The Tag
+     * parameter keeps the handle families from converting into each other.
      */
     template<typename Tag>
     struct RenderHandle
@@ -29,6 +23,7 @@ namespace BreadEngine {
     };
 
     using LightHandle = RenderHandle<struct LightHandleTag>;
-    // MeshHandle / TextureHandle / MaterialHandle land with their own migration sub-phase -
-    // added when there is something behind them, not up front.
+    using TextureHandle = RenderHandle<struct TextureHandleTag>;
+    using MeshHandle = RenderHandle<struct MeshHandleTag>;
+    using ModelHandle = RenderHandle<struct ModelHandleTag>;
 } // namespace BreadEngine

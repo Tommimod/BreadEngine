@@ -1,19 +1,15 @@
 #pragma once
+#include <string>
+
 #include "renderHandles.h"
 #include "renderTypes.h"
 
 namespace BreadEngine {
+    struct MeshPrimitiveData;
+
     /**
-     * The backend seam for all GPU work (DILIGENT_MIGRATION.md, Phase 2).
-     *
-     * Exactly one implementation is compiled and linked at a time, selected by the
-     * BREAD_RENDER_BACKEND CMake option. The interface is virtual so that both
-     * implementations can live in the tree while the migration is in progress and so a
-     * single call site reads the same under either backend - not because backends are ever
-     * swapped at runtime.
-     *
-     * Methods are grouped by the migration sub-phase that introduces them; the interface
-     * grows one group at a time rather than being declared up front against r3d's shape.
+     * Everything the engine is allowed to ask of the GPU. Exactly one implementation is
+     * compiled in, selected by the BREAD_RENDER_BACKEND CMake option.
      */
     class IRenderer
     {
@@ -26,7 +22,7 @@ namespace BreadEngine {
 
         virtual void shutdown() = 0;
 
-        // --- lights (2.a) ---
+        // --- lights ---
 
         [[nodiscard]] virtual LightHandle createLight(LightType type) = 0;
 
@@ -34,10 +30,39 @@ namespace BreadEngine {
 
         [[nodiscard]] virtual bool isLightValid(LightHandle handle) const = 0;
 
-        /**
-         * Applies @p state to the light. Changing LightState::type recreates the underlying
-         * backend resource in place, so the handle stays valid across a type change.
-         */
+        /// Changing LightState::type recreates the underlying resource; the handle survives it.
         virtual void updateLight(LightHandle handle, const LightState &state) = 0;
+
+        // --- textures ---
+
+        /// Returns immediately; decoding runs in the background and the upload happens on
+        /// first use, so asset loading can run ahead of the frame that needs the texture.
+        [[nodiscard]] virtual TextureHandle createTexture(const TextureDesc &desc) = 0;
+
+        virtual void destroyTexture(TextureHandle handle) = 0;
+
+        [[nodiscard]] virtual TextureSize getTextureSize(TextureHandle handle) = 0;
+
+        // --- meshes ---
+
+        /// @param forward orientation for primitives built around a facing direction (quad, poly).
+        [[nodiscard]] virtual MeshHandle createPrimitive(const MeshPrimitiveData &data, Vector3 forward) = 0;
+
+        virtual void destroyMesh(MeshHandle handle) = 0;
+
+        virtual void drawMesh(MeshHandle handle, const MaterialData &material, Vector3 position, Quaternion rotation, Vector3 scale) = 0;
+
+        // --- models ---
+
+        [[nodiscard]] virtual ModelHandle loadModel(const std::string &path) = 0;
+
+        virtual void destroyModel(ModelHandle handle) = 0;
+
+        /// Material count of a model file, without keeping the model loaded.
+        [[nodiscard]] virtual int getModelMaterialCount(const std::string &path) = 0;
+
+        virtual void setModelMaterial(ModelHandle handle, int slot, const MaterialData &material) = 0;
+
+        virtual void drawModel(ModelHandle handle, Vector3 position, Quaternion rotation, Vector3 scale) = 0;
     };
 } // namespace BreadEngine

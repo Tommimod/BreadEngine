@@ -96,7 +96,8 @@ namespace BreadEditor {
             case MeshPrimitiveType::HalfSphere:
             {
                 node->setName("HalfSphere");
-                auto &data = SpherePrimitiveData().asHalf();
+                auto data = SpherePrimitiveData();
+                data.asHalf();
                 getFunctionByType(node->getId(), data)();
 
                 const auto id = node->getId();
@@ -156,7 +157,8 @@ namespace BreadEditor {
             case MeshPrimitiveType::Quad:
             {
                 node->setName("Quad");
-                auto &data = PlanePrimitiveData().asQuad();
+                auto data = PlanePrimitiveData();
+                data.asQuad();
                 getFunctionByType(node->getId(), data)();
 
                 const auto id = node->getId();
@@ -255,76 +257,9 @@ namespace BreadEditor {
 
     std::function<void()> CreatePrimitiveCommand::getFunctionByType(const unsigned int nodeId, MeshPrimitiveData &data)
     {
-        const auto node = NodeProvider::getNode(nodeId);
-        auto &meshRenderer = node->get<MeshRenderer>();
-        switch (data.getMeshType())
-        {
-            case MeshPrimitiveType::Cube:
-            {
-                auto &convertedData = dynamic_cast<CubePrimitiveData &>(data);
-                return [&meshRenderer, &convertedData] { meshRenderer.setGeneratedMesh(R3D_GenMeshCube(convertedData.width, convertedData.height, convertedData.depth), convertedData); };
-            }
-            case MeshPrimitiveType::Sphere:
-            {
-                auto &convertedData = dynamic_cast<SpherePrimitiveData &>(data);
-                return [&meshRenderer, &convertedData] { meshRenderer.setGeneratedMesh(R3D_GenMeshSphere(convertedData.radius, convertedData.rings, convertedData.slices), convertedData); };
-            }
-            case MeshPrimitiveType::HalfSphere:
-            {
-                auto &convertedData = dynamic_cast<SpherePrimitiveData &>(data);
-                return [&meshRenderer, &convertedData] { meshRenderer.setGeneratedMesh(R3D_GenMeshHemiSphere(convertedData.radius, convertedData.rings, convertedData.slices), convertedData); };
-            }
-            case MeshPrimitiveType::Cylinder:
-            {
-                auto &convertedData = dynamic_cast<CylinderPrimitiveData &>(data);
-                return [&meshRenderer, &convertedData]
-                {
-                    meshRenderer.setGeneratedMesh(
-                        R3D_GenMeshCylinderEx(
-                            convertedData.bottomRadius,
-                            convertedData.topRadius,
-                            convertedData.height,
-                            convertedData.slices,
-                            convertedData.stacks,
-                            convertedData.bottomCap,
-                            convertedData.topCap),
-                        convertedData);
-                };
-            }
-            case MeshPrimitiveType::Capsule:
-            {
-                auto &convertedData = dynamic_cast<CapsulePrimitiveData &>(data);
-                return [&meshRenderer, &convertedData] { meshRenderer.setGeneratedMesh(R3D_GenMeshCapsule(convertedData.radius, convertedData.height, convertedData.rings, convertedData.slices), convertedData); };
-            }
-            case MeshPrimitiveType::Plane:
-            {
-                auto &convertedData = dynamic_cast<PlanePrimitiveData &>(data);
-                return [&meshRenderer, &convertedData] { meshRenderer.setGeneratedMesh(R3D_GenMeshPlane(convertedData.width, convertedData.height, convertedData.resX, convertedData.resZ), convertedData); };
-            }
-            case MeshPrimitiveType::Quad:
-            {
-                auto &convertedData = dynamic_cast<PlanePrimitiveData &>(data).asQuad();
-                auto forward = node->get<BreadEngine::Transform>().getForward();
-                return [&meshRenderer, &convertedData, forward] { meshRenderer.setGeneratedMesh(R3D_GenMeshQuad(convertedData.width, convertedData.height, convertedData.resX, convertedData.resZ, forward), convertedData); };
-            }
-            case MeshPrimitiveType::Slope:
-            {
-                auto &convertedData = dynamic_cast<SlopePrimitiveData &>(data);
-                return [&meshRenderer, &convertedData] { meshRenderer.setGeneratedMesh(R3D_GenMeshSlope(convertedData.width, convertedData.height, convertedData.length, convertedData.normal), convertedData); };
-            }
-            case MeshPrimitiveType::Torus:
-            {
-                auto &convertedData = dynamic_cast<TorusPrimitiveData &>(data);
-                return [&meshRenderer, &convertedData] { meshRenderer.setGeneratedMesh(R3D_GenMeshTorus(convertedData.radius, convertedData.size, convertedData.radiusSegments, convertedData.sides), convertedData); };
-            }
-            case MeshPrimitiveType::FreePoly:
-            {
-                auto &convertedData = dynamic_cast<FreePolyPrimitiveData &>(data);
-                auto forward = node->get<BreadEngine::Transform>().getForward();
-                return [&meshRenderer, &convertedData, forward] { meshRenderer.setGeneratedMesh(R3D_GenMeshPoly(convertedData.sides, convertedData.size, forward), convertedData); };
-            }
-            case MeshPrimitiveType::None:
-            default: return nullptr;
-        }
+        if (data.getMeshType() == MeshPrimitiveType::None) return nullptr;
+
+        auto &meshRenderer = NodeProvider::getNode(nodeId)->get<MeshRenderer>();
+        return [&meshRenderer, &data] { meshRenderer.setGeneratedMesh(data); };
     }
 } // BreadEditor

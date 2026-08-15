@@ -1,8 +1,8 @@
-﻿#pragma once
-#include "r3d_mesh.h"
+#pragma once
 #include "../configs/assets/textureAsset.h"
 #include "core/component.h"
 #include "data/material.h"
+#include "rendering/renderHandles.h"
 
 namespace BreadEngine {
     struct SpriteRenderer : Component
@@ -23,7 +23,7 @@ namespace BreadEngine {
 
     private:
         friend class SpriteRendererSystem;
-        R3D_Mesh _nativeMeshRenderer = {};
+        MeshHandle _mesh{};
         Material _material;
         TextureAsset *_textureAsset = nullptr;
         bool _isLoaded = false;

@@ -2,10 +2,10 @@
 #include <vector>
 
 #include "data/primitives/meshPrimitiveData.h"
-#include "r3d_model.h"
 #include "configs/assets/meshAsset.h"
 #include "core/component.h"
 #include "data/material.h"
+#include "rendering/renderHandles.h"
 
 namespace BreadEngine {
     struct MeshRenderer : Component
@@ -18,7 +18,9 @@ namespace BreadEngine {
 
         void onCreate() override;
 
-        void loadModel();
+        /// Builds whichever of the two sources this renderer has: a generated primitive or
+        /// an imported model.
+        void load();
 
         void unload();
 
@@ -26,12 +28,13 @@ namespace BreadEngine {
 
         void setMeshAsset(MeshAsset *meshAsset);
 
-        void setGeneratedMesh(const R3D_Mesh &mesh, MeshPrimitiveData &primitiveData);
+        void setGeneratedMesh(MeshPrimitiveData &primitiveData);
 
     private:
         friend class MeshRendererSystem;
-        R3D_Model _nativeMeshRenderer = {};
-        R3D_Mesh _nativeMesh = {};
+        /// A renderer either draws a generated primitive or an imported model, never both.
+        MeshHandle _mesh{};
+        ModelHandle _model{};
         std::string _meshPrimitiveData;
         std::vector<Material> _materials;
         MeshAsset *_meshAsset = nullptr;
