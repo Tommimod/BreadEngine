@@ -11,12 +11,10 @@ namespace YAML {
     {
         static Node encode(const std::shared_ptr<BreadEngine::File> &rhs)
         {
-            const auto fullPathName = NAMEOF(rhs->_fullPath).c_str();
             const auto pathFromRootName = NAMEOF(rhs->_pathFromRoot).c_str();
             const auto extensionName = NAMEOF(rhs->_extension).c_str();
             const auto guidName = NAMEOF(rhs->_guid).c_str();
             Node node;
-            node[fullPathName] = rhs->_fullPath;
             node[pathFromRootName] = rhs->_pathFromRoot;
             node[extensionName] = rhs->_extension;
             node[guidName] = rhs->_guid;
@@ -25,16 +23,14 @@ namespace YAML {
 
         static bool decode(const Node &node, std::shared_ptr<BreadEngine::File> &rhs)
         {
-            const auto fullPathName = NAMEOF(rhs->_fullPath).c_str();
             const auto pathFromRootName = NAMEOF(rhs->_pathFromRoot).c_str();
             const auto extensionName = NAMEOF(rhs->_extension).c_str();
             const auto guidName = NAMEOF(rhs->_guid).c_str();
             rhs = std::make_shared<BreadEngine::File>();
-            rhs->_fullPath = node[fullPathName].as<std::string>();
             rhs->_pathFromRoot = node[pathFromRootName].as<std::string>();
             rhs->_extension = node[extensionName].as<std::string>();
             rhs->_guid = node[guidName].as<std::string>();
-            rhs->_shortName = GetFileName(rhs->_fullPath.c_str());
+            rhs->_shortName = GetFileName(rhs->_pathFromRoot.c_str());
             return true;
         }
     };
@@ -68,14 +64,12 @@ namespace YAML {
         static Node encode(const std::shared_ptr<BreadEngine::Folder> &rhs)
         {
             Node node;
-            const auto fullPathName = NAMEOF(rhs->_fullPath).c_str();
             const auto depthName = NAMEOF(rhs->_depth).c_str();
             const auto guidName = NAMEOF(rhs->_guid).c_str();
             const auto pathFromRootName = NAMEOF(rhs->_pathFromRoot).c_str();
             const auto shortName = NAMEOF(rhs->_name).c_str();
             const auto filesName = NAMEOF(rhs->_files).c_str();
             const auto foldersName = NAMEOF(rhs->_folders).c_str();
-            node[fullPathName] = rhs->_fullPath;
             node[depthName] = rhs->_depth;
             node[guidName] = rhs->_guid;
             node[pathFromRootName] = rhs->_pathFromRoot;
@@ -87,7 +81,6 @@ namespace YAML {
 
         static bool decode(const Node &node, std::shared_ptr<BreadEngine::Folder> &rhs)
         {
-            const auto fullPathName = NAMEOF(rhs->_fullPath).c_str();
             const auto depthName = NAMEOF(rhs->_depth).c_str();
             const auto guidName = NAMEOF(rhs->_guid).c_str();
             const auto pathFromRootName = NAMEOF(rhs->_pathFromRoot).c_str();
@@ -95,7 +88,6 @@ namespace YAML {
             const auto filesName = NAMEOF(rhs->_files).c_str();
             const auto foldersName = NAMEOF(rhs->_folders).c_str();
             rhs = std::make_shared<BreadEngine::Folder>();
-            rhs->_fullPath = node[fullPathName].as<std::string>();
             rhs->_depth = node[depthName].as<int>();
             rhs->_guid = node[guidName].as<std::string>();
             rhs->_pathFromRoot = node[pathFromRootName].as<std::string>();
@@ -135,11 +127,9 @@ namespace YAML {
         static Node encode(const BreadEngine::AssetsConfig &rhs)
         {
             constexpr static std::string typeKey = "type";
-            const auto projectPathName = NAMEOF(rhs._projectPath).c_str();
             const auto folderName = NAMEOF(rhs._rootFolder).c_str();
             const auto guidToAssetName = NAMEOF(rhs._guidToAsset).c_str();
             Node node;
-            node[projectPathName] = rhs._projectPath;
             node[folderName] = rhs._rootFolder;
             Node assetsNode(NodeType::Map);
             for (auto &[guid, value]: rhs._guidToAsset)
@@ -155,9 +145,7 @@ namespace YAML {
 
         static bool decode(const Node &node, BreadEngine::AssetsConfig &rhs)
         {
-            const auto projectPathName = NAMEOF(rhs._projectPath).c_str();
             const auto folderName = NAMEOF(rhs._rootFolder).c_str();
-            rhs._projectPath = node[projectPathName].as<std::string>();
             rhs._rootFolder = node[folderName].as<std::shared_ptr<BreadEngine::Folder> >();
             return true;
         }

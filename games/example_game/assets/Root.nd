@@ -1,0 +1,114 @@
+IsActive: true
+Id: 2
+Name: Root
+ParentId: 2147483647
+Components:
+  - ComponentType: Transform
+    _localPosition:
+      x: 0
+      y: 0
+      z: 0
+    _localRotationQ:
+      x: 0
+      y: 0
+      z: 0
+      w: 1
+    _localScale:
+      x: 1
+      y: 1
+      z: 1
+Childs:
+  - IsActive: true
+    Id: 3
+    Name: Capsule
+    ParentId: 2
+    Components:
+      - ComponentType: MeshRenderer
+        _meshPrimitiveData: "height: 1\nradius: 1\nrings: 10\nslices: 30\ntype: 5"
+        _meshAsset: ~
+        _materials:
+          - _shaderPath: ""
+            _albedoTexture: ~
+            _normalTexture: ~
+            _omrTexture: ~
+            _emissionTexture: ~
+      - ComponentType: Transform
+        _localPosition:
+          x: -3
+          y: 0
+          z: 0
+        _localRotationQ:
+          x: 0
+          y: 0
+          z: 0
+          w: 1
+        _localScale:
+          x: 1
+          y: 1
+          z: 1
+    Childs:
+      []
+    IsNodePrefab: true
+  - IsActive: true
+    Id: 5
+    Name: SceneModel
+    ParentId: 2
+    Components:
+      - ComponentType: MeshRenderer
+        _meshPrimitiveData: ""
+        _meshAsset:
+          guid: f60dd131-e1a4-4807-9309-162ab7b28686
+          type: MeshAsset
+        _materials:
+          []
+      - ComponentType: Transform
+        _localPosition:
+          x: 3
+          y: 0
+          z: 0
+        _localRotationQ:
+          x: 0
+          y: 0
+          z: 0
+          w: 1
+        _localScale:
+          x: 1
+          y: 1
+          z: 1
+    Childs:
+      []
+    IsNodePrefab: true
+  - IsActive: true
+    Id: 4
+    Name: SunLight
+    ParentId: 2
+    Components:
+      - ComponentType: Light
+        lightType: 0
+        withShadows: true
+        shadowSoftness: 1
+        color:
+          r: 255
+          g: 255
+          b: 255
+          a: 255
+        range: 50
+        intensity: 1
+      - ComponentType: Transform
+        _localPosition:
+          x: 0
+          y: 0
+          z: 0
+        _localRotationQ:
+          x: 0.7071068
+          y: 0
+          z: 0
+          w: 0.7071068
+        _localScale:
+          x: 1
+          y: 1
+          z: 1
+    Childs:
+      []
+    IsNodePrefab: true
+IsNodePrefab: true

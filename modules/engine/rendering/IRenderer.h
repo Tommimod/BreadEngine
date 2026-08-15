@@ -20,9 +20,37 @@ namespace BreadEngine {
 
         [[nodiscard]] virtual const char *getBackendName() const = 0;
 
-        virtual void initialize() = 0;
+        /// @param sceneWidth,sceneHeight initial internal render resolution.
+        virtual void initialize(int sceneWidth, int sceneHeight) = 0;
 
         virtual void shutdown() = 0;
+
+        // --- frame ---
+
+        /**
+         * Creates or resizes the offscreen target the scene is rendered into. Callers that
+         * never size a target (the game) get the scene on the backbuffer instead.
+         * Reallocates render targets, so call it on resize, not per frame.
+         */
+        virtual void resizeSceneTarget(int width, int height) = 0;
+
+        /// Opens the scene pass. Draw calls issued until endScene() belong to it.
+        virtual void beginScene(const CameraView &camera) = 0;
+
+        /// Renders everything the scene pass collected.
+        virtual void endScene() = 0;
+
+        /**
+         * Makes the rendered scene the active raylib draw target, so the editor can draw its
+         * 3D overlay on top of it and still be occluded by scene geometry. Only meaningful
+         * for backends that share a GL context with raylib.
+         */
+        virtual void beginSceneOverlay() = 0;
+
+        virtual void endSceneOverlay() = 0;
+
+        /// Composites the offscreen scene into @p destination of the current draw target.
+        virtual void drawSceneTexture(Rectangle destination) = 0;
 
         // --- lights ---
 

@@ -1,6 +1,6 @@
 ﻿#include "viewportWindow.h"
 #include "editor.h"
-#include "r3d_core.h"
+#include "rendering/renderer.h"
 #include "raymath.h"
 #include "rlgl.h"
 #include "uitoolkit/uiPool.h"
@@ -104,22 +104,7 @@ namespace BreadEditor {
     void ViewportWindow::draw(const float deltaTime)
     {
         UiWindow::draw(deltaTime);
-        const auto texture = Editor::getInstance().getViewportRenderTexture();
-        if (!texture) return;
-
-        const auto nextViewportSize = Vector2{static_cast<float>(texture->texture.width), static_cast<float>(texture->texture.height)};
-        if (nextViewportSize.x != _prevViewportSize.x || nextViewportSize.y != _prevViewportSize.y)
-        {
-            R3D_SetResolution(texture->texture.width, texture->texture.height);
-        }
-
-        DrawTexturePro(texture->texture,
-                       (Rectangle){0, 0, nextViewportSize.x, -nextViewportSize.y},
-                       getViewportSize(),
-                       (Vector2){0, 0},
-                       0,
-                       WHITE);
-        _prevViewportSize = nextViewportSize;
+        BreadEngine::Renderer::get().drawSceneTexture(getViewportSize());
 
         if (isMouseOver())
         {
@@ -155,7 +140,6 @@ namespace BreadEditor {
     void ViewportWindow::dispose()
     {
         _mousePosition = Vector2();
-        _prevViewportSize = Vector2();
         _warningPanel = nullptr;
         UiWindow::dispose();
     }
@@ -169,15 +153,9 @@ namespace BreadEditor {
     {
         if (!isMouseOver()) return (Vector2){-1.0f, -1.0f};
 
-        const auto texture = Editor::getInstance().getViewportRenderTexture();
-        if (!texture) return (Vector2){-1.0f, -1.0f};
-
-        const auto screenMouse = GetMousePosition();
+        // The scene target is sized to the panel, so panel-local pixels are scene pixels.
         const auto size = getViewportSize();
-        const auto localMouse = Vector2Subtract(screenMouse, (Vector2){size.x, size.y});
-        const auto scaleX = static_cast<float>(texture->texture.width) / size.width;
-        const auto scaleY = static_cast<float>(texture->texture.height) / size.height;
-        return (Vector2){localMouse.x * scaleX, localMouse.y * scaleY};
+        return Vector2Subtract(GetMousePosition(), (Vector2){size.x, size.y});
     }
 
     Ray ViewportWindow::getMouseRay(Vector2 virtualMouse, Camera3D camera, int width, int height)

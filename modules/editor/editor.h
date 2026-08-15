@@ -28,11 +28,11 @@ namespace BreadEditor {
 
         void shutdown();
 
-        void callLoop(RenderTexture2D &renderTexture);
+        void callLoop();
 
         void update(float deltaTime);
 
-        void render2D(RenderTexture2D &renderTexture, float deltaTime);
+        void render2D(float deltaTime);
 
         void render3D(float deltaTime);
 
@@ -67,8 +67,6 @@ namespace BreadEditor {
 
         [[nodiscard]] EditorModel &getEditorModel() { return _editorModel; }
 
-        [[nodiscard]] RenderTexture2D *getViewportRenderTexture() const { return _viewportRenderTexture; }
-
         [[nodiscard]] ConfigsProvider &getConfigsProvider() { return _configsProvider; }
 
         [[nodiscard]] bool isFrameEnded() const { return _isFrameEnded; }
@@ -81,7 +79,6 @@ namespace BreadEditor {
         bool _isFrameEnded = false;
         bool _initialized = false;
         bool _isCameraRendered = false;
-        RenderTexture2D *_viewportRenderTexture = nullptr;
         UiElement &_uiRoot;
         Camera3D _camera{};
 

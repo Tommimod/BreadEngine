@@ -1,0 +1,117 @@
+_type: 0
+_proceduralSkyboxSettings:
+  skyTopColor:
+    r: 0
+    g: 0
+    b: 0
+    a: 0
+  skyHorizonColor:
+    r: 0
+    g: 0
+    b: 0
+    a: 0
+  skyHorizonCurve: 0
+  skyEnergy: 0
+  groundBottomColor:
+    r: 0
+    g: 0
+    b: 0
+    a: 0
+  groundHorizonColor:
+    r: 0
+    g: 0
+    b: 0
+    a: 0
+  groundHorizonCurve: 0
+  groundEnergy: 0
+  sunSize: 0
+  sunCurve: 0
+_skyboxTexture: ~
+_skyboxShaderPath: ""
+_background:
+  _skyboxTexture: ~
+  skyBlur: 0
+  energy: 1
+  color:
+    r: 130
+    g: 130
+    b: 130
+    a: 255
+  rotation:
+    x: 0
+    y: 0
+    z: 0
+    w: 1
+_ambient:
+  color:
+    r: 0
+    g: 0
+    b: 0
+    a: 255
+  energy: 1
+_ssao:
+  enabled: false
+  sampleCount: 16
+  intensity: 0.5
+  power: 1.5
+  radius: 0.5
+  bias: 0.02
+_ssil:
+  enabled: false
+  radius: 2
+  thickness: 1
+  intensity: 1
+  aoPower: 1
+  sampleCount: 2
+  sliceCount: 4
+  denoiseSteps: 4
+_ssgi:
+  enabled: false
+  stepSize: 0.125
+  maxDistance: 4
+  intensity: 3
+  fadeStart: 8
+  fadeEnd: 16
+  sampleCount: 2
+  maxRaySteps: 32
+  denoiseSteps: 5
+_ssr:
+  enabled: false
+  stepSize: 0.125
+  thickness: 0.2
+  maxDistance: 4
+  edgeFade: 0.25
+  maxRaySteps: 32
+  binarySteps: 4
+_bloom:
+  mode: 0
+  levels: 0.5
+  intensity: 0.05
+  threshold: 0
+  softThreshold: 0.5
+  filterRadius: 1
+_fog:
+  mode: 0
+  color:
+    r: 255
+    g: 255
+    b: 255
+    a: 255
+  start: 1
+  end: 50
+  density: 0.05
+  skyAffect: 0.5
+_depthOfField:
+  mode: 0
+  focusPoint: 10
+  focusScale: 1
+  nearScale: 1
+  maxBlurSize: 20
+_tonemap:
+  mode: 0
+  exposure: 1
+  white: 1
+_finalColor:
+  brightness: 1
+  contrast: 1
+  saturation: 1

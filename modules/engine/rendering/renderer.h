@@ -10,11 +10,11 @@ namespace BreadEngine {
     class Renderer
     {
     public:
-        static void initialize();
+        static void initialize(int sceneWidth, int sceneHeight);
 
         static void shutdown();
 
-        /// Lazily initializes the backend if a caller gets here before Engine::initialize().
+        /// Falls back to the window size if a caller gets here before Engine::initialize().
         static IRenderer &get();
 
         [[nodiscard]] static bool isInitialized() { return _instance != nullptr; }

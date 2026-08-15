@@ -1,7 +1,7 @@
 #include "../../modules/Engine/Engine.h"
 #include "../../lib/engine/raylib.h"
 #include "game.h"
-#include "r3d.h"
+#include "rendering/renderer.h"
 
 int main()
 {
@@ -12,13 +12,17 @@ int main()
         return -1;
     }
 
+    engine.initializeSystems();
+
     Game_Initialize();
     const auto camera = new Camera();
     camera->fovy = 45.0f;
-    camera->position = {10.0f, 1.0f, 1.0f};
-    camera->target = {0.0f, 0.0f, 0.0f};
+    camera->position = {0.0f, 2.0f, 12.0f};
+    camera->target = {0.0f, 0.5f, 0.0f};
     camera->up = {0.0f, 1.0f, 0.0f};
     camera->projection = CAMERA_PERSPECTIVE;
+
+    auto &renderer = BreadEngine::Renderer::get();
 
     while (!BreadEngine::Engine::shouldClose())
     {
@@ -32,12 +36,13 @@ int main()
         Game_Render2DStart(deltaTime);
         DrawFPS(10, 10);
 
-        R3D_Begin(*camera);
+        renderer.beginScene(BreadEngine::toCameraView(*camera));
         DrawGrid(10, 1.0f);
         Game_Render3DStart(deltaTime);
-        R3D_End();
-
+        engine.onFrameStart(deltaTime);
         engine.onFrameEnd(deltaTime);
+        renderer.endScene();
+
         EndDrawing();
     }
 

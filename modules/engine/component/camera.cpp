@@ -17,7 +17,7 @@ namespace BreadEngine {
 
     Camera::~Camera() = default;
 
-    void Camera::setCameraType(const CameraType type)
+    void Camera::setCameraType(const ProjectionType type)
     {
         _projection = type;
     }
@@ -32,6 +32,6 @@ namespace BreadEngine {
         _nativeCamera.target = {0.0f, 0.0f, 0.0f};
         _nativeCamera.up = {0.0f, 1.0f, 0.0f};
         _nativeCamera.fovy = _fov;
-        _nativeCamera.projection = static_cast<int>(_projection);
+        _nativeCamera.projection = _projection == ProjectionType::Orthographic ? CAMERA_ORTHOGRAPHIC : CAMERA_PERSPECTIVE;
     }
 } // BreadEngine

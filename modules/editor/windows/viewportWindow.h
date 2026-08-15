@@ -51,7 +51,6 @@ namespace BreadEditor {
     private:
         UiPanel *_warningPanel = nullptr;
         Vector2 _mousePosition{0, 0};
-        Vector2 _prevViewportSize{};
         const char *_title = Id.c_str();
         ViewportMode _mode = Scene;
 

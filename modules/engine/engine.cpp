@@ -1,7 +1,6 @@
 #include "engine.h"
 #include "moduleLoader.h"
 #include <fstream>
-#include <r3d.h>
 
 #include "nodeProvider.h"
 #include "models/reservedFileNames.h"
@@ -73,8 +72,7 @@ namespace BreadEngine {
         SetConfigFlags(FLAG_WINDOW_RESIZABLE | FLAG_WINDOW_ALWAYS_RUN | FLAG_WINDOW_HIGHDPI);
         InitWindow(width, height, title);
         MaximizeWindow();
-        R3D_Init(width, height);
-        Renderer::initialize();
+        Renderer::initialize(width, height);
         SetExitKey(KEY_NULL);
 
         if (const auto isValid = MandatoryProjectFilesValidator::validateAndInitialize(); !isValid)
@@ -104,7 +102,6 @@ namespace BreadEngine {
         unloadGameModule();
         _engineSystems.dispose(getDeltaTime());
         Renderer::shutdown();
-        R3D_Close();
         CloseWindow();
     }
 

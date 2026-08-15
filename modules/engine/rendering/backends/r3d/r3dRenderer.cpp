@@ -11,8 +11,9 @@
 #include "utils/colorUtils.h"
 
 namespace BreadEngine {
-    void R3DRenderer::initialize()
+    void R3DRenderer::initialize(const int sceneWidth, const int sceneHeight)
     {
+        R3D_Init(sceneWidth, sceneHeight);
         _defaultMaterial = R3D_GetDefaultMaterial();
     }
 
@@ -31,12 +32,78 @@ namespace BreadEngine {
         _cubemaps.forEachAlive([](R3D_Cubemap &cubemap) { R3D_UnloadCubemap(cubemap); });
         _ambientMaps.forEachAlive([](R3D_AmbientMap &map) { R3D_UnloadAmbientMap(map); });
 
+        if (IsRenderTextureValid(_sceneTarget))
+        {
+            UnloadRenderTexture(_sceneTarget);
+            _sceneTarget = {};
+        }
+
         _lights.clear();
         _textures.clear();
         _meshes.clear();
         _models.clear();
         _cubemaps.clear();
         _ambientMaps.clear();
+
+        R3D_Close();
+    }
+
+    // --- frame ---
+
+    Camera3D R3DRenderer::toNative(const CameraView &camera)
+    {
+        return Camera3D{
+            .position = camera.position,
+            .target = camera.target,
+            .up = camera.up,
+            .fovy = camera.fov,
+            .projection = camera.projection == ProjectionType::Orthographic ? CAMERA_ORTHOGRAPHIC : CAMERA_PERSPECTIVE
+        };
+    }
+
+    void R3DRenderer::resizeSceneTarget(const int width, const int height)
+    {
+        if (width <= 0 || height <= 0) return;
+        if (_sceneTarget.texture.width == width && _sceneTarget.texture.height == height) return;
+
+        if (IsRenderTextureValid(_sceneTarget)) UnloadRenderTexture(_sceneTarget);
+
+        _sceneTarget = LoadRenderTexture(width, height);
+        R3D_SetResolution(width, height);
+    }
+
+    void R3DRenderer::beginScene(const CameraView &camera)
+    {
+        // A zero-id target makes r3d render to the backbuffer, which is what the game wants.
+        R3D_BeginEx(_sceneTarget, toNative(camera));
+    }
+
+    void R3DRenderer::endScene()
+    {
+        R3D_End();
+    }
+
+    void R3DRenderer::beginSceneOverlay()
+    {
+        if (!IsRenderTextureValid(_sceneTarget)) return;
+
+        BeginTextureMode(_sceneTarget);
+    }
+
+    void R3DRenderer::endSceneOverlay()
+    {
+        if (!IsRenderTextureValid(_sceneTarget)) return;
+
+        EndTextureMode();
+    }
+
+    void R3DRenderer::drawSceneTexture(const Rectangle destination)
+    {
+        if (!IsRenderTextureValid(_sceneTarget)) return;
+
+        const auto width = static_cast<float>(_sceneTarget.texture.width);
+        const auto height = static_cast<float>(_sceneTarget.texture.height);
+        DrawTexturePro(_sceneTarget.texture, Rectangle{0, 0, width, -height}, destination, Vector2{0, 0}, 0, WHITE);
     }
 
     // --- lights ---

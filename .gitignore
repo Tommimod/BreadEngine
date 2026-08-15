@@ -37,6 +37,7 @@ bld/
 .windsurf/
 build/
 cmake-build-debug/
+cmake-build-debug-diligent/
 cmake-build-release/
 
 # Visual Studio 2015/2017 cache/options directory

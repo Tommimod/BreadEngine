@@ -134,6 +134,13 @@ target_include_directories(BreadEngine PUBLIC
 # PUBLIC: the editor and the game pick the same backend as the engine they link against.
 if (BREAD_RENDER_BACKEND STREQUAL "Diligent")
     target_compile_definitions(BreadEngine PUBLIC BREAD_RENDER_BACKEND_DILIGENT=1)
+    # Diligent-Common carries RefCntAutoPtr and friends; the OpenGL engine target only
+    # propagates its own interface/ directory. Both are defined by an add_subdirectory()
+    # that runs after this one - CMake resolves target names at generate time.
+    target_link_libraries(BreadEngine PUBLIC
+            Diligent-GraphicsEngineOpenGL-static
+            Diligent-Common
+    )
 else ()
     target_compile_definitions(BreadEngine PUBLIC BREAD_RENDER_BACKEND_R3D=1)
 endif ()

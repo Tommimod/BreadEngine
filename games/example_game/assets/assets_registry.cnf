@@ -1,0 +1,111 @@
+_rootFolder:
+  _depth: 0
+  _guid: 0
+  _pathFromRoot: Project Files
+  _name: Project Files
+  _files:
+    - _pathFromRoot: assets_registry.cnf
+      _extension: .cnf
+      _guid: 52f91e59-0445-4edd-9405-7764a36cf06a
+    - _pathFromRoot: project_settings.cnf
+      _extension: .cnf
+      _guid: 5c54b1da-5542-4ea7-8bc3-8d4517f8e339
+    - _pathFromRoot: Root.nd
+      _extension: .nd
+      _guid: 1b55f7bc-c935-4b7e-b3a5-d4cde4f309d1
+    - _pathFromRoot: global_light_settings.cnf
+      _extension: .cnf
+      _guid: 3808524f-a2b7-46ef-899e-315a59808bbd
+  _folders:
+    - _depth: 1
+      _guid: bd19f3a9-3eda-4fbe-875f-beb6fe2df0ae
+      _pathFromRoot: 3D
+      _name: 3D
+      _files:
+        - _pathFromRoot: 3D\license.txt
+          _extension: .txt
+          _guid: 28ba8ee6-dba0-4dd2-b5d7-914dae610f8c
+        - _pathFromRoot: 3D\scene.bin
+          _extension: .bin
+          _guid: 52600f1f-392e-4f3b-b57d-6cac383ea65e
+        - _pathFromRoot: 3D\scene.gltf
+          _extension: .gltf
+          _guid: f60dd131-e1a4-4807-9309-162ab7b28686
+      _folders:
+        - _depth: 2
+          _guid: db8d00d3-eb84-4c38-94bf-1fdc0ec0dbf0
+          _pathFromRoot: 3D\textures
+          _name: textures
+          _files:
+            - _pathFromRoot: 3D\textures\scene_albedo.jpeg
+              _extension: .jpeg
+              _guid: 785ae127-defa-41f7-9821-3906cf7b240c
+            - _pathFromRoot: 3D\textures\scene_normal.png
+              _extension: .png
+              _guid: f7d10568-d9f9-47ad-8954-da8c8dde6db4
+            - _pathFromRoot: 3D\textures\scene_omr.png
+              _extension: .png
+              _guid: 9482642b-c801-4c06-af24-2801a401e4ca
+          _folders: ~
+    - _depth: 1
+      _guid: 64608b0d-2c27-4a62-9b50-a5ae760342e1
+      _pathFromRoot: sounds
+      _name: sounds
+      _files:
+        - _pathFromRoot: sounds\Lukrembo - Bread.mp3
+          _extension: .mp3
+          _guid: 5cee41fd-b05c-47f6-879d-2f0a4f087434
+      _folders: ~
+    - _depth: 1
+      _guid: e0e2d1eb-1417-4170-9f43-a7d3ba504dd2
+      _pathFromRoot: textures
+      _name: textures
+      _files:
+        - _pathFromRoot: textures\bread_texture.jpg
+          _extension: .jpg
+          _guid: e2a87b00-d9d3-4a59-a2cb-c85fc170286b
+      _folders: ~
+_guidToAsset:
+  f60dd131-e1a4-4807-9309-162ab7b28686:
+    _materials:
+      - _shaderPath: ""
+        _albedoTexture:
+          guid: 785ae127-defa-41f7-9821-3906cf7b240c
+          type: TextureAsset
+        _normalTexture:
+          guid: f7d10568-d9f9-47ad-8954-da8c8dde6db4
+          type: TextureAsset
+        _omrTexture:
+          guid: 9482642b-c801-4c06-af24-2801a401e4ca
+          type: TextureAsset
+        _emissionTexture: ~
+      - _shaderPath: ""
+        _albedoTexture: ~
+        _normalTexture: ~
+        _omrTexture: ~
+        _emissionTexture: ~
+    type: MeshAsset
+  e2a87b00-d9d3-4a59-a2cb-c85fc170286b:
+    _textureType: 0
+    _withColor: true
+    _textureFilter: 0
+    _textureWrap: 0
+    type: TextureAsset
+  785ae127-defa-41f7-9821-3906cf7b240c:
+    _textureType: 0
+    _withColor: true
+    _textureFilter: 0
+    _textureWrap: 0
+    type: TextureAsset
+  f7d10568-d9f9-47ad-8954-da8c8dde6db4:
+    _textureType: 0
+    _withColor: true
+    _textureFilter: 0
+    _textureWrap: 0
+    type: TextureAsset
+  9482642b-c801-4c06-af24-2801a401e4ca:
+    _textureType: 0
+    _withColor: true
+    _textureFilter: 0
+    _textureWrap: 0
+    type: TextureAsset

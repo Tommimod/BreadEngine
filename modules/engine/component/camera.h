@@ -1,15 +1,10 @@
 #pragma once
 #include "core/component.h"
+#include "rendering/renderTypes.h"
 
 namespace BreadEngine {
     struct Camera final : Component
     {
-        enum CameraType : uint8_t
-        {
-            CAMERA_PERSPECTIVE = 0,
-            CAMERA_ORTHOGRAPHIC
-        };
-
         enum BackgroundMode : uint8_t
         {
             SOLID_COLOR = 0,
@@ -22,7 +17,7 @@ namespace BreadEngine {
 
         ~Camera() override;
 
-        void setCameraType(CameraType type);
+        void setCameraType(ProjectionType type);
 
         void setFov(float fov);
 
@@ -40,7 +35,7 @@ namespace BreadEngine {
         Camera3D _nativeCamera{};
         Color _backgroundColor = WHITE;
         BackgroundMode _backgroundMode = SOLID_COLOR;
-        CameraType _projection = CAMERA_PERSPECTIVE;
+        ProjectionType _projection = ProjectionType::Perspective;
         float _fov = 45.0f;
         int _index = 0;
 

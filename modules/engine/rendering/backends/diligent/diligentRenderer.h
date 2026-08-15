@@ -1,17 +1,19 @@
 #pragma once
-#include <thread>
-
-#include <r3d.h>
-#include <r3d_texture.h>
+#include <DeviceContext.h>
+#include <RefCntAutoPtr.hpp>
+#include <RenderDevice.h>
 
 #include "../../IRenderer.h"
-#include "../../resourcePool.h"
 
 namespace BreadEngine {
-    class R3DRenderer final : public IRenderer
+    /**
+     * Renders through DiligentEngine, attached to the OpenGL context raylib already created
+     * so the scene target is a GL texture rlgl can composite and draw over without a copy.
+     */
+    class DiligentRenderer final : public IRenderer
     {
     public:
-        [[nodiscard]] const char *getBackendName() const override { return "R3D"; }
+        [[nodiscard]] const char *getBackendName() const override { return "Diligent"; }
 
         void initialize(int sceneWidth, int sceneHeight) override;
 
@@ -74,65 +76,23 @@ namespace BreadEngine {
         void destroyAmbientMap(AmbientMapHandle handle) override;
 
     private:
-        struct LightSlot
-        {
-            R3D_Light native = -1;
-            LightState applied{};
-            /// False until the first update, which then writes every property rather than
-            /// diffing against a cache that has never matched the light.
-            bool hasApplied = false;
-        };
+        Diligent::RefCntAutoPtr<Diligent::IRenderDevice> _device;
+        Diligent::RefCntAutoPtr<Diligent::IDeviceContext> _context;
+        Diligent::RefCntAutoPtr<Diligent::ITexture> _sceneColor;
+        Diligent::RefCntAutoPtr<Diligent::ITexture> _sceneDepth;
+        /// A raylib framebuffer over the same two GL textures, so an rlgl overlay pass lands
+        /// in the attachments Diligent just rendered into instead of a copy of the colour.
+        RenderTexture2D _overlay{};
+        Color _clearColor = BLACK;
+        /// False while the scene target follows the window rather than a caller-chosen size.
+        bool _hasExplicitTarget = false;
 
-        struct TextureSlot
-        {
-            TextureDesc desc;
-            Texture2D native{};
-            Image decoded{};
-            std::jthread decodeJob;
-            bool uploaded = false;
-        };
+        void createSceneTarget(int width, int height);
 
-        ResourcePool<LightSlot, LightHandle> _lights;
-        ResourcePool<TextureSlot, TextureHandle> _textures;
-        ResourcePool<R3D_Mesh, MeshHandle> _meshes;
-        ResourcePool<R3D_Model, ModelHandle> _models;
-        ResourcePool<R3D_Cubemap, CubemapHandle> _cubemaps;
-        ResourcePool<R3D_AmbientMap, AmbientMapHandle> _ambientMaps;
-        R3D_Material _defaultMaterial{};
-        /// Zero-id while the scene renders straight to the backbuffer.
-        RenderTexture2D _sceneTarget{};
+        void releaseSceneTarget();
 
-        /// Joins the background decode and uploads to the GPU, unless already uploaded.
-        static void finalizeTexture(TextureSlot &slot);
-
-        static void releaseTexture(TextureSlot &slot);
-
-        void applyTexture(TextureHandle handle, Texture2D &target);
-
-        R3D_Material buildMaterial(const MaterialData &material);
-
-        static Camera3D toNative(const CameraView &camera);
-
-        static R3D_LightType toNative(LightType type);
-
-        static R3D_Bloom toNative(BloomMode mode);
-
-        static R3D_Fog toNative(FogMode mode);
-
-        static R3D_DoF toNative(DepthOfFieldMode mode);
-
-        static R3D_Tonemap toNative(TonemapMode mode);
-
-        static BloomMode fromNative(R3D_Bloom mode);
-
-        static FogMode fromNative(R3D_Fog mode);
-
-        static DepthOfFieldMode fromNative(R3D_DoF mode);
-
-        static TonemapMode fromNative(R3D_Tonemap mode);
-
-        static TextureWrap toNative(TextureWrapMode wrap);
-
-        static TextureFilter toNative(TextureFilterMode filter);
+        /// Undoes the bindings Diligent made behind rlgl's back, so raylib's next draw goes
+        /// to the framebuffer it thinks is bound.
+        void yieldToRaylib();
     };
 } // namespace BreadEngine

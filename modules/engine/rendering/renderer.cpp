@@ -3,6 +3,7 @@
 #include <string>
 
 #include "logger.h"
+#include "raylib.h"
 
 #if defined(BREAD_RENDER_BACKEND_DILIGENT)
 #include "backends/diligent/diligentRenderer.h"
@@ -13,7 +14,7 @@
 namespace BreadEngine {
     std::unique_ptr<IRenderer> Renderer::_instance = nullptr;
 
-    void Renderer::initialize()
+    void Renderer::initialize(const int sceneWidth, const int sceneHeight)
     {
         if (_instance != nullptr) return;
 
@@ -22,7 +23,7 @@ namespace BreadEngine {
 #else
         _instance = std::make_unique<R3DRenderer>();
 #endif
-        _instance->initialize();
+        _instance->initialize(sceneWidth, sceneHeight);
         // Function-local static, not TextFormat(): Logger stores the std::string_view it is
         // handed, so the storage behind it has to outlive the call.
         static const std::string message = std::string("Render backend: ") + _instance->getBackendName();
@@ -41,7 +42,7 @@ namespace BreadEngine {
     {
         if (_instance == nullptr)
         {
-            initialize();
+            initialize(GetScreenWidth(), GetScreenHeight());
         }
         return *_instance;
     }

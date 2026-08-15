@@ -17,16 +17,12 @@ int main()
         return -1;
     }
 
-    const auto &viewportWindow = editor.mainWindow.getViewportWindow();
-    auto renderTexture = LoadRenderTexture(static_cast<int>(viewportWindow.getViewportSize().width), static_cast<int>(viewportWindow.getViewportSize().height));
-
     while (!Engine::shouldClose())
     {
-        editor.callLoop(renderTexture);
+        editor.callLoop();
     }
 
     editor.shutdown();
     engine.shutdown();
-    UnloadRenderTexture(renderTexture);
     return 0;
 }

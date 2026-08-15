@@ -70,6 +70,12 @@ namespace BreadEngine {
         int height = 0;
     };
 
+    enum class ProjectionType : uint8_t
+    {
+        Perspective = 0,
+        Orthographic
+    };
+
     enum class BloomMode : uint8_t
     {
         Disabled = 0,
@@ -100,6 +106,29 @@ namespace BreadEngine {
         Aces,
         Agx
     };
+
+    /// Viewpoint the scene is rendered from.
+    struct CameraView
+    {
+        Vector3 position{};
+        Vector3 target{};
+        Vector3 up{0.0f, 1.0f, 0.0f};
+        float fov = 45.0f;
+        ProjectionType projection = ProjectionType::Perspective;
+    };
+
+    /// For the call sites that still drive the camera through raylib: the editor viewport
+    /// and the game loop.
+    [[nodiscard]] inline CameraView toCameraView(const Camera3D &camera)
+    {
+        return CameraView{
+            .position = camera.position,
+            .target = camera.target,
+            .up = camera.up,
+            .fov = camera.fovy,
+            .projection = camera.projection == CAMERA_ORTHOGRAPHIC ? ProjectionType::Orthographic : ProjectionType::Perspective
+        };
+    }
 
     /// PBR texture set of a surface. An invalid handle leaves the renderer's default in place.
     struct MaterialData

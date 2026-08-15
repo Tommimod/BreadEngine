@@ -84,6 +84,15 @@ namespace BreadEngine {
 
         static void updateIncludesAfterFolderChange(const std::shared_ptr<Folder> &folder);
 
+        /**
+         * Rebuilds every absolute path from the project path this run resolved, since only
+         * the root-relative ones are serialized. Without it the registry would only ever load
+         * on the machine and in the directory it was written in.
+         */
+        void restoreFullPaths();
+
+        void restoreFullPaths(const std::shared_ptr<Folder> &folder) const;
+
         void removeUndefinedFoldersAndFiles();
 
         void restoreProjectTree(const std::shared_ptr<Folder> &folder, const FilePathList &filePathList);

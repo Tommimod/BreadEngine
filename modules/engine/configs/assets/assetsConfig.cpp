@@ -51,8 +51,8 @@ namespace BreadEngine {
         }
 
         const auto data = rawConfig.as<AssetsConfig>();
-        _projectPath = data._projectPath;
         _rootFolder = data._rootFolder;
+        restoreFullPaths();
         buildIndexes();
         AssetsDeserializer::deserialize(rawConfig);
 
@@ -65,6 +65,26 @@ namespace BreadEngine {
         buildIndexes();
         restoreEngineAssetsByFiles(false);
         initializeExistingEngineAssets();
+    }
+
+    void AssetsConfig::restoreFullPaths()
+    {
+        _rootFolder->_fullPath = _projectPath;
+        restoreFullPaths(_rootFolder);
+    }
+
+    void AssetsConfig::restoreFullPaths(const std::shared_ptr<Folder> &folder) const
+    {
+        for (const auto &file: folder->_files)
+        {
+            file->_fullPath = _projectPath + "\\" + file->_pathFromRoot;
+        }
+
+        for (const auto &subFolder: folder->_folders)
+        {
+            subFolder->_fullPath = _projectPath + "\\" + subFolder->_pathFromRoot;
+            restoreFullPaths(subFolder);
+        }
     }
 
     void AssetsConfig::buildFullProjectTree(const char *projectPath)
