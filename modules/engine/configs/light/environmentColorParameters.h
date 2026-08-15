@@ -1,6 +1,6 @@
 ﻿#pragma once
 #include "inspectorObject.h"
-#include "r3d_environment.h"
+#include "rendering/renderTypes.h"
 
 namespace BreadEngine {
     struct EnvironmentColorParameters : InspectorStruct
@@ -12,10 +12,6 @@ namespace BreadEngine {
         EnvironmentColorParameters() = default;
 
         ~EnvironmentColorParameters() override = default;
-
-        EnvironmentColorParameters &fromNative(const R3D_EnvColor &nativeData);
-
-        [[nodiscard]] R3D_EnvColor toNative() const;
 
     private:
         INSPECTOR_BEGIN(EnvironmentColorParameters)

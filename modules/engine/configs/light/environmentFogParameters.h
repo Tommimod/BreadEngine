@@ -1,11 +1,11 @@
 ﻿#pragma once
 #include "inspectorObject.h"
-#include "r3d_environment.h"
+#include "rendering/renderTypes.h"
 
 namespace BreadEngine {
     struct EnvironmentFogParameters : InspectorStruct
     {
-        R3D_Fog mode = R3D_FOG_DISABLED; ///< Fog distribution mode (default: R3D_FOG_DISABLED)
+        FogMode mode = FogMode::Disabled; ///< Fog distribution mode
         Color color = WHITE; ///< Fog tint color (default: white)
         float start = 0; ///< Linear mode: distance where fog begins (default: 1.0)
         float end = 0; ///< Linear mode: distance of full fog density (default: 50.0)
@@ -15,10 +15,6 @@ namespace BreadEngine {
         EnvironmentFogParameters() = default;
 
         ~EnvironmentFogParameters() override = default;
-
-        EnvironmentFogParameters &fromNative(const R3D_EnvFog &nativeData);
-
-        [[nodiscard]] R3D_EnvFog toNative() const;
 
     private:
         INSPECTOR_BEGIN(EnvironmentFogParameters)

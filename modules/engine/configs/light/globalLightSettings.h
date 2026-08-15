@@ -1,19 +1,7 @@
-﻿#pragma once
-#include "environmentAmbientParameters.h"
-#include "environmentBackgroudParameters.h"
-#include "environmentBloomParameters.h"
-#include "environmentColorParameters.h"
-#include "environmentDOFParameters.h"
-#include "environmentFogParameters.h"
-#include "environmentSSAOParameters.h"
-#include "environmentSSGIParameters.h"
-#include "environmentSSILParameters.h"
-#include "environmentSSRParameters.h"
-#include "environmentTonemapParameters.h"
-#include "r3d_environment.h"
-#include "../baseYamlConfig.h"
-#include "r3d_sky.h"
+#pragma once
+#include "environmentSettings.h"
 #include "skyboxProceduralParameters.h"
+#include "../baseYamlConfig.h"
 #include "../assets/textureAsset.h"
 
 namespace BreadEngine {
@@ -38,9 +26,7 @@ namespace BreadEngine {
         friend class GlobalLightSystem;
 
         TextureAsset *_skyboxTexture = nullptr;
-        R3D_Environment *_nativeEnvironment = nullptr;
         SkyboxProceduralParameters _proceduralSkyboxSettings{};
-        R3D_ProceduralSky _nativeProceduralSky{};
         std::string _skyboxShaderPath;
 
         EnvironmentBackgroudParameters _background{};
@@ -56,6 +42,23 @@ namespace BreadEngine {
         EnvironmentColorParameters _finalColor{};
 
         Type _type = Type::Procedural;
+
+        [[nodiscard]] EnvironmentSettings environment()
+        {
+            return EnvironmentSettings{
+                .background = _background,
+                .ambient = _ambient,
+                .ssao = _ssao,
+                .ssil = _ssil,
+                .ssgi = _ssgi,
+                .ssr = _ssr,
+                .bloom = _bloom,
+                .fog = _fog,
+                .depthOfField = _depthOfField,
+                .tonemap = _tonemap,
+                .finalColor = _finalColor
+            };
+        }
 
         INSPECTOR_BEGIN(GlobalLightSettings)
             INSPECT_FIELD(_type);

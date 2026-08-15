@@ -1,30 +1,10 @@
-﻿#include "environmentBackgroudParameters.h"
+#include "environmentBackgroudParameters.h"
 
 #include "logger.h"
+#include "rendering/renderer.h"
 
 namespace BreadEngine {
     DEFINE_STATIC_PROPS(EnvironmentBackgroudParameters)
-
-    EnvironmentBackgroudParameters &EnvironmentBackgroudParameters::fromNative(const R3D_EnvBackground &nativeData)
-    {
-        color = nativeData.color;
-        energy = nativeData.energy;
-        skyBlur = nativeData.skyBlur;
-        rotation = nativeData.rotation;
-        sky = nativeData.sky;
-        return *this;
-    }
-
-    R3D_EnvBackground EnvironmentBackgroudParameters::toNative() const
-    {
-        return R3D_EnvBackground{
-            .color = color,
-            .energy = energy,
-            .skyBlur = skyBlur,
-            .sky = sky,
-            .rotation = rotation,
-        };
-    }
 
     void EnvironmentBackgroudParameters::setTexture(TextureAsset *texture)
     {
@@ -34,21 +14,15 @@ namespace BreadEngine {
             return;
         }
 
+        clearTexture();
         _skyboxTexture = texture;
-        sky = R3D_LoadCubemap(_skyboxTexture->getAssetPath().c_str(), R3D_CUBEMAP_LAYOUT_AUTO_DETECT);
+        sky = Renderer::get().loadCubemap(texture->getAssetPath());
     }
 
     void EnvironmentBackgroudParameters::clearTexture()
     {
-        if (_skyboxTexture != nullptr)
-        {
-            _skyboxTexture = nullptr;
-            sky = R3D_Cubemap{};
-        }
-        else
-        {
-            R3D_UnloadCubemap(sky);
-            sky = R3D_Cubemap{};
-        }
+        _skyboxTexture = nullptr;
+        Renderer::get().destroyCubemap(sky);
+        sky = {};
     }
 } // BreadEngine

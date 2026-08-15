@@ -1,6 +1,6 @@
 ﻿#pragma once
 #include "inspectorObject.h"
-#include "r3d_environment.h"
+#include "rendering/renderTypes.h"
 
 namespace BreadEngine {
     struct EnvironmentSSRParameters : InspectorStruct
@@ -16,10 +16,6 @@ namespace BreadEngine {
         EnvironmentSSRParameters() = default;
 
         ~EnvironmentSSRParameters() override = default;
-
-        EnvironmentSSRParameters &fromNative(const R3D_EnvSSR &nativeData);
-
-        [[nodiscard]] R3D_EnvSSR toNative() const;
 
     private:
         INSPECTOR_BEGIN(EnvironmentSSRParameters)

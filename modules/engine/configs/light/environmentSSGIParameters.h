@@ -1,6 +1,6 @@
 ﻿#pragma once
 #include "inspectorObject.h"
-#include "r3d_environment.h"
+#include "rendering/renderTypes.h"
 
 namespace BreadEngine {
     struct EnvironmentSSGIParameters : InspectorStruct
@@ -19,10 +19,6 @@ namespace BreadEngine {
         EnvironmentSSGIParameters() = default;
 
         ~EnvironmentSSGIParameters() override = default;
-
-        EnvironmentSSGIParameters &fromNative(const R3D_EnvSSGI &nativeData);
-
-        [[nodiscard]] R3D_EnvSSGI toNative() const;
 
     private:
         INSPECTOR_BEGIN(EnvironmentSSGIParameters)

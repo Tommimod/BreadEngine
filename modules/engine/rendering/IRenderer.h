@@ -3,6 +3,8 @@
 
 #include "renderHandles.h"
 #include "renderTypes.h"
+#include "configs/light/environmentSettings.h"
+#include "configs/light/skyboxProceduralParameters.h"
 
 namespace BreadEngine {
     struct MeshPrimitiveData;
@@ -64,5 +66,23 @@ namespace BreadEngine {
         virtual void setModelMaterial(ModelHandle handle, int slot, const MaterialData &material) = 0;
 
         virtual void drawModel(ModelHandle handle, Vector3 position, Quaternion rotation, Vector3 scale) = 0;
+
+        // --- environment ---
+
+        /// Overwrites @p settings with the renderer's own starting values.
+        virtual void applyDefaultEnvironment(EnvironmentSettings settings) = 0;
+
+        virtual void setEnvironment(EnvironmentSettings settings) = 0;
+
+        [[nodiscard]] virtual CubemapHandle loadCubemap(const std::string &path) = 0;
+
+        [[nodiscard]] virtual CubemapHandle createProceduralSky(int size, const SkyboxProceduralParameters &sky) = 0;
+
+        virtual void destroyCubemap(CubemapHandle handle) = 0;
+
+        /// Precomputes the irradiance and reflection maps used for image-based lighting.
+        [[nodiscard]] virtual AmbientMapHandle createAmbientMap(CubemapHandle cubemap) = 0;
+
+        virtual void destroyAmbientMap(AmbientMapHandle handle) = 0;
     };
 } // namespace BreadEngine

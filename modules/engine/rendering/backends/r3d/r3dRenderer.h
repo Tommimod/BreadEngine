@@ -47,6 +47,20 @@ namespace BreadEngine {
 
         void drawModel(ModelHandle handle, Vector3 position, Quaternion rotation, Vector3 scale) override;
 
+        void applyDefaultEnvironment(EnvironmentSettings settings) override;
+
+        void setEnvironment(EnvironmentSettings settings) override;
+
+        [[nodiscard]] CubemapHandle loadCubemap(const std::string &path) override;
+
+        [[nodiscard]] CubemapHandle createProceduralSky(int size, const SkyboxProceduralParameters &sky) override;
+
+        void destroyCubemap(CubemapHandle handle) override;
+
+        [[nodiscard]] AmbientMapHandle createAmbientMap(CubemapHandle cubemap) override;
+
+        void destroyAmbientMap(AmbientMapHandle handle) override;
+
     private:
         struct LightSlot
         {
@@ -70,6 +84,8 @@ namespace BreadEngine {
         ResourcePool<TextureSlot, TextureHandle> _textures;
         ResourcePool<R3D_Mesh, MeshHandle> _meshes;
         ResourcePool<R3D_Model, ModelHandle> _models;
+        ResourcePool<R3D_Cubemap, CubemapHandle> _cubemaps;
+        ResourcePool<R3D_AmbientMap, AmbientMapHandle> _ambientMaps;
         R3D_Material _defaultMaterial{};
 
         /// Joins the background decode and uploads to the GPU, unless already uploaded.
@@ -82,6 +98,22 @@ namespace BreadEngine {
         R3D_Material buildMaterial(const MaterialData &material);
 
         static R3D_LightType toNative(LightType type);
+
+        static R3D_Bloom toNative(BloomMode mode);
+
+        static R3D_Fog toNative(FogMode mode);
+
+        static R3D_DoF toNative(DepthOfFieldMode mode);
+
+        static R3D_Tonemap toNative(TonemapMode mode);
+
+        static BloomMode fromNative(R3D_Bloom mode);
+
+        static FogMode fromNative(R3D_Fog mode);
+
+        static DepthOfFieldMode fromNative(R3D_DoF mode);
+
+        static TonemapMode fromNative(R3D_Tonemap mode);
 
         static TextureWrap toNative(TextureWrapMode wrap);
 

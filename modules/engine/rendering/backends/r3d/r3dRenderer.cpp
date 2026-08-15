@@ -28,11 +28,15 @@ namespace BreadEngine {
             if (R3D_IsMeshValid(mesh)) R3D_UnloadMesh(mesh);
         });
         _models.forEachAlive([](R3D_Model &model) { R3D_UnloadModel(model, false); });
+        _cubemaps.forEachAlive([](R3D_Cubemap &cubemap) { R3D_UnloadCubemap(cubemap); });
+        _ambientMaps.forEachAlive([](R3D_AmbientMap &map) { R3D_UnloadAmbientMap(map); });
 
         _lights.clear();
         _textures.clear();
         _meshes.clear();
         _models.clear();
+        _cubemaps.clear();
+        _ambientMaps.clear();
     }
 
     // --- lights ---
@@ -368,5 +372,322 @@ namespace BreadEngine {
         if (model == nullptr) return;
 
         R3D_DrawModelEx(*model, position, rotation, scale);
+    }
+    // --- environment ---
+
+    R3D_Bloom R3DRenderer::toNative(const BloomMode mode)
+    {
+        switch (mode)
+        {
+            case BloomMode::Mix: return R3D_BLOOM_MIX;
+            case BloomMode::Additive: return R3D_BLOOM_ADDITIVE;
+            case BloomMode::Screen: return R3D_BLOOM_SCREEN;
+            case BloomMode::Disabled:
+            default: return R3D_BLOOM_DISABLED;
+        }
+    }
+
+    R3D_Fog R3DRenderer::toNative(const FogMode mode)
+    {
+        switch (mode)
+        {
+            case FogMode::Linear: return R3D_FOG_LINEAR;
+            case FogMode::Exp2: return R3D_FOG_EXP2;
+            case FogMode::Exp: return R3D_FOG_EXP;
+            case FogMode::Disabled:
+            default: return R3D_FOG_DISABLED;
+        }
+    }
+
+    R3D_DoF R3DRenderer::toNative(const DepthOfFieldMode mode)
+    {
+        return mode == DepthOfFieldMode::Enabled ? R3D_DOF_ENABLED : R3D_DOF_DISABLED;
+    }
+
+    R3D_Tonemap R3DRenderer::toNative(const TonemapMode mode)
+    {
+        switch (mode)
+        {
+            case TonemapMode::Reinhard: return R3D_TONEMAP_REINHARD;
+            case TonemapMode::Filmic: return R3D_TONEMAP_FILMIC;
+            case TonemapMode::Aces: return R3D_TONEMAP_ACES;
+            case TonemapMode::Agx: return R3D_TONEMAP_AGX;
+            case TonemapMode::Linear:
+            default: return R3D_TONEMAP_LINEAR;
+        }
+    }
+
+    BloomMode R3DRenderer::fromNative(const R3D_Bloom mode)
+    {
+        switch (mode)
+        {
+            case R3D_BLOOM_MIX: return BloomMode::Mix;
+            case R3D_BLOOM_ADDITIVE: return BloomMode::Additive;
+            case R3D_BLOOM_SCREEN: return BloomMode::Screen;
+            case R3D_BLOOM_DISABLED:
+            default: return BloomMode::Disabled;
+        }
+    }
+
+    FogMode R3DRenderer::fromNative(const R3D_Fog mode)
+    {
+        switch (mode)
+        {
+            case R3D_FOG_LINEAR: return FogMode::Linear;
+            case R3D_FOG_EXP2: return FogMode::Exp2;
+            case R3D_FOG_EXP: return FogMode::Exp;
+            case R3D_FOG_DISABLED:
+            default: return FogMode::Disabled;
+        }
+    }
+
+    DepthOfFieldMode R3DRenderer::fromNative(const R3D_DoF mode)
+    {
+        return mode == R3D_DOF_ENABLED ? DepthOfFieldMode::Enabled : DepthOfFieldMode::Disabled;
+    }
+
+    TonemapMode R3DRenderer::fromNative(const R3D_Tonemap mode)
+    {
+        switch (mode)
+        {
+            case R3D_TONEMAP_REINHARD: return TonemapMode::Reinhard;
+            case R3D_TONEMAP_FILMIC: return TonemapMode::Filmic;
+            case R3D_TONEMAP_ACES: return TonemapMode::Aces;
+            case R3D_TONEMAP_AGX: return TonemapMode::Agx;
+            case R3D_TONEMAP_LINEAR:
+            default: return TonemapMode::Linear;
+        }
+    }
+
+    void R3DRenderer::applyDefaultEnvironment(EnvironmentSettings settings)
+    {
+        const R3D_Environment &defaults = *R3D_GetEnvironment();
+
+        settings.background.color = defaults.background.color;
+        settings.background.energy = defaults.background.energy;
+        settings.background.skyBlur = defaults.background.skyBlur;
+        settings.background.rotation = defaults.background.rotation;
+
+        settings.ambient.color = defaults.ambient.color;
+        settings.ambient.energy = defaults.ambient.energy;
+
+        settings.ssao.intensity = defaults.ssao.intensity;
+        settings.ssao.power = defaults.ssao.power;
+        settings.ssao.radius = defaults.ssao.radius;
+        settings.ssao.bias = defaults.ssao.bias;
+        settings.ssao.sampleCount = defaults.ssao.sampleCount;
+        settings.ssao.enabled = defaults.ssao.enabled;
+
+        settings.ssil.radius = defaults.ssil.radius;
+        settings.ssil.thickness = defaults.ssil.thickness;
+        settings.ssil.intensity = defaults.ssil.intensity;
+        settings.ssil.aoPower = defaults.ssil.aoPower;
+        settings.ssil.sampleCount = defaults.ssil.sampleCount;
+        settings.ssil.sliceCount = defaults.ssil.sliceCount;
+        settings.ssil.denoiseSteps = defaults.ssil.denoiseSteps;
+        settings.ssil.enabled = defaults.ssil.enabled;
+
+        settings.ssgi.stepSize = defaults.ssgi.stepSize;
+        settings.ssgi.thickness = defaults.ssgi.thickness;
+        settings.ssgi.maxDistance = defaults.ssgi.maxDistance;
+        settings.ssgi.intensity = defaults.ssgi.intensity;
+        settings.ssgi.fadeStart = defaults.ssgi.fadeStart;
+        settings.ssgi.fadeEnd = defaults.ssgi.fadeEnd;
+        settings.ssgi.sampleCount = defaults.ssgi.sampleCount;
+        settings.ssgi.maxRaySteps = defaults.ssgi.maxRaySteps;
+        settings.ssgi.denoiseSteps = defaults.ssgi.denoiseSteps;
+        settings.ssgi.enabled = defaults.ssgi.enabled;
+
+        settings.ssr.stepSize = defaults.ssr.stepSize;
+        settings.ssr.thickness = defaults.ssr.thickness;
+        settings.ssr.maxDistance = defaults.ssr.maxDistance;
+        settings.ssr.edgeFade = defaults.ssr.edgeFade;
+        settings.ssr.maxRaySteps = defaults.ssr.maxRaySteps;
+        settings.ssr.binarySteps = defaults.ssr.binarySteps;
+        settings.ssr.enabled = defaults.ssr.enabled;
+
+        settings.bloom.mode = fromNative(defaults.bloom.mode);
+        settings.bloom.levels = defaults.bloom.levels;
+        settings.bloom.intensity = defaults.bloom.intensity;
+        settings.bloom.threshold = defaults.bloom.threshold;
+        settings.bloom.softThreshold = defaults.bloom.softThreshold;
+        settings.bloom.filterRadius = defaults.bloom.filterRadius;
+
+        settings.fog.mode = fromNative(defaults.fog.mode);
+        settings.fog.color = defaults.fog.color;
+        settings.fog.start = defaults.fog.start;
+        settings.fog.end = defaults.fog.end;
+        settings.fog.density = defaults.fog.density;
+        settings.fog.skyAffect = defaults.fog.skyAffect;
+
+        settings.depthOfField.mode = fromNative(defaults.dof.mode);
+        settings.depthOfField.focusPoint = defaults.dof.focusPoint;
+        settings.depthOfField.focusScale = defaults.dof.focusScale;
+        settings.depthOfField.nearScale = defaults.dof.nearScale;
+        settings.depthOfField.maxBlurSize = defaults.dof.maxBlurSize;
+
+        settings.tonemap.mode = fromNative(defaults.tonemap.mode);
+        settings.tonemap.exposure = defaults.tonemap.exposure;
+        settings.tonemap.white = defaults.tonemap.white;
+
+        settings.finalColor.brightness = defaults.color.brightness;
+        settings.finalColor.contrast = defaults.color.contrast;
+        settings.finalColor.saturation = defaults.color.saturation;
+    }
+
+    void R3DRenderer::setEnvironment(EnvironmentSettings settings)
+    {
+        R3D_Environment &env = *R3D_GetEnvironment();
+
+        const auto *sky = _cubemaps.get(settings.background.sky);
+        const auto *ambientMap = _ambientMaps.get(settings.ambient.map);
+
+        env.background = R3D_EnvBackground{
+            .color = settings.background.color,
+            .energy = settings.background.energy,
+            .skyBlur = settings.background.skyBlur,
+            .sky = sky != nullptr ? *sky : R3D_Cubemap{},
+            .rotation = settings.background.rotation
+        };
+
+        env.ambient = R3D_EnvAmbient{
+            .color = settings.ambient.color,
+            .energy = settings.ambient.energy,
+            .map = ambientMap != nullptr ? *ambientMap : R3D_AmbientMap{}
+        };
+
+        env.ssao = R3D_EnvSSAO{
+            .sampleCount = settings.ssao.sampleCount,
+            .intensity = settings.ssao.intensity,
+            .power = settings.ssao.power,
+            .radius = settings.ssao.radius,
+            .bias = settings.ssao.bias,
+            .enabled = settings.ssao.enabled
+        };
+
+        env.ssil = R3D_EnvSSIL{
+            .sampleCount = settings.ssil.sampleCount,
+            .sliceCount = settings.ssil.sliceCount,
+            .radius = settings.ssil.radius,
+            .thickness = settings.ssil.thickness,
+            .intensity = settings.ssil.intensity,
+            .aoPower = settings.ssil.aoPower,
+            .denoiseSteps = settings.ssil.denoiseSteps,
+            .enabled = settings.ssil.enabled
+        };
+
+        env.ssgi = R3D_EnvSSGI{
+            .sampleCount = settings.ssgi.sampleCount,
+            .maxRaySteps = settings.ssgi.maxRaySteps,
+            .stepSize = settings.ssgi.stepSize,
+            .thickness = settings.ssgi.thickness,
+            .maxDistance = settings.ssgi.maxDistance,
+            .intensity = settings.ssgi.intensity,
+            .fadeStart = settings.ssgi.fadeStart,
+            .fadeEnd = settings.ssgi.fadeEnd,
+            .denoiseSteps = settings.ssgi.denoiseSteps,
+            .enabled = settings.ssgi.enabled
+        };
+
+        env.ssr = R3D_EnvSSR{
+            .maxRaySteps = settings.ssr.maxRaySteps,
+            .binarySteps = settings.ssr.binarySteps,
+            .stepSize = settings.ssr.stepSize,
+            .thickness = settings.ssr.thickness,
+            .maxDistance = settings.ssr.maxDistance,
+            .edgeFade = settings.ssr.edgeFade,
+            .enabled = settings.ssr.enabled
+        };
+
+        env.bloom = R3D_EnvBloom{
+            .mode = toNative(settings.bloom.mode),
+            .levels = settings.bloom.levels,
+            .intensity = settings.bloom.intensity,
+            .threshold = settings.bloom.threshold,
+            .softThreshold = settings.bloom.softThreshold,
+            .filterRadius = settings.bloom.filterRadius
+        };
+
+        env.fog = R3D_EnvFog{
+            .mode = toNative(settings.fog.mode),
+            .color = settings.fog.color,
+            .start = settings.fog.start,
+            .end = settings.fog.end,
+            .density = settings.fog.density,
+            .skyAffect = settings.fog.skyAffect
+        };
+
+        env.dof = R3D_EnvDoF{
+            .mode = toNative(settings.depthOfField.mode),
+            .focusPoint = settings.depthOfField.focusPoint,
+            .focusScale = settings.depthOfField.focusScale,
+            .nearScale = settings.depthOfField.nearScale,
+            .maxBlurSize = settings.depthOfField.maxBlurSize
+        };
+
+        env.tonemap = R3D_EnvTonemap{
+            .mode = toNative(settings.tonemap.mode),
+            .exposure = settings.tonemap.exposure,
+            .white = settings.tonemap.white
+        };
+
+        env.color = R3D_EnvColor{
+            .brightness = settings.finalColor.brightness,
+            .contrast = settings.finalColor.contrast,
+            .saturation = settings.finalColor.saturation
+        };
+    }
+
+    CubemapHandle R3DRenderer::loadCubemap(const std::string &path)
+    {
+        auto cubemap = R3D_LoadCubemap(path.c_str(), R3D_CUBEMAP_LAYOUT_AUTO_DETECT);
+        return _cubemaps.add(std::move(cubemap));
+    }
+
+    CubemapHandle R3DRenderer::createProceduralSky(const int size, const SkyboxProceduralParameters &sky)
+    {
+        auto cubemap = R3D_GenProceduralSky(size, R3D_ProceduralSky{
+            .skyTopColor = sky.skyTopColor,
+            .skyHorizonColor = sky.skyHorizonColor,
+            .skyHorizonCurve = sky.skyHorizonCurve,
+            .skyEnergy = sky.skyEnergy,
+            .groundBottomColor = sky.groundBottomColor,
+            .groundHorizonColor = sky.groundHorizonColor,
+            .groundHorizonCurve = sky.groundHorizonCurve,
+            .groundEnergy = sky.groundEnergy,
+            .sunDirection = sky.sunDirection,
+            .sunColor = sky.sunColor,
+            .sunSize = sky.sunSize,
+            .sunEnergy = sky.sunEnergy
+        });
+
+        return _cubemaps.add(std::move(cubemap));
+    }
+
+    void R3DRenderer::destroyCubemap(const CubemapHandle handle)
+    {
+        const auto *cubemap = _cubemaps.get(handle);
+        if (cubemap == nullptr) return;
+
+        R3D_UnloadCubemap(*cubemap);
+        _cubemaps.remove(handle);
+    }
+
+    AmbientMapHandle R3DRenderer::createAmbientMap(const CubemapHandle cubemap)
+    {
+        const auto *source = _cubemaps.get(cubemap);
+        if (source == nullptr) return {};
+
+        auto map = R3D_GenAmbientMap(*source, R3D_AMBIENT_ILLUMINATION | R3D_AMBIENT_REFLECTION);
+        return _ambientMaps.add(std::move(map));
+    }
+
+    void R3DRenderer::destroyAmbientMap(const AmbientMapHandle handle)
+    {
+        const auto *map = _ambientMaps.get(handle);
+        if (map == nullptr) return;
+
+        R3D_UnloadAmbientMap(*map);
+        _ambientMaps.remove(handle);
     }
 } // namespace BreadEngine

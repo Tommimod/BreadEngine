@@ -70,6 +70,37 @@ namespace BreadEngine {
         int height = 0;
     };
 
+    enum class BloomMode : uint8_t
+    {
+        Disabled = 0,
+        Mix,
+        Additive,
+        Screen
+    };
+
+    enum class FogMode : uint8_t
+    {
+        Disabled = 0,
+        Linear,
+        Exp2,
+        Exp
+    };
+
+    enum class DepthOfFieldMode : uint8_t
+    {
+        Disabled = 0,
+        Enabled
+    };
+
+    enum class TonemapMode : uint8_t
+    {
+        Linear = 0,
+        Reinhard,
+        Filmic,
+        Aces,
+        Agx
+    };
+
     /// PBR texture set of a surface. An invalid handle leaves the renderer's default in place.
     struct MaterialData
     {
