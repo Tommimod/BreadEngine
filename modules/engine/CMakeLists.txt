@@ -51,6 +51,19 @@ file(GLOB_RECURSE ENGINE_SOURCES
         "*.cpp"
 )
 
+# The render backends under rendering/backends/ are mutually exclusive - only the one named
+# by BREAD_RENDER_BACKEND is compiled. Keeping the inactive backend out of the build entirely
+# (rather than #ifdef-ing out its bodies) is what makes Phase 9's "delete R3D" a directory
+# removal plus one branch here. GLOB_RECURSE above swept up every backend, so drop them all
+# and add exactly one back.
+list(FILTER ENGINE_SOURCES EXCLUDE REGEX "/rendering/backends/")
+if (BREAD_RENDER_BACKEND STREQUAL "Diligent")
+    file(GLOB_RECURSE ACTIVE_BACKEND_SOURCES "rendering/backends/diligent/*.cpp")
+else ()
+    file(GLOB_RECURSE ACTIVE_BACKEND_SOURCES "rendering/backends/r3d/*.cpp")
+endif ()
+list(APPEND ENGINE_SOURCES ${ACTIVE_BACKEND_SOURCES})
+
 # For headers
 file(GLOB_RECURSE ENGINE_HEADERS
         "*.h"
@@ -117,6 +130,13 @@ target_include_directories(BreadEngine PUBLIC
         ${CMAKE_SOURCE_DIR}/modules/engine/component
         ${CMAKE_SOURCE_DIR}/modules/engine/ui
 )
+
+# PUBLIC: the editor and the game pick the same backend as the engine they link against.
+if (BREAD_RENDER_BACKEND STREQUAL "Diligent")
+    target_compile_definitions(BreadEngine PUBLIC BREAD_RENDER_BACKEND_DILIGENT=1)
+else ()
+    target_compile_definitions(BreadEngine PUBLIC BREAD_RENDER_BACKEND_R3D=1)
+endif ()
 
 # Link libraries
 target_link_libraries(BreadEngine PUBLIC

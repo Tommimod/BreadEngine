@@ -5,6 +5,7 @@
 
 #include "nodeProvider.h"
 #include "models/reservedFileNames.h"
+#include "rendering/renderer.h"
 #include "tracy/Tracy.hpp"
 #include "systems/cameraDirectorSystem.h"
 #include "systems/cameraSystem.h"
@@ -73,6 +74,7 @@ namespace BreadEngine {
         InitWindow(width, height, title);
         MaximizeWindow();
         R3D_Init(width, height);
+        Renderer::initialize();
         SetExitKey(KEY_NULL);
 
         if (const auto isValid = MandatoryProjectFilesValidator::validateAndInitialize(); !isValid)
@@ -101,6 +103,7 @@ namespace BreadEngine {
         ComponentsProvider::setDisposed();
         unloadGameModule();
         _engineSystems.dispose(getDeltaTime());
+        Renderer::shutdown();
         R3D_Close();
         CloseWindow();
     }

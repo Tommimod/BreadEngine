@@ -153,7 +153,7 @@ namespace BreadEngine {
             if (n->has<Light>())
             {
                 auto &l = n->get<Light>();
-                if (l.lightType == R3D_LIGHT_DIR)
+                if (l.lightType == LightType::Directional)
                 {
                     light = &l;
                     break;

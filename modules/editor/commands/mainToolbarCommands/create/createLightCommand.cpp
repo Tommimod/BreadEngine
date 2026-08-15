@@ -4,7 +4,7 @@
 #include "component/light.h"
 
 namespace BreadEditor {
-    CreateLightCommand::CreateLightCommand(BreadEngine::Node *parentNode, const R3D_LightType lightType)
+    CreateLightCommand::CreateLightCommand(BreadEngine::Node *parentNode, const BreadEngine::LightType lightType)
     {
         _lightType = lightType;
         _parentNode = parentNode;
@@ -29,22 +29,21 @@ namespace BreadEditor {
         light.lightType = _lightType;
         switch (_lightType)
         {
-            case R3D_LIGHT_DIR:
+            case BreadEngine::LightType::Directional:
             {
                 node->setName("Directional Light");
                 break;
             }
-            case R3D_LIGHT_SPOT:
+            case BreadEngine::LightType::Spot:
             {
                 node->setName("Spot Light");
                 break;
             }
-            case R3D_LIGHT_OMNI:
+            case BreadEngine::LightType::Omni:
             {
                 node->setName("Omni Light");
                 break;
             }
-            case R3D_LIGHT_TYPE_COUNT:
             default: break;
         }
     }

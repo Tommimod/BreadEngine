@@ -96,6 +96,14 @@ function(bread_copy_runtime_dlls target)
     )
 endfunction()
 
+# --- Active rendering backend (DILIGENT_MIGRATION.md, Phase 2) ---
+# Compile-time, not runtime: exactly one backend is compiled and linked, so the r3d one can
+# be deleted outright in Phase 9 instead of surviving as dead code inside the shipped game.
+# Screenshot-diffing R3D vs Diligent during Phases 3-8 therefore means two build directories.
+set(BREAD_RENDER_BACKEND "R3D" CACHE STRING "Active rendering backend (R3D | Diligent)")
+set_property(CACHE BREAD_RENDER_BACKEND PROPERTY STRINGS R3D Diligent)
+message(STATUS "Render backend: ${BREAD_RENDER_BACKEND}")
+
 # cpptrace (FetchContent'd below) bundles libdwarf, which does a bare find_package(ZLIB)
 # (no REQUIRED) to optionally enable compressed-debug-info support - a feature this project
 # never uses. DiligentTools (added further down) vendors its own zlib for TextureLoader's PNG

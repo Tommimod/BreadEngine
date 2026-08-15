@@ -1,12 +1,12 @@
 ﻿#pragma once
 #include "node.h"
-#include "r3d_lighting.h"
 #include "commands/command.h"
+#include "rendering/renderTypes.h"
 
 namespace BreadEditor {
     struct CreateLightCommand : Command
     {
-        explicit CreateLightCommand(BreadEngine::Node *parentNode, R3D_LightType lightType);
+        explicit CreateLightCommand(BreadEngine::Node *parentNode, BreadEngine::LightType lightType);
 
         ~CreateLightCommand() override = default;
 
@@ -19,7 +19,7 @@ namespace BreadEditor {
     private:
         BreadEngine::Node *_parentNode = nullptr;
         BreadEngine::SubscriptionHandle _nodeCreatedSubscription;
-        R3D_LightType _lightType;
+        BreadEngine::LightType _lightType;
 
         void onNodeCreated(BreadEngine::Node *node);
     };

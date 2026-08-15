@@ -1,11 +1,13 @@
 ﻿#pragma once
-#include <r3d.h>
+#include "raylib.h"
 #include "core/component.h"
+#include "rendering/renderHandles.h"
+#include "rendering/renderTypes.h"
 
 namespace BreadEngine {
     struct Light final : Component
     {
-        R3D_LightType lightType = R3D_LIGHT_DIR;
+        LightType lightType = LightType::Directional;
         Color color = WHITE;
         float range = 50;
         float intensity = 1;
@@ -20,7 +22,7 @@ namespace BreadEngine {
 
     private:
         friend class LightSystem;
-        R3D_Light _nativeLight = {};
+        LightHandle _handle{};
 
         INSPECTOR_BEGIN(Light)
             INSPECT_FIELD(lightType);

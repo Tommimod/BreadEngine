@@ -55,13 +55,13 @@ namespace BreadEditor {
                                            "Add FreePoly", [] { CommandsHandler::execute(std::make_unique<CreatePrimitiveCommand>(&Engine::getRootNode(), MeshPrimitiveType::FreePoly)); }
                                        },
                                        ToolbarOption{
-                                           "Add Dir Light", [] { CommandsHandler::execute(std::make_unique<CreateLightCommand>(&Engine::getRootNode(), R3D_LIGHT_DIR)); }
+                                           "Add Dir Light", [] { CommandsHandler::execute(std::make_unique<CreateLightCommand>(&Engine::getRootNode(), BreadEngine::LightType::Directional)); }
                                        },
                                        ToolbarOption{
-                                           "Add Spot Light", [] { CommandsHandler::execute(std::make_unique<CreateLightCommand>(&Engine::getRootNode(), R3D_LIGHT_SPOT)); }
+                                           "Add Spot Light", [] { CommandsHandler::execute(std::make_unique<CreateLightCommand>(&Engine::getRootNode(), BreadEngine::LightType::Spot)); }
                                        },
                                        ToolbarOption{
-                                           "Add Omni Light", [] { CommandsHandler::execute(std::make_unique<CreateLightCommand>(&Engine::getRootNode(), R3D_LIGHT_OMNI)); }
+                                           "Add Omni Light", [] { CommandsHandler::execute(std::make_unique<CreateLightCommand>(&Engine::getRootNode(), BreadEngine::LightType::Omni)); }
                                        }
                                    });
     }
