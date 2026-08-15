@@ -32,6 +32,6 @@ namespace BreadEngine {
         _nativeCamera.target = {0.0f, 0.0f, 0.0f};
         _nativeCamera.up = {0.0f, 1.0f, 0.0f};
         _nativeCamera.fovy = _fov;
-        _nativeCamera.projection = _projection == ProjectionType::Orthographic ? CAMERA_ORTHOGRAPHIC : CAMERA_PERSPECTIVE;
+        _nativeCamera.projection = toRaylibProjection(_projection);
     }
 } // BreadEngine

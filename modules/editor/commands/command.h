@@ -13,6 +13,10 @@ namespace BreadEditor {
 
         virtual void undo() = 0;
 
+        /// Ticked on the main thread once per frame while the command is in history, for the
+        /// ones that stay interactive after execute() has returned.
+        virtual void update() {}
+
     protected:
         void merge(std::unique_ptr<Command> other);
 

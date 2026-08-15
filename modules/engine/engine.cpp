@@ -6,6 +6,7 @@
 #include "models/reservedFileNames.h"
 #include "rendering/renderer.h"
 #include "tracy/Tracy.hpp"
+#include "utils/workerPool.h"
 #include "systems/cameraDirectorSystem.h"
 #include "systems/cameraSystem.h"
 #include "systems/lightSystem.h"
@@ -102,6 +103,7 @@ namespace BreadEngine {
         unloadGameModule();
         _engineSystems.dispose(getDeltaTime());
         Renderer::shutdown();
+        WorkerPool::shutdown();
         CloseWindow();
     }
 
@@ -137,11 +139,8 @@ namespace BreadEngine {
         ZoneScoped;
         _engineSystems.startFrame(deltaTime);
 
-        if (_gameRender3DStart && _gameRender2DStart)
-        {
-            _gameRender3DStart(deltaTime);
-            _gameRender2DStart(deltaTime);
-        }
+        if (_gameRender3DStart) _gameRender3DStart(deltaTime);
+        if (_gameRender2DStart) _gameRender2DStart(deltaTime);
     }
 
     void Engine::onFrameEnd(const float deltaTime) const
@@ -149,11 +148,8 @@ namespace BreadEngine {
         ZoneScoped;
         _engineSystems.endFrame(deltaTime);
 
-        if (_gameRender3DEnd && _gameRender2DEnd)
-        {
-            _gameRender3DEnd(deltaTime);
-            _gameRender2DEnd(deltaTime);
-        }
+        if (_gameRender3DEnd) _gameRender3DEnd(deltaTime);
+        if (_gameRender2DEnd) _gameRender2DEnd(deltaTime);
         FrameMark;
     }
 

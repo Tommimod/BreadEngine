@@ -82,7 +82,16 @@ namespace BreadEngine {
         std::string _projectPath;
         std::string _filePath;
 
-        static void updateIncludesAfterFolderChange(const std::shared_ptr<Folder> &folder);
+        void updateIncludesAfterFolderChange(const std::shared_ptr<Folder> &folder) const;
+
+        /**
+         * The root folder's _pathFromRoot is the display name "Project Files" rather than a
+         * path, so anything directly under the root starts its relative path at its own name.
+         */
+        [[nodiscard]] static std::string childPathFromRoot(const Folder &parent, const std::string &name);
+
+        /// _pathFromRoot is the serialized one; every absolute path is derived from it.
+        [[nodiscard]] std::string toFullPath(const std::string &pathFromRoot) const;
 
         /**
          * Rebuilds every absolute path from the project path this run resolved, since only

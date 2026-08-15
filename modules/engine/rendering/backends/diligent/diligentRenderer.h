@@ -55,15 +55,15 @@ namespace BreadEngine {
 
         void destroyModel(ModelHandle handle) override;
 
-        [[nodiscard]] int getModelMaterialCount(const std::string &path) override;
+        [[nodiscard]] int getModelMaterialCount(ModelHandle handle) const override;
 
         void setModelMaterial(ModelHandle handle, int slot, const MaterialData &material) override;
 
         void drawModel(ModelHandle handle, Vector3 position, Quaternion rotation, Vector3 scale) override;
 
-        void applyDefaultEnvironment(EnvironmentSettings settings) override;
+        void applyDefaultEnvironment(const EnvironmentSettings &settings) override;
 
-        void setEnvironment(EnvironmentSettings settings) override;
+        void setEnvironment(const EnvironmentSettings &settings) override;
 
         [[nodiscard]] CubemapHandle loadCubemap(const std::string &path) override;
 

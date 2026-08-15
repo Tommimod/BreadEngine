@@ -30,8 +30,7 @@ namespace BreadEngine {
         // The attached context is raylib's, so its version is whatever GLFW negotiated rather
         // than anything this engine asked for - worth knowing when a feature is unavailable.
         const auto &apiVersion = _device->GetDeviceInfo().APIVersion;
-        static const std::string message = "Diligent attached to OpenGL " + std::to_string(apiVersion.Major) + "." + std::to_string(apiVersion.Minor);
-        Logger::LogInfo(message);
+        Logger::LogInfo("Diligent attached to OpenGL " + std::to_string(apiVersion.Major) + "." + std::to_string(apiVersion.Minor));
 
         createSceneTarget(sceneWidth, sceneHeight);
     }
@@ -127,8 +126,15 @@ namespace BreadEngine {
     void DiligentRenderer::beginScene(const CameraView &camera)
     {
         if (!_hasExplicitTarget) createSceneTarget(GetScreenWidth(), GetScreenHeight());
+    }
+
+    void DiligentRenderer::endScene()
+    {
         if (!_sceneColor) return;
 
+        // The pass is bound and cleared here rather than in beginScene because the engine
+        // pushes the environment - and with it the background colour - from a start-frame
+        // system that runs after beginScene has already returned.
         auto *renderTarget = _sceneColor->GetDefaultView(Diligent::TEXTURE_VIEW_RENDER_TARGET);
         auto *depthStencil = _sceneDepth->GetDefaultView(Diligent::TEXTURE_VIEW_DEPTH_STENCIL);
         _context->SetRenderTargets(1, &renderTarget, depthStencil, Diligent::RESOURCE_STATE_TRANSITION_MODE_TRANSITION);
@@ -136,11 +142,6 @@ namespace BreadEngine {
         const auto clear = ColorNormalize(_clearColor);
         _context->ClearRenderTarget(renderTarget, &clear.x, Diligent::RESOURCE_STATE_TRANSITION_MODE_TRANSITION);
         _context->ClearDepthStencil(depthStencil, Diligent::CLEAR_DEPTH_FLAG, 1.0f, 0, Diligent::RESOURCE_STATE_TRANSITION_MODE_TRANSITION);
-    }
-
-    void DiligentRenderer::endScene()
-    {
-        if (!_sceneColor) return;
 
         yieldToRaylib();
 
@@ -244,7 +245,7 @@ namespace BreadEngine {
     {
     }
 
-    int DiligentRenderer::getModelMaterialCount(const std::string &path)
+    int DiligentRenderer::getModelMaterialCount(const ModelHandle handle) const
     {
         return 0;
     }
@@ -259,13 +260,13 @@ namespace BreadEngine {
 
     // --- environment ---
 
-    void DiligentRenderer::applyDefaultEnvironment(EnvironmentSettings settings)
+    void DiligentRenderer::applyDefaultEnvironment(const EnvironmentSettings &settings)
     {
         // Nothing to seed: the backend holds no environment state of its own beyond the clear
         // colour, which setEnvironment supplies every frame.
     }
 
-    void DiligentRenderer::setEnvironment(EnvironmentSettings settings)
+    void DiligentRenderer::setEnvironment(const EnvironmentSettings &settings)
     {
         _clearColor = settings.background.color;
     }

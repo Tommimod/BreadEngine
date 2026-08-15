@@ -31,55 +31,56 @@ namespace BreadEngine {
 
     void MeshRenderer::load()
     {
-        isChangedFromEditor = false;
+        if (_loadAttempted) return;
+
+        _loadAttempted = true;
         if (_meshAsset == nullptr)
         {
-            if (!_meshPrimitiveData.empty()) deserializeMeshData(_meshPrimitiveData);
-            _isLoaded = true;
+            if (_meshPrimitiveData.empty()) return;
+
+            deserializeMeshData(_meshPrimitiveData);
+            // A primitive has exactly one material; a scene file written before it had one
+            // leaves the list empty, and the draw path indexes slot 0 unconditionally.
+            if (_mesh.isValid() && _materials.empty()) _materials = {Material()};
             return;
         }
 
         _model = Renderer::get().loadModel(_meshAsset->getAssetPath());
         _materials = _meshAsset->getMaterials();
-        _isLoaded = _model.isValid();
     }
 
     void MeshRenderer::unload()
     {
-        if (!_isLoaded) return;
+        _loadAttempted = false;
 
         auto &renderer = Renderer::get();
         if (_mesh.isValid())
         {
             renderer.destroyMesh(_mesh);
             _mesh = {};
-        }
-        else
-        {
-            renderer.destroyModel(_model);
-            _model = {};
-            for (auto &material: _materials)
-            {
-                material.unload();
-            }
+            return;
         }
 
-        _isLoaded = false;
+        if (!_model.isValid()) return;
+
+        renderer.destroyModel(_model);
+        _model = {};
+        for (auto &material: _materials)
+        {
+            material.unload();
+        }
     }
 
     bool MeshRenderer::isLoaded() const
     {
-        return _isLoaded && (_meshAsset != nullptr || _mesh.isValid());
+        return _mesh.isValid() || _model.isValid();
     }
 
     void MeshRenderer::setMeshAsset(MeshAsset *meshAsset)
     {
+        unload();
         _meshAsset = meshAsset;
-        if (_isLoaded)
-        {
-            unload();
-            load();
-        }
+        load();
     }
 
     void MeshRenderer::setGeneratedMesh(MeshPrimitiveData &primitiveData)
@@ -90,10 +91,13 @@ namespace BreadEngine {
             material.unload();
         }
 
+        // A generated primitive replaces the imported model outright - holding both would
+        // leave load() silently preferring the asset over the mesh just built here.
+        _meshAsset = nullptr;
         _meshPrimitiveData = serializeMeshData(primitiveData);
         _mesh = Renderer::get().createPrimitive(primitiveData, _owner->get<Transform>().getForward());
         _materials = {Material()};
-        _isLoaded = true;
+        _loadAttempted = true;
     }
 
     std::string MeshRenderer::serializeMeshData(MeshPrimitiveData &primitiveData)

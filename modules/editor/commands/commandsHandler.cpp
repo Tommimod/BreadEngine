@@ -34,6 +34,11 @@ namespace BreadEditor {
 
     void CommandsHandler::update()
     {
+        for (const auto &command: _history)
+        {
+            command->update();
+        }
+
         if (_functions.empty()) return;
 
         for (auto &func: _functions)

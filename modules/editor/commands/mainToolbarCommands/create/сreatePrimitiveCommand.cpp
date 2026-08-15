@@ -1,9 +1,10 @@
-﻿#include "сreatePrimitiveCommand.h"
+#include "сreatePrimitiveCommand.h"
+
+#include <magic_enum/magic_enum.hpp>
 
 #include "createEmptyNodeCommand.h"
 #include "editor.h"
 #include "meshRenderer.h"
-#include "commands/commandsHandler.h"
 #include "data/primitives/capsulePrimitiveData.h"
 #include "data/primitives/cubePrimitiveData.h"
 #include "data/primitives/cylinderPrimitiveData.h"
@@ -51,7 +52,13 @@ namespace BreadEditor {
     void CreatePrimitiveCommand::onNodeCreated(Node *node)
     {
         NodeProvider::onNodeCreated.unsubscribe(_nodeCreatedSubscription);
-        if (_primitiveType == MeshPrimitiveType::None) return;
+
+        _data = createData(_primitiveType);
+        if (_data == nullptr) return;
+
+        node->setName(std::string(magic_enum::enum_name(_primitiveType)));
+        _nodeId = node->getId();
+        applyData();
 
         auto &viewportWindow = Editor::getInstance().mainWindow.getViewportWindow();
         _dataInspector = &UiPool::componentPool.get().setup("primitive_data_inspector", &viewportWindow, true, true);
@@ -60,188 +67,31 @@ namespace BreadEditor {
         _dataInspector->setSize({0, 50});
         _dataInspector->setSizePercentPermanent({.2f, -1});
         _inspectorId = _dataInspector->id;
-
-        switch (_primitiveType)
-        {
-            case MeshPrimitiveType::Cube:
-            {
-                node->setName("Cube");
-                auto data = CubePrimitiveData();
-                getFunctionByType(node->getId(), data)();
-
-                const auto id = node->getId();
-                auto func = [this, id, data]
-                {
-                    auto localData = data;
-                    processDataAsync(id, localData);
-                };
-                _thread = std::thread(func);
-                break;
-            }
-            case MeshPrimitiveType::Sphere:
-            {
-                node->setName("Sphere");
-                auto data = SpherePrimitiveData();
-                getFunctionByType(node->getId(), data)();
-
-                const auto id = node->getId();
-                auto func = [this, id, data]
-                {
-                    auto localData = data;
-                    processDataAsync(id, localData);
-                };
-                _thread = std::thread(func);
-                break;
-            }
-            case MeshPrimitiveType::HalfSphere:
-            {
-                node->setName("HalfSphere");
-                auto data = SpherePrimitiveData();
-                data.asHalf();
-                getFunctionByType(node->getId(), data)();
-
-                const auto id = node->getId();
-                auto func = [this, id, data]
-                {
-                    auto localData = data;
-                    processDataAsync(id, localData);
-                };
-                _thread = std::thread(func);
-                break;
-            }
-            case MeshPrimitiveType::Cylinder:
-            {
-                node->setName("Cylinder");
-                auto data = CylinderPrimitiveData();
-                getFunctionByType(node->getId(), data)();
-
-                const auto id = node->getId();
-                auto func = [this, id, data]
-                {
-                    auto localData = data;
-                    processDataAsync(id, localData);
-                };
-                _thread = std::thread(func);
-                break;
-            }
-            case MeshPrimitiveType::Capsule:
-            {
-                node->setName("Capsule");
-                auto data = CapsulePrimitiveData();
-                getFunctionByType(node->getId(), data)();
-
-                const auto id = node->getId();
-                auto func = [this, id, data]
-                {
-                    auto localData = data;
-                    processDataAsync(id, localData);
-                };
-                _thread = std::thread(func);
-                break;
-            }
-            case MeshPrimitiveType::Plane:
-            {
-                node->setName("Plane");
-                auto data = PlanePrimitiveData();
-                getFunctionByType(node->getId(), data)();
-
-                const auto id = node->getId();
-                auto func = [this, id, data]
-                {
-                    auto localData = data;
-                    processDataAsync(id, localData);
-                };
-                _thread = std::thread(func);
-                break;
-            }
-            case MeshPrimitiveType::Quad:
-            {
-                node->setName("Quad");
-                auto data = PlanePrimitiveData();
-                data.asQuad();
-                getFunctionByType(node->getId(), data)();
-
-                const auto id = node->getId();
-                auto func = [this, id, data]
-                {
-                    auto localData = data;
-                    processDataAsync(id, localData);
-                };
-                _thread = std::thread(func);
-                break;
-            }
-            case MeshPrimitiveType::Slope:
-            {
-                node->setName("Slope");
-                auto data = SlopePrimitiveData();
-                getFunctionByType(node->getId(), data)();
-
-                const auto id = node->getId();
-                auto func = [this, id, data]
-                {
-                    auto localData = data;
-                    processDataAsync(id, localData);
-                };
-                _thread = std::thread(func);
-                break;
-            }
-            case MeshPrimitiveType::Torus:
-            {
-                node->setName("Torus");
-                auto data = TorusPrimitiveData();
-                getFunctionByType(node->getId(), data)();
-
-                const auto id = node->getId();
-                auto func = [this, id, data]
-                {
-                    auto localData = data;
-                    processDataAsync(id, localData);
-                };
-                _thread = std::thread(func);
-                break;
-            }
-            case MeshPrimitiveType::FreePoly:
-            {
-                node->setName("FreePoly Mesh");
-                auto data = FreePolyPrimitiveData();
-                getFunctionByType(node->getId(), data)();
-
-                const auto id = node->getId();
-                auto func = [this, id, data]
-                {
-                    auto localData = data;
-                    processDataAsync(id, localData);
-                };
-                _thread = std::thread(func);
-                break;
-            }
-            case MeshPrimitiveType::None:
-            default: break;
-        }
-
-        _thread.detach();
+        _dataInspector->track(_data.get());
     }
 
-    void CreatePrimitiveCommand::processDataAsync(const unsigned int nodeId, MeshPrimitiveData &data)
+    void CreatePrimitiveCommand::update()
     {
-        const auto link = &data;
-        _dataInspector->track(link);
-        while (_dataInspector != nullptr)
-        {
-            std::this_thread::sleep_for(std::chrono::milliseconds(10));
-            if (IsKeyPressed(KEY_ESCAPE))
-            {
-                _dataInspector->getParentElement()->destroyChild(_dataInspector);
-                _dataInspector = nullptr;
-            }
+        if (_dataInspector == nullptr || _data == nullptr) return;
 
-            if (link->isChangedFromEditor)
-            {
-                auto func = getFunctionByType(nodeId, *link);
-                CommandsHandler::addFunction(std::move(func));
-                link->isChangedFromEditor = false;
-            }
+        if (IsKeyPressed(KEY_ESCAPE))
+        {
+            destroyInspector();
+            return;
         }
+
+        if (!_data->isChangedFromEditor) return;
+
+        _data->isChangedFromEditor = false;
+        applyData();
+    }
+
+    void CreatePrimitiveCommand::applyData() const
+    {
+        const auto node = NodeProvider::getNode(_nodeId);
+        if (node == nullptr || !node->has<MeshRenderer>()) return;
+
+        node->get<MeshRenderer>().setGeneratedMesh(*_data);
     }
 
     void CreatePrimitiveCommand::destroyInspector()
@@ -255,11 +105,32 @@ namespace BreadEditor {
         }
     }
 
-    std::function<void()> CreatePrimitiveCommand::getFunctionByType(const unsigned int nodeId, MeshPrimitiveData &data)
+    std::unique_ptr<MeshPrimitiveData> CreatePrimitiveCommand::createData(const MeshPrimitiveType type)
     {
-        if (data.getMeshType() == MeshPrimitiveType::None) return nullptr;
-
-        auto &meshRenderer = NodeProvider::getNode(nodeId)->get<MeshRenderer>();
-        return [&meshRenderer, &data] { meshRenderer.setGeneratedMesh(data); };
+        switch (type)
+        {
+            case MeshPrimitiveType::Cube: return std::make_unique<CubePrimitiveData>();
+            case MeshPrimitiveType::Sphere: return std::make_unique<SpherePrimitiveData>();
+            case MeshPrimitiveType::HalfSphere:
+            {
+                auto data = std::make_unique<SpherePrimitiveData>();
+                data->asHalf();
+                return data;
+            }
+            case MeshPrimitiveType::Cylinder: return std::make_unique<CylinderPrimitiveData>();
+            case MeshPrimitiveType::Capsule: return std::make_unique<CapsulePrimitiveData>();
+            case MeshPrimitiveType::Plane: return std::make_unique<PlanePrimitiveData>();
+            case MeshPrimitiveType::Quad:
+            {
+                auto data = std::make_unique<PlanePrimitiveData>();
+                data->asQuad();
+                return data;
+            }
+            case MeshPrimitiveType::Slope: return std::make_unique<SlopePrimitiveData>();
+            case MeshPrimitiveType::Torus: return std::make_unique<TorusPrimitiveData>();
+            case MeshPrimitiveType::FreePoly: return std::make_unique<FreePolyPrimitiveData>();
+            case MeshPrimitiveType::None:
+            default: return nullptr;
+        }
     }
 } // BreadEditor

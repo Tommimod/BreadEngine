@@ -45,10 +45,12 @@ namespace BreadEngine {
 
         const auto logLevel = level == Info ? LOG_INFO : level == Warning ? LOG_WARNING : LOG_ERROR;
         //std::string stack = "       " + Stacktrace::get_stacktrace_string(); //TODO FIX
-        const auto text = TextFormat("[%s] %s\n%s", dateTime.c_str(), message.data(), "");
-        TraceLog(logLevel, "%s", text);
+        // Built by hand rather than through TextFormat: the message is a string_view, so it is
+        // not guaranteed to be null-terminated for a "%s".
+        auto text = "[" + dateTime + "] " + std::string(message) + "\n";
+        TraceLog(logLevel, "%s", text.c_str());
 
-        auto entity = LogEntity{.level = level, .message = text};
+        auto entity = LogEntity{.level = level, .message = std::move(text)};
         OnLog.invoke(entity);
         _logs.emplace_back(std::move(entity));
     }

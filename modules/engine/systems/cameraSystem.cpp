@@ -16,6 +16,6 @@ namespace BreadEngine {
         camera._nativeCamera.target = Vector3Add(pos, transform.getForward());
         camera._nativeCamera.up = transform.getUp();
         camera._nativeCamera.fovy = camera._fov;
-        camera._nativeCamera.projection = static_cast<int>(camera._projection);
+        camera._nativeCamera.projection = toRaylibProjection(camera._projection);
     }
 } // BreadEngine

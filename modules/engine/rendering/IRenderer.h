@@ -88,8 +88,8 @@ namespace BreadEngine {
 
         virtual void destroyModel(ModelHandle handle) = 0;
 
-        /// Material count of a model file, without keeping the model loaded.
-        [[nodiscard]] virtual int getModelMaterialCount(const std::string &path) = 0;
+        /// How many material slots setModelMaterial accepts for @p handle.
+        [[nodiscard]] virtual int getModelMaterialCount(ModelHandle handle) const = 0;
 
         virtual void setModelMaterial(ModelHandle handle, int slot, const MaterialData &material) = 0;
 
@@ -97,10 +97,11 @@ namespace BreadEngine {
 
         // --- environment ---
 
-        /// Overwrites @p settings with the renderer's own starting values.
-        virtual void applyDefaultEnvironment(EnvironmentSettings settings) = 0;
+        /// Overwrites @p settings with the renderer's own starting values. Const binds the
+        /// bundle, not the blocks it refers to, so the writes still reach the engine.
+        virtual void applyDefaultEnvironment(const EnvironmentSettings &settings) = 0;
 
-        virtual void setEnvironment(EnvironmentSettings settings) = 0;
+        virtual void setEnvironment(const EnvironmentSettings &settings) = 0;
 
         [[nodiscard]] virtual CubemapHandle loadCubemap(const std::string &path) = 0;
 

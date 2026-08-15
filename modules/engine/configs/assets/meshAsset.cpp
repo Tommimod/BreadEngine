@@ -16,7 +16,12 @@ namespace BreadEngine {
         }
 
         _isLoaded = true;
-        const auto materialCount = Renderer::get().getModelMaterialCount(getAssetPath());
+        // Only reached the first time this model is registered - once _materials exists it is
+        // read back from the registry, so the import here does not repeat per run.
+        auto &renderer = Renderer::get();
+        const auto model = renderer.loadModel(getAssetPath());
+        const auto materialCount = renderer.getModelMaterialCount(model);
+        renderer.destroyModel(model);
         for (int i = 0; i < materialCount; i++)
         {
             _materials.emplace_back();

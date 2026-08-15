@@ -9,6 +9,7 @@
 #include "data/primitives/spherePrimitiveData.h"
 #include "data/primitives/torusPrimitiveData.h"
 #include "utils/colorUtils.h"
+#include "utils/workerPool.h"
 
 namespace BreadEngine {
     void R3DRenderer::initialize(const int sceneWidth, const int sceneHeight)
@@ -227,7 +228,7 @@ namespace BreadEngine {
     void R3DRenderer::finalizeTexture(TextureSlot &slot)
     {
         if (slot.uploaded) return;
-        if (slot.decodeJob.joinable()) slot.decodeJob.join();
+        if (slot.decodeJob.valid()) slot.decodeJob.get();
 
         const auto wrap = toNative(slot.desc.wrap);
         const auto filter = toNative(slot.desc.filter);
@@ -248,7 +249,7 @@ namespace BreadEngine {
 
     void R3DRenderer::releaseTexture(TextureSlot &slot)
     {
-        if (slot.decodeJob.joinable()) slot.decodeJob.join();
+        if (slot.decodeJob.valid()) slot.decodeJob.get();
         // Only reached for an image that was decoded but never uploaded; once uploaded, the
         // pixel data belongs to r3d and slot.decoded has been cleared.
         if (IsImageValid(slot.decoded)) UnloadImage(slot.decoded);
@@ -261,7 +262,7 @@ namespace BreadEngine {
         auto *slot = _textures.get(handle);
 
         // Pool slots keep a stable address, so the decode job may capture one directly.
-        slot->decodeJob = std::jthread([slot] { slot->decoded = LoadImage(slot->desc.path.c_str()); });
+        slot->decodeJob = WorkerPool::submit([slot] { slot->decoded = LoadImage(slot->desc.path.c_str()); });
         return handle;
     }
 
@@ -417,12 +418,10 @@ namespace BreadEngine {
         _models.remove(handle);
     }
 
-    int R3DRenderer::getModelMaterialCount(const std::string &path)
+    int R3DRenderer::getModelMaterialCount(const ModelHandle handle) const
     {
-        const auto model = R3D_LoadModel(path.c_str());
-        const auto count = model.materialCount;
-        R3D_UnloadModel(model, true);
-        return count;
+        const auto *model = _models.get(handle);
+        return model != nullptr ? model->materialCount : 0;
     }
 
     void R3DRenderer::setModelMaterial(const ModelHandle handle, const int slot, const MaterialData &material)
@@ -526,7 +525,7 @@ namespace BreadEngine {
         }
     }
 
-    void R3DRenderer::applyDefaultEnvironment(EnvironmentSettings settings)
+    void R3DRenderer::applyDefaultEnvironment(const EnvironmentSettings &settings)
     {
         const R3D_Environment &defaults = *R3D_GetEnvironment();
 
@@ -602,7 +601,7 @@ namespace BreadEngine {
         settings.finalColor.saturation = defaults.color.saturation;
     }
 
-    void R3DRenderer::setEnvironment(EnvironmentSettings settings)
+    void R3DRenderer::setEnvironment(const EnvironmentSettings &settings)
     {
         R3D_Environment &env = *R3D_GetEnvironment();
 

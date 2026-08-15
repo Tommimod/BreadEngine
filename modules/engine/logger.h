@@ -1,4 +1,5 @@
 ﻿#pragma once
+#include <string>
 #include <string_view>
 #include "action.h"
 
@@ -11,7 +12,9 @@ namespace BreadEngine {
         struct LogEntity
         {
             LogLevel level;
-            std::string_view message;
+            /// Owned, not a view: entries outlive the caller's buffer and are re-read by the
+            /// editor's console long after the call that produced them.
+            std::string message;
         };
 
         static Action<LogEntity &> OnLog;

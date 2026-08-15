@@ -14,10 +14,9 @@ namespace BreadEngine {
 
         static void shutdown();
 
-        /// Falls back to the window size if a caller gets here before Engine::initialize().
+        /// Throws when called before initialize() or after shutdown() - reaching the GPU
+        /// outside the renderer's lifetime is a call-order bug, not something to paper over.
         static IRenderer &get();
-
-        [[nodiscard]] static bool isInitialized() { return _instance != nullptr; }
 
     private:
         static std::unique_ptr<IRenderer> _instance;

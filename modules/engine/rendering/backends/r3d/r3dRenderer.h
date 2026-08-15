@@ -1,5 +1,5 @@
 #pragma once
-#include <thread>
+#include <future>
 
 #include <r3d.h>
 #include <r3d_texture.h>
@@ -53,15 +53,15 @@ namespace BreadEngine {
 
         void destroyModel(ModelHandle handle) override;
 
-        [[nodiscard]] int getModelMaterialCount(const std::string &path) override;
+        [[nodiscard]] int getModelMaterialCount(ModelHandle handle) const override;
 
         void setModelMaterial(ModelHandle handle, int slot, const MaterialData &material) override;
 
         void drawModel(ModelHandle handle, Vector3 position, Quaternion rotation, Vector3 scale) override;
 
-        void applyDefaultEnvironment(EnvironmentSettings settings) override;
+        void applyDefaultEnvironment(const EnvironmentSettings &settings) override;
 
-        void setEnvironment(EnvironmentSettings settings) override;
+        void setEnvironment(const EnvironmentSettings &settings) override;
 
         [[nodiscard]] CubemapHandle loadCubemap(const std::string &path) override;
 
@@ -88,7 +88,9 @@ namespace BreadEngine {
             TextureDesc desc;
             Texture2D native{};
             Image decoded{};
-            std::jthread decodeJob;
+            /// The job writes into this slot, so every path that frees or recycles the slot
+            /// has to wait on it first - dropping the future does not wait on its own.
+            std::future<void> decodeJob;
             bool uploaded = false;
         };
 

@@ -38,7 +38,9 @@ namespace BreadEngine {
         std::string _meshPrimitiveData;
         std::vector<Material> _materials;
         MeshAsset *_meshAsset = nullptr;
-        bool _isLoaded = false;
+        /// Whether load() has already run for the current source. Latches a failed load so a
+        /// missing model is not re-imported from disk every frame; unload() clears it.
+        bool _loadAttempted = false;
 
         static std::string serializeMeshData(MeshPrimitiveData &primitiveData);
 

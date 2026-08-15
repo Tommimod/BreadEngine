@@ -67,6 +67,16 @@ namespace BreadEngine {
         initializeExistingEngineAssets();
     }
 
+    std::string AssetsConfig::childPathFromRoot(const Folder &parent, const std::string &name)
+    {
+        return parent.getDepth() == 0 ? name : parent._pathFromRoot + "\\" + name;
+    }
+
+    std::string AssetsConfig::toFullPath(const std::string &pathFromRoot) const
+    {
+        return _projectPath + "\\" + pathFromRoot;
+    }
+
     void AssetsConfig::restoreFullPaths()
     {
         _rootFolder->_fullPath = _projectPath;
@@ -77,12 +87,12 @@ namespace BreadEngine {
     {
         for (const auto &file: folder->_files)
         {
-            file->_fullPath = _projectPath + "\\" + file->_pathFromRoot;
+            file->_fullPath = toFullPath(file->_pathFromRoot);
         }
 
         for (const auto &subFolder: folder->_folders)
         {
-            subFolder->_fullPath = _projectPath + "\\" + subFolder->_pathFromRoot;
+            subFolder->_fullPath = toFullPath(subFolder->_pathFromRoot);
             restoreFullPaths(subFolder);
         }
     }
@@ -211,8 +221,8 @@ namespace BreadEngine {
         if (folder == nullptr) folder = _rootFolder;
 
         file->_shortName = nextName;
-        file->_fullPath = folder->getFullPath() + "\\" + file->getShortName();
-        file->_pathFromRoot = folder->_pathFromRoot + "\\" + file->getShortName();
+        file->_pathFromRoot = childPathFromRoot(*folder, file->getShortName());
+        file->_fullPath = toFullPath(file->_pathFromRoot);
         buildIndexes();
         renameInternal(oldPath, file->_fullPath);
         Logger::LogInfo("File renamed: " + oldPath + " -> " + file->_fullPath);
@@ -229,14 +239,8 @@ namespace BreadEngine {
         if (oldFolder == nullptr) oldFolder = _rootFolder;
 
         folder->_name = nextName;
-        if (folder->getDepth() == 0)
-        {
-            folder->_pathFromRoot = folder->getShortName();
-        }
-        else
-        {
-            folder->_pathFromRoot = oldFolder->_pathFromRoot + "\\" + folder->getShortName();
-        }
+        folder->_pathFromRoot = childPathFromRoot(*oldFolder, folder->getShortName());
+        folder->_fullPath = toFullPath(folder->_pathFromRoot);
 
         updateIncludesAfterFolderChange(folder);
         buildIndexes();
@@ -259,8 +263,8 @@ namespace BreadEngine {
         oldFolder->removeFile(file);
 
         file = nextFolder->getFiles().back();
-        file->_fullPath = nextFolder->getFullPath() + "\\" + file->getShortName();
-        file->_pathFromRoot = nextFolder->_pathFromRoot + "\\" + file->getShortName();
+        file->_pathFromRoot = childPathFromRoot(*nextFolder, file->getShortName());
+        file->_fullPath = toFullPath(file->_pathFromRoot);
         if (!withInternalOperations)
         {
             return;
@@ -290,15 +294,8 @@ namespace BreadEngine {
         folder = getFolderByGuid(nextFolderGuid_copy)->getFolders().back();
         const auto nextFolder_updated = getFolderByGuid(nextFolderGuid_copy);
         folder->_depth = nextFolder_updated->getDepth() + 1;
-        folder->_fullPath = nextFolder_updated->getFullPath() + "\\" + folder->_name;
-        if (nextFolder_updated->getDepth() == 0)
-        {
-            folder->_pathFromRoot = folder->_name;
-        }
-        else
-        {
-            folder->_pathFromRoot = nextFolder_updated->_pathFromRoot + "\\" + folder->_name;
-        }
+        folder->_pathFromRoot = childPathFromRoot(*nextFolder_updated, folder->_name);
+        folder->_fullPath = toFullPath(folder->_pathFromRoot);
 
         updateIncludesAfterFolderChange(folder);
         if (!withInternalOperations)
@@ -459,20 +456,20 @@ namespace BreadEngine {
         onIndirectChange.invoke();
     }
 
-    void AssetsConfig::updateIncludesAfterFolderChange(const std::shared_ptr<Folder> &folder)
+    void AssetsConfig::updateIncludesAfterFolderChange(const std::shared_ptr<Folder> &folder) const
     {
         ZoneScoped;
         for (const auto &file: folder->_files)
         {
-            file->_fullPath = folder->getFullPath() + "\\" + file->getShortName();
-            file->_pathFromRoot = folder->_pathFromRoot + "\\" + file->getShortName();
+            file->_pathFromRoot = childPathFromRoot(*folder, file->getShortName());
+            file->_fullPath = toFullPath(file->_pathFromRoot);
         }
 
         for (auto &childFolder: folder->_folders)
         {
             childFolder->_depth = folder->getDepth() + 1;
-            childFolder->_fullPath = folder->getFullPath() + "\\" + childFolder->getShortName();
-            childFolder->_pathFromRoot = folder->_pathFromRoot + "\\" + childFolder->getShortName();
+            childFolder->_pathFromRoot = childPathFromRoot(*folder, childFolder->getShortName());
+            childFolder->_fullPath = toFullPath(childFolder->_pathFromRoot);
             updateIncludesAfterFolderChange(childFolder);
         }
     }

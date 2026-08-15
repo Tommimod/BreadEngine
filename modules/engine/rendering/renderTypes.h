@@ -117,6 +117,13 @@ namespace BreadEngine {
         ProjectionType projection = ProjectionType::Perspective;
     };
 
+    /// Mapped explicitly rather than cast: ProjectionType's numbering is a serialization
+    /// contract and has to stay free to diverge from raylib's own enum.
+    [[nodiscard]] inline int toRaylibProjection(const ProjectionType projection)
+    {
+        return projection == ProjectionType::Orthographic ? CAMERA_ORTHOGRAPHIC : CAMERA_PERSPECTIVE;
+    }
+
     /// For the call sites that still drive the camera through raylib: the editor viewport
     /// and the game loop.
     [[nodiscard]] inline CameraView toCameraView(const Camera3D &camera)

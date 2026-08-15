@@ -11,16 +11,10 @@ namespace BreadEngine {
         if (!node->has<MeshRenderer>()) return;
 
         auto &meshRenderer = node->get<MeshRenderer>();
-        if (!meshRenderer.isLoaded())
-        {
-            meshRenderer.load();
-        }
-
-        if (meshRenderer.isChangedFromEditor)
-        {
-            meshRenderer.unload();
-            meshRenderer.load();
-        }
+        // Unload first, so an edit and a first load are one unload/load pair per frame rather
+        // than two, and ResetChangedFromEditorSystem stays the only clearer of the flag.
+        if (meshRenderer.isChangedFromEditor) meshRenderer.unload();
+        if (!meshRenderer.isLoaded()) meshRenderer.load();
         if (!meshRenderer.isLoaded()) return;
 
         auto &transform = node->get<Transform>();
