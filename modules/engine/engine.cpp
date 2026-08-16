@@ -81,6 +81,10 @@ namespace BreadEngine {
             return false;
         }
 
+        // Only reachable here: the renderer is up before the validator, which is what loads
+        // the settings this comes from.
+        Renderer::get().setOutputColorSpace(_projectSettings.outputColorSpace);
+
         NodeProvider::init();
         auto &nodeFileGuid = _projectSettings.startNodeGuid;
         if (nodeFileGuid.empty())

@@ -19,6 +19,8 @@ namespace BreadEngine {
 
         void resizeSceneTarget(int width, int height) override;
 
+        void setOutputColorSpace(OutputColorSpace colorSpace) override;
+
         void beginScene(const CameraView &camera) override;
 
         void endScene() override;

@@ -15,8 +15,9 @@ namespace BreadEngine {
         Vector3 position{};
         Vector3 normal{};
         Vector2 uv{};
-        /// Points along increasing u. The bitangent carries no handedness of its own and is
-        /// derived as cross(normal, tangent), which is why this is a direction, not a plane.
+        /// Points along increasing u. No handedness is stored: the bitangent is derived as
+        /// cross(tangent, normal), which is the direction v increases in and the convention
+        /// DiligentFX's own shaders build their TBN with.
         Vector3 tangent{};
     };
 

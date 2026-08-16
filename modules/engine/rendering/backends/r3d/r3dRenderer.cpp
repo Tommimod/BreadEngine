@@ -73,6 +73,12 @@ namespace BreadEngine {
         R3D_SetResolution(width, height);
     }
 
+    void R3DRenderer::setOutputColorSpace(const OutputColorSpace colorSpace)
+    {
+        // r3d has no separate output encode: what it writes is decided by the environment's
+        // own tonemap block, which the engine already pushes through setEnvironment.
+    }
+
     void R3DRenderer::beginScene(const CameraView &camera)
     {
         // A zero-id target makes r3d render to the backbuffer, which is what the game wants.

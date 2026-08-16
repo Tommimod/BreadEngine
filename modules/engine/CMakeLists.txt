@@ -137,9 +137,14 @@ if (BREAD_RENDER_BACKEND STREQUAL "Diligent")
     # Diligent-Common carries RefCntAutoPtr and friends; the OpenGL engine target only
     # propagates its own interface/ directory. Both are defined by an add_subdirectory()
     # that runs after this one - CMake resolves target names at generate time.
+    # GLEW is the loader DiligentCore's GL backend already initializes against the shared
+    # context. Linking the same static target gives the backend the handful of raw GL calls it
+    # needs to put back state Diligent changed globally and rlgl has no idea about.
     target_link_libraries(BreadEngine PUBLIC
             Diligent-GraphicsEngineOpenGL-static
             Diligent-Common
+            Diligent-TextureLoader
+            GLEW::glew
     )
 else ()
     target_compile_definitions(BreadEngine PUBLIC BREAD_RENDER_BACKEND_R3D=1)

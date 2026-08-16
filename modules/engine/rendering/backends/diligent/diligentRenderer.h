@@ -1,4 +1,6 @@
 #pragma once
+#include <array>
+#include <future>
 #include <vector>
 
 #include <Buffer.h>
@@ -7,6 +9,7 @@
 #include <RefCntAutoPtr.hpp>
 #include <RenderDevice.h>
 #include <ShaderResourceBinding.h>
+#include <TextureLoader.h>
 
 #include "../../IRenderer.h"
 #include "../../resourcePool.h"
@@ -26,6 +29,8 @@ namespace BreadEngine {
         void shutdown() override;
 
         void resizeSceneTarget(int width, int height) override;
+
+        void setOutputColorSpace(OutputColorSpace colorSpace) override;
 
         void beginScene(const CameraView &camera) override;
 
@@ -82,6 +87,14 @@ namespace BreadEngine {
         void destroyAmbientMap(AmbientMapHandle handle) override;
 
     private:
+        /// Material texture slots, in the order MaterialData declares them.
+        static constexpr size_t MATERIAL_TEXTURE_COUNT = 4;
+
+        /// Encoding exponents for the two OutputColorSpace values: the sRGB approximation, and
+        /// the identity that leaves the linear result alone.
+        static constexpr float GAMMA_ENCODE_EXPONENT = 1.0f / 2.2f;
+        static constexpr float LINEAR_ENCODE_EXPONENT = 1.0f;
+
         struct MeshSlot
         {
             Diligent::RefCntAutoPtr<Diligent::IBuffer> vertices;
@@ -89,12 +102,34 @@ namespace BreadEngine {
             Diligent::Uint32 indexCount = 0;
         };
 
+        struct TextureSlot
+        {
+            TextureDesc desc;
+            /// Decoding produces a loader, which then builds the texture on the thread that
+            /// owns the device. The loader is dropped once it has.
+            Diligent::RefCntAutoPtr<Diligent::ITextureLoader> loader;
+            Diligent::RefCntAutoPtr<Diligent::ITexture> texture;
+            /// The job writes into this slot, so every path that frees or recycles the slot
+            /// has to wait on it first - dropping the future does not wait on its own.
+            std::future<void> decodeJob;
+            bool uploaded = false;
+        };
+
         /// A draw the scene pass has taken but not yet issued: the pass runs between
         /// beginScene and endScene, and the render target is not bound until endScene.
         struct DrawItem
         {
             MeshHandle mesh;
+            MaterialData material;
             Matrix model;
+        };
+
+        /// One material texture as the pipeline sees it: where it binds, and what stands in
+        /// when the material leaves it unset.
+        struct MaterialTextureSlot
+        {
+            Diligent::IShaderResourceVariable *variable = nullptr;
+            Diligent::RefCntAutoPtr<Diligent::ITexture> fallback;
         };
 
         Diligent::RefCntAutoPtr<Diligent::IRenderDevice> _device;
@@ -112,9 +147,17 @@ namespace BreadEngine {
         Diligent::RefCntAutoPtr<Diligent::IShaderResourceBinding> _sceneResources;
         Diligent::RefCntAutoPtr<Diligent::IBuffer> _frameConstants;
         Diligent::RefCntAutoPtr<Diligent::IBuffer> _drawConstants;
+        std::array<MaterialTextureSlot, MATERIAL_TEXTURE_COUNT> _materialTextures;
         ResourcePool<MeshSlot, MeshHandle> _meshes;
+        ResourcePool<TextureSlot, TextureHandle> _textures;
+        ResourcePool<LightState, LightHandle> _lights;
         std::vector<DrawItem> _draws;
         Matrix _viewProjection{};
+        Vector3 _cameraPosition{};
+        Color _ambientColor = BLACK;
+        float _ambientEnergy = 0.0f;
+        /// Exponent the shader raises its linear result to on the way to the target.
+        float _outputEncoding = GAMMA_ENCODE_EXPONENT;
 
         void createSceneTarget(int width, int height);
 
@@ -123,8 +166,33 @@ namespace BreadEngine {
         /// Compiles the shaders and builds the one pipeline the scene pass draws through.
         void createScenePipeline();
 
+        /// Builds the 1x1 stand-ins bound wherever a material leaves a texture slot unset.
+        void createMaterialFallbacks();
+
+        /// Puts back the pixel-unpack state raylib's own texture uploads depend on. Call
+        /// after anything that hands pixels to Diligent.
+        static void restoreRaylibPixelStore();
+
+        /// Overwrites a whole dynamic constant buffer. Matrices go in as MatrixToFloatV
+        /// leaves them - the column-major order rlgl uploads its own in, which is what the
+        /// shaders' cbuffer packing expects.
+        void uploadConstants(Diligent::IBuffer *buffer, const void *data, size_t size);
+
+        /// Joins the background decode and creates the GPU texture, unless already created.
+        void finalizeTexture(TextureSlot &slot);
+
+        /// Points the pipeline's texture variables at @p material, slot by slot.
+        void bindMaterial(const MaterialData &material);
+
+        static Diligent::SamplerDesc toNative(TextureFilterMode filter, TextureWrapMode wrap);
+
+        static Diligent::TEXTURE_ADDRESS_MODE toNative(TextureWrapMode wrap);
+
         /// Issues everything the scene pass collected, into the currently bound target.
         void submitDraws();
+
+        /// The one light the forward pipeline shades with: the first active directional one.
+        [[nodiscard]] const LightState *findDirectionalLight();
 
         /// Undoes the bindings and the GL state Diligent changed behind rlgl's back, so
         /// raylib's next draw lands where and how it expects.

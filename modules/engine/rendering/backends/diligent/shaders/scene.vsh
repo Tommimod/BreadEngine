@@ -4,11 +4,19 @@
 cbuffer FrameConstants
 {
     float4x4 g_ViewProjection;
+    float4   g_CameraPosition;
+    float4   g_LightDirection;
+    float4   g_LightColor;
+    float4   g_AmbientColor;
+    float4   g_OutputEncoding;
 };
 
 cbuffer DrawConstants
 {
     float4x4 g_Model;
+    // Inverse transpose of g_Model: the only matrix that carries normals through a
+    // non-uniform scale without shearing them off the surface.
+    float4x4 g_NormalMatrix;
 };
 
 struct VSInput
@@ -21,17 +29,23 @@ struct VSInput
 
 struct PSInput
 {
-    float4 Position : SV_POSITION;
-    float3 Normal   : NORMAL;
-    float2 UV       : TEX_COORD;
+    float4 Position  : SV_POSITION;
+    float3 WorldPos  : WORLD_POS;
+    float3 Normal    : NORMAL;
+    float3 Tangent   : TANGENT;
+    float2 UV        : TEX_COORD;
 };
 
 void main(in VSInput VSIn, out PSInput PSIn)
 {
+    // A zero w drops the translation, leaving only what a direction is subject to.
     float4 worldPosition = mul(g_Model, float4(VSIn.Position, 1.0));
 
     PSIn.Position = mul(g_ViewProjection, worldPosition);
-    // A zero w drops the translation, leaving the rotation and scale a normal is subject to.
-    PSIn.Normal   = mul(g_Model, float4(VSIn.Normal, 0.0)).xyz;
+    PSIn.WorldPos = worldPosition.xyz;
+    PSIn.Normal   = mul(g_NormalMatrix, float4(VSIn.Normal, 0.0)).xyz;
+    // Tangents ride the surface, so they follow the model matrix rather than its inverse
+    // transpose - re-orthogonalized against the normal in the pixel shader.
+    PSIn.Tangent  = mul(g_Model, float4(VSIn.Tangent, 0.0)).xyz;
     PSIn.UV       = VSIn.UV;
 }

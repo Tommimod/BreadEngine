@@ -1,8 +1,40 @@
+// Metallic-roughness shading against a single directional light: Trowbridge-Reitz GGX,
+// Smith height-correlated visibility with Schlick's k, Schlick's Fresnel. Textures follow
+// glTF's convention, so occlusion, roughness and metalness are the R, G and B channels of
+// one ORM map.
+
+#define PI 3.1415926535897932
+
+cbuffer FrameConstants
+{
+    float4x4 g_ViewProjection;
+    float4   g_CameraPosition;
+    /// The direction the light travels, so a surface points back along it.
+    float4   g_LightDirection;
+    /// rgb is the colour, w the intensity.
+    float4   g_LightColor;
+    /// rgb is the colour, w the energy.
+    float4   g_AmbientColor;
+    /// x is the exponent the linear result leaves through.
+    float4   g_OutputEncoding;
+};
+
+Texture2D    g_Albedo;
+SamplerState g_Albedo_sampler;
+Texture2D    g_Normal;
+SamplerState g_Normal_sampler;
+Texture2D    g_Orm;
+SamplerState g_Orm_sampler;
+Texture2D    g_Emission;
+SamplerState g_Emission_sampler;
+
 struct PSInput
 {
-    float4 Position : SV_POSITION;
-    float3 Normal   : NORMAL;
-    float2 UV       : TEX_COORD;
+    float4 Position  : SV_POSITION;
+    float3 WorldPos  : WORLD_POS;
+    float3 Normal    : NORMAL;
+    float3 Tangent   : TANGENT;
+    float2 UV        : TEX_COORD;
 };
 
 struct PSOutput
@@ -10,10 +42,73 @@ struct PSOutput
     float4 Color : SV_TARGET;
 };
 
+float3 shadingNormal(in PSInput PSIn)
+{
+    float3 normal = normalize(PSIn.Normal);
+    // Interpolation leaves the tangent slightly off the surface; Gram-Schmidt puts it back.
+    float3 tangent = normalize(PSIn.Tangent - normal * dot(normal, PSIn.Tangent));
+    float3 bitangent = cross(tangent, normal);
+
+    float3 tangentSpace = g_Normal.Sample(g_Normal_sampler, PSIn.UV).xyz * 2.0 - 1.0;
+    return normalize(tangent * tangentSpace.x + bitangent * tangentSpace.y + normal * tangentSpace.z);
+}
+
+float distributionGGX(float nDotH, float roughness)
+{
+    float a = roughness * roughness;
+    float a2 = a * a;
+    float d = nDotH * nDotH * (a2 - 1.0) + 1.0;
+    return a2 / max(PI * d * d, 1e-6);
+}
+
+float geometrySmith(float nDotV, float nDotL, float roughness)
+{
+    float k = (roughness + 1.0) * (roughness + 1.0) / 8.0;
+    return (nDotV / (nDotV * (1.0 - k) + k)) * (nDotL / (nDotL * (1.0 - k) + k));
+}
+
+float3 fresnelSchlick(float3 f0, float vDotH)
+{
+    return f0 + (float3(1.0, 1.0, 1.0) - f0) * pow(1.0 - vDotH, 5.0);
+}
+
 void main(in PSInput PSIn, out PSOutput PSOut)
 {
-    // Surface orientation as colour: it shows every face of a mesh distinctly without a
-    // light or a material to shade against.
-    float3 normal = normalize(PSIn.Normal);
-    PSOut.Color = float4(normal * 0.5 + 0.5, 1.0);
+    float3 albedo = g_Albedo.Sample(g_Albedo_sampler, PSIn.UV).rgb;
+    float3 orm = g_Orm.Sample(g_Orm_sampler, PSIn.UV).rgb;
+    float occlusion = orm.r;
+    // Clamped away from zero: a perfect mirror collapses the GGX denominator.
+    float roughness = clamp(orm.g, 0.04, 1.0);
+    float metallic = orm.b;
+
+    float3 normal = shadingNormal(PSIn);
+    float3 view = normalize(g_CameraPosition.xyz - PSIn.WorldPos);
+    float3 light = -normalize(g_LightDirection.xyz);
+    float3 halfway = normalize(view + light);
+
+    float nDotV = max(dot(normal, view), 1e-4);
+    float nDotL = max(dot(normal, light), 0.0);
+    float nDotH = max(dot(normal, halfway), 0.0);
+    float vDotH = max(dot(view, halfway), 0.0);
+
+    // Dielectrics reflect a few percent head-on; metals reflect their own albedo instead and
+    // have no diffuse lobe at all.
+    float3 f0 = lerp(float3(0.04, 0.04, 0.04), albedo, metallic);
+    float3 fresnel = fresnelSchlick(f0, vDotH);
+    // The nDotL in the specular denominator cancels against the one the reflectance equation
+    // multiplies by, so it is dropped from both rather than clamped - clamping it away is
+    // what puts a bright rim on every surface the light only grazes.
+    float3 specular = fresnel * distributionGGX(nDotH, roughness) * geometrySmith(nDotV, nDotL, roughness) / (4.0 * nDotV);
+    float3 diffuse = (float3(1.0, 1.0, 1.0) - fresnel) * (1.0 - metallic) * albedo / PI;
+
+    float3 radiance = g_LightColor.rgb * g_LightColor.w;
+    float3 color = (diffuse * nDotL + specular) * radiance;
+    color += g_AmbientColor.rgb * g_AmbientColor.w * albedo * occlusion;
+    color += g_Emission.Sample(g_Emission_sampler, PSIn.UV).rgb;
+
+    // Shading runs in linear space and the scene target is a plain UNORM texture, so the
+    // encode has to happen here. The project picks the exponent: gamma space, or an identity
+    // that writes the linear result out untouched. Tonemapping belongs in front of this and
+    // does not exist yet.
+    PSOut.Color = float4(pow(max(color, 0.0), g_OutputEncoding.xxx), 1.0);
 }

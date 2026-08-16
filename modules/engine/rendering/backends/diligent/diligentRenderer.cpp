@@ -1,9 +1,13 @@
 #include "diligentRenderer.h"
 
+// Before everything else: GLEW insists on being the first to declare the GL entry points.
+#include <GL/glew.h>
+
 #include <cstring>
 #include <string>
 
 #include <EngineFactoryOpenGL.h>
+#include <Sampler.h>
 #include <Shader.h>
 
 #include "logger.h"
@@ -11,6 +15,7 @@
 #include "rlgl.h"
 
 #include "../../geometry/primitiveGenerator.h"
+#include "utils/workerPool.h"
 
 namespace BreadEngine {
     /// What raylib's own LoadRenderTexture stamps on a depth attachment; the field is unused
@@ -25,20 +30,29 @@ namespace BreadEngine {
     /// Where the engine's shader sources sit relative to the executable.
     constexpr const char *SHADER_DIRECTORY = "shaders";
 
-    namespace {
-        /// Overwrites a whole dynamic constant buffer with one matrix, in the column-major
-        /// order rlgl uploads its own in - the order the shaders' cbuffer packing expects.
-        void uploadMatrix(Diligent::IDeviceContext &context, Diligent::IBuffer *buffer, const Matrix &matrix)
-        {
-            void *mapped = nullptr;
-            context.MapBuffer(buffer, Diligent::MAP_WRITE, Diligent::MAP_FLAG_DISCARD, mapped);
-            if (mapped == nullptr) return;
+    /// Shader variable names of the material texture slots, in MaterialData's own order.
+    constexpr const char *MATERIAL_TEXTURE_NAMES[]{"g_Albedo", "g_Normal", "g_Orm", "g_Emission"};
 
-            const float16 values = MatrixToFloatV(matrix);
-            std::memcpy(mapped, values.v, sizeof(values.v));
-            context.UnmapBuffer(buffer, Diligent::MAP_WRITE);
-        }
-    } // namespace
+    /**
+     * Mirrors scene.vsh's cbuffers. Everything is a float4 or a float4x4 on purpose: those
+     * are the only members whose std140 placement is the same as their placement here, so the
+     * struct and the shader cannot drift apart over padding.
+     */
+    struct SceneFrameConstants
+    {
+        float16 viewProjection;
+        Vector4 cameraPosition;
+        Vector4 lightDirection;
+        Vector4 lightColor;
+        Vector4 ambientColor;
+        Vector4 outputEncoding;
+    };
+
+    struct SceneDrawConstants
+    {
+        float16 model;
+        float16 normalMatrix;
+    };
 
     void DiligentRenderer::initialize(const int sceneWidth, const int sceneHeight)
     {
@@ -70,6 +84,15 @@ namespace BreadEngine {
 
         _draws.clear();
         _meshes.clear();
+        _lights.clear();
+        // Every slot the pool is about to drop may still have a decode running into it, and
+        // the future does not wait on its own.
+        _textures.forEachAlive([](TextureSlot &slot)
+        {
+            if (slot.decodeJob.valid()) slot.decodeJob.get();
+        });
+        _textures.clear();
+        _materialTextures = {};
         _sceneResources.Release();
         _scenePipeline.Release();
         _frameConstants.Release();
@@ -159,14 +182,15 @@ namespace BreadEngine {
         if (!_device) return;
 
         Diligent::BufferDesc constantsDesc;
-        constantsDesc.Size = sizeof(float16);
         constantsDesc.Usage = Diligent::USAGE_DYNAMIC;
         constantsDesc.BindFlags = Diligent::BIND_UNIFORM_BUFFER;
         constantsDesc.CPUAccessFlags = Diligent::CPU_ACCESS_WRITE;
 
         constantsDesc.Name = "Frame constants";
+        constantsDesc.Size = sizeof(SceneFrameConstants);
         _device->CreateBuffer(constantsDesc, nullptr, &_frameConstants);
         constantsDesc.Name = "Draw constants";
+        constantsDesc.Size = sizeof(SceneDrawConstants);
         _device->CreateBuffer(constantsDesc, nullptr, &_drawConstants);
 
         Diligent::RefCntAutoPtr<Diligent::IShaderSourceInputStreamFactory> shaderSources;
@@ -176,6 +200,8 @@ namespace BreadEngine {
         Diligent::ShaderCreateInfo shaderInfo;
         shaderInfo.SourceLanguage = Diligent::SHADER_SOURCE_LANGUAGE_HLSL;
         shaderInfo.pShaderSourceStreamFactory = shaderSources;
+        // Combined texture samplers - each Texture2D paired with a SamplerState named after
+        // it plus "_sampler" - are what a GL device wants, and what DiligentFX asks for on one.
 
         Diligent::RefCntAutoPtr<Diligent::IShader> vertexShader;
         shaderInfo.Desc = {"Scene VS", Diligent::SHADER_TYPE_VERTEX, true};
@@ -220,6 +246,17 @@ namespace BreadEngine {
         graphics.InputLayout.LayoutElements = vertexLayout;
         graphics.InputLayout.NumElements = static_cast<Diligent::Uint32>(std::size(vertexLayout));
 
+        // The material textures change from draw to draw, which is what DYNAMIC means here;
+        // everything else - the two constant buffers - stays bound for the pipeline's life.
+        Diligent::ShaderResourceVariableDesc materialVariables[MATERIAL_TEXTURE_COUNT];
+        for (size_t slot = 0; slot < MATERIAL_TEXTURE_COUNT; ++slot)
+        {
+            materialVariables[slot] = {Diligent::SHADER_TYPE_PIXEL, MATERIAL_TEXTURE_NAMES[slot],
+                                       Diligent::SHADER_RESOURCE_VARIABLE_TYPE_DYNAMIC};
+        }
+        pipelineInfo.PSODesc.ResourceLayout.Variables = materialVariables;
+        pipelineInfo.PSODesc.ResourceLayout.NumVariables = static_cast<Diligent::Uint32>(MATERIAL_TEXTURE_COUNT);
+
         _device->CreateGraphicsPipelineState(pipelineInfo, &_scenePipeline);
         if (!_scenePipeline)
         {
@@ -227,17 +264,66 @@ namespace BreadEngine {
             return;
         }
 
-        // Both buffers are bound once, for the pipeline's lifetime: their contents change
-        // every frame, but never which buffer the shaders read them from.
+        // Both shaders read the frame block, and a static variable is per shader stage, so
+        // binding it once for the vertex stage would leave the pixel stage's copy unset.
         _scenePipeline->GetStaticVariableByName(Diligent::SHADER_TYPE_VERTEX, "FrameConstants")->Set(_frameConstants);
+        _scenePipeline->GetStaticVariableByName(Diligent::SHADER_TYPE_PIXEL, "FrameConstants")->Set(_frameConstants);
         _scenePipeline->GetStaticVariableByName(Diligent::SHADER_TYPE_VERTEX, "DrawConstants")->Set(_drawConstants);
         _scenePipeline->CreateShaderResourceBinding(&_sceneResources, true);
+
+        createMaterialFallbacks();
+        for (size_t slot = 0; slot < MATERIAL_TEXTURE_COUNT; ++slot)
+        {
+            // Resolved once: the lookup is by name, and the draw loop runs it per material.
+            _materialTextures[slot].variable = _sceneResources->GetVariableByName(Diligent::SHADER_TYPE_PIXEL, MATERIAL_TEXTURE_NAMES[slot]);
+        }
+    }
+
+    void DiligentRenderer::restoreRaylibPixelStore()
+    {
+        // Diligent leaves GL_UNPACK_ROW_LENGTH at the stride of whatever it uploaded last, and
+        // raylib sets only the alignment before its own uploads - it has always been able to
+        // assume the default row length. Left dirty, raylib's next upload walks its source at
+        // Diligent's stride: with a 1x1 texture behind us that is one pixel per row, which
+        // reduces the editor's font atlas to nothing and makes every glyph render blank.
+        glPixelStorei(GL_UNPACK_ROW_LENGTH, 0);
+    }
+
+    void DiligentRenderer::createMaterialFallbacks()
+    {
+        // In MATERIAL_TEXTURE_NAMES' order, and matching r3d's own default material: white
+        // albedo, a flat tangent-space normal, occlusion 1 / roughness 1 / metalness 0, and
+        // no emission.
+        constexpr Diligent::Uint32 fallbackPixels[MATERIAL_TEXTURE_COUNT]{0xFFFFFFFF, 0xFFFF8080, 0xFF00FFFF, 0xFF000000};
+
+        Diligent::TextureDesc desc;
+        desc.Name = "Material fallback";
+        desc.Type = Diligent::RESOURCE_DIM_TEX_2D;
+        desc.Width = 1;
+        desc.Height = 1;
+        desc.MipLevels = 1;
+        desc.Format = Diligent::TEX_FORMAT_RGBA8_UNORM;
+        desc.BindFlags = Diligent::BIND_SHADER_RESOURCE;
+
+        for (size_t slot = 0; slot < MATERIAL_TEXTURE_COUNT; ++slot)
+        {
+            Diligent::TextureSubResData level{&fallbackPixels[slot], sizeof(Diligent::Uint32)};
+            const Diligent::TextureData data{&level, 1};
+            _device->CreateTexture(desc, &data, &_materialTextures[slot].fallback);
+        }
+
+        restoreRaylibPixelStore();
     }
 
     void DiligentRenderer::resizeSceneTarget(const int width, const int height)
     {
         _hasExplicitTarget = true;
         createSceneTarget(width, height);
+    }
+
+    void DiligentRenderer::setOutputColorSpace(const OutputColorSpace colorSpace)
+    {
+        _outputEncoding = colorSpace == OutputColorSpace::Linear ? LINEAR_ENCODE_EXPONENT : GAMMA_ENCODE_EXPONENT;
     }
 
     void DiligentRenderer::beginScene(const CameraView &camera)
@@ -268,6 +354,7 @@ namespace BreadEngine {
         }
 
         _viewProjection = MatrixMultiply(MatrixLookAt(camera.position, camera.target, camera.up), projection);
+        _cameraPosition = camera.position;
     }
 
     void DiligentRenderer::endScene()
@@ -301,27 +388,59 @@ namespace BreadEngine {
         }
     }
 
+    void DiligentRenderer::uploadConstants(Diligent::IBuffer *buffer, const void *data, const size_t size)
+    {
+        void *mapped = nullptr;
+        _context->MapBuffer(buffer, Diligent::MAP_WRITE, Diligent::MAP_FLAG_DISCARD, mapped);
+        if (mapped == nullptr) return;
+
+        std::memcpy(mapped, data, size);
+        _context->UnmapBuffer(buffer, Diligent::MAP_WRITE);
+    }
+
     void DiligentRenderer::submitDraws()
     {
         if (!_scenePipeline || _draws.empty()) return;
 
-        uploadMatrix(*_context, _frameConstants, _viewProjection);
+        const auto *light = findDirectionalLight();
+        const auto lightColor = light != nullptr ? ColorNormalize(light->color) : Vector4{};
+        const auto ambient = ColorNormalize(_ambientColor);
+
+        const SceneFrameConstants frame{
+            .viewProjection = MatrixToFloatV(_viewProjection),
+            .cameraPosition = {_cameraPosition.x, _cameraPosition.y, _cameraPosition.z, 1.0f},
+            .lightDirection = light != nullptr
+                                  ? Vector4{light->direction.x, light->direction.y, light->direction.z, 0.0f}
+                                  : Vector4{0.0f, -1.0f, 0.0f, 0.0f},
+            .lightColor = {lightColor.x, lightColor.y, lightColor.z, light != nullptr ? light->intensity : 0.0f},
+            .ambientColor = {ambient.x, ambient.y, ambient.z, _ambientEnergy},
+            .outputEncoding = {_outputEncoding, 0.0f, 0.0f, 0.0f}
+        };
+        uploadConstants(_frameConstants, &frame, sizeof(frame));
+
         _context->SetPipelineState(_scenePipeline);
 
-        for (const auto &[mesh, model]: _draws)
+        for (const auto &[mesh, material, model]: _draws)
         {
             const auto *slot = _meshes.get(mesh);
             if (slot == nullptr) continue;
 
-            uploadMatrix(*_context, _drawConstants, model);
+            const SceneDrawConstants draw{
+                .model = MatrixToFloatV(model),
+                // Inverse transpose, so a non-uniform scale tilts the surface without taking
+                // its normals off it.
+                .normalMatrix = MatrixToFloatV(MatrixTranspose(MatrixInvert(model)))
+            };
+            uploadConstants(_drawConstants, &draw, sizeof(draw));
+            bindMaterial(material);
 
             Diligent::IBuffer *vertices = slot->vertices;
             constexpr Diligent::Uint64 vertexOffset = 0;
             _context->SetVertexBuffers(0, 1, &vertices, &vertexOffset, Diligent::RESOURCE_STATE_TRANSITION_MODE_TRANSITION,
                                        Diligent::SET_VERTEX_BUFFERS_FLAG_RESET);
             _context->SetIndexBuffer(slot->indices, 0, Diligent::RESOURCE_STATE_TRANSITION_MODE_TRANSITION);
-            // After the draw constants were remapped, so the draw reads this frame's values
-            // and not the ones the previous iteration left bound.
+            // After the draw constants were remapped and the material rebound, so the draw
+            // reads this iteration's values and not the ones the previous one left bound.
             _context->CommitShaderResources(_sceneResources, Diligent::RESOURCE_STATE_TRANSITION_MODE_TRANSITION);
 
             Diligent::DrawIndexedAttribs drawAttribs;
@@ -344,6 +463,17 @@ namespace BreadEngine {
         // and the depth test do not.
         rlEnableColorBlend();
         rlDisableDepthTest();
+
+        // Diligent binds a sampler object per texture unit; rlgl uses none and relies on each
+        // texture's own parameters. A sampler left bound overrides those, and its mipmapped
+        // minification filter makes raylib's single-level textures incomplete - which samples
+        // as opaque black, taking the whole editor UI with it.
+        for (Diligent::Uint32 unit = 0; unit < MATERIAL_TEXTURE_COUNT; ++unit) glBindSampler(unit, 0);
+
+        // Diligent enables sRGB framebuffer conversion once at device creation and leaves it
+        // on. It is a no-op for its own non-sRGB targets, but raylib's colours are already
+        // encoded, so leaving it on would gamma them a second time on the way to the window.
+        glDisable(GL_FRAMEBUFFER_SRGB);
     }
 
     void DiligentRenderer::beginSceneOverlay()
@@ -373,36 +503,164 @@ namespace BreadEngine {
 
     LightHandle DiligentRenderer::createLight(const LightType type)
     {
-        return {};
+        return _lights.add(LightState{.type = type});
     }
 
     void DiligentRenderer::destroyLight(const LightHandle handle)
     {
+        _lights.remove(handle);
     }
 
     bool DiligentRenderer::isLightValid(const LightHandle handle) const
     {
-        return false;
+        return _lights.get(handle) != nullptr;
     }
 
     void DiligentRenderer::updateLight(const LightHandle handle, const LightState &state)
     {
+        // Nothing is applied here: a light only exists as constants the scene pass reads, so
+        // there is no GPU state to diff the incoming values against.
+        if (auto *light = _lights.get(handle)) *light = state;
+    }
+
+    const LightState *DiligentRenderer::findDirectionalLight()
+    {
+        const LightState *found = nullptr;
+        _lights.forEachAlive([&found](const LightState &light)
+        {
+            if (found != nullptr || !light.active || light.type != LightType::Directional) return;
+            found = &light;
+        });
+
+        return found;
     }
 
     // --- textures ---
 
+    Diligent::SamplerDesc DiligentRenderer::toNative(const TextureFilterMode filter, const TextureWrapMode wrap)
+    {
+        Diligent::SamplerDesc desc;
+        desc.AddressU = desc.AddressV = desc.AddressW = toNative(wrap);
+
+        switch (filter)
+        {
+            case TextureFilterMode::Point:
+                desc.MinFilter = desc.MagFilter = desc.MipFilter = Diligent::FILTER_TYPE_POINT;
+                break;
+            case TextureFilterMode::Bilinear:
+                desc.MinFilter = desc.MagFilter = Diligent::FILTER_TYPE_LINEAR;
+                desc.MipFilter = Diligent::FILTER_TYPE_POINT;
+                break;
+            case TextureFilterMode::Anisotropic4x:
+            case TextureFilterMode::Anisotropic8x:
+            case TextureFilterMode::Anisotropic16x:
+                desc.MinFilter = desc.MagFilter = desc.MipFilter = Diligent::FILTER_TYPE_ANISOTROPIC;
+                desc.MaxAnisotropy = filter == TextureFilterMode::Anisotropic4x ? 4 : (filter == TextureFilterMode::Anisotropic8x ? 8 : 16);
+                break;
+            case TextureFilterMode::Trilinear:
+            default:
+                desc.MinFilter = desc.MagFilter = desc.MipFilter = Diligent::FILTER_TYPE_LINEAR;
+                break;
+        }
+
+        return desc;
+    }
+
+    Diligent::TEXTURE_ADDRESS_MODE DiligentRenderer::toNative(const TextureWrapMode wrap)
+    {
+        switch (wrap)
+        {
+            case TextureWrapMode::Clamp: return Diligent::TEXTURE_ADDRESS_CLAMP;
+            case TextureWrapMode::MirrorRepeat: return Diligent::TEXTURE_ADDRESS_MIRROR;
+            case TextureWrapMode::MirrorClamp: return Diligent::TEXTURE_ADDRESS_MIRROR_ONCE;
+            case TextureWrapMode::Repeat:
+            default: return Diligent::TEXTURE_ADDRESS_WRAP;
+        }
+    }
+
+    void DiligentRenderer::finalizeTexture(TextureSlot &slot)
+    {
+        if (slot.uploaded) return;
+        if (slot.decodeJob.valid()) slot.decodeJob.get();
+
+        slot.uploaded = true;
+        if (!slot.loader) return;
+
+        slot.loader->CreateTexture(_device, &slot.texture);
+        restoreRaylibPixelStore();
+        // The decoded pixels live in the loader, and the texture now owns its own copy.
+        slot.loader.Release();
+        if (!slot.texture) return;
+
+        // A combined-sampler pipeline takes the sampler from the view, so this is where a
+        // texture's own filter and wrap actually reach the GPU. CreateSampler de-duplicates
+        // identical descriptions internally, so there is nothing to cache here.
+        Diligent::RefCntAutoPtr<Diligent::ISampler> sampler;
+        _device->CreateSampler(toNative(slot.desc.filter, slot.desc.wrap), &sampler);
+        slot.texture->GetDefaultView(Diligent::TEXTURE_VIEW_SHADER_RESOURCE)->SetSampler(sampler);
+    }
+
     TextureHandle DiligentRenderer::createTexture(const TextureDesc &desc)
     {
-        return {};
+        if (!_device) return {};
+
+        const auto handle = _textures.add(TextureSlot{.desc = desc});
+        auto *slot = _textures.get(handle);
+
+        // Decoding needs no device, so it runs off the render thread; only the upload in
+        // finalizeTexture does. Pool slots keep a stable address, so the job captures one.
+        slot->decodeJob = WorkerPool::submit([slot]
+        {
+            Diligent::TextureLoadInfo loadInfo;
+            loadInfo.Name = "Scene texture";
+            loadInfo.IsSRGB = slot->desc.isColor;
+            Diligent::CreateTextureLoaderFromFile(slot->desc.path.c_str(), Diligent::IMAGE_FILE_FORMAT_UNKNOWN, loadInfo, &slot->loader);
+        });
+
+        return handle;
     }
 
     void DiligentRenderer::destroyTexture(const TextureHandle handle)
     {
+        auto *slot = _textures.get(handle);
+        if (slot == nullptr) return;
+
+        if (slot->decodeJob.valid()) slot->decodeJob.get();
+        _textures.remove(handle);
     }
 
     TextureSize DiligentRenderer::getTextureSize(const TextureHandle handle)
     {
-        return {};
+        auto *slot = _textures.get(handle);
+        if (slot == nullptr) return {};
+
+        finalizeTexture(*slot);
+        if (!slot->texture) return {};
+
+        const auto &desc = slot->texture->GetDesc();
+        return {.width = static_cast<int>(desc.Width), .height = static_cast<int>(desc.Height)};
+    }
+
+    // --- materials ---
+
+    void DiligentRenderer::bindMaterial(const MaterialData &material)
+    {
+        const TextureHandle handles[MATERIAL_TEXTURE_COUNT]{material.albedo, material.normal, material.orm, material.emission};
+
+        for (size_t index = 0; index < MATERIAL_TEXTURE_COUNT; ++index)
+        {
+            auto &slot = _materialTextures[index];
+            if (slot.variable == nullptr) continue;
+
+            Diligent::ITexture *texture = slot.fallback;
+            if (auto *entry = _textures.get(handles[index]))
+            {
+                finalizeTexture(*entry);
+                if (entry->texture) texture = entry->texture;
+            }
+
+            slot.variable->Set(texture->GetDefaultView(Diligent::TEXTURE_VIEW_SHADER_RESOURCE));
+        }
     }
 
     // --- meshes ---
@@ -454,7 +712,7 @@ namespace BreadEngine {
         const Matrix model = MatrixMultiply(MatrixMultiply(MatrixScale(scale.x, scale.y, scale.z),
                                                            QuaternionToMatrix(rotation)),
                                             MatrixTranslate(position.x, position.y, position.z));
-        _draws.push_back(DrawItem{.mesh = handle, .model = model});
+        _draws.push_back(DrawItem{.mesh = handle, .material = material, .model = model});
     }
 
     // --- models ---
@@ -492,6 +750,8 @@ namespace BreadEngine {
     void DiligentRenderer::setEnvironment(const EnvironmentSettings &settings)
     {
         _clearColor = settings.background.color;
+        _ambientColor = settings.ambient.color;
+        _ambientEnergy = settings.ambient.energy;
     }
 
     CubemapHandle DiligentRenderer::loadCubemap(const std::string &path)

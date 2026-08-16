@@ -20,6 +20,17 @@ namespace BreadEngine {
         Omni
     };
 
+    /**
+     * How a rendered frame leaves the renderer. Shading always happens in linear space; this
+     * only decides whether the result is encoded to gamma space on its way to the target.
+     * Linear writes it out untouched, which is what r3d does with its tonemap set to Linear.
+     */
+    enum class OutputColorSpace : uint8_t
+    {
+        Gamma = 0,
+        Linear
+    };
+
     enum class TextureFilterMode : uint8_t
     {
         Point = 0,

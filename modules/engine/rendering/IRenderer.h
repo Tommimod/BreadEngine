@@ -34,6 +34,12 @@ namespace BreadEngine {
          */
         virtual void resizeSceneTarget(int width, int height) = 0;
 
+        /**
+         * Selects whether the scene is encoded to gamma space on its way to the target.
+         * Pushed once the project's settings are known, which is after initialize().
+         */
+        virtual void setOutputColorSpace(OutputColorSpace colorSpace) = 0;
+
         /// Opens the scene pass. Draw calls issued until endScene() belong to it.
         virtual void beginScene(const CameraView &camera) = 0;
 
