@@ -6,6 +6,30 @@ The working document — current status, the rules that must not be broken, and 
 
 ---
 
+### Phase 3.5 — the `PBR_Renderer` spike, and why it was not adopted
+
+Method: a throwaway TU in the Diligent backend, called from `initialize()` after the device attach, building four `PBR_Renderer` instances against the **live** GL 3.3 context and asking each for one PSO. Deleted once the decision landed. The point of running it inside the editor rather than in `spikes/` was that the context under test is exactly raylib's, not one a standalone harness negotiated.
+
+**The feared blockers were not the real ones.** The plan expected `gl_DrawID` and structured buffers to sink it. Neither appears in the generated source unless asked for: `gl_DrawID` is only emitted when `CreateInfo::PrimitiveArraySize > 0` (`PBR_Renderer.cpp:1427`) and the structured joints buffer only when skinning is on. With `PrimitiveArraySize = 0`, `MaxJointCount = 0`, `OITLayerCount = 0`, **every PSO compiled on GL 3.3** — base, plus tone mapping, plus IBL, plus shadows.
+
+**The one real failure is narrow and is not in the render path.** `PrecomputeBRDF.psh` fails to compile:
+
+```
+0(1596) : error C7532: global function bitfieldReverse requires "#version 400" or later
+          ... or #extension GL_ARB_gpu_shader5 : enable
+```
+
+It is the one-time BRDF LUT pass, needed only for IBL. `PBR_Renderer::PrecomputeBRDF` is **private and non-virtual** (`PBR_Renderer.hpp:919`) and there is no setter for `m_pPreintegratedGGX_SRV`, so it cannot be substituted from outside — the fix would have to be a patch to the vendored submodule or GL 4.x. DiligentCore itself hits this and works around it by prepending a hand-written `bitfieldReverse` stub, but only in the Archiver's GLES path (`Archiver_GL.cpp:140`). Probe on this machine: RTX 2060 SUPER, `GL_ARB_gpu_shader5` **available** even in the 3.3 context — NVIDIA is liberal with ARB extensions there; Intel/AMD are not guaranteed to be.
+
+Two secondary findings that moved the decision more than the compile result did:
+
+- **`PBR_Renderer` does not dictate the vertex layout**, which is what the phase existed to protect Phase 5 from. `CreateInfo::InputLayout` is taken verbatim (`PBR_Renderer.cpp:1685`); only the attribute *indices* are fixed, and the only clash with `MeshVertex` is tangent at ATTRIB7 instead of ATTRIB3. Auto-offsets resolve in declaration order, so the buffer's byte layout would not have changed at all.
+- **It does dictate the material binding, and that one costs serialized inspector fields.** Every material map is a `Texture2DArray` even in the simplest mode (`Shaders/PBR/private/PBR_Textures.fxh:183`), while `TextureLoader` hardcodes `RESOURCE_DIM_TEX_2D` (`TextureLoaderImpl.cpp:398`) — their own GLTF loader works around it by rebuilding the desc (`GLTFLoader.cpp:724`), five lines. Cheap. What is not cheap: samplers are **immutable and per texture *slot*, one set for the whole renderer** (`PBR_Renderer.cpp:1244`), so `TextureAsset::_textureFilter` would stop having any effect; and wrap, which survives because the shader applies it per material from `PackedProps`, explicitly **does not support Mirror** (`PBR_Textures.fxh:412`), so `MirrorRepeat`/`MirrorClamp` would have to be dropped from `TextureWrapMode`.
+
+`Texture2DArray` itself was checked for a victim and has none today: the editor draws no texture previews (no `DrawTexture*` anywhere under `modules/editor`) and sprites go through `drawMesh` like meshes, so nothing in the tree needs a `GL_TEXTURE_2D` to hand to rlgl.
+
+**Decision (project owner): keep the engine-owned shader, adopt DiligentFX component by component.** The library is not a monolith — `ShadowMapManager`, the `PostProcess/` effects, `ToneMapping`, `EnvMapRenderer`, `CoordinateGridRenderer` and the `Shaders/Common/public/*.fxh` includes are all reachable without `PBR_Renderer`, so refusing the renderer forfeits much less than refusing DiligentFX would. The per-phase list is in the plan under Phase 3.5; keep it there so it does not get re-argued.
+
 ### Phase 3 — sub-phase split
 
 Same shape as Phase 2: each one builds, runs and is screenshot-verified against the R3D build before the next starts.

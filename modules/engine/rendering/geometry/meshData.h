@@ -7,8 +7,8 @@
 namespace BreadEngine {
     /**
      * One vertex in the layout every renderer buffer and every input layout is built from.
-     * The attribute set mirrors DiligentFX's PBR_Renderer, whose pipelines these buffers are
-     * meant to feed unchanged.
+     * The attribute set is the minimum the metallic-roughness shader reads: everything else it
+     * needs comes from the material's textures.
      */
     struct MeshVertex
     {
