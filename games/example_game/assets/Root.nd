@@ -50,6 +50,37 @@ Childs:
       []
     IsNodePrefab: true
   - IsActive: true
+    Id: 6
+    Name: Cube
+    ParentId: 2
+    Components:
+      - ComponentType: MeshRenderer
+        _meshPrimitiveData: "width: 1\nheight: 1\ndepth: 1\ntype: 1"
+        _meshAsset: ~
+        _materials:
+          - _shaderPath: ""
+            _albedoTexture: ~
+            _normalTexture: ~
+            _omrTexture: ~
+            _emissionTexture: ~
+      - ComponentType: Transform
+        _localPosition:
+          x: 0
+          y: 0.5
+          z: 0
+        _localRotationQ:
+          x: 0
+          y: 0.258819
+          z: 0
+          w: 0.9659258
+        _localScale:
+          x: 1.5
+          y: 1
+          z: 1
+    Childs:
+      []
+    IsNodePrefab: true
+  - IsActive: true
     Id: 5
     Name: SceneModel
     ParentId: 2

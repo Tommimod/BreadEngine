@@ -1,0 +1,19 @@
+struct PSInput
+{
+    float4 Position : SV_POSITION;
+    float3 Normal   : NORMAL;
+    float2 UV       : TEX_COORD;
+};
+
+struct PSOutput
+{
+    float4 Color : SV_TARGET;
+};
+
+void main(in PSInput PSIn, out PSOutput PSOut)
+{
+    // Surface orientation as colour: it shows every face of a mesh distinctly without a
+    // light or a material to shade against.
+    float3 normal = normalize(PSIn.Normal);
+    PSOut.Color = float4(normal * 0.5 + 0.5, 1.0);
+}

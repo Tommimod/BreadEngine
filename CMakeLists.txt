@@ -96,6 +96,21 @@ function(bread_copy_runtime_dlls target)
     )
 endfunction()
 
+# The Diligent backend compiles its HLSL at runtime, so the shader sources have to sit next
+# to the executable. Deliberately not the copy-if-missing rule the project's assets use:
+# these are part of the binary's own behaviour, not user-editable project content, and a
+# stale copy would mean a shader that no longer matches the pipeline that loads it.
+function(bread_copy_engine_shaders target)
+    if (NOT BREAD_RENDER_BACKEND STREQUAL "Diligent")
+        return()
+    endif ()
+    add_custom_command(TARGET ${target} POST_BUILD
+            COMMAND ${CMAKE_COMMAND} -E copy_directory
+            "${CMAKE_SOURCE_DIR}/modules/engine/rendering/backends/diligent/shaders"
+            "$<TARGET_FILE_DIR:${target}>/shaders"
+    )
+endfunction()
+
 # --- Active rendering backend (DILIGENT_MIGRATION.md, Phase 2) ---
 # Compile-time, not runtime: exactly one backend is compiled and linked, so the r3d one can
 # be deleted outright in Phase 9 instead of surviving as dead code inside the shipped game.

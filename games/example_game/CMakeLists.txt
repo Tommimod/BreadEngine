@@ -70,6 +70,7 @@ set_target_properties(ExampleGame PROPERTIES
 )
 
 bread_copy_runtime_dlls(ExampleGame)
+bread_copy_engine_shaders(ExampleGame)
 
 message(STATUS "ExampleGame executable configured")
 message(STATUS "  Working directory will be: ${CMAKE_SOURCE_DIR}")
