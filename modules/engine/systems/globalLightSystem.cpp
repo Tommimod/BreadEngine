@@ -17,15 +17,8 @@ namespace BreadEngine {
         auto &globalLight = Engine::getInstance().getGlobalLightSettings();
         auto &renderer = Renderer::get();
 
-        const bool isFirstCall = !_seeded;
-        if (isFirstCall)
-        {
-            _seeded = true;
-            if (!globalLight.isChangedFromEditor)
-            {
-                renderer.applyDefaultEnvironment(globalLight.environment());
-            }
-        }
+        const bool isFirstCall = !_hasStarted;
+        _hasStarted = true;
 
         static const FilterOption kCameraDirectorFilter = FilterOption::empty().with<CameraDirector>();
         Node *cameraDirectorNode = nullptr;
@@ -85,7 +78,7 @@ namespace BreadEngine {
         auto &globalLight = Engine::getInstance().getGlobalLightSettings();
         globalLight._background.clearTexture();
         globalLight._ambient.clear();
-        _seeded = false;
+        _hasStarted = false;
     }
 
     void GlobalLightSystem::updateProceduralSkybox(GlobalLightSettings &globalLight)

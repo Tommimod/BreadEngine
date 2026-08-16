@@ -6,6 +6,28 @@ The working document — current status, the rules that must not be broken, and 
 
 ---
 
+### Phase 3.6 — R3D removed
+
+It was as mechanical as Phase 2 promised. `r3d` existed in exactly one place outside its own backend directory, and every deletion below was a straight removal with no replacement code:
+
+- `modules/engine/rendering/backends/r3d/`, `lib/engine/r3d/` (31 headers) and `lib/engine/libr3d.dll`.
+- Root `CMakeLists.txt`: the `find_file(R3D_DLL)` block, `libr3d.dll` in `bread_copy_runtime_dlls`, and the whole `BREAD_RENDER_BACKEND` cache-variable block.
+- `modules/engine/CMakeLists.txt`: the `backends/` GLOB filter and its one-of-two branch, the three r3d include directories, the r3d header glob, `${R3D_DLL}`/`${R3D_LIB}` from the link list (`R3D_LIB` was never set by anything — an empty variable that had been in the link line the whole time), and the two `message(STATUS "R3D_...")` lines.
+- `renderer.cpp`'s `#if defined(BREAD_RENDER_BACKEND_DILIGENT)` pair, and the `BREAD_RENDER_BACKEND_DILIGENT` / `BREAD_RENDER_BACKEND_R3D` compile definitions.
+
+**Two decisions the plan flagged, both taken by the project owner:**
+
+1. **The backend switch is gone entirely, and the renderer moved up to `rendering/diligent/`.** A `backends/` directory holding one backend, with the machinery that chose between them deleted, was scaffolding pretending to be structure. Moving Vulkan or D3D later is a different device inside the same renderer, not a second directory here. Three paths had to follow the move: `bread_copy_engine_shaders`'s source directory, `diligentRenderer.h`'s two `../../` includes, and `diligentRenderer.cpp`'s include of `primitiveGenerator.h` — that last one is the only thing that broke the build, and it broke it loudly.
+2. **`applyDefaultEnvironment` is gone from `IRenderer`, and the environment's defaults are now the engine's own field initializers.** 2.c made defaults backend-supplied because r3d owned them (`R3D_ENVIRONMENT_BASE`); with one backend the reason is gone, and Diligent's override was an empty body anyway. `R3D_ENVIRONMENT_BASE`'s values were transcribed into `configs/light/environment*Parameters.h` before the header was deleted. `GlobalLightSystem::_seeded` lost its reason to exist under that name and became `_hasStarted`, which is what the surviving `isFirstCall` actually tests.
+
+   Where the macro and the doc comments disagreed, **the macro won** — several comments were stale: SSAO `intensity` 0.5 not 1.0, `radius` 0.5 not 0.25, `bias` 0.02 not 0.007. `background.rotation` was `{}` — the zero quaternion, not the identity one — and is now `{0, 0, 0, 1}`.
+
+**Also dropped here rather than in Phase 5: `Slope`, `Torus` and `FreePoly`** (plan decision after 3.c). Their `*PrimitiveData` files, their arms in `MeshRenderer::deserializeMeshData` and `CreatePrimitiveCommand::createData`, and their three editor-menu entries. They were the last three enumerators of `MeshPrimitiveType`, so every surviving value kept its index. Note `MeshRenderer::serializeMeshData` writes `static_cast<int>` of the type rather than going through `magic_enum` — a different mechanism from the inspector's, but with the same tail-only rule, and the enum's values are contiguous from `None = 0` so the two agree.
+
+**Verified**: `BreadEditor` and `ExampleGame` both build and link, `strings` on `BreadEditor.exe` finds no r3d symbol, and both run the test scene showing the same textured lit cube on the same background with no Diligent errors logged. The stale `libr3d.dll` left in `bin/` from earlier builds was deleted by hand — `copy_if_different` adds files, nothing removes them.
+
+**The frame is provably unchanged rather than merely observed unchanged**, which matters because there is no R3D reference left to diff against: `applyDefaultEnvironment` was an empty body under Diligent, so removing its call changes nothing; the initializer values only apply to a project with no saved config, and the checked-in scene's `global_light_settings.cnf` already carries exactly the values that were baked in; and the `_seeded` → `_hasStarted` change is a rename plus hoisting an assignment out of a branch that was the only way to reach it.
+
 ### Phase 3.5 — the `PBR_Renderer` spike, and why it was not adopted
 
 Method: a throwaway TU in the Diligent backend, called from `initialize()` after the device attach, building four `PBR_Renderer` instances against the **live** GL 3.3 context and asking each for one PSO. Deleted once the decision landed. The point of running it inside the editor rather than in `spikes/` was that the context under test is exactly raylib's, not one a standalone harness negotiated.

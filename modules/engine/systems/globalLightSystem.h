@@ -11,9 +11,9 @@ namespace BreadEngine {
         void onDispose(float deltaTime) override;
 
     private:
-        /// The renderer seeds the environment with its own values once per session; cleared
-        /// on dispose so leaving play mode re-seeds.
-        bool _seeded = false;
+        /// The background and its ambient map are built on the first frame regardless of what
+        /// changed; cleared on dispose so leaving play mode rebuilds them.
+        bool _hasStarted = false;
 
         static void updateProceduralSkybox(GlobalLightSettings &globalLight);
         static void updateCubemapSkybox(GlobalLightSettings &globalLight);

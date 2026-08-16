@@ -6,8 +6,8 @@ namespace BreadEngine {
     struct EnvironmentTonemapParameters : InspectorStruct
     {
         TonemapMode mode = TonemapMode::Linear;       ///< Tone mapping algorithm
-        float exposure = 0;         ///< Scene brightness multiplier (default: 1.0)
-        float white = 0;            ///< Reference white point (not used for AGX) (default: 1.0)
+        float exposure = 1.0f;      ///< Scene brightness multiplier
+        float white = 1.0f;         ///< Reference white point (not used for AGX)
 
         EnvironmentTonemapParameters() = default;
 

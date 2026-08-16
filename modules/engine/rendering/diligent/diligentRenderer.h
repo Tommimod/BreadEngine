@@ -11,8 +11,8 @@
 #include <ShaderResourceBinding.h>
 #include <TextureLoader.h>
 
-#include "../../IRenderer.h"
-#include "../../resourcePool.h"
+#include "../IRenderer.h"
+#include "../resourcePool.h"
 
 namespace BreadEngine {
     /**
@@ -71,8 +71,6 @@ namespace BreadEngine {
         void setModelMaterial(ModelHandle handle, int slot, const MaterialData &material) override;
 
         void drawModel(ModelHandle handle, Vector3 position, Quaternion rotation, Vector3 scale) override;
-
-        void applyDefaultEnvironment(const EnvironmentSettings &settings) override;
 
         void setEnvironment(const EnvironmentSettings &settings) override;
 

@@ -51,19 +51,6 @@ file(GLOB_RECURSE ENGINE_SOURCES
         "*.cpp"
 )
 
-# The render backends under rendering/backends/ are mutually exclusive - only the one named
-# by BREAD_RENDER_BACKEND is compiled. Keeping the inactive backend out of the build entirely
-# (rather than #ifdef-ing out its bodies) is what makes Phase 9's "delete R3D" a directory
-# removal plus one branch here. GLOB_RECURSE above swept up every backend, so drop them all
-# and add exactly one back.
-list(FILTER ENGINE_SOURCES EXCLUDE REGEX "/rendering/backends/")
-if (BREAD_RENDER_BACKEND STREQUAL "Diligent")
-    file(GLOB_RECURSE ACTIVE_BACKEND_SOURCES "rendering/backends/diligent/*.cpp")
-else ()
-    file(GLOB_RECURSE ACTIVE_BACKEND_SOURCES "rendering/backends/r3d/*.cpp")
-endif ()
-list(APPEND ENGINE_SOURCES ${ACTIVE_BACKEND_SOURCES})
-
 # For headers
 file(GLOB_RECURSE ENGINE_HEADERS
         "*.h"
@@ -95,8 +82,6 @@ file(GLOB RAYLIB_HEADERS
         ${CMAKE_SOURCE_DIR}/lib/engine/assimp/*.hpp
         ${CMAKE_SOURCE_DIR}/lib/engine/assimp/*/*.hpp
         ${CMAKE_SOURCE_DIR}/lib/*.h
-        ${CMAKE_SOURCE_DIR}/lib/engine/r3d/*.h
-        ${CMAKE_SOURCE_DIR}/lib/engine/r3d/*/*.h
 )
 
 # Create the static library
@@ -123,39 +108,28 @@ target_include_directories(BreadEngine PUBLIC
         ${CMAKE_SOURCE_DIR}/lib/
         ${CMAKE_SOURCE_DIR}/lib/engine
         ${CMAKE_SOURCE_DIR}/lib/engine/assimp
-        ${CMAKE_SOURCE_DIR}/lib/engine/r3d
-        ${CMAKE_SOURCE_DIR}/lib/engine/r3d/assets
-        ${CMAKE_SOURCE_DIR}/lib/engine/r3d/shaders
         ${CMAKE_SOURCE_DIR}/lib/pugixml
         ${CMAKE_SOURCE_DIR}/modules/engine/component
         ${CMAKE_SOURCE_DIR}/modules/engine/ui
 )
 
-# PUBLIC: the editor and the game pick the same backend as the engine they link against.
-if (BREAD_RENDER_BACKEND STREQUAL "Diligent")
-    target_compile_definitions(BreadEngine PUBLIC BREAD_RENDER_BACKEND_DILIGENT=1)
-    # Diligent-Common carries RefCntAutoPtr and friends; the OpenGL engine target only
-    # propagates its own interface/ directory. Both are defined by an add_subdirectory()
-    # that runs after this one - CMake resolves target names at generate time.
-    # GLEW is the loader DiligentCore's GL backend already initializes against the shared
-    # context. Linking the same static target gives the backend the handful of raw GL calls it
-    # needs to put back state Diligent changed globally and rlgl has no idea about.
-    target_link_libraries(BreadEngine PUBLIC
-            Diligent-GraphicsEngineOpenGL-static
-            Diligent-Common
-            Diligent-TextureLoader
-            GLEW::glew
-    )
-else ()
-    target_compile_definitions(BreadEngine PUBLIC BREAD_RENDER_BACKEND_R3D=1)
-endif ()
+# Diligent-Common carries RefCntAutoPtr and friends; the OpenGL engine target only propagates
+# its own interface/ directory. Both are defined by an add_subdirectory() that runs after this
+# one - CMake resolves target names at generate time.
+# GLEW is the loader DiligentCore's GL backend already initializes against the shared context.
+# Linking the same static target gives the renderer the handful of raw GL calls it needs to put
+# back state Diligent changed globally and rlgl has no idea about.
+target_link_libraries(BreadEngine PUBLIC
+        Diligent-GraphicsEngineOpenGL-static
+        Diligent-Common
+        Diligent-TextureLoader
+        GLEW::glew
+)
 
 # Link libraries
 target_link_libraries(BreadEngine PUBLIC
         ${RAYLIB_LIBRARY}
         ${PLATFORM_LIBS}
-        ${R3D_DLL}
-        ${R3D_LIB}
         ${RAYLIB_DLL}
         ${ASSIMP_DLL}
         ${ASSIMP_LIB}
@@ -181,9 +155,6 @@ if (CMAKE_BUILD_TYPE MATCHES "Debug|RelWithDebInfo")
         target_compile_options(BreadEngine PRIVATE -g -gdwarf-4)
     endif ()
 endif ()
-
-message(STATUS "R3D_INCLUDE_DIRS: ${R3D_DLL}")
-message(STATUS "R3D_LIBRARIES: ${R3D_LIB}")
 
 # Compiler-specific options
 if (CMAKE_CXX_COMPILER_ID MATCHES "Clang|GNU")

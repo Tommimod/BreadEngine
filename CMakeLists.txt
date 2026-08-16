@@ -68,27 +68,19 @@ find_file(ASSIMP_DLL
         NO_DEFAULT_PATH
         REQUIRED
 )
-find_file(R3D_DLL
-        NAMES libr3d.dll
-        PATHS ${CMAKE_SOURCE_DIR}/lib/engine
-        NO_DEFAULT_PATH
-        REQUIRED
-)
-
 if (RAYLIB_DLL)
     message(STATUS "Found Raylib: ${RAYLIB_DLL}")
 else ()
     message(FATAL_ERROR "Raylib dll not found in ${CMAKE_SOURCE_DIR}/lib/engine")
 endif ()
 
-# Copies the vendored runtime DLLs (r3d/raylib/assimp/libc++) next to a built
+# Copies the vendored runtime DLLs (raylib/assimp/libc++) next to a built
 # executable. Was duplicated identically in the editor and example_game
-# CMakeLists; kept as a single function so new runtime deps (Diligent's) only
-# need to be added here once.
+# CMakeLists; kept as a single function so new runtime deps only need to be
+# added here once.
 function(bread_copy_runtime_dlls target)
     add_custom_command(TARGET ${target} POST_BUILD
             COMMAND ${CMAKE_COMMAND} -E copy_if_different
-            "${CMAKE_SOURCE_DIR}/lib/engine/libr3d.dll"
             "${CMAKE_SOURCE_DIR}/lib/engine/libraylib.dll"
             "${CMAKE_SOURCE_DIR}/lib/engine/assimp/libassimp-6.dll"
             "${CMAKE_SOURCE_DIR}/lib/libc++.dll"
@@ -96,28 +88,17 @@ function(bread_copy_runtime_dlls target)
     )
 endfunction()
 
-# The Diligent backend compiles its HLSL at runtime, so the shader sources have to sit next
-# to the executable. Deliberately not the copy-if-missing rule the project's assets use:
-# these are part of the binary's own behaviour, not user-editable project content, and a
-# stale copy would mean a shader that no longer matches the pipeline that loads it.
+# The renderer compiles its HLSL at runtime, so the shader sources have to sit next to the
+# executable. Deliberately not the copy-if-missing rule the project's assets use: these are
+# part of the binary's own behaviour, not user-editable project content, and a stale copy
+# would mean a shader that no longer matches the pipeline that loads it.
 function(bread_copy_engine_shaders target)
-    if (NOT BREAD_RENDER_BACKEND STREQUAL "Diligent")
-        return()
-    endif ()
     add_custom_command(TARGET ${target} POST_BUILD
             COMMAND ${CMAKE_COMMAND} -E copy_directory
-            "${CMAKE_SOURCE_DIR}/modules/engine/rendering/backends/diligent/shaders"
+            "${CMAKE_SOURCE_DIR}/modules/engine/rendering/diligent/shaders"
             "$<TARGET_FILE_DIR:${target}>/shaders"
     )
 endfunction()
-
-# --- Active rendering backend (DILIGENT_MIGRATION.md, Phase 2) ---
-# Compile-time, not runtime: exactly one backend is compiled and linked, so the r3d one can
-# be deleted outright in Phase 9 instead of surviving as dead code inside the shipped game.
-# Screenshot-diffing R3D vs Diligent during Phases 3-8 therefore means two build directories.
-set(BREAD_RENDER_BACKEND "R3D" CACHE STRING "Active rendering backend (R3D | Diligent)")
-set_property(CACHE BREAD_RENDER_BACKEND PROPERTY STRINGS R3D Diligent)
-message(STATUS "Render backend: ${BREAD_RENDER_BACKEND}")
 
 # cpptrace (FetchContent'd below) bundles libdwarf, which does a bare find_package(ZLIB)
 # (no REQUIRED) to optionally enable compressed-debug-info support - a feature this project
@@ -138,16 +119,12 @@ set(CMAKE_DISABLE_FIND_PACKAGE_ZLIB ON)
 add_subdirectory(modules/engine)
 set(CMAKE_DISABLE_FIND_PACKAGE_ZLIB OFF)
 
-# --- DiligentEngine (target RHI for the r3d->Diligent migration, see DILIGENT_MIGRATION.md) ---
+# --- DiligentEngine ---
 # Vendored as git submodules under third_party/, per Diligent's documented integration
 # (its CMake uses custom macros/cache vars across the three modules that add_subdirectory
-# handles correctly and FetchContent would not). Only GL+Vulkan backends are in scope for
-# this project's toolchain (clang++/MSYS2 lacks ATL, so D3D11/D3D12 can't build here; see
-# Phase 0 spike notes) - not disabled explicitly since DiligentCore degrades those backends
-# to unsupported automatically when ATL is unavailable.
-# Nothing links against these targets yet - Phase 1 only proves they build as part of the
-# real project (not just the throwaway spikes/ CMakeLists); the seam/renderer that actually
-# uses them lands in Phases 2-3.
+# handles correctly and FetchContent would not). Only GL+Vulkan are available on this
+# toolchain: clang++/MSYS2 lacks ATL, so D3D11/D3D12 can't build here. They are not disabled
+# explicitly since DiligentCore degrades them to unsupported when ATL is unavailable.
 set(DILIGENT_BUILD_TESTS OFF CACHE BOOL "" FORCE)
 set(DILIGENT_NO_FORMAT_VALIDATION ON CACHE BOOL "" FORCE)
 set(DILIGENT_NO_RENDER_STATE_PACKAGER ON CACHE BOOL "" FORCE)

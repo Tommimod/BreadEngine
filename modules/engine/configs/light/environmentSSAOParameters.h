@@ -5,12 +5,12 @@
 namespace BreadEngine {
     struct EnvironmentSSAOParameters : InspectorStruct
     {
-        float intensity = 0; ///< Base occlusion strength multiplier (default: 1.0)
-        float power = 0; ///< Exponential falloff for sharper darkening (default: 1.5)
-        float radius = 0; ///< Sampling radius in world space (default: 0.25)
-        float bias = 0; ///< Depth bias to prevent self-shadowing, good value is ~2% of the radius (default: 0.007)
-        int sampleCount = 0; ///< Number of samples to compute SSAO (default: 16)
-        bool enabled = false; ///< Enable/disable SSAO effect (default: false)
+        float intensity = 0.5f; ///< Base occlusion strength multiplier
+        float power = 1.5f; ///< Exponential falloff for sharper darkening
+        float radius = 0.5f; ///< Sampling radius in world space
+        float bias = 0.02f; ///< Depth bias to prevent self-shadowing, good value is ~2% of the radius
+        int sampleCount = 16; ///< Number of samples to compute SSAO
+        bool enabled = false; ///< Enable/disable SSAO effect
 
         EnvironmentSSAOParameters() = default;
 

@@ -5,16 +5,16 @@
 namespace BreadEngine {
     struct EnvironmentSSGIParameters : InspectorStruct
     {
-        float stepSize = 0; ///< Ray step size (default: 0.125)
-        float thickness = 0; ///< Depth tolerance for valid hits (default: 1.0)
-        float maxDistance = 0; ///< Maximum ray distance (default: 4.0)
-        float intensity = 0; ///< GI intensity multiplier (default: 3.0)
-        float fadeStart = 0; ///< Distance at which the GI fade begins (default: 8.0)
-        float fadeEnd = 0; ///< Distance at which GI is fully faded (default: 16.0)
-        int sampleCount = 0; ///< Number of rays per pixel (default: 2)
-        int maxRaySteps = 0; ///< Maximum ray marching steps (default: 32)
-        int denoiseSteps = 0; ///< Number of denoiser iterations (default: 5)
-        bool enabled = false; ///< Enable/disable SSGI (default: false)
+        float stepSize = 0.125f; ///< Ray step size
+        float thickness = 1.0f; ///< Depth tolerance for valid hits
+        float maxDistance = 4.0f; ///< Maximum ray distance
+        float intensity = 3.0f; ///< GI intensity multiplier
+        float fadeStart = 8.0f; ///< Distance at which the GI fade begins
+        float fadeEnd = 16.0f; ///< Distance at which GI is fully faded
+        int sampleCount = 2; ///< Number of rays per pixel
+        int maxRaySteps = 32; ///< Maximum ray marching steps
+        int denoiseSteps = 5; ///< Number of denoiser iterations
+        bool enabled = false; ///< Enable/disable SSGI
 
         EnvironmentSSGIParameters() = default;
 

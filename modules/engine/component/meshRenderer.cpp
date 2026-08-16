@@ -7,11 +7,8 @@
 #include "data/primitives/capsulePrimitiveData.h"
 #include "data/primitives/cubePrimitiveData.h"
 #include "data/primitives/cylinderPrimitiveData.h"
-#include "data/primitives/freePolyPrimitiveData.h"
 #include "data/primitives/planePrimitiveData.h"
-#include "data/primitives/slopePrimitiveData.h"
 #include "data/primitives/spherePrimitiveData.h"
-#include "data/primitives/torusPrimitiveData.h"
 #include "rendering/renderer.h"
 
 namespace BreadEngine {
@@ -160,24 +157,6 @@ namespace BreadEngine {
             {
                 PlanePrimitiveData quad;
                 build(quad.asQuad());
-                break;
-            }
-            case MeshPrimitiveType::Slope:
-            {
-                SlopePrimitiveData slope;
-                build(slope);
-                break;
-            }
-            case MeshPrimitiveType::Torus:
-            {
-                TorusPrimitiveData torus;
-                build(torus);
-                break;
-            }
-            case MeshPrimitiveType::FreePoly:
-            {
-                FreePolyPrimitiveData poly;
-                build(poly);
                 break;
             }
             case MeshPrimitiveType::None:

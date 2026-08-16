@@ -8,11 +8,8 @@
 #include "data/primitives/capsulePrimitiveData.h"
 #include "data/primitives/cubePrimitiveData.h"
 #include "data/primitives/cylinderPrimitiveData.h"
-#include "data/primitives/freePolyPrimitiveData.h"
 #include "data/primitives/planePrimitiveData.h"
-#include "data/primitives/slopePrimitiveData.h"
 #include "data/primitives/spherePrimitiveData.h"
-#include "data/primitives/torusPrimitiveData.h"
 #include "uitoolkit/uiPool.h"
 
 namespace BreadEditor {
@@ -126,9 +123,6 @@ namespace BreadEditor {
                 data->asQuad();
                 return data;
             }
-            case MeshPrimitiveType::Slope: return std::make_unique<SlopePrimitiveData>();
-            case MeshPrimitiveType::Torus: return std::make_unique<TorusPrimitiveData>();
-            case MeshPrimitiveType::FreePoly: return std::make_unique<FreePolyPrimitiveData>();
             case MeshPrimitiveType::None:
             default: return nullptr;
         }

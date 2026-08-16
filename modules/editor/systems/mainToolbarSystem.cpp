@@ -46,15 +46,6 @@ namespace BreadEditor {
                                            "Add Quad", [] { CommandsHandler::execute(std::make_unique<CreatePrimitiveCommand>(&Engine::getRootNode(), MeshPrimitiveType::Quad)); }
                                        },
                                        ToolbarOption{
-                                           "Add Slope", [] { CommandsHandler::execute(std::make_unique<CreatePrimitiveCommand>(&Engine::getRootNode(), MeshPrimitiveType::Slope)); }
-                                       },
-                                       ToolbarOption{
-                                           "Add Torus", [] { CommandsHandler::execute(std::make_unique<CreatePrimitiveCommand>(&Engine::getRootNode(), MeshPrimitiveType::Torus)); }
-                                       },
-                                       ToolbarOption{
-                                           "Add FreePoly", [] { CommandsHandler::execute(std::make_unique<CreatePrimitiveCommand>(&Engine::getRootNode(), MeshPrimitiveType::FreePoly)); }
-                                       },
-                                       ToolbarOption{
                                            "Add Dir Light", [] { CommandsHandler::execute(std::make_unique<CreateLightCommand>(&Engine::getRootNode(), BreadEngine::LightType::Directional)); }
                                        },
                                        ToolbarOption{

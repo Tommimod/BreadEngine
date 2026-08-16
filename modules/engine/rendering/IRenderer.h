@@ -9,10 +9,7 @@
 namespace BreadEngine {
     struct MeshPrimitiveData;
 
-    /**
-     * Everything the engine is allowed to ask of the GPU. Exactly one implementation is
-     * compiled in, selected by the BREAD_RENDER_BACKEND CMake option.
-     */
+    /// Everything the engine is allowed to ask of the GPU.
     class IRenderer
     {
     public:
@@ -102,10 +99,6 @@ namespace BreadEngine {
         virtual void drawModel(ModelHandle handle, Vector3 position, Quaternion rotation, Vector3 scale) = 0;
 
         // --- environment ---
-
-        /// Overwrites @p settings with the renderer's own starting values. Const binds the
-        /// bundle, not the blocks it refers to, so the writes still reach the engine.
-        virtual void applyDefaultEnvironment(const EnvironmentSettings &settings) = 0;
 
         virtual void setEnvironment(const EnvironmentSettings &settings) = 0;
 

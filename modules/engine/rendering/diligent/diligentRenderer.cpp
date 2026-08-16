@@ -14,7 +14,7 @@
 #include "raymath.h"
 #include "rlgl.h"
 
-#include "../../geometry/primitiveGenerator.h"
+#include "../geometry/primitiveGenerator.h"
 #include "utils/workerPool.h"
 
 namespace BreadEngine {
@@ -291,9 +291,8 @@ namespace BreadEngine {
 
     void DiligentRenderer::createMaterialFallbacks()
     {
-        // In MATERIAL_TEXTURE_NAMES' order, and matching r3d's own default material: white
-        // albedo, a flat tangent-space normal, occlusion 1 / roughness 1 / metalness 0, and
-        // no emission.
+        // In MATERIAL_TEXTURE_NAMES' order: white albedo, a flat tangent-space normal,
+        // occlusion 1 / roughness 1 / metalness 0, and no emission.
         constexpr Diligent::Uint32 fallbackPixels[MATERIAL_TEXTURE_COUNT]{0xFFFFFFFF, 0xFFFF8080, 0xFF00FFFF, 0xFF000000};
 
         Diligent::TextureDesc desc;
@@ -740,12 +739,6 @@ namespace BreadEngine {
     }
 
     // --- environment ---
-
-    void DiligentRenderer::applyDefaultEnvironment(const EnvironmentSettings &settings)
-    {
-        // Nothing to seed: the backend holds no environment state of its own beyond the clear
-        // colour, which setEnvironment supplies every frame.
-    }
 
     void DiligentRenderer::setEnvironment(const EnvironmentSettings &settings)
     {

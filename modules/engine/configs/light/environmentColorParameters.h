@@ -5,9 +5,9 @@
 namespace BreadEngine {
     struct EnvironmentColorParameters : InspectorStruct
     {
-        float brightness = 0; ///< Overall brightness multiplier (default: 1.0)
-        float contrast = 0; ///< Contrast between dark and bright areas (default: 1.0)
-        float saturation = 0; ///< Color intensity (default: 1.0)
+        float brightness = 1.0f; ///< Overall brightness multiplier
+        float contrast = 1.0f; ///< Contrast between dark and bright areas
+        float saturation = 1.0f; ///< Color intensity
 
         EnvironmentColorParameters() = default;
 

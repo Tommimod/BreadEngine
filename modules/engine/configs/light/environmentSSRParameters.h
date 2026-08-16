@@ -5,13 +5,13 @@
 namespace BreadEngine {
     struct EnvironmentSSRParameters : InspectorStruct
     {
-        float stepSize = 0; ///< Ray step size (default: 0.125)
-        float thickness = 0; ///< Depth tolerance for valid hits (default: 0.2)
-        float maxDistance = 0; ///< Maximum ray distance (default: 4.0)
-        float edgeFade = 0; ///< Screen edge fade start [0,1] (default: 0.25)
-        int maxRaySteps = 0; ///< Maximum ray marching steps (default: 32)
-        int binarySteps = 0; ///< Binary search refinement steps (default: 4)
-        bool enabled = false; ///< Enable/disable SSR (default: false)
+        float stepSize = 0.125f; ///< Ray step size
+        float thickness = 0.2f; ///< Depth tolerance for valid hits
+        float maxDistance = 4.0f; ///< Maximum ray distance
+        float edgeFade = 0.25f; ///< Screen edge fade start [0,1]
+        int maxRaySteps = 32; ///< Maximum ray marching steps
+        int binarySteps = 4; ///< Binary search refinement steps
+        bool enabled = false; ///< Enable/disable SSR
 
         EnvironmentSSRParameters() = default;
 

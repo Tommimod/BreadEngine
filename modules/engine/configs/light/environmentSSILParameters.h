@@ -5,14 +5,14 @@
 namespace BreadEngine {
     struct EnvironmentSSILParameters : InspectorStruct
     {
-        float radius = 0; ///< Maximum distance to gather light from (default: 2.0)
-        float thickness = 0; ///< Thickness threshold for occluders (default: 1.0)
-        float intensity = 0; ///< IL intensity multiplier (default: 1.0)
-        float aoPower = 0; ///< AO exponent/power (default: 1.0)
-        int sampleCount = 0; ///< Number of samples to compute indirect lighting (default: 2)
-        int sliceCount = 0; ///< Number of depth slices for accumulation (default: 4)
-        int denoiseSteps = 0; ///< Number of denoiser iterations (default: 4)
-        bool enabled = false; ///< Enable/disable SSIL effect (default: false)
+        float radius = 2.0f; ///< Maximum distance to gather light from
+        float thickness = 1.0f; ///< Thickness threshold for occluders
+        float intensity = 1.0f; ///< IL intensity multiplier
+        float aoPower = 1.0f; ///< AO exponent/power
+        int sampleCount = 2; ///< Number of samples to compute indirect lighting
+        int sliceCount = 4; ///< Number of depth slices for accumulation
+        int denoiseSteps = 4; ///< Number of denoiser iterations
+        bool enabled = false; ///< Enable/disable SSIL effect
 
         EnvironmentSSILParameters() = default;
 

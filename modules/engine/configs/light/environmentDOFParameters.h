@@ -6,10 +6,10 @@ namespace BreadEngine {
     struct EnvironmentDOFParameters : InspectorStruct
     {
         DepthOfFieldMode mode = DepthOfFieldMode::Disabled;           ///< Enable/disable state
-        float focusPoint = 0;       ///< Focus distance in meters from camera (default: 10.0)
-        float focusScale = 0;       ///< Depth of field depth: lower = shallower (default: 1.0)
-        float nearScale = 0;        ///< Near blur intensity: 0.0 = disabled, 1.0 = symmetric to far (default: 1.0)
-        float maxBlurSize = 0;      ///< Maximum blur radius, similar to aperture (default: 20.0)
+        float focusPoint = 10.0f;   ///< Focus distance in meters from camera
+        float focusScale = 1.0f;    ///< Depth of field depth: lower = shallower
+        float nearScale = 1.0f;     ///< Near blur intensity: 0.0 = disabled, 1.0 = symmetric to far
+        float maxBlurSize = 20.0f;  ///< Maximum blur radius, similar to aperture
 
         EnvironmentDOFParameters() = default;
 

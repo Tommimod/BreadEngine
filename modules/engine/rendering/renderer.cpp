@@ -5,11 +5,7 @@
 
 #include "logger.h"
 
-#if defined(BREAD_RENDER_BACKEND_DILIGENT)
-#include "backends/diligent/diligentRenderer.h"
-#else
-#include "backends/r3d/r3dRenderer.h"
-#endif
+#include "diligent/diligentRenderer.h"
 
 namespace BreadEngine {
     std::unique_ptr<IRenderer> Renderer::_instance = nullptr;
@@ -18,11 +14,7 @@ namespace BreadEngine {
     {
         if (_instance != nullptr) return;
 
-#if defined(BREAD_RENDER_BACKEND_DILIGENT)
         _instance = std::make_unique<DiligentRenderer>();
-#else
-        _instance = std::make_unique<R3DRenderer>();
-#endif
         _instance->initialize(sceneWidth, sceneHeight);
         Logger::LogInfo(std::string("Render backend: ") + _instance->getBackendName());
     }
