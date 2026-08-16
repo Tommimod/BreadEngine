@@ -30,7 +30,7 @@ namespace BreadEngine {
     /// Where the engine's shader sources sit relative to the executable.
     constexpr const char *SHADER_DIRECTORY = "shaders";
 
-    /// Shader variable names of the material texture slots, in MaterialData's own order.
+    /// Shader variable names of the material texture slots, in MaterialDesc's own order.
     constexpr const char *MATERIAL_TEXTURE_NAMES[]{"g_Albedo", "g_Normal", "g_Orm", "g_Emission"};
 
     /**
@@ -83,6 +83,7 @@ namespace BreadEngine {
         releaseSceneTarget();
 
         _draws.clear();
+        _materials.clear();
         _meshes.clear();
         _lights.clear();
         // Every slot the pool is about to drop may still have a decode running into it, and
@@ -92,8 +93,7 @@ namespace BreadEngine {
             if (slot.decodeJob.valid()) slot.decodeJob.get();
         });
         _textures.clear();
-        _materialTextures = {};
-        _sceneResources.Release();
+        _materialFallbacks = {};
         _scenePipeline.Release();
         _frameConstants.Release();
         _drawConstants.Release();
@@ -246,13 +246,14 @@ namespace BreadEngine {
         graphics.InputLayout.LayoutElements = vertexLayout;
         graphics.InputLayout.NumElements = static_cast<Diligent::Uint32>(std::size(vertexLayout));
 
-        // The material textures change from draw to draw, which is what DYNAMIC means here;
-        // everything else - the two constant buffers - stays bound for the pipeline's life.
+        // The material textures belong to the binding rather than to the pipeline, which is
+        // what MUTABLE means here; everything else - the two constant buffers - is static and
+        // stays bound for the pipeline's life.
         Diligent::ShaderResourceVariableDesc materialVariables[MATERIAL_TEXTURE_COUNT];
         for (size_t slot = 0; slot < MATERIAL_TEXTURE_COUNT; ++slot)
         {
             materialVariables[slot] = {Diligent::SHADER_TYPE_PIXEL, MATERIAL_TEXTURE_NAMES[slot],
-                                       Diligent::SHADER_RESOURCE_VARIABLE_TYPE_DYNAMIC};
+                                       Diligent::SHADER_RESOURCE_VARIABLE_TYPE_MUTABLE};
         }
         pipelineInfo.PSODesc.ResourceLayout.Variables = materialVariables;
         pipelineInfo.PSODesc.ResourceLayout.NumVariables = static_cast<Diligent::Uint32>(MATERIAL_TEXTURE_COUNT);
@@ -269,14 +270,8 @@ namespace BreadEngine {
         _scenePipeline->GetStaticVariableByName(Diligent::SHADER_TYPE_VERTEX, "FrameConstants")->Set(_frameConstants);
         _scenePipeline->GetStaticVariableByName(Diligent::SHADER_TYPE_PIXEL, "FrameConstants")->Set(_frameConstants);
         _scenePipeline->GetStaticVariableByName(Diligent::SHADER_TYPE_VERTEX, "DrawConstants")->Set(_drawConstants);
-        _scenePipeline->CreateShaderResourceBinding(&_sceneResources, true);
 
         createMaterialFallbacks();
-        for (size_t slot = 0; slot < MATERIAL_TEXTURE_COUNT; ++slot)
-        {
-            // Resolved once: the lookup is by name, and the draw loop runs it per material.
-            _materialTextures[slot].variable = _sceneResources->GetVariableByName(Diligent::SHADER_TYPE_PIXEL, MATERIAL_TEXTURE_NAMES[slot]);
-        }
     }
 
     void DiligentRenderer::restoreRaylibPixelStore()
@@ -308,7 +303,7 @@ namespace BreadEngine {
         {
             Diligent::TextureSubResData level{&fallbackPixels[slot], sizeof(Diligent::Uint32)};
             const Diligent::TextureData data{&level, 1};
-            _device->CreateTexture(desc, &data, &_materialTextures[slot].fallback);
+            _device->CreateTexture(desc, &data, &_materialFallbacks[slot]);
         }
 
         restoreRaylibPixelStore();
@@ -422,7 +417,8 @@ namespace BreadEngine {
         for (const auto &[mesh, material, model]: _draws)
         {
             const auto *slot = _meshes.get(mesh);
-            if (slot == nullptr) continue;
+            const auto *binding = _materials.get(material);
+            if (slot == nullptr || binding == nullptr) continue;
 
             const SceneDrawConstants draw{
                 .model = MatrixToFloatV(model),
@@ -431,16 +427,15 @@ namespace BreadEngine {
                 .normalMatrix = MatrixToFloatV(MatrixTranspose(MatrixInvert(model)))
             };
             uploadConstants(_drawConstants, &draw, sizeof(draw));
-            bindMaterial(material);
 
             Diligent::IBuffer *vertices = slot->vertices;
             constexpr Diligent::Uint64 vertexOffset = 0;
             _context->SetVertexBuffers(0, 1, &vertices, &vertexOffset, Diligent::RESOURCE_STATE_TRANSITION_MODE_TRANSITION,
                                        Diligent::SET_VERTEX_BUFFERS_FLAG_RESET);
             _context->SetIndexBuffer(slot->indices, 0, Diligent::RESOURCE_STATE_TRANSITION_MODE_TRANSITION);
-            // After the draw constants were remapped and the material rebound, so the draw
-            // reads this iteration's values and not the ones the previous one left bound.
-            _context->CommitShaderResources(_sceneResources, Diligent::RESOURCE_STATE_TRANSITION_MODE_TRANSITION);
+            // Committed after the draw constants were remapped, so the draw reads this
+            // iteration's values and not the ones the previous one left bound.
+            _context->CommitShaderResources(*binding, Diligent::RESOURCE_STATE_TRANSITION_MODE_TRANSITION);
 
             Diligent::DrawIndexedAttribs drawAttribs;
             drawAttribs.IndexType = Diligent::VT_UINT32;
@@ -642,24 +637,48 @@ namespace BreadEngine {
 
     // --- materials ---
 
-    void DiligentRenderer::bindMaterial(const MaterialData &material)
+    Diligent::ITextureView *DiligentRenderer::materialTextureView(const TextureHandle handle, Diligent::ITexture *fallback)
     {
-        const TextureHandle handles[MATERIAL_TEXTURE_COUNT]{material.albedo, material.normal, material.orm, material.emission};
-
-        for (size_t index = 0; index < MATERIAL_TEXTURE_COUNT; ++index)
+        Diligent::ITexture *texture = fallback;
+        if (auto *entry = _textures.get(handle))
         {
-            auto &slot = _materialTextures[index];
-            if (slot.variable == nullptr) continue;
-
-            Diligent::ITexture *texture = slot.fallback;
-            if (auto *entry = _textures.get(handles[index]))
-            {
-                finalizeTexture(*entry);
-                if (entry->texture) texture = entry->texture;
-            }
-
-            slot.variable->Set(texture->GetDefaultView(Diligent::TEXTURE_VIEW_SHADER_RESOURCE));
+            finalizeTexture(*entry);
+            if (entry->texture) texture = entry->texture;
         }
+
+        return texture->GetDefaultView(Diligent::TEXTURE_VIEW_SHADER_RESOURCE);
+    }
+
+    MaterialHandle DiligentRenderer::createMaterial(const MaterialDesc &desc)
+    {
+        if (!_scenePipeline) return {};
+
+        MaterialSlot binding;
+        _scenePipeline->CreateShaderResourceBinding(&binding, true);
+        if (!binding)
+        {
+            Logger::LogError("Diligent failed to create a material's resource binding");
+            return {};
+        }
+
+        const TextureHandle handles[MATERIAL_TEXTURE_COUNT]{desc.albedo, desc.normal, desc.orm, desc.emission};
+        for (size_t slot = 0; slot < MATERIAL_TEXTURE_COUNT; ++slot)
+        {
+            // Null when the shader does not sample this slot - the sources are compiled from
+            // disk at runtime, so which variables exist is not fixed at build time.
+            auto *variable = binding->GetVariableByName(Diligent::SHADER_TYPE_PIXEL, MATERIAL_TEXTURE_NAMES[slot]);
+            if (variable == nullptr) continue;
+
+            variable->Set(materialTextureView(handles[slot], _materialFallbacks[slot]));
+        }
+
+        return _materials.add(std::move(binding));
+    }
+
+    void DiligentRenderer::destroyMaterial(const MaterialHandle handle)
+    {
+        // The slot owns the binding, so clearing it releases it.
+        _materials.remove(handle);
     }
 
     // --- meshes ---
@@ -704,7 +723,7 @@ namespace BreadEngine {
         _meshes.remove(handle);
     }
 
-    void DiligentRenderer::drawMesh(const MeshHandle handle, const MaterialData &material, const Vector3 position, const Quaternion rotation, const Vector3 scale)
+    void DiligentRenderer::drawMesh(const MeshHandle handle, const MaterialHandle material, const Vector3 position, const Quaternion rotation, const Vector3 scale)
     {
         if (_meshes.get(handle) == nullptr) return;
 
@@ -730,7 +749,7 @@ namespace BreadEngine {
         return 0;
     }
 
-    void DiligentRenderer::setModelMaterial(const ModelHandle handle, const int slot, const MaterialData &material)
+    void DiligentRenderer::setModelMaterial(const ModelHandle handle, const int slot, const MaterialHandle material)
     {
     }
 

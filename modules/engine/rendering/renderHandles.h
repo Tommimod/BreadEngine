@@ -24,6 +24,7 @@ namespace BreadEngine {
 
     using LightHandle = RenderHandle<struct LightHandleTag>;
     using TextureHandle = RenderHandle<struct TextureHandleTag>;
+    using MaterialHandle = RenderHandle<struct MaterialHandleTag>;
     using MeshHandle = RenderHandle<struct MeshHandleTag>;
     using ModelHandle = RenderHandle<struct ModelHandleTag>;
     using CubemapHandle = RenderHandle<struct CubemapHandleTag>;

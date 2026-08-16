@@ -56,11 +56,15 @@ namespace BreadEngine {
 
         [[nodiscard]] TextureSize getTextureSize(TextureHandle handle) override;
 
+        [[nodiscard]] MaterialHandle createMaterial(const MaterialDesc &desc) override;
+
+        void destroyMaterial(MaterialHandle handle) override;
+
         [[nodiscard]] MeshHandle createPrimitive(const MeshPrimitiveData &data, Vector3 forward) override;
 
         void destroyMesh(MeshHandle handle) override;
 
-        void drawMesh(MeshHandle handle, const MaterialData &material, Vector3 position, Quaternion rotation, Vector3 scale) override;
+        void drawMesh(MeshHandle handle, MaterialHandle material, Vector3 position, Quaternion rotation, Vector3 scale) override;
 
         [[nodiscard]] ModelHandle loadModel(const std::string &path) override;
 
@@ -68,7 +72,7 @@ namespace BreadEngine {
 
         [[nodiscard]] int getModelMaterialCount(ModelHandle handle) const override;
 
-        void setModelMaterial(ModelHandle handle, int slot, const MaterialData &material) override;
+        void setModelMaterial(ModelHandle handle, int slot, MaterialHandle material) override;
 
         void drawModel(ModelHandle handle, Vector3 position, Quaternion rotation, Vector3 scale) override;
 
@@ -85,7 +89,7 @@ namespace BreadEngine {
         void destroyAmbientMap(AmbientMapHandle handle) override;
 
     private:
-        /// Material texture slots, in the order MaterialData declares them.
+        /// Material texture slots, in the order MaterialDesc declares them.
         static constexpr size_t MATERIAL_TEXTURE_COUNT = 4;
 
         /// Encoding exponents for the two OutputColorSpace values: the sRGB approximation, and
@@ -118,17 +122,13 @@ namespace BreadEngine {
         struct DrawItem
         {
             MeshHandle mesh;
-            MaterialData material;
+            MaterialHandle material;
             Matrix model;
         };
 
-        /// One material texture as the pipeline sees it: where it binds, and what stands in
-        /// when the material leaves it unset.
-        struct MaterialTextureSlot
-        {
-            Diligent::IShaderResourceVariable *variable = nullptr;
-            Diligent::RefCntAutoPtr<Diligent::ITexture> fallback;
-        };
+        /// A material is exactly its binding, and mutable variables cannot be re-pointed, so
+        /// the texture set is fixed for as long as the material exists.
+        using MaterialSlot = Diligent::RefCntAutoPtr<Diligent::IShaderResourceBinding>;
 
         Diligent::RefCntAutoPtr<Diligent::IRenderDevice> _device;
         Diligent::RefCntAutoPtr<Diligent::IDeviceContext> _context;
@@ -142,10 +142,11 @@ namespace BreadEngine {
         bool _hasExplicitTarget = false;
 
         Diligent::RefCntAutoPtr<Diligent::IPipelineState> _scenePipeline;
-        Diligent::RefCntAutoPtr<Diligent::IShaderResourceBinding> _sceneResources;
         Diligent::RefCntAutoPtr<Diligent::IBuffer> _frameConstants;
         Diligent::RefCntAutoPtr<Diligent::IBuffer> _drawConstants;
-        std::array<MaterialTextureSlot, MATERIAL_TEXTURE_COUNT> _materialTextures;
+        /// What stands in wherever a material leaves a texture slot unset.
+        std::array<Diligent::RefCntAutoPtr<Diligent::ITexture>, MATERIAL_TEXTURE_COUNT> _materialFallbacks;
+        ResourcePool<MaterialSlot, MaterialHandle> _materials;
         ResourcePool<MeshSlot, MeshHandle> _meshes;
         ResourcePool<TextureSlot, TextureHandle> _textures;
         ResourcePool<LightState, LightHandle> _lights;
@@ -179,8 +180,9 @@ namespace BreadEngine {
         /// Joins the background decode and creates the GPU texture, unless already created.
         void finalizeTexture(TextureSlot &slot);
 
-        /// Points the pipeline's texture variables at @p material, slot by slot.
-        void bindMaterial(const MaterialData &material);
+        /// What a material's texture slot binds: the texture behind @p handle once it is
+        /// resident, or @p fallback when the material leaves the slot unset.
+        [[nodiscard]] Diligent::ITextureView *materialTextureView(TextureHandle handle, Diligent::ITexture *fallback);
 
         static Diligent::SamplerDesc toNative(TextureFilterMode filter, TextureWrapMode wrap);
 

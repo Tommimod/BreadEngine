@@ -36,9 +36,6 @@ namespace BreadEngine {
             if (_meshPrimitiveData.empty()) return;
 
             deserializeMeshData(_meshPrimitiveData);
-            // A primitive has exactly one material; a scene file written before it had one
-            // leaves the list empty, and the draw path indexes slot 0 unconditionally.
-            if (_mesh.isValid() && _materials.empty()) _materials = {Material()};
             return;
         }
 
@@ -55,22 +52,29 @@ namespace BreadEngine {
         {
             renderer.destroyMesh(_mesh);
             _mesh = {};
-            return;
         }
 
-        if (!_model.isValid()) return;
-
-        renderer.destroyModel(_model);
-        _model = {};
-        for (auto &material: _materials)
+        if (_model.isValid())
         {
-            material.unload();
+            renderer.destroyModel(_model);
+            _model = {};
         }
+    }
+
+    void MeshRenderer::onDestroy()
+    {
+        unload();
     }
 
     bool MeshRenderer::isLoaded() const
     {
         return _mesh.isValid() || _model.isValid();
+    }
+
+    std::vector<Material> &MeshRenderer::getMaterials()
+    {
+        if (isLoaded() && _materials.empty()) _materials.emplace_back();
+        return _materials;
     }
 
     void MeshRenderer::setMeshAsset(MeshAsset *meshAsset)
@@ -83,10 +87,6 @@ namespace BreadEngine {
     void MeshRenderer::setGeneratedMesh(MeshPrimitiveData &primitiveData)
     {
         unload();
-        for (auto &material: _materials)
-        {
-            material.unload();
-        }
 
         // A generated primitive replaces the imported model outright - holding both would
         // leave load() silently preferring the asset over the mesh just built here.

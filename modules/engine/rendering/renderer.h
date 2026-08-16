@@ -18,6 +18,10 @@ namespace BreadEngine {
         /// outside the renderer's lifetime is a call-order bug, not something to paper over.
         static IRenderer &get();
 
+        /// For teardown paths that release GPU resources from a destructor, where a renderer
+        /// that has already shut down is the end of the process rather than a bug.
+        [[nodiscard]] static bool isAlive();
+
     private:
         static std::unique_ptr<IRenderer> _instance;
     };

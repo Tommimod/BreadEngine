@@ -19,17 +19,18 @@ namespace BreadEngine {
 
         auto &transform = node->get<Transform>();
         auto &renderer = Renderer::get();
+        auto &materials = meshRenderer.getMaterials();
         if (meshRenderer._mesh.isValid())
         {
-            renderer.drawMesh(meshRenderer._mesh, meshRenderer._materials[0].getData(), transform.getPosition(), transform.getRotationQuaternion(), transform.getScale());
+            renderer.drawMesh(meshRenderer._mesh, materials[0].getHandle(), transform.getPosition(), transform.getRotationQuaternion(), transform.getScale());
             return;
         }
 
         if (!meshRenderer._model.isValid()) return;
 
-        for (auto i = 0; i < static_cast<int>(meshRenderer._materials.size()); i++)
+        for (auto i = 0; i < static_cast<int>(materials.size()); i++)
         {
-            renderer.setModelMaterial(meshRenderer._model, i, meshRenderer._materials[i].getData());
+            renderer.setModelMaterial(meshRenderer._model, i, materials[i].getHandle());
         }
 
         renderer.drawModel(meshRenderer._model, transform.getPosition(), transform.getRotationQuaternion(), transform.getScale());

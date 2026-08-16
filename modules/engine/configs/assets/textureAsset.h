@@ -23,13 +23,19 @@ namespace BreadEngine {
 
         ~TextureAsset() override = default;
 
+        /// The texture as it stands, loading it if it is not resident. Takes no reference:
+        /// callers that keep the handle past the call must acquire() instead.
         [[nodiscard]] TextureHandle getTexture();
 
         [[nodiscard]] TextureSize getSize();
 
-        void loadToMemory() override;
+        /// Takes a reference for a holder that is about to store the handle.
+        [[nodiscard]] TextureHandle acquire();
 
-        void unload();
+        /// Gives back one acquire()'s reference, freeing the texture once none are left.
+        void release();
+
+        void loadToMemory() override;
 
         void setTextureType(TextureType textureType);
 
@@ -38,6 +44,10 @@ namespace BreadEngine {
     private:
         TextureType _textureType = TextureType::Default;
         TextureHandle _handle{};
+        /// How many holders acquired this texture. The load the assets registry performs on
+        /// every image at startup is uncounted, so the first release down to zero frees a
+        /// texture the registry still lists; the next getTexture() loads it again.
+        unsigned int _references = 0;
         TextureWrapMode _textureWrap = TextureWrapMode::Repeat;
         TextureFilterMode _textureFilter = TextureFilterMode::Point;
         bool _withColor = true;

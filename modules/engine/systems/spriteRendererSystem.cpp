@@ -18,13 +18,15 @@ namespace BreadEngine {
         }
 
         if (!spriteRenderer.isLoaded()) return;
-        if (spriteRenderer._material.getData().albedo != spriteRenderer._textureAsset->getTexture())
+        if (spriteRenderer.isQuadStale())
         {
             spriteRenderer.unload();
             spriteRenderer.loadSprite(transform.getForward());
+            // The link can be cleared rather than replaced, leaving nothing to build a quad from.
+            if (!spriteRenderer.isLoaded()) return;
         }
 
-        Renderer::get().drawMesh(spriteRenderer._mesh, spriteRenderer._material.getData(), transform.getPosition(), transform.getRotationQuaternion(), transform.getScale());
+        Renderer::get().drawMesh(spriteRenderer._mesh, spriteRenderer._material.getHandle(), transform.getPosition(), transform.getRotationQuaternion(), transform.getScale());
     }
 
     void SpriteRendererSystem::onDispose(Node *node, float deltaTime)

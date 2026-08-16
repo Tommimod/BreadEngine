@@ -148,12 +148,16 @@ namespace BreadEngine {
         };
     }
 
-    /// PBR texture set of a surface. An invalid handle leaves the renderer's default in place.
-    struct MaterialData
+    /// PBR texture set a material is built from. An invalid handle leaves the renderer's
+    /// default in place. The texture set is fixed once the material exists: changing it means
+    /// creating another material.
+    struct MaterialDesc
     {
         TextureHandle albedo;
         TextureHandle normal;
         TextureHandle orm;
         TextureHandle emission;
+
+        bool operator==(const MaterialDesc &other) const = default;
     };
 } // namespace BreadEngine

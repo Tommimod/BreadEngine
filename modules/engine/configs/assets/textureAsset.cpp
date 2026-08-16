@@ -26,8 +26,20 @@ namespace BreadEngine {
         });
     }
 
-    void TextureAsset::unload()
+    TextureHandle TextureAsset::acquire()
     {
+        loadToMemory();
+        // An invalid handle is not counted, so release() cannot be paired with a load that
+        // never produced a texture.
+        if (_handle.isValid()) ++_references;
+        return _handle;
+    }
+
+    void TextureAsset::release()
+    {
+        if (_references == 0) return;
+        if (--_references > 0) return;
+
         Renderer::get().destroyTexture(_handle);
         _handle = {};
     }

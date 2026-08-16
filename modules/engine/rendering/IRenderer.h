@@ -76,6 +76,13 @@ namespace BreadEngine {
 
         [[nodiscard]] virtual TextureSize getTextureSize(TextureHandle handle) = 0;
 
+        // --- materials ---
+
+        /// Binds @p desc's textures into a surface the draw calls can name by handle.
+        [[nodiscard]] virtual MaterialHandle createMaterial(const MaterialDesc &desc) = 0;
+
+        virtual void destroyMaterial(MaterialHandle handle) = 0;
+
         // --- meshes ---
 
         /// @param forward orientation for primitives built around a facing direction (quad, poly).
@@ -83,7 +90,7 @@ namespace BreadEngine {
 
         virtual void destroyMesh(MeshHandle handle) = 0;
 
-        virtual void drawMesh(MeshHandle handle, const MaterialData &material, Vector3 position, Quaternion rotation, Vector3 scale) = 0;
+        virtual void drawMesh(MeshHandle handle, MaterialHandle material, Vector3 position, Quaternion rotation, Vector3 scale) = 0;
 
         // --- models ---
 
@@ -94,7 +101,7 @@ namespace BreadEngine {
         /// How many material slots setModelMaterial accepts for @p handle.
         [[nodiscard]] virtual int getModelMaterialCount(ModelHandle handle) const = 0;
 
-        virtual void setModelMaterial(ModelHandle handle, int slot, const MaterialData &material) = 0;
+        virtual void setModelMaterial(ModelHandle handle, int slot, MaterialHandle material) = 0;
 
         virtual void drawModel(ModelHandle handle, Vector3 position, Quaternion rotation, Vector3 scale) = 0;
 

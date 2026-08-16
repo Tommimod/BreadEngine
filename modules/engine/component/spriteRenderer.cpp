@@ -15,6 +15,11 @@ namespace BreadEngine {
         _owner = owner;
     }
 
+    void SpriteRenderer::onDestroy()
+    {
+        unload();
+    }
+
     void SpriteRenderer::loadSprite(const Vector3 forward)
     {
         if (_textureAsset == nullptr)
@@ -31,6 +36,7 @@ namespace BreadEngine {
         _mesh = Renderer::get().createPrimitive(quad, forward);
         _material = Material();
         _material.setAlbedoTexture(_textureAsset);
+        _quadTexture = _textureAsset->getTexture();
         _isLoaded = true;
     }
 
@@ -40,6 +46,7 @@ namespace BreadEngine {
 
         Renderer::get().destroyMesh(_mesh);
         _mesh = {};
+        _quadTexture = {};
         _isLoaded = false;
         _material.unload();
     }
@@ -47,6 +54,11 @@ namespace BreadEngine {
     bool SpriteRenderer::isLoaded() const
     {
         return _isLoaded;
+    }
+
+    bool SpriteRenderer::isQuadStale()
+    {
+        return _textureAsset == nullptr || _quadTexture != _textureAsset->getTexture();
     }
 
     void SpriteRenderer::setTextureAsset(TextureAsset *textureAsset, const Vector3 forward)

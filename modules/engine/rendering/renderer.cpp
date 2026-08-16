@@ -27,6 +27,11 @@ namespace BreadEngine {
         _instance.reset();
     }
 
+    bool Renderer::isAlive()
+    {
+        return _instance != nullptr;
+    }
+
     IRenderer &Renderer::get()
     {
         if (_instance == nullptr)
