@@ -56,9 +56,9 @@ namespace BreadEngine {
     constexpr float SPOT_SHADOW_FILTER_TEXELS = 3.0f;
     constexpr float SPOT_SHADOW_MAX_FILTER_TEXELS = 9.0f;
 
-    /// How far from the camera the cascades reach. The camera's own far plane is a thousand
-    /// units, and fitting cascades to that would spend the whole shadow map on distance nothing
-    /// is ever shadowed at.
+    /// How far from the camera the cascades reach. The camera's far plane is rlgl's own cull
+    /// distance and sits thousands of units out; fitting cascades to that would spend the whole
+    /// shadow map on distance nothing is ever shadowed at.
     constexpr float SHADOW_DISTANCE = 60.0f;
 
     /// Width, in world units, of the penumbra a light's shadowSoftness of 1 produces. Kept

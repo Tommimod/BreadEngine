@@ -6,6 +6,29 @@ The working document — current status, the rules that must not be broken, and 
 
 ---
 
+### Between 6.c and 6.d — raylib 5.5 → 6.0, and the context to OpenGL 4.3
+
+**Started as a blocker found while designing 6.d, and ended as the Phase 7 decision being taken early.** The plan's 6.d entry specifies `RESOURCE_DIM_TEX_CUBE_ARRAY`. Three facts, read in order, showed that was unreachable on the context we had:
+
+1. `RenderDeviceGLImpl.cpp:919` — `CubemapArraysSupported = IsGL43OrAbove || CheckExtension("GL_ARB_texture_cube_map_array")`.
+2. `HLSL2GLSLConverterImpl.cpp:575` — `TextureCubeArray.SampleCmp` converts to `texture(samplerCubeArrayShadow, …)`, which is GLSL 400.
+3. `RenderDeviceGLImpl.cpp:364` — `MaxShaderVersion.GLSL = APIVersion`, so a 3.3 context emits `#version 330 core`; and `GLSLUtils.cpp:284` appends `#extension` lines **only when `IsES`**.
+
+So even on a driver exposing the ARB extension — this machine's does — the shader could not have compiled, because nothing would have enabled it. There is a `ShaderCreateInfo::GLSLExtensions` field (`Shader.h:580`) that injects directives right after the version line, which would have made it work here and nowhere guaranteed. Four ways forward were written up for the project owner: that extension plus a runtime `CubemapArraysSupported` gate compiling the omni path out; a 2D array of six slices per light with analytic face selection; N separate non-array `TextureCube`s; or moving raylib to 4.3. **The owner chose 4.3 before the question was asked**, on the grounds that Phase 7 needs it anyway — and additionally asked that omni shadows be re-planned as their own step after it, rather than bundled in.
+
+**What was actually done.** raylib tag `6.0` cloned into a scratch directory in the repo root, configured `-DBUILD_SHARED_LIBS=ON -DBUILD_EXAMPLES=OFF -DOPENGL_VERSION=4.3` with the project's own clang64, four headers and the DLL copied into `lib/engine/`, scratch directory deleted. No submodule, at the owner's request — the shape of `lib/engine/` is unchanged. `LibraryConfigurations.cmake:199` is what turns `OPENGL_VERSION=4.3` into `GRAPHICS_API_OPENGL_43`, and the configure output prints the resulting `GRAPHICS=` so it can be confirmed rather than assumed.
+
+**Four checks made before the swap, and each of them saved work.**
+
+- **The import table.** `llvm-objdump -p` on old and new DLL: byte-for-byte the same fifteen imports — five Win32 libraries and the UCRT stubs. A DLL built with a different toolchain would have dragged a second C runtime in, and that would have surfaced as a load failure rather than a link error.
+- **The public API diff.** `RLAPI` declarations, 581 → 600, with eleven changed: seven `Text*` helpers, `DrawModelPoints`/`Ex`, `UnloadModelAnimation`, `UpdateModelAnimationBones`, plus three in rlgl (`rlCompileShader`, `rlLoadShaderCode`, `rlLoadComputeShaderProgram`, renamed per the changelog's `-WARNING-` entry). **None is used anywhere in `modules/`, `games/` or `lib/editor/`** — raygui's `TextSplit` is its own static, not raylib's.
+- **`rlgl.h` under `_33` versus `_43`.** The public header is lines 1–818 and every `GRAPHICS_API_OPENGL_43` reference in it is version-selection plumbing; all real branches are past the `RLGL_IMPLEMENTATION` guard. So **no compile definition had to be added to any target** — which was the thing most likely to be got wrong, since a mismatched define between DLL and consumer is exactly the kind of failure that shows up as corruption much later.
+- **The changelog, for the interop's own assumptions.** One entry mattered: rlgl's default clip range moved from 0.01/1000 to 0.05/4000. It cost nothing, because both sites that need it call `rlGetCullDistanceNear/Far`. That is now stated as a rule in Invariants rather than left as luck.
+
+**The only code change in the whole swap was one comment** — `SHADOW_DISTANCE`'s, which asserted the camera's far plane was "a thousand units". It now names rlgl as the source instead of a number, which is true under both versions.
+
+**What this releases downstream.** Cube map arrays for 6.d; `bitfieldReverse` for Phase 7's BRDF LUT; compute shaders and SSBOs for the compute-based PostFX components. The GLSL the engine's own shaders compile as went from `#version 330 core` to `#version 430 core` as a side effect — Diligent derives it from the context, so no shader source changed.
+
 ### Phase 6 — every light type, and two kinds of shadow
 
 Split into three, because each part could be seen working before the next was written: **6.a** multi-light forward shading, **6.b** directional cascades, **6.c** spot shadow maps. Four decisions went to the project owner before any code, and all four took the recommendation — spot shadows in scope and omni out, a fixed-size cbuffer array rather than per-draw culling, `castShadows` without a matching `receiveShadows`, and varying PCF driven by the existing `shadowSoftness` field rather than a fixed 3×3 kernel. A fifth came up mid-phase and is in Invariants: `drawMesh` became `drawMesh(const MeshDrawDesc &)`, chosen over a sixth positional argument.
