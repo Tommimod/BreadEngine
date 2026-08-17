@@ -119,10 +119,16 @@ target_include_directories(BreadEngine PUBLIC
 # GLEW is the loader DiligentCore's GL backend already initializes against the shared context.
 # Linking the same static target gives the renderer the handful of raw GL calls it needs to put
 # back state Diligent changed globally and rlgl has no idea about.
+# DiligentFX carries ShadowMapManager and the .fxh shader sources the scene shader includes -
+# those are compiled into the library rather than shipped as files, so the include only resolves
+# through its own stream factory. Diligent-GraphicsTools is what combines that factory with the
+# engine's own shader directory.
 target_link_libraries(BreadEngine PUBLIC
         Diligent-GraphicsEngineOpenGL-static
         Diligent-Common
+        Diligent-GraphicsTools
         Diligent-TextureLoader
+        DiligentFX
         GLEW::glew
 )
 

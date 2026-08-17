@@ -3,12 +3,16 @@
 // Before everything else: GLEW insists on being the first to declare the GL entry points.
 #include <GL/glew.h>
 
+#include <algorithm>
+#include <cmath>
 #include <cstring>
 #include <string>
 
 #include <EngineFactoryOpenGL.h>
 #include <Sampler.h>
 #include <Shader.h>
+#include <ShaderSourceFactoryUtils.hpp>
+#include <Utilities/interface/DiligentFXShaderSourceStreamFactory.hpp>
 
 #include "logger.h"
 #include "raymath.h"
@@ -29,6 +33,39 @@ namespace BreadEngine {
     /// Where the engine's shader sources sit relative to the executable.
     constexpr const char *SHADER_DIRECTORY = "shaders";
 
+    constexpr Diligent::TEXTURE_FORMAT SHADOW_MAP_FORMAT = Diligent::TEX_FORMAT_D32_FLOAT;
+    constexpr Diligent::Uint32 SHADOW_MAP_RESOLUTION = 2048;
+    constexpr Diligent::Uint32 SHADOW_CASCADE_COUNT = 4;
+
+    /// A spot covers one cone rather than the whole visible world, so it needs far less of a map
+    /// than a cascade does.
+    constexpr Diligent::Uint32 SPOT_SHADOW_RESOLUTION = 1024;
+
+    /// Near plane of a spot's shadow projection. Deliberately a constant and not a fraction of
+    /// the light's range: range is how far the light reaches and is routinely thousands of
+    /// units, which would push the near plane past every caster in the scene. A float depth
+    /// buffer spends most of its precision near the eye, so a small near plane costs nothing
+    /// where the casters actually are.
+    constexpr float SPOT_SHADOW_NEAR = 0.05f;
+
+    /// Width of the filter kernel a light's shadowSoftness of 1 produces, in shadow map texels,
+    /// and the ceiling on it. A spot's map is a fixed projection rather than a fitted cascade,
+    /// so its softness is expressed in texels where the directional one is expressed in world
+    /// units - and nothing grows the map to keep a wide kernel affordable, so it is capped
+    /// instead. The cap matches the 9x9 the varying filter is written for.
+    constexpr float SPOT_SHADOW_FILTER_TEXELS = 3.0f;
+    constexpr float SPOT_SHADOW_MAX_FILTER_TEXELS = 9.0f;
+
+    /// How far from the camera the cascades reach. The camera's own far plane is a thousand
+    /// units, and fitting cascades to that would spend the whole shadow map on distance nothing
+    /// is ever shadowed at.
+    constexpr float SHADOW_DISTANCE = 60.0f;
+
+    /// Width, in world units, of the penumbra a light's shadowSoftness of 1 produces. Kept
+    /// small on purpose: DiligentFX grows a cascade until the filter fits in 9x9 texels, so a
+    /// softness expressed in whole units would trade away most of the shadow map's resolution.
+    constexpr float SHADOW_SOFTNESS_WORLD_SIZE = 0.05f;
+
     /// Shader variable names of the material texture slots, in MaterialDesc's own order.
     constexpr const char *MATERIAL_TEXTURE_NAMES[]{"g_Albedo", "g_Normal", "g_Orm", "g_Emission"};
 
@@ -41,8 +78,9 @@ namespace BreadEngine {
     {
         float16 viewProjection;
         Vector4 cameraPosition;
-        Vector4 lightDirection;
-        Vector4 lightColor;
+        /// xyz is the direction the camera looks in. The pixel shader projects onto it to get
+        /// the camera-space depth the cascade selection compares against.
+        Vector4 cameraForward;
         Vector4 ambientColor;
         Vector4 outputEncoding;
     };
@@ -51,6 +89,34 @@ namespace BreadEngine {
     {
         float16 model;
         float16 normalMatrix;
+    };
+
+    /// How many lights the pixel shader loops over. The shader is told this number rather than
+    /// repeating it, so the array and the loop cannot disagree.
+    constexpr size_t MAX_SCENE_LIGHTS = 32;
+
+    /// One light as the shader reads it, with everything the pixel shader would otherwise have
+    /// to derive per pixel folded in on the CPU.
+    struct SceneLight
+    {
+        /// xyz is the world position, meaningless for a directional light; w is the LightType.
+        Vector4 positionType;
+        /// xyz is the direction the light travels, so a surface points back along it.
+        Vector4 direction;
+        /// rgb is the colour, w the intensity.
+        Vector4 color;
+        /// x is 1/range², y the cosine of the spot's half-angle, z the reciprocal of the
+        /// cosine span its falloff covers, w whether the cascades were fitted to this light.
+        Vector4 attenuation;
+        /// x is the slice of the spot shadow array rendered for this light, or -1.
+        Vector4 shadow;
+    };
+
+    struct SceneLightConstants
+    {
+        /// x is how many entries of the array are live.
+        Vector4 count;
+        SceneLight lights[MAX_SCENE_LIGHTS];
     };
 
     void DiligentRenderer::initialize(const int sceneWidth, const int sceneHeight)
@@ -74,7 +140,11 @@ namespace BreadEngine {
         Logger::LogInfo("Diligent attached to OpenGL " + std::to_string(apiVersion.Major) + "." + std::to_string(apiVersion.Minor));
 
         createSceneTarget(sceneWidth, sceneHeight);
+        // Before the scene pipeline: the cascade array is one of its static resources, so it
+        // has to exist by the time that pipeline is built.
+        createShadowMaps();
         createScenePipeline();
+        createShadowPipeline();
     }
 
     void DiligentRenderer::shutdown()
@@ -84,6 +154,8 @@ namespace BreadEngine {
         _draws.clear();
         _materials.clear();
         _meshes.clear();
+        // Cleared before the pool it points into.
+        _visibleLights.clear();
         _lights.clear();
         // Every slot the pool is about to drop may still have a decode running into it, and
         // the future does not wait on its own.
@@ -94,8 +166,16 @@ namespace BreadEngine {
         _textures.clear();
         _materialFallbacks = {};
         _scenePipeline.Release();
+        _shadowBinding.Release();
+        _shadowPipeline.Release();
+        _shadowMap = {};
+        _spotShadowSRV.Release();
+        _spotShadowDSVs = {};
         _frameConstants.Release();
         _drawConstants.Release();
+        _lightConstants.Release();
+        _shadowConstants.Release();
+        _shadowPassConstants.Release();
 
         _context.Release();
         _device.Release();
@@ -191,14 +271,41 @@ namespace BreadEngine {
         constantsDesc.Name = "Draw constants";
         constantsDesc.Size = sizeof(SceneDrawConstants);
         _device->CreateBuffer(constantsDesc, nullptr, &_drawConstants);
+        constantsDesc.Name = "Light constants";
+        constantsDesc.Size = sizeof(SceneLightConstants);
+        _device->CreateBuffer(constantsDesc, nullptr, &_lightConstants);
+        constantsDesc.Name = "Shadow constants";
+        constantsDesc.Size = sizeof(ShadowConstants);
+        _device->CreateBuffer(constantsDesc, nullptr, &_shadowConstants);
+        constantsDesc.Name = "Shadow pass constants";
+        constantsDesc.Size = sizeof(Diligent::float4x4);
+        _device->CreateBuffer(constantsDesc, nullptr, &_shadowPassConstants);
 
-        Diligent::RefCntAutoPtr<Diligent::IShaderSourceInputStreamFactory> shaderSources;
+        Diligent::RefCntAutoPtr<Diligent::IShaderSourceInputStreamFactory> engineSources;
         const std::string shaderDirectory = std::string(GetApplicationDirectory()) + SHADER_DIRECTORY;
-        Diligent::GetEngineFactoryOpenGL()->CreateDefaultShaderSourceStreamFactory(shaderDirectory.c_str(), &shaderSources);
+        Diligent::GetEngineFactoryOpenGL()->CreateDefaultShaderSourceStreamFactory(shaderDirectory.c_str(), &engineSources);
+        // DiligentFX's .fxh files are compiled into the library rather than shipped next to the
+        // executable, so an #include of one only resolves through its own factory.
+        const auto shaderSources = Diligent::CreateCompoundShaderSourceFactory(
+            {&Diligent::DiligentFXShaderSourceStreamFactory::GetInstance(), engineSources});
+
+        const std::string maxLights = std::to_string(MAX_SCENE_LIGHTS);
+        const std::string maxSpotShadows = std::to_string(MAX_SPOT_SHADOWS);
+        const std::string spotShadowResolution = std::to_string(SPOT_SHADOW_RESOLUTION);
+        // PCF.fxh reads GL_SUPPORTED to avoid Texture2DArray.SampleCmpLevelZero, which has no
+        // GLSL counterpart at all. Nothing defines it for us - an undefined macro is zero to the
+        // preprocessor, which would silently select the branch that cannot be converted.
+        const Diligent::ShaderMacro macros[]{
+            {"MAX_SCENE_LIGHTS", maxLights.c_str()},
+            {"MAX_SPOT_SHADOWS", maxSpotShadows.c_str()},
+            {"SPOT_SHADOW_RESOLUTION", spotShadowResolution.c_str()},
+            {"GL_SUPPORTED", _device->GetDeviceInfo().IsGLDevice() ? "1" : "0"}
+        };
 
         Diligent::ShaderCreateInfo shaderInfo;
         shaderInfo.SourceLanguage = Diligent::SHADER_SOURCE_LANGUAGE_HLSL;
         shaderInfo.pShaderSourceStreamFactory = shaderSources;
+        shaderInfo.Macros = {macros, static_cast<Diligent::Uint32>(std::size(macros))};
         // Combined texture samplers - each Texture2D paired with a SamplerState named after
         // it plus "_sampler" - are what a GL device wants, and what DiligentFX asks for on one.
 
@@ -269,8 +376,128 @@ namespace BreadEngine {
         _scenePipeline->GetStaticVariableByName(Diligent::SHADER_TYPE_VERTEX, "FrameConstants")->Set(_frameConstants);
         _scenePipeline->GetStaticVariableByName(Diligent::SHADER_TYPE_PIXEL, "FrameConstants")->Set(_frameConstants);
         _scenePipeline->GetStaticVariableByName(Diligent::SHADER_TYPE_VERTEX, "DrawConstants")->Set(_drawConstants);
+        _scenePipeline->GetStaticVariableByName(Diligent::SHADER_TYPE_PIXEL, "LightConstants")->Set(_lightConstants);
+        _scenePipeline->GetStaticVariableByName(Diligent::SHADER_TYPE_PIXEL, "ShadowConstants")->Set(_shadowConstants);
+        // One cascade array for the whole scene, so it belongs to the pipeline rather than to
+        // each material's binding.
+        _scenePipeline->GetStaticVariableByName(Diligent::SHADER_TYPE_PIXEL, "g_ShadowMap")->Set(_shadowMap.GetSRV());
+        _scenePipeline->GetStaticVariableByName(Diligent::SHADER_TYPE_PIXEL, "g_SpotShadowMap")->Set(_spotShadowSRV);
 
         createMaterialFallbacks();
+    }
+
+    void DiligentRenderer::createShadowMaps()
+    {
+        if (!_device) return;
+
+        // The scene pass samples the cascades through a comparison sampler, which is what turns
+        // a fetch into "is this point in shadow" and lets the hardware filter the result.
+        Diligent::SamplerDesc samplerDesc;
+        samplerDesc.MinFilter = samplerDesc.MagFilter = samplerDesc.MipFilter = Diligent::FILTER_TYPE_COMPARISON_LINEAR;
+        samplerDesc.AddressU = samplerDesc.AddressV = samplerDesc.AddressW = Diligent::TEXTURE_ADDRESS_CLAMP;
+        samplerDesc.ComparisonFunc = Diligent::COMPARISON_FUNC_LESS;
+        Diligent::RefCntAutoPtr<Diligent::ISampler> comparisonSampler;
+        _device->CreateSampler(samplerDesc, &comparisonSampler);
+
+        Diligent::ShadowMapManager::InitInfo initInfo;
+        initInfo.Format = SHADOW_MAP_FORMAT;
+        initInfo.Resolution = SHADOW_MAP_RESOLUTION;
+        initInfo.NumCascades = SHADOW_CASCADE_COUNT;
+        // PCF needs nothing but the depth array, which is why the state cache the other modes
+        // build their conversion pipelines through can be left null.
+        initInfo.ShadowMode = SHADOW_MODE_PCF;
+        initInfo.pComparisonSampler = comparisonSampler;
+        _shadowMap.Initialize(_device, nullptr, initInfo);
+
+        // Selects the world-space filter Shadows.fxh sizes per cascade, over the fixed 3x3 one.
+        _shadowData.cascades.iFixedFilterSize = 0;
+
+        Diligent::TextureDesc spotDesc;
+        spotDesc.Name = "Spot shadow maps";
+        spotDesc.Type = Diligent::RESOURCE_DIM_TEX_2D_ARRAY;
+        spotDesc.Width = spotDesc.Height = SPOT_SHADOW_RESOLUTION;
+        spotDesc.MipLevels = 1;
+        spotDesc.ArraySize = static_cast<Diligent::Uint32>(MAX_SPOT_SHADOWS);
+        spotDesc.Format = SHADOW_MAP_FORMAT;
+        spotDesc.BindFlags = Diligent::BIND_SHADER_RESOURCE | Diligent::BIND_DEPTH_STENCIL;
+        Diligent::RefCntAutoPtr<Diligent::ITexture> spotShadows;
+        _device->CreateTexture(spotDesc, nullptr, &spotShadows);
+        if (!spotShadows)
+        {
+            Logger::LogError("Diligent failed to create the spot shadow maps");
+            return;
+        }
+
+        _spotShadowSRV = spotShadows->GetDefaultView(Diligent::TEXTURE_VIEW_SHADER_RESOURCE);
+        _spotShadowSRV->SetSampler(comparisonSampler);
+        // One view per slice: a depth pass writes a single cone's map, not the whole array.
+        for (Diligent::Uint32 slice = 0; slice < MAX_SPOT_SHADOWS; ++slice)
+        {
+            Diligent::TextureViewDesc sliceDesc;
+            sliceDesc.Name = "Spot shadow map slice";
+            sliceDesc.ViewType = Diligent::TEXTURE_VIEW_DEPTH_STENCIL;
+            sliceDesc.FirstArraySlice = slice;
+            sliceDesc.NumArraySlices = 1;
+            spotShadows->CreateView(sliceDesc, &_spotShadowDSVs[slice]);
+        }
+    }
+
+    void DiligentRenderer::createShadowPipeline()
+    {
+        if (!_device) return;
+
+        Diligent::RefCntAutoPtr<Diligent::IShaderSourceInputStreamFactory> shaderSources;
+        const std::string shaderDirectory = std::string(GetApplicationDirectory()) + SHADER_DIRECTORY;
+        Diligent::GetEngineFactoryOpenGL()->CreateDefaultShaderSourceStreamFactory(shaderDirectory.c_str(), &shaderSources);
+
+        Diligent::ShaderCreateInfo shaderInfo;
+        shaderInfo.SourceLanguage = Diligent::SHADER_SOURCE_LANGUAGE_HLSL;
+        shaderInfo.pShaderSourceStreamFactory = shaderSources;
+        shaderInfo.Desc = {"Shadow VS", Diligent::SHADER_TYPE_VERTEX, true};
+        shaderInfo.FilePath = "shadow.vsh";
+
+        Diligent::RefCntAutoPtr<Diligent::IShader> vertexShader;
+        _device->CreateShader(shaderInfo, &vertexShader);
+        if (!vertexShader)
+        {
+            Logger::LogError("Diligent failed to compile the shadow shader from " + shaderDirectory);
+            return;
+        }
+
+        // Position alone reaches the shadow map, but the buffer it comes from is still a
+        // MeshVertex, so the stride has to be spelled out rather than inferred from one element.
+        constexpr Diligent::LayoutElement vertexLayout[]{
+            {0, 0, 3, Diligent::VT_FLOAT32, Diligent::False, 0, sizeof(MeshVertex)},
+        };
+
+        Diligent::GraphicsPipelineStateCreateInfo pipelineInfo;
+        pipelineInfo.PSODesc.Name = "Shadow cascade";
+        pipelineInfo.pVS = vertexShader;
+
+        auto &graphics = pipelineInfo.GraphicsPipeline;
+        graphics.NumRenderTargets = 0;
+        graphics.DSVFormat = SHADOW_MAP_FORMAT;
+        graphics.PrimitiveTopology = Diligent::PRIMITIVE_TOPOLOGY_TRIANGLE_LIST;
+        // Nothing is culled: which winding faces the light depends on the handedness of the
+        // light's own view basis, and a depth-only pass is cheap enough not to care.
+        graphics.RasterizerDesc.CullMode = Diligent::CULL_MODE_NONE;
+        // A caster in front of the cascade's near plane still has to be recorded, so it is
+        // clamped to the near plane instead of clipped away.
+        graphics.RasterizerDesc.DepthClipEnable = Diligent::False;
+        graphics.DepthStencilDesc.DepthEnable = Diligent::True;
+        graphics.InputLayout.LayoutElements = vertexLayout;
+        graphics.InputLayout.NumElements = static_cast<Diligent::Uint32>(std::size(vertexLayout));
+
+        _device->CreateGraphicsPipelineState(pipelineInfo, &_shadowPipeline);
+        if (!_shadowPipeline)
+        {
+            Logger::LogError("Diligent failed to create the shadow pipeline state");
+            return;
+        }
+
+        _shadowPipeline->GetStaticVariableByName(Diligent::SHADER_TYPE_VERTEX, "ShadowPassConstants")->Set(_shadowPassConstants);
+        _shadowPipeline->GetStaticVariableByName(Diligent::SHADER_TYPE_VERTEX, "DrawConstants")->Set(_drawConstants);
+        _shadowPipeline->CreateShaderResourceBinding(&_shadowBinding, true);
     }
 
     void DiligentRenderer::restoreRaylibPixelStore()
@@ -347,7 +574,7 @@ namespace BreadEngine {
         }
 
         _viewProjection = MatrixMultiply(MatrixLookAt(camera.position, camera.target, camera.up), projection);
-        _cameraPosition = camera.position;
+        _camera = camera;
     }
 
     void DiligentRenderer::endScene()
@@ -357,6 +584,14 @@ namespace BreadEngine {
         // raylib has been drawing through the same context since the last frame ended, so
         // whatever Diligent remembers about the GL state it left behind is stale.
         _context->InvalidateState();
+
+        // Ahead of the scene pass, which is the one that reads the result. A frame with no
+        // directional caster leaves the cascade count at zero, which Shadows.fxh reads as
+        // fully lit rather than as an error.
+        selectVisibleLights(MAX_SCENE_LIGHTS);
+        assignShadowSlots();
+        renderShadowMaps();
+        uploadConstants(_shadowConstants, &_shadowData, sizeof(_shadowData));
 
         // The pass is bound and cleared here rather than in beginScene because the engine
         // pushes the environment - and with it the background colour - from a start-frame
@@ -383,6 +618,15 @@ namespace BreadEngine {
 
     void DiligentRenderer::uploadConstants(Diligent::IBuffer *buffer, const void *data, const size_t size)
     {
+        // A mapped constant buffer is driver memory with nothing behind it, so writing past the
+        // end corrupts whatever the driver keeps there and crashes somewhere else entirely,
+        // frames later. Refusing the write turns that into one legible message.
+        if (size > buffer->GetDesc().Size)
+        {
+            Logger::LogError(std::string("Constants for '") + buffer->GetDesc().Name + "' are larger than the buffer holding them");
+            return;
+        }
+
         void *mapped = nullptr;
         _context->MapBuffer(buffer, Diligent::MAP_WRITE, Diligent::MAP_FLAG_DISCARD, mapped);
         if (mapped == nullptr) return;
@@ -395,25 +639,21 @@ namespace BreadEngine {
     {
         if (!_scenePipeline || _draws.empty()) return;
 
-        const auto *light = findDirectionalLight();
-        const auto lightColor = light != nullptr ? ColorNormalize(light->color) : Vector4{};
         const auto ambient = ColorNormalize(_ambientColor);
-
+        const auto forward = Vector3Normalize(Vector3Subtract(_camera.target, _camera.position));
         const SceneFrameConstants frame{
             .viewProjection = MatrixToFloatV(_viewProjection),
-            .cameraPosition = {_cameraPosition.x, _cameraPosition.y, _cameraPosition.z, 1.0f},
-            .lightDirection = light != nullptr
-                                  ? Vector4{light->direction.x, light->direction.y, light->direction.z, 0.0f}
-                                  : Vector4{0.0f, -1.0f, 0.0f, 0.0f},
-            .lightColor = {lightColor.x, lightColor.y, lightColor.z, light != nullptr ? light->intensity : 0.0f},
+            .cameraPosition = {_camera.position.x, _camera.position.y, _camera.position.z, 1.0f},
+            .cameraForward = {forward.x, forward.y, forward.z, 0.0f},
             .ambientColor = {ambient.x, ambient.y, ambient.z, _ambientEnergy},
             .outputEncoding = {_outputEncoding, 0.0f, 0.0f, 0.0f}
         };
         uploadConstants(_frameConstants, &frame, sizeof(frame));
+        uploadLights();
 
         _context->SetPipelineState(_scenePipeline);
 
-        for (const auto &[mesh, material, model]: _draws)
+        for (const auto &[mesh, material, model, castShadows]: _draws)
         {
             const auto *slot = _meshes.get(mesh);
             const auto *binding = _materials.get(material);
@@ -516,16 +756,209 @@ namespace BreadEngine {
         if (auto *light = _lights.get(handle)) *light = state;
     }
 
-    const LightState *DiligentRenderer::findDirectionalLight()
+    void DiligentRenderer::assignShadowSlots()
     {
-        const LightState *found = nullptr;
-        _lights.forEachAlive([&found](const LightState &light)
+        _shadowData.cascades.iNumCascades = 0;
+
+        bool cascadesTaken = false;
+        int nextSpotSlice = 0;
+        for (auto &visible: _visibleLights)
         {
-            if (found != nullptr || !light.active || light.type != LightType::Directional) return;
-            found = &light;
+            visible.spotShadowSlice = -1;
+            visible.ownsCascades = false;
+            if (!visible.light->castShadows) continue;
+
+            if (visible.light->type == LightType::Directional && !cascadesTaken)
+            {
+                visible.ownsCascades = true;
+                cascadesTaken = true;
+            }
+            else if (visible.light->type == LightType::Spot && nextSpotSlice < static_cast<int>(MAX_SPOT_SHADOWS))
+            {
+                visible.spotShadowSlice = nextSpotSlice++;
+            }
+        }
+    }
+
+    void DiligentRenderer::renderShadowCasters(Diligent::ITextureView *target, const float16 &worldToLightClip)
+    {
+        _context->SetRenderTargets(0, nullptr, target, Diligent::RESOURCE_STATE_TRANSITION_MODE_TRANSITION);
+        _context->ClearDepthStencil(target, Diligent::CLEAR_DEPTH_FLAG, 1.0f, 0, Diligent::RESOURCE_STATE_TRANSITION_MODE_TRANSITION);
+
+        uploadConstants(_shadowPassConstants, worldToLightClip.v, sizeof(worldToLightClip));
+
+        for (const auto &[mesh, material, model, castShadows]: _draws)
+        {
+            if (!castShadows) continue;
+
+            const auto *slot = _meshes.get(mesh);
+            if (slot == nullptr) continue;
+
+            const SceneDrawConstants draw{.model = MatrixToFloatV(model), .normalMatrix = {}};
+            uploadConstants(_drawConstants, &draw, sizeof(draw));
+
+            Diligent::IBuffer *vertices = slot->vertices;
+            constexpr Diligent::Uint64 vertexOffset = 0;
+            _context->SetVertexBuffers(0, 1, &vertices, &vertexOffset, Diligent::RESOURCE_STATE_TRANSITION_MODE_TRANSITION,
+                                       Diligent::SET_VERTEX_BUFFERS_FLAG_RESET);
+            _context->SetIndexBuffer(slot->indices, 0, Diligent::RESOURCE_STATE_TRANSITION_MODE_TRANSITION);
+            _context->CommitShaderResources(_shadowBinding, Diligent::RESOURCE_STATE_TRANSITION_MODE_TRANSITION);
+
+            Diligent::DrawIndexedAttribs drawAttribs;
+            drawAttribs.IndexType = Diligent::VT_UINT32;
+            drawAttribs.NumIndices = slot->indexCount;
+            drawAttribs.Flags = Diligent::DRAW_FLAG_VERIFY_ALL;
+            _context->DrawIndexed(drawAttribs);
+        }
+    }
+
+    void DiligentRenderer::renderShadowMaps()
+    {
+        if (!_shadowPipeline || !_sceneColor) return;
+
+        _context->SetPipelineState(_shadowPipeline);
+        for (const auto &[light, spotShadowSlice, ownsCascades]: _visibleLights)
+        {
+            if (ownsCascades) renderCascades(*light);
+            else if (spotShadowSlice >= 0) renderSpotShadow(*light, spotShadowSlice);
+        }
+    }
+
+    void DiligentRenderer::renderSpotShadow(const LightState &light, const int slice)
+    {
+        // A spot's cone is inscribed in a square perspective frustum of the same full angle, so
+        // one map at the cone's own field of view covers it exactly.
+        const auto target = Vector3Add(light.position, light.direction);
+        // Any up vector will do except one along the cone's axis, which leaves the basis
+        // degenerate; a light pointing straight down is the common case, not an edge one.
+        const Vector3 up = std::abs(light.direction.y) > 0.99f ? Vector3{0.0f, 0.0f, 1.0f} : Vector3{0.0f, 1.0f, 0.0f};
+        const auto view = MatrixLookAt(light.position, target, up);
+        const auto projection = MatrixPerspective(light.spotAngle * DEG2RAD, 1.0f, SPOT_SHADOW_NEAR, std::max(light.range, SPOT_SHADOW_NEAR * 2.0f));
+
+        const auto worldToLightClip = MatrixToFloatV(MatrixMultiply(view, projection));
+        // Copied, not transposed: what the engine uploads and what Diligent stores are the same
+        // sixteen floats for the same transform, which is what lets both stay mul(matrix, vector).
+        std::memcpy(&_shadowData.spotTransforms[slice], worldToLightClip.v, sizeof(Diligent::float4x4));
+        const auto filterTexels = std::min(light.shadowSoftness * SPOT_SHADOW_FILTER_TEXELS, SPOT_SHADOW_MAX_FILTER_TEXELS);
+        _shadowData.spotParams[slice].x = filterTexels / static_cast<float>(SPOT_SHADOW_RESOLUTION);
+        renderShadowCasters(_spotShadowDSVs[slice], worldToLightClip);
+    }
+
+    void DiligentRenderer::renderCascades(const LightState &light)
+    {
+        // Fitting the cascades is DiligentFX's, and its camera space runs +Z forward where the
+        // engine's runs -Z. So the camera is handed over as a left-handed basis built here
+        // rather than as the engine's own view matrix, and the pixel shader gets its
+        // camera-space depth by projecting onto the forward axis rather than from that matrix.
+        const auto forward = Vector3Normalize(Vector3Subtract(_camera.target, _camera.position));
+        const auto right = Vector3Normalize(Vector3CrossProduct(_camera.up, forward));
+        const auto up = Vector3CrossProduct(forward, right);
+        const Diligent::float4x4 cameraWorld{
+            right.x, right.y, right.z, 0.0f,
+            up.x, up.y, up.z, 0.0f,
+            forward.x, forward.y, forward.z, 0.0f,
+            _camera.position.x, _camera.position.y, _camera.position.z, 1.0f
+        };
+        const auto cameraView = cameraWorld.Inverse();
+
+        const auto &target = _sceneColor->GetDesc();
+        const float aspect = static_cast<float>(target.Width) / static_cast<float>(target.Height);
+        const auto nearPlane = static_cast<float>(rlGetCullDistanceNear());
+        const auto farPlane = static_cast<float>(rlGetCullDistanceFar());
+        const bool isGL = _device->GetDeviceInfo().IsGLDevice();
+        const auto cameraProjection = _camera.projection == ProjectionType::Orthographic
+                                          ? Diligent::float4x4::Ortho(_camera.fov * aspect, _camera.fov, nearPlane, farPlane, isGL)
+                                          : Diligent::float4x4::Projection(_camera.fov * DEG2RAD, aspect, nearPlane, farPlane, isGL);
+
+        const Diligent::float3 lightDirection{light.direction.x, light.direction.y, light.direction.z};
+        _shadowData.cascades.fFilterWorldSize = light.shadowSoftness * SHADOW_SOFTNESS_WORLD_SIZE;
+
+        Diligent::ShadowMapManager::DistributeCascadeInfo cascadeInfo;
+        cascadeInfo.pCameraView = &cameraView;
+        cascadeInfo.pCameraWorld = &cameraWorld;
+        cascadeInfo.pCameraProj = &cameraProjection;
+        cascadeInfo.pLightDir = &lightDirection;
+        // Row-major packing writes the matrices in the layout the engine's own shaders already
+        // read - the one MatrixToFloatV produces - so they stay usable as mul(matrix, vector).
+        cascadeInfo.PackMatrixRowMajor = true;
+        cascadeInfo.AdjustCascadeRange = [](const int cascade, float &minZ, float &maxZ)
+        {
+            if (cascade < 0) maxZ = std::min(maxZ, SHADOW_DISTANCE);
+        };
+        _shadowMap.DistributeCascades(cascadeInfo, _shadowData.cascades);
+
+        for (Diligent::Uint32 cascade = 0; cascade < SHADOW_CASCADE_COUNT; ++cascade)
+        {
+            // Copied rather than transposed: PackMatrixRowMajor above already left it in the
+            // layout the shaders read.
+            float16 worldToLightClip;
+            std::memcpy(worldToLightClip.v, &_shadowMap.GetCascadeTransform(cascade).WorldToLightProjSpace, sizeof(worldToLightClip));
+            renderShadowCasters(_shadowMap.GetCascadeDSV(cascade), worldToLightClip);
+        }
+    }
+
+    void DiligentRenderer::selectVisibleLights(const size_t capacity)
+    {
+        _visibleLights.clear();
+        _lights.forEachAlive([this](const LightState &light)
+        {
+            if (light.active) _visibleLights.push_back(VisibleLight{.light = &light});
         });
 
-        return found;
+        if (_visibleLights.size() <= capacity) return;
+
+        // Only reached once a scene has more lights than the buffer holds, and only then does
+        // the order decide anything. A directional light lights everything, so it outranks any
+        // punctual one; the rest go by how far the camera is from being inside their reach.
+        const auto reach = [this](const LightState *light)
+        {
+            return Vector3Distance(_camera.position, light->position) - light->range;
+        };
+        std::ranges::sort(_visibleLights, [&reach](const VisibleLight &left, const VisibleLight &right)
+        {
+            const bool leftIsDirectional = left.light->type == LightType::Directional;
+            if (leftIsDirectional != (right.light->type == LightType::Directional)) return leftIsDirectional;
+
+            return reach(left.light) < reach(right.light);
+        });
+        _visibleLights.resize(capacity);
+    }
+
+    void DiligentRenderer::uploadLights()
+    {
+        SceneLightConstants constants{.count = {static_cast<float>(_visibleLights.size()), 0.0f, 0.0f, 0.0f}};
+        int spotShadowCount = 0;
+        for (size_t index = 0; index < _visibleLights.size(); ++index)
+        {
+            const auto &visible = _visibleLights[index];
+            const auto &light = *visible.light;
+            const auto color = ColorNormalize(light.color);
+            // Both cosines are of the half-angle, since what the shader compares them against
+            // is the angle between the cone's axis and the direction the surface lies in.
+            const float outerCosine = std::cos(light.spotAngle * 0.5f * DEG2RAD);
+            const float innerCosine = std::cos(light.spotAngle * (1.0f - light.spotBlend) * 0.5f * DEG2RAD);
+
+            constants.lights[index] = SceneLight{
+                .positionType = {light.position.x, light.position.y, light.position.z, static_cast<float>(light.type)},
+                .direction = {light.direction.x, light.direction.y, light.direction.z, 0.0f},
+                .color = {color.x, color.y, color.z, light.intensity},
+                .attenuation = {
+                    1.0f / std::max(light.range * light.range, 1e-4f),
+                    outerCosine,
+                    1.0f / std::max(innerCosine - outerCosine, 1e-4f),
+                    // The cascades are fitted to exactly one light, so exactly one light in the
+                    // array may read them.
+                    visible.ownsCascades ? 1.0f : 0.0f
+                },
+                .shadow = {static_cast<float>(visible.spotShadowSlice), 0.0f, 0.0f, 0.0f}
+            };
+            spotShadowCount = std::max(spotShadowCount, visible.spotShadowSlice + 1);
+        }
+
+        // Slices past this one hold whatever the last frame that used them left behind, so the
+        // shader is told how far along the array is live rather than sampling all of it.
+        constants.count.y = static_cast<float>(spotShadowCount);
+        uploadConstants(_lightConstants, &constants, sizeof(constants));
     }
 
     // --- textures ---
@@ -720,14 +1153,14 @@ namespace BreadEngine {
         _meshes.remove(handle);
     }
 
-    void DiligentRenderer::drawMesh(const MeshHandle handle, const MaterialHandle material, const Vector3 position, const Quaternion rotation, const Vector3 scale)
+    void DiligentRenderer::drawMesh(const MeshDrawDesc &draw)
     {
-        if (_meshes.get(handle) == nullptr) return;
+        if (_meshes.get(draw.mesh) == nullptr) return;
 
-        const Matrix model = MatrixMultiply(MatrixMultiply(MatrixScale(scale.x, scale.y, scale.z),
-                                                           QuaternionToMatrix(rotation)),
-                                            MatrixTranslate(position.x, position.y, position.z));
-        _draws.push_back(DrawItem{.mesh = handle, .material = material, .model = model});
+        const Matrix model = MatrixMultiply(MatrixMultiply(MatrixScale(draw.scale.x, draw.scale.y, draw.scale.z),
+                                                           QuaternionToMatrix(draw.rotation)),
+                                            MatrixTranslate(draw.position.x, draw.position.y, draw.position.z));
+        _draws.push_back(DrawItem{.mesh = draw.mesh, .material = draw.material, .model = model, .castShadows = draw.castShadows});
     }
 
     // --- environment ---

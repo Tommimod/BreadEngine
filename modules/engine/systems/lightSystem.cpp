@@ -5,15 +5,16 @@
 #include "rendering/renderer.h"
 
 namespace BreadEngine {
-    void LightSystem::update(Node *node, float deltaTime)
+    void LightSystem::startFrame(Node *node, float deltaTime)
     {
-        if (!node->getIsActive()) return;
         if (!node->has<Light>()) return;
 
         auto &light = node->get<Light>();
         auto &renderer = Renderer::get();
+        const bool isActive = node->getIsActive();
         if (!renderer.isLightValid(light._handle))
         {
+            if (!isActive) return;
             light._handle = renderer.createLight(light.lightType);
         }
 
@@ -25,9 +26,11 @@ namespace BreadEngine {
                                  .direction = transform.getForward(),
                                  .range = light.range,
                                  .intensity = light.intensity,
+                                 .spotAngle = light.spotAngle,
+                                 .spotBlend = light.spotBlend,
                                  .shadowSoftness = light.shadowSoftness,
                                  .castShadows = light.withShadows,
-                                 .active = node->getIsActive()
+                                 .active = isActive
                              });
     }
 } // namespace BreadEngine

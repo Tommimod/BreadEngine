@@ -107,6 +107,7 @@ namespace BreadEngine {
         Light *light = nullptr;
         for (const auto n: nodes)
         {
+            if (!n->getIsActive()) continue;
             if (n->has<Light>())
             {
                 auto &l = n->get<Light>();

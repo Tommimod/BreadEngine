@@ -1,6 +1,7 @@
 #include "meshRenderer.h"
 
 #include <algorithm>
+#include <type_traits>
 #include <sstream>
 
 #include "node.h"
@@ -17,9 +18,69 @@ namespace BreadEngine {
     DEFINE_STATIC_PROPS(MeshRenderer)
     REGISTER_COMPONENT(MeshRenderer)
 
+    static_assert(std::is_nothrow_move_constructible_v<MeshRenderer>);
+    static_assert(std::is_nothrow_move_assignable_v<MeshRenderer>);
+
     MeshRenderer::MeshRenderer(Node *owner)
     {
         _owner = owner;
+    }
+
+    void MeshRenderer::copySettings(const MeshRenderer &other)
+    {
+        Component::operator=(other);
+        _meshPrimitiveData = other._meshPrimitiveData;
+        _materials = other._materials;
+        _meshAsset = other._meshAsset;
+        castShadows = other.castShadows;
+    }
+
+    MeshRenderer::MeshRenderer(const MeshRenderer &other)
+    {
+        copySettings(other);
+    }
+
+    MeshRenderer &MeshRenderer::operator=(const MeshRenderer &other)
+    {
+        if (this == &other) return *this;
+
+        unload();
+        copySettings(other);
+        return *this;
+    }
+
+    MeshRenderer::MeshRenderer(MeshRenderer &&other) noexcept
+    {
+        Component::operator=(other);
+        _meshPrimitiveData = std::move(other._meshPrimitiveData);
+        _materials = std::move(other._materials);
+        _parts = std::move(other._parts);
+        _meshAsset = other._meshAsset;
+        _acquiredAsset = other._acquiredAsset;
+        _loadAttempted = other._loadAttempted;
+        castShadows = other.castShadows;
+
+        other._acquiredAsset = nullptr;
+        other._loadAttempted = false;
+    }
+
+    MeshRenderer &MeshRenderer::operator=(MeshRenderer &&other) noexcept
+    {
+        if (this == &other) return *this;
+
+        unload();
+        Component::operator=(other);
+        _meshPrimitiveData = std::move(other._meshPrimitiveData);
+        _materials = std::move(other._materials);
+        _parts = std::move(other._parts);
+        _meshAsset = other._meshAsset;
+        _acquiredAsset = other._acquiredAsset;
+        _loadAttempted = other._loadAttempted;
+        castShadows = other.castShadows;
+
+        other._acquiredAsset = nullptr;
+        other._loadAttempted = false;
+        return *this;
     }
 
     void MeshRenderer::onCreate()
@@ -51,17 +112,13 @@ namespace BreadEngine {
     {
         _loadAttempted = false;
 
-        if (_acquiredAsset != nullptr)
+        if (Renderer::isAlive())
         {
-            _acquiredAsset->release();
-            _acquiredAsset = nullptr;
-        }
-        else if (!_parts.empty())
-        {
-            auto &renderer = Renderer::get();
-            for (const auto &[mesh, materialSlot]: _parts) renderer.destroyMesh(mesh);
+            if (_acquiredAsset != nullptr) _acquiredAsset->release();
+            else for (const auto &[mesh, materialSlot]: _parts) Renderer::get().destroyMesh(mesh);
         }
 
+        _acquiredAsset = nullptr;
         _parts.clear();
     }
 

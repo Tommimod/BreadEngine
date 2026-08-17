@@ -33,9 +33,9 @@ _background:
   skyBlur: 0
   energy: 1
   color:
-    r: 130
-    g: 130
-    b: 130
+    r: 66
+    g: 78
+    b: 96
     a: 255
   rotation:
     x: 0
@@ -44,11 +44,11 @@ _background:
     w: 1
 _ambient:
   color:
-    r: 0
-    g: 0
-    b: 0
+    r: 66
+    g: 78
+    b: 96
     a: 255
-  energy: 1
+  energy: 0.35
 _ssao:
   enabled: false
   sampleCount: 16

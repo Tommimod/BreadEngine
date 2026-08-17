@@ -1,5 +1,7 @@
 ﻿#include "cameraDirector.h"
 
+#include "node.h"
+
 namespace BreadEngine {
     DEFINE_STATIC_PROPS(CameraDirector)
     REGISTER_COMPONENT(CameraDirector)
@@ -11,6 +13,10 @@ namespace BreadEngine {
 
     Camera *CameraDirector::getActiveCamera() const
     {
+        if (_activeCamera == nullptr) return nullptr;
+        const auto owner = _activeCamera->getOwner();
+        if (owner != nullptr && !owner->getIsActive()) return nullptr;
+
         return _activeCamera;
     }
 

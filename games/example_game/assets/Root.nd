@@ -30,9 +30,9 @@ Childs:
       - ComponentType: Camera
         _backgroundMode: 0
         _backgroundColor:
-          r: 255
-          g: 255
-          b: 255
+          r: 66
+          g: 78
+          b: 96
           a: 255
         _projection: 0
         _fov: 45
@@ -67,7 +67,7 @@ Childs:
       - ComponentType: Transform
         _localPosition:
           x: -3
-          y: 0
+          y: 1.48
           z: 0
         _localRotationQ:
           x: 0
@@ -156,21 +156,50 @@ Childs:
         shadowSoftness: 1
         color:
           r: 255
-          g: 255
-          b: 255
+          g: 244
+          b: 214
           a: 255
         range: 50
-        intensity: 1
+        intensity: 3
       - ComponentType: Transform
         _localPosition:
           x: 0
           y: 0
           z: 0
         _localRotationQ:
-          x: 0.7071068
+          x: 0.40822
+          y: 0.23458
+          z: -0.10938
+          w: 0.87543
+        _localScale:
+          x: 1
+          y: 1
+          z: 1
+    Childs:
+      []
+    IsNodePrefab: true
+  - IsActive: true
+    Id: 10
+    Name: Floor
+    ParentId: 2
+    Components:
+      - ComponentType: MeshRenderer
+        _meshPrimitiveData: "width: 40\nheight: 40\nresX: 1\nresZ: 1\ntype: 6"
+        _meshAsset: ~
+        _materials:
+          - _materialAsset: ~
+            _isInstanced: false
+        castShadows: false
+      - ComponentType: Transform
+        _localPosition:
+          x: 0
+          y: -0.02
+          z: 0
+        _localRotationQ:
+          x: 0
           y: 0
           z: 0
-          w: 0.7071068
+          w: 1
         _localScale:
           x: 1
           y: 1

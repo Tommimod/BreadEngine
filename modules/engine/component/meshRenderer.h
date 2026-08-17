@@ -16,6 +16,14 @@ namespace BreadEngine {
 
         ~MeshRenderer() override = default;
 
+        MeshRenderer(const MeshRenderer &other);
+
+        MeshRenderer &operator=(const MeshRenderer &other);
+
+        MeshRenderer(MeshRenderer &&other) noexcept;
+
+        MeshRenderer &operator=(MeshRenderer &&other) noexcept;
+
         void onCreate() override;
 
         void onDestroy() override;
@@ -40,6 +48,8 @@ namespace BreadEngine {
 
         void setGeneratedMesh(MeshPrimitiveData &primitiveData);
 
+        bool castShadows = true;
+
     private:
         friend class MeshRendererSystem;
         std::vector<MeshPart> _parts;
@@ -52,9 +62,10 @@ namespace BreadEngine {
          * _meshAsset behind this component's back, so that field cannot be trusted at unload.
          */
         MeshAsset *_acquiredAsset = nullptr;
-        /// Whether load() has already run for the current source. Latches a failed load so a
-        /// missing model is not re-imported from disk every frame; unload() clears it.
+
         bool _loadAttempted = false;
+
+        void copySettings(const MeshRenderer &other);
 
         static std::string serializeMeshData(MeshPrimitiveData &primitiveData);
 
@@ -67,6 +78,7 @@ namespace BreadEngine {
             INSPECT_FIELD_OPT(_meshPrimitiveData, Property::Options::HIDDEN)
             INSPECT_FIELD(_meshAsset)
             INSPECT_FIELD(_materials)
+            INSPECT_FIELD(castShadows)
         INSPECTOR_END()
     };
 } // BreadEngine

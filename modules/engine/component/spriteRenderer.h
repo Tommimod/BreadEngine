@@ -13,6 +13,14 @@ namespace BreadEngine {
 
         ~SpriteRenderer() override = default;
 
+        SpriteRenderer(const SpriteRenderer &other);
+
+        SpriteRenderer &operator=(const SpriteRenderer &other);
+
+        SpriteRenderer(SpriteRenderer &&other) noexcept;
+
+        SpriteRenderer &operator=(SpriteRenderer &&other) noexcept;
+
         void onDestroy() override;
 
         void loadSprite(Vector3 forward);

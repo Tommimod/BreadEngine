@@ -1,22 +1,72 @@
-// Metallic-roughness shading against a single directional light: Trowbridge-Reitz GGX,
-// Smith height-correlated visibility with Schlick's k, Schlick's Fresnel. Textures follow
-// glTF's convention, so occlusion, roughness and metalness are the R, G and B channels of
-// one ORM map.
+// Metallic-roughness shading: Trowbridge-Reitz GGX, Smith height-correlated visibility with
+// Schlick's k, Schlick's Fresnel. Textures follow glTF's convention, so occlusion, roughness
+// and metalness are the R, G and B channels of one ORM map.
 
 #define PI 3.1415926535897932
+
+// Cascade fitting, filtering and the constant block they share are DiligentFX's; these come out
+// of the library rather than from this directory.
+#include "BasicStructures.fxh"
+#include "Shadows.fxh"
+
+// Matching LightType's declaration order, which is a serialization contract.
+#define LIGHT_TYPE_DIRECTIONAL 0.0
+#define LIGHT_TYPE_SPOT        1.0
 
 cbuffer FrameConstants
 {
     float4x4 g_ViewProjection;
     float4   g_CameraPosition;
-    /// The direction the light travels, so a surface points back along it.
-    float4   g_LightDirection;
-    /// rgb is the colour, w the intensity.
-    float4   g_LightColor;
+    /// xyz is the direction the camera looks in.
+    float4   g_CameraForward;
     /// rgb is the colour, w the energy.
     float4   g_AmbientColor;
     /// x is the exponent the linear result leaves through.
     float4   g_OutputEncoding;
+};
+
+cbuffer ShadowConstants
+{
+    ShadowMapAttribs g_ShadowAttribs;
+    /// World to light clip space, one per slice of the spot shadow array.
+    float4x4         g_SpotShadowTransforms[MAX_SPOT_SHADOWS];
+    /// x is the width of that slice's filter kernel, in shadow map UV.
+    float4           g_SpotShadowParams[MAX_SPOT_SHADOWS];
+};
+
+/// Dimensions of one spot shadow slice: width, height, and the size of a texel in UV.
+#define SPOT_SHADOW_DIM float4(float(SPOT_SHADOW_RESOLUTION), float(SPOT_SHADOW_RESOLUTION), \
+                               1.0 / float(SPOT_SHADOW_RESOLUTION), 1.0 / float(SPOT_SHADOW_RESOLUTION))
+
+/// Ceiling on the slope-scaled depth bias, in depth per UV. Without one, a surface seen almost
+/// edge on from the light asks for an unbounded bias and stops shadowing anything at all.
+#define SPOT_SHADOW_BIAS_CLAMP 4.0
+
+Texture2DArray<float>  g_ShadowMap;
+SamplerComparisonState g_ShadowMap_sampler;
+Texture2DArray<float>  g_SpotShadowMap;
+SamplerComparisonState g_SpotShadowMap_sampler;
+
+struct SceneLight
+{
+    /// xyz is the world position, meaningless for a directional light; w is the type.
+    float4 PositionType;
+    /// xyz is the direction the light travels, so a surface points back along it.
+    float4 Direction;
+    /// rgb is the colour, w the intensity.
+    float4 Color;
+    /// x is 1/range², y the cosine of a spot's half-angle, z the reciprocal of the cosine
+    /// span its falloff covers, w whether the cascades were fitted to this light.
+    float4 Attenuation;
+    /// x is the slice of the spot shadow array rendered for this light, or -1.
+    float4 Shadow;
+};
+
+cbuffer LightConstants
+{
+    /// x is how many entries of the array the CPU filled in this frame.
+    float4     g_LightCount;
+    SceneLight g_Lights[MAX_SCENE_LIGHTS];
 };
 
 Texture2D    g_Albedo;
@@ -72,6 +122,48 @@ float3 fresnelSchlick(float3 f0, float vDotH)
     return f0 + (float3(1.0, 1.0, 1.0) - f0) * pow(1.0 - vDotH, 5.0);
 }
 
+/// What one unit of incoming radiance from @a toLight leaves on the surface. Multiplying this
+/// by the light's own radiance is all that separates one light from the next.
+float3 reflectedFraction(float3 albedo, float3 f0, float metallic, float roughness,
+                         float3 normal, float3 view, float3 toLight)
+{
+    float3 halfway = normalize(view + toLight);
+    float nDotV = max(dot(normal, view), 1e-4);
+    float nDotL = max(dot(normal, toLight), 0.0);
+    float nDotH = max(dot(normal, halfway), 0.0);
+    float vDotH = max(dot(view, halfway), 0.0);
+
+    float3 fresnel = fresnelSchlick(f0, vDotH);
+    // The nDotL in the specular denominator cancels against the one the reflectance equation
+    // multiplies by, so it is dropped from both rather than clamped - clamping it away is
+    // what puts a bright rim on every surface the light only grazes.
+    float3 specular = fresnel * distributionGGX(nDotH, roughness) * geometrySmith(nDotV, nDotL, roughness) / (4.0 * nDotV);
+    float3 diffuse = (float3(1.0, 1.0, 1.0) - fresnel) * (1.0 - metallic) * albedo / PI;
+
+    return diffuse * nDotL + specular;
+}
+
+/// How much of a light reaches a point: 1 for a directional one, and for the two punctual
+/// types an inverse square windowed so the light stops exactly at its range, narrowed further
+/// by the cone for a spot.
+float lightAttenuation(int index, float3 toSurface, float distanceSq)
+{
+    if (g_Lights[index].PositionType.w == LIGHT_TYPE_DIRECTIONAL) return 1.0;
+
+    float rangeFraction = distanceSq * g_Lights[index].Attenuation.x;
+    float window = saturate(1.0 - rangeFraction * rangeFraction);
+    float attenuation = window * window / distanceSq;
+
+    if (g_Lights[index].PositionType.w == LIGHT_TYPE_SPOT)
+    {
+        float axisCosine = dot(toSurface, normalize(g_Lights[index].Direction.xyz));
+        float cone = saturate((axisCosine - g_Lights[index].Attenuation.y) * g_Lights[index].Attenuation.z);
+        attenuation *= cone * cone;
+    }
+
+    return attenuation;
+}
+
 void main(in PSInput PSIn, out PSOutput PSOut)
 {
     float3 albedo = g_Albedo.Sample(g_Albedo_sampler, PSIn.UV).rgb;
@@ -83,26 +175,66 @@ void main(in PSInput PSIn, out PSOutput PSOut)
 
     float3 normal = shadingNormal(PSIn);
     float3 view = normalize(g_CameraPosition.xyz - PSIn.WorldPos);
-    float3 light = -normalize(g_LightDirection.xyz);
-    float3 halfway = normalize(view + light);
-
-    float nDotV = max(dot(normal, view), 1e-4);
-    float nDotL = max(dot(normal, light), 0.0);
-    float nDotH = max(dot(normal, halfway), 0.0);
-    float vDotH = max(dot(view, halfway), 0.0);
-
     // Dielectrics reflect a few percent head-on; metals reflect their own albedo instead and
     // have no diffuse lobe at all.
     float3 f0 = lerp(float3(0.04, 0.04, 0.04), albedo, metallic);
-    float3 fresnel = fresnelSchlick(f0, vDotH);
-    // The nDotL in the specular denominator cancels against the one the reflectance equation
-    // multiplies by, so it is dropped from both rather than clamped - clamping it away is
-    // what puts a bright rim on every surface the light only grazes.
-    float3 specular = fresnel * distributionGGX(nDotH, roughness) * geometrySmith(nDotV, nDotL, roughness) / (4.0 * nDotV);
-    float3 diffuse = (float3(1.0, 1.0, 1.0) - fresnel) * (1.0 - metallic) * albedo / PI;
 
-    float3 radiance = g_LightColor.rgb * g_LightColor.w;
-    float3 color = (diffuse * nDotL + specular) * radiance;
+    // Every shadow map is resolved before the light loop, and none of it inside: the depth bias
+    // needs screen-space derivatives, which are only defined where control flow is the same for
+    // every pixel in a quad. The loop below branches per pixel; these branches are on constants.
+    float3 posInLightView = mul(g_ShadowAttribs.mWorldToLightView, float4(PSIn.WorldPos, 1.0)).xyz;
+    float cameraSpaceZ = dot(PSIn.WorldPos - g_CameraPosition.xyz, g_CameraForward.xyz);
+    // With no cascades this costs one comparison and returns fully lit.
+    FilteredShadow shadow = FilterShadowMap(g_ShadowAttribs, g_ShadowMap, g_ShadowMap_sampler,
+                                            posInLightView, ddx(posInLightView), ddy(posInLightView),
+                                            cameraSpaceZ);
+
+    float spotShadowing[MAX_SPOT_SHADOWS];
+    int spotShadowCount = int(g_LightCount.y);
+    for (int s = 0; s < MAX_SPOT_SHADOWS; ++s)
+    {
+        spotShadowing[s] = 1.0;
+        if (s < spotShadowCount)
+        {
+            float4 lightClip = mul(g_SpotShadowTransforms[s], float4(PSIn.WorldPos, 1.0));
+            float3 uvDepth = float3(NormalizedDeviceXYToTexUV(lightClip.xy / lightClip.w),
+                                    NormalizedDeviceZToDepth(lightClip.z / lightClip.w));
+
+            // How fast the light's depth changes across one shadow map texel, which is what a
+            // sloped surface has to be offset by to stop shadowing itself.
+            float2 depthSlopeBias = ComputeReceiverPlaneDepthBias(ddx(uvDepth), ddy(uvDepth));
+            depthSlopeBias = clamp(depthSlopeBias, -SPOT_SHADOW_BIAS_CLAMP, SPOT_SHADOW_BIAS_CLAMP) * SPOT_SHADOW_DIM.zw;
+            float samplingError = abs(depthSlopeBias.x) + abs(depthSlopeBias.y) + g_ShadowAttribs.fFixedDepthBias;
+
+            float2 filterSize = float2(g_SpotShadowParams[s].x, g_SpotShadowParams[s].x);
+            spotShadowing[s] = FilterShadowMapVaryingPCF(g_SpotShadowMap, g_SpotShadowMap_sampler, SPOT_SHADOW_DIM,
+                                                         uvDepth.xy, float(s), uvDepth.z - samplingError,
+                                                         depthSlopeBias, filterSize);
+        }
+    }
+
+    float3 color = float3(0.0, 0.0, 0.0);
+    int lightCount = int(g_LightCount.x);
+    for (int i = 0; i < lightCount; ++i)
+    {
+        // A directional light has no position, so its own direction is the only one there is;
+        // a punctual one is aimed at the surface being shaded.
+        float3 toSurface = normalize(g_Lights[i].Direction.xyz);
+        float distanceSq = 1.0;
+        if (g_Lights[i].PositionType.w != LIGHT_TYPE_DIRECTIONAL)
+        {
+            float3 offset = PSIn.WorldPos - g_Lights[i].PositionType.xyz;
+            distanceSq = max(dot(offset, offset), 1e-6);
+            toSurface = offset * rsqrt(distanceSq);
+        }
+
+        float shadowing = lerp(1.0, shadow.fLightAmount, g_Lights[i].Attenuation.w);
+        int spotSlice = int(g_Lights[i].Shadow.x);
+        if (spotSlice >= 0) shadowing *= spotShadowing[spotSlice];
+        float3 radiance = g_Lights[i].Color.rgb * g_Lights[i].Color.w * lightAttenuation(i, toSurface, distanceSq) * shadowing;
+        color += reflectedFraction(albedo, f0, metallic, roughness, normal, view, -toSurface) * radiance;
+    }
+
     color += g_AmbientColor.rgb * g_AmbientColor.w * albedo * occlusion;
     color += g_Emission.Sample(g_Emission_sampler, PSIn.UV).rgb;
 

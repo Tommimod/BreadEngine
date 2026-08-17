@@ -26,7 +26,14 @@ namespace BreadEngine {
             if (!spriteRenderer.isLoaded()) return;
         }
 
-        Renderer::get().drawMesh(spriteRenderer._mesh, spriteRenderer.getMaterialHandle(), transform.getPosition(), transform.getRotationQuaternion(), transform.getScale());
+        Renderer::get().drawMesh(MeshDrawDesc{
+            .mesh = spriteRenderer._mesh,
+            .material = spriteRenderer.getMaterialHandle(),
+            .position = transform.getPosition(),
+            .rotation = transform.getRotationQuaternion(),
+            .scale = transform.getScale(),
+            .castShadows = false
+        });
     }
 
     void SpriteRendererSystem::onDispose(Node *node, float deltaTime)

@@ -1,12 +1,13 @@
 // Matrices arrive in the column-major order rlgl uploads its own in, which is what HLSL's
 // default cbuffer packing expects - so they are used column-vector style, mul(matrix, vector).
 
+// Both stages are bound to the same buffer, so this block has to be declared identically in
+// the pixel shader even though only the first member is read here.
 cbuffer FrameConstants
 {
     float4x4 g_ViewProjection;
     float4   g_CameraPosition;
-    float4   g_LightDirection;
-    float4   g_LightColor;
+    float4   g_CameraForward;
     float4   g_AmbientColor;
     float4   g_OutputEncoding;
 };

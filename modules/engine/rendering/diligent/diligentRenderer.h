@@ -10,9 +10,19 @@
 #include <RenderDevice.h>
 #include <ShaderResourceBinding.h>
 #include <TextureLoader.h>
+// raylib's raymath.h defines PI as a macro, and Diligent declares a constant of that name. A
+// translation unit that reaches raylib first would otherwise break on this include alone.
+#pragma push_macro("PI")
+#undef PI
+#include <Components/interface/ShadowMapManager.hpp>
+#pragma pop_macro("PI")
 
 #include "../IRenderer.h"
 #include "../resourcePool.h"
+
+// float16 is raymath's, and it is the form every matrix reaches the GPU in. After IRenderer.h,
+// because raymath declares raylib's vector types unguarded and raylib.h has to win.
+#include "raymath.h"
 
 namespace BreadEngine {
     /**
@@ -64,7 +74,7 @@ namespace BreadEngine {
 
         void destroyMesh(MeshHandle handle) override;
 
-        void drawMesh(MeshHandle handle, MaterialHandle material, Vector3 position, Quaternion rotation, Vector3 scale) override;
+        void drawMesh(const MeshDrawDesc &draw) override;
 
         void setEnvironment(const EnvironmentSettings &settings) override;
 
@@ -81,6 +91,9 @@ namespace BreadEngine {
     private:
         /// Material texture slots, in the order MaterialDesc declares them.
         static constexpr size_t MATERIAL_TEXTURE_COUNT = 4;
+
+        /// Slices of the spot shadow array, and so how many spot lights can cast at once.
+        static constexpr size_t MAX_SPOT_SHADOWS = 4;
 
         /// Encoding exponents for the two OutputColorSpace values: the sRGB approximation, and
         /// the identity that leaves the linear result alone.
@@ -114,11 +127,32 @@ namespace BreadEngine {
             MeshHandle mesh;
             MaterialHandle material;
             Matrix model;
+            bool castShadows = true;
         };
 
         /// A material is exactly its binding, and mutable variables cannot be re-pointed, so
         /// the texture set is fixed for as long as the material exists.
         using MaterialSlot = Diligent::RefCntAutoPtr<Diligent::IShaderResourceBinding>;
+
+        /// A light that reached the shader this frame, and what was rendered for it. The two
+        /// shadow kinds are separate because they are separate mechanisms: a cascade array
+        /// fitted to the camera, or one slice of a fixed perspective map.
+        struct VisibleLight
+        {
+            const LightState *light = nullptr;
+            /// Slice of the spot shadow array this light was rendered into, or -1.
+            int spotShadowSlice = -1;
+            bool ownsCascades = false;
+        };
+
+        /// What the scene pass reads shadowing from.
+        struct ShadowConstants
+        {
+            Diligent::ShadowMapAttribs cascades;
+            Diligent::float4x4 spotTransforms[MAX_SPOT_SHADOWS];
+            /// x is the width of that slice's filter kernel, in shadow map UV.
+            Diligent::float4 spotParams[MAX_SPOT_SHADOWS];
+        };
 
         Diligent::RefCntAutoPtr<Diligent::IRenderDevice> _device;
         Diligent::RefCntAutoPtr<Diligent::IDeviceContext> _context;
@@ -134,15 +168,33 @@ namespace BreadEngine {
         Diligent::RefCntAutoPtr<Diligent::IPipelineState> _scenePipeline;
         Diligent::RefCntAutoPtr<Diligent::IBuffer> _frameConstants;
         Diligent::RefCntAutoPtr<Diligent::IBuffer> _drawConstants;
+        Diligent::RefCntAutoPtr<Diligent::IBuffer> _lightConstants;
+        Diligent::RefCntAutoPtr<Diligent::IPipelineState> _shadowPipeline;
+        Diligent::RefCntAutoPtr<Diligent::IShaderResourceBinding> _shadowBinding;
+        /// The cascade the shadow pass is currently filling; one matrix, rewritten per cascade.
+        Diligent::RefCntAutoPtr<Diligent::IBuffer> _shadowPassConstants;
+        /// What the scene pass reads back: the cascade transforms and the filtering parameters.
+        Diligent::RefCntAutoPtr<Diligent::IBuffer> _shadowConstants;
+        Diligent::ShadowMapManager _shadowMap;
+        /// The spot lights' shadow maps, one array slice each. Not the cascade manager's job:
+        /// a spot needs a single perspective map, not a set fitted to the camera's frustum.
+        Diligent::RefCntAutoPtr<Diligent::ITextureView> _spotShadowSRV;
+        std::array<Diligent::RefCntAutoPtr<Diligent::ITextureView>, MAX_SPOT_SHADOWS> _spotShadowDSVs;
+        ShadowConstants _shadowData;
         /// What stands in wherever a material leaves a texture slot unset.
         std::array<Diligent::RefCntAutoPtr<Diligent::ITexture>, MATERIAL_TEXTURE_COUNT> _materialFallbacks;
         ResourcePool<MaterialSlot, MaterialHandle> _materials;
         ResourcePool<MeshSlot, MeshHandle> _meshes;
         ResourcePool<TextureSlot, TextureHandle> _textures;
         ResourcePool<LightState, LightHandle> _lights;
+        /// The active lights of the frame being submitted, rebuilt per frame. A member only
+        /// so the per-frame gather reuses one allocation.
+        std::vector<VisibleLight> _visibleLights;
         std::vector<DrawItem> _draws;
         Matrix _viewProjection{};
-        Vector3 _cameraPosition{};
+        /// Kept whole rather than reduced to a matrix: fitting the shadow cascades needs the
+        /// camera's basis and its field of view, not just the transform they combine into.
+        CameraView _camera{};
         Color _ambientColor = BLACK;
         float _ambientEnergy = 0.0f;
         /// Exponent the shader raises its linear result to on the way to the target.
@@ -154,6 +206,27 @@ namespace BreadEngine {
 
         /// Compiles the shaders and builds the one pipeline the scene pass draws through.
         void createScenePipeline();
+
+        /// Allocates both shadow arrays and the comparison sampler the scene pass reads them with.
+        void createShadowMaps();
+
+        /// Draws every shadow-casting item of the frame into @p target, seen through
+        /// @p worldToLightClip. Already in upload order, because its two callers arrive at it
+        /// from different places - one from raylib's math, one out of DiligentFX.
+        void renderShadowCasters(Diligent::ITextureView *target, const float16 &worldToLightClip);
+
+        /// Fits and fills the cascade array for one directional light.
+        void renderCascades(const LightState &light);
+
+        /// Fills one slice of the spot shadow array, and records the transform to sample it with.
+        void renderSpotShadow(const LightState &light, int slice);
+
+        /// Builds the depth-only pipeline the cascades are filled through.
+        void createShadowPipeline();
+
+        /// Fills every shadow map the frame's assignments call for. Leaves nothing bound: the
+        /// scene pass rebinds its own target.
+        void renderShadowMaps();
 
         /// Builds the 1x1 stand-ins bound wherever a material leaves a texture slot unset.
         void createMaterialFallbacks();
@@ -181,8 +254,16 @@ namespace BreadEngine {
         /// Issues everything the scene pass collected, into the currently bound target.
         void submitDraws();
 
-        /// The one light the forward pipeline shades with: the first active directional one.
-        [[nodiscard]] const LightState *findDirectionalLight();
+        /// Uploads _visibleLights, shadow assignments and all, into the light constant buffer.
+        void uploadLights();
+
+        /// Fills _visibleLights with the lights the shader should see, most significant first.
+        /// Ordering only costs anything when there are more lights than the buffer has room for.
+        void selectVisibleLights(size_t capacity);
+
+        /// Hands out the frame's shadow maps: the cascades to the first directional caster, and
+        /// a slice of the spot array to each of the next few spot casters.
+        void assignShadowSlots();
 
         /// Undoes the bindings and the GL state Diligent changed behind rlgl's back, so
         /// raylib's next draw lands where and how it expects.

@@ -27,8 +27,14 @@ namespace BreadEngine {
         const auto lastSlot = static_cast<int>(materials.size()) - 1;
         for (const auto &[mesh, materialSlot]: meshRenderer._parts)
         {
-            renderer.drawMesh(mesh, materials[std::min(materialSlot, lastSlot)].getHandle(),
-                              transform.getPosition(), transform.getRotationQuaternion(), transform.getScale());
+            renderer.drawMesh(MeshDrawDesc{
+                .mesh = mesh,
+                .material = materials[std::min(materialSlot, lastSlot)].getHandle(),
+                .position = transform.getPosition(),
+                .rotation = transform.getRotationQuaternion(),
+                .scale = transform.getScale(),
+                .castShadows = meshRenderer.castShadows
+            });
         }
     }
 

@@ -61,6 +61,8 @@ namespace BreadEngine {
         Vector3 direction{};
         float range = 50.0f;
         float intensity = 1.0f;
+        float spotAngle = 45.0f;
+        float spotBlend = 0.15f;
         float shadowSoftness = 1.0f;
         bool castShadows = true;
         bool active = true;
@@ -157,6 +159,18 @@ namespace BreadEngine {
     {
         MeshHandle mesh{};
         int materialSlot = 0;
+    };
+
+    /// Everything one draw call carries. A struct rather than a parameter list so a new
+    /// per-draw property is a field here instead of another signature across the seam.
+    struct MeshDrawDesc
+    {
+        MeshHandle mesh;
+        MaterialHandle material;
+        Vector3 position{};
+        Quaternion rotation{0.0f, 0.0f, 0.0f, 1.0f};
+        Vector3 scale{1.0f, 1.0f, 1.0f};
+        bool castShadows = true;
     };
 
     /// PBR texture set a material is built from. An invalid handle leaves the renderer's

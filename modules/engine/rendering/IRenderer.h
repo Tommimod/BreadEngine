@@ -89,7 +89,7 @@ namespace BreadEngine {
 
         virtual void destroyMesh(MeshHandle handle) = 0;
 
-        virtual void drawMesh(MeshHandle handle, MaterialHandle material, Vector3 position, Quaternion rotation, Vector3 scale) = 0;
+        virtual void drawMesh(const MeshDrawDesc &draw) = 0;
 
         // --- environment ---
 
