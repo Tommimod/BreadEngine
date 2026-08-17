@@ -1,6 +1,7 @@
 #pragma once
 #include <array>
 #include <future>
+#include <span>
 #include <vector>
 
 #include <Buffer.h>
@@ -95,6 +96,16 @@ namespace BreadEngine {
         /// Slices of the spot shadow array, and so how many spot lights can cast at once.
         static constexpr size_t MAX_SPOT_SHADOWS = 4;
 
+        /// Cubes of the omni shadow array, and so how many omni lights can cast at once. Each
+        /// one costs six depth passes rather than the spot's one, which is what keeps the
+        /// count and the face resolution smaller than the spot array's.
+        static constexpr size_t MAX_OMNI_SHADOWS = 4;
+
+        /// Faces of a cube map, in the order every graphics API agrees on: +X, -X, +Y, -Y,
+        /// +Z, -Z. Diligent indexes a cube array in layer-faces, so a cube's first face is at
+        /// slice * CUBE_FACE_COUNT.
+        static constexpr size_t CUBE_FACE_COUNT = 6;
+
         /// Encoding exponents for the two OutputColorSpace values: the sRGB approximation, and
         /// the identity that leaves the linear result alone.
         static constexpr float GAMMA_ENCODE_EXPONENT = 1.0f / 2.2f;
@@ -142,6 +153,8 @@ namespace BreadEngine {
             const LightState *light = nullptr;
             /// Slice of the spot shadow array this light was rendered into, or -1.
             int spotShadowSlice = -1;
+            /// Cube of the omni shadow array this light was rendered into, or -1.
+            int omniShadowSlice = -1;
             bool ownsCascades = false;
         };
 
@@ -152,6 +165,15 @@ namespace BreadEngine {
             Diligent::float4x4 spotTransforms[MAX_SPOT_SHADOWS];
             /// x is the width of that slice's filter kernel, in shadow map UV.
             Diligent::float4 spotParams[MAX_SPOT_SHADOWS];
+            /// An omni light gets no transform: the depth its cube holds depends only on the
+            /// largest component of the direction to the surface, so the scene pass rebuilds it
+            /// from the light's own position without knowing which face it will land on.
+            /// xyz is that position, w the far/(far - near) of the cube's projection.
+            Diligent::float4 omniPosition[MAX_OMNI_SHADOWS];
+            /// x is near * far / (far - near), the other half of that depth; y and z turn a
+            /// distance from the light into the offset one filter step covers, and into the
+            /// distance a lookup steps off the surface before it compares.
+            Diligent::float4 omniParams[MAX_OMNI_SHADOWS];
         };
 
         Diligent::RefCntAutoPtr<Diligent::IRenderDevice> _device;
@@ -180,6 +202,10 @@ namespace BreadEngine {
         /// a spot needs a single perspective map, not a set fitted to the camera's frustum.
         Diligent::RefCntAutoPtr<Diligent::ITextureView> _spotShadowSRV;
         std::array<Diligent::RefCntAutoPtr<Diligent::ITextureView>, MAX_SPOT_SHADOWS> _spotShadowDSVs;
+        /// The omni lights' shadow maps, one cube each. A cube rather than six flat slices so
+        /// the scene pass picks the face from the direction it is already holding.
+        Diligent::RefCntAutoPtr<Diligent::ITextureView> _omniShadowSRV;
+        std::array<Diligent::RefCntAutoPtr<Diligent::ITextureView>, MAX_OMNI_SHADOWS * CUBE_FACE_COUNT> _omniShadowDSVs;
         ShadowConstants _shadowData;
         /// What stands in wherever a material leaves a texture slot unset.
         std::array<Diligent::RefCntAutoPtr<Diligent::ITexture>, MATERIAL_TEXTURE_COUNT> _materialFallbacks;
@@ -207,8 +233,16 @@ namespace BreadEngine {
         /// Compiles the shaders and builds the one pipeline the scene pass draws through.
         void createScenePipeline();
 
-        /// Allocates both shadow arrays and the comparison sampler the scene pass reads them with.
+        /// Allocates all three shadow arrays and the comparison sampler the scene pass reads
+        /// them with.
         void createShadowMaps();
+
+        /// Allocates one depth array of @p sliceDSVs.size() slices, the view the scene pass
+        /// samples it through, and one depth-stencil view per slice for the passes that fill it.
+        void createShadowArray(const char *name, Diligent::RESOURCE_DIMENSION dimension, Diligent::Uint32 resolution,
+                               Diligent::ISampler *comparisonSampler,
+                               Diligent::RefCntAutoPtr<Diligent::ITextureView> &srv,
+                               std::span<Diligent::RefCntAutoPtr<Diligent::ITextureView>> sliceDSVs);
 
         /// Draws every shadow-casting item of the frame into @p target, seen through
         /// @p worldToLightClip. Already in upload order, because its two callers arrive at it
@@ -220,6 +254,10 @@ namespace BreadEngine {
 
         /// Fills one slice of the spot shadow array, and records the transform to sample it with.
         void renderSpotShadow(const LightState &light, int slice);
+
+        /// Fills all six faces of one cube of the omni shadow array, and records what the scene
+        /// pass rebuilds their depth with.
+        void renderOmniShadow(const LightState &light, int slice);
 
         /// Builds the depth-only pipeline the cascades are filled through.
         void createShadowPipeline();

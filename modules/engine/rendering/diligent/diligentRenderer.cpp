@@ -56,6 +56,25 @@ namespace BreadEngine {
     constexpr float SPOT_SHADOW_FILTER_TEXELS = 3.0f;
     constexpr float SPOT_SHADOW_MAX_FILTER_TEXELS = 9.0f;
 
+    /// One face of an omni light's cube. Lower than a spot's map even though a face covers a
+    /// wider angle: there are six of them per light, and four lights may cast at once.
+    constexpr Diligent::Uint32 OMNI_SHADOW_RESOLUTION = 512;
+
+    /// Near plane of every cube face's projection. A constant for the same reason the spot's is
+    /// - see SPOT_SHADOW_NEAR - and a cube gives that mistake six chances to show up.
+    constexpr float OMNI_SHADOW_NEAR = 0.05f;
+
+    /// Radius of the tap disk a light's shadowSoftness of 1 produces, in face texels, and the
+    /// ceiling on it. Five taps spread over a wide radius band rather than blur, so the cap is
+    /// tighter than the spot's - that one grows its tap count with its kernel.
+    constexpr float OMNI_SHADOW_FILTER_TEXELS = 1.5f;
+    constexpr float OMNI_SHADOW_MAX_FILTER_TEXELS = 4.0f;
+
+    /// How far off the surface a shadow lookup steps before comparing, in face texels, before
+    /// the filter's own reach is added to it. Two covers the 2x2 the comparison sampler already
+    /// filters across, which is the closest a lookup can come to its own surface.
+    constexpr float OMNI_SHADOW_NORMAL_OFFSET_TEXELS = 2.0f;
+
     /// How far from the camera the cascades reach. The camera's far plane is rlgl's own cull
     /// distance and sits thousands of units out; fitting cascades to that would spend the whole
     /// shadow map on distance nothing is ever shadowed at.
@@ -108,13 +127,15 @@ namespace BreadEngine {
         /// x is 1/range², y the cosine of the spot's half-angle, z the reciprocal of the
         /// cosine span its falloff covers, w whether the cascades were fitted to this light.
         Vector4 attenuation;
-        /// x is the slice of the spot shadow array rendered for this light, or -1.
+        /// x is the slice of the spot shadow array rendered for this light, y the cube of the
+        /// omni one; either is -1 when this light has no map of that kind.
         Vector4 shadow;
     };
 
     struct SceneLightConstants
     {
-        /// x is how many entries of the array are live.
+        /// x is how many entries of the array are live, y and z how far along the spot and omni
+        /// shadow arrays this frame filled.
         Vector4 count;
         SceneLight lights[MAX_SCENE_LIGHTS];
     };
@@ -171,6 +192,8 @@ namespace BreadEngine {
         _shadowMap = {};
         _spotShadowSRV.Release();
         _spotShadowDSVs = {};
+        _omniShadowSRV.Release();
+        _omniShadowDSVs = {};
         _frameConstants.Release();
         _drawConstants.Release();
         _lightConstants.Release();
@@ -291,6 +314,7 @@ namespace BreadEngine {
 
         const std::string maxLights = std::to_string(MAX_SCENE_LIGHTS);
         const std::string maxSpotShadows = std::to_string(MAX_SPOT_SHADOWS);
+        const std::string maxOmniShadows = std::to_string(MAX_OMNI_SHADOWS);
         const std::string spotShadowResolution = std::to_string(SPOT_SHADOW_RESOLUTION);
         // PCF.fxh reads GL_SUPPORTED to avoid Texture2DArray.SampleCmpLevelZero, which has no
         // GLSL counterpart at all. Nothing defines it for us - an undefined macro is zero to the
@@ -298,6 +322,7 @@ namespace BreadEngine {
         const Diligent::ShaderMacro macros[]{
             {"MAX_SCENE_LIGHTS", maxLights.c_str()},
             {"MAX_SPOT_SHADOWS", maxSpotShadows.c_str()},
+            {"MAX_OMNI_SHADOWS", maxOmniShadows.c_str()},
             {"SPOT_SHADOW_RESOLUTION", spotShadowResolution.c_str()},
             {"GL_SUPPORTED", _device->GetDeviceInfo().IsGLDevice() ? "1" : "0"}
         };
@@ -382,6 +407,7 @@ namespace BreadEngine {
         // each material's binding.
         _scenePipeline->GetStaticVariableByName(Diligent::SHADER_TYPE_PIXEL, "g_ShadowMap")->Set(_shadowMap.GetSRV());
         _scenePipeline->GetStaticVariableByName(Diligent::SHADER_TYPE_PIXEL, "g_SpotShadowMap")->Set(_spotShadowSRV);
+        _scenePipeline->GetStaticVariableByName(Diligent::SHADER_TYPE_PIXEL, "g_OmniShadowMap")->Set(_omniShadowSRV);
 
         createMaterialFallbacks();
     }
@@ -412,33 +438,46 @@ namespace BreadEngine {
         // Selects the world-space filter Shadows.fxh sizes per cascade, over the fixed 3x3 one.
         _shadowData.cascades.iFixedFilterSize = 0;
 
-        Diligent::TextureDesc spotDesc;
-        spotDesc.Name = "Spot shadow maps";
-        spotDesc.Type = Diligent::RESOURCE_DIM_TEX_2D_ARRAY;
-        spotDesc.Width = spotDesc.Height = SPOT_SHADOW_RESOLUTION;
-        spotDesc.MipLevels = 1;
-        spotDesc.ArraySize = static_cast<Diligent::Uint32>(MAX_SPOT_SHADOWS);
-        spotDesc.Format = SHADOW_MAP_FORMAT;
-        spotDesc.BindFlags = Diligent::BIND_SHADER_RESOURCE | Diligent::BIND_DEPTH_STENCIL;
-        Diligent::RefCntAutoPtr<Diligent::ITexture> spotShadows;
-        _device->CreateTexture(spotDesc, nullptr, &spotShadows);
-        if (!spotShadows)
+        createShadowArray("Spot shadow maps", Diligent::RESOURCE_DIM_TEX_2D_ARRAY, SPOT_SHADOW_RESOLUTION,
+                          comparisonSampler, _spotShadowSRV, _spotShadowDSVs);
+        // A cube array is indexed in layer-faces rather than in cubes, so it holds six slices
+        // per light and a depth pass still writes exactly one of them.
+        createShadowArray("Omni shadow maps", Diligent::RESOURCE_DIM_TEX_CUBE_ARRAY, OMNI_SHADOW_RESOLUTION,
+                          comparisonSampler, _omniShadowSRV, _omniShadowDSVs);
+    }
+
+    void DiligentRenderer::createShadowArray(const char *name, const Diligent::RESOURCE_DIMENSION dimension,
+                                             const Diligent::Uint32 resolution, Diligent::ISampler *comparisonSampler,
+                                             Diligent::RefCntAutoPtr<Diligent::ITextureView> &srv,
+                                             const std::span<Diligent::RefCntAutoPtr<Diligent::ITextureView>> sliceDSVs)
+    {
+        Diligent::TextureDesc arrayDesc;
+        arrayDesc.Name = name;
+        arrayDesc.Type = dimension;
+        arrayDesc.Width = arrayDesc.Height = resolution;
+        arrayDesc.MipLevels = 1;
+        arrayDesc.ArraySize = static_cast<Diligent::Uint32>(sliceDSVs.size());
+        arrayDesc.Format = SHADOW_MAP_FORMAT;
+        arrayDesc.BindFlags = Diligent::BIND_SHADER_RESOURCE | Diligent::BIND_DEPTH_STENCIL;
+        Diligent::RefCntAutoPtr<Diligent::ITexture> shadowMaps;
+        _device->CreateTexture(arrayDesc, nullptr, &shadowMaps);
+        if (!shadowMaps)
         {
-            Logger::LogError("Diligent failed to create the spot shadow maps");
+            Logger::LogError(std::string("Diligent failed to create the ") + name);
             return;
         }
 
-        _spotShadowSRV = spotShadows->GetDefaultView(Diligent::TEXTURE_VIEW_SHADER_RESOURCE);
-        _spotShadowSRV->SetSampler(comparisonSampler);
-        // One view per slice: a depth pass writes a single cone's map, not the whole array.
-        for (Diligent::Uint32 slice = 0; slice < MAX_SPOT_SHADOWS; ++slice)
+        srv = shadowMaps->GetDefaultView(Diligent::TEXTURE_VIEW_SHADER_RESOURCE);
+        srv->SetSampler(comparisonSampler);
+        // One view per slice: a depth pass writes a single light's map, not the whole array.
+        for (Diligent::Uint32 slice = 0; slice < arrayDesc.ArraySize; ++slice)
         {
             Diligent::TextureViewDesc sliceDesc;
-            sliceDesc.Name = "Spot shadow map slice";
+            sliceDesc.Name = "Shadow map slice";
             sliceDesc.ViewType = Diligent::TEXTURE_VIEW_DEPTH_STENCIL;
             sliceDesc.FirstArraySlice = slice;
             sliceDesc.NumArraySlices = 1;
-            spotShadows->CreateView(sliceDesc, &_spotShadowDSVs[slice]);
+            shadowMaps->CreateView(sliceDesc, &sliceDSVs[slice]);
         }
     }
 
@@ -762,9 +801,11 @@ namespace BreadEngine {
 
         bool cascadesTaken = false;
         int nextSpotSlice = 0;
+        int nextOmniSlice = 0;
         for (auto &visible: _visibleLights)
         {
             visible.spotShadowSlice = -1;
+            visible.omniShadowSlice = -1;
             visible.ownsCascades = false;
             if (!visible.light->castShadows) continue;
 
@@ -776,6 +817,10 @@ namespace BreadEngine {
             else if (visible.light->type == LightType::Spot && nextSpotSlice < static_cast<int>(MAX_SPOT_SHADOWS))
             {
                 visible.spotShadowSlice = nextSpotSlice++;
+            }
+            else if (visible.light->type == LightType::Omni && nextOmniSlice < static_cast<int>(MAX_OMNI_SHADOWS))
+            {
+                visible.omniShadowSlice = nextOmniSlice++;
             }
         }
     }
@@ -817,10 +862,11 @@ namespace BreadEngine {
         if (!_shadowPipeline || !_sceneColor) return;
 
         _context->SetPipelineState(_shadowPipeline);
-        for (const auto &[light, spotShadowSlice, ownsCascades]: _visibleLights)
+        for (const auto &[light, spotShadowSlice, omniShadowSlice, ownsCascades]: _visibleLights)
         {
             if (ownsCascades) renderCascades(*light);
             else if (spotShadowSlice >= 0) renderSpotShadow(*light, spotShadowSlice);
+            else if (omniShadowSlice >= 0) renderOmniShadow(*light, omniShadowSlice);
         }
     }
 
@@ -842,6 +888,54 @@ namespace BreadEngine {
         const auto filterTexels = std::min(light.shadowSoftness * SPOT_SHADOW_FILTER_TEXELS, SPOT_SHADOW_MAX_FILTER_TEXELS);
         _shadowData.spotParams[slice].x = filterTexels / static_cast<float>(SPOT_SHADOW_RESOLUTION);
         renderShadowCasters(_spotShadowDSVs[slice], worldToLightClip);
+    }
+
+    void DiligentRenderer::renderOmniShadow(const LightState &light, const int slice)
+    {
+        // The direction each face looks in, and the up vector that orients its image the way
+        // the hardware's own direction-to-texel rule will read it back. Both tables are in the
+        // cube's face order, and neither is free to be reordered or re-derived: the up vectors
+        // are not the intuitive ones, and a wrong one flips a face without failing anywhere.
+        static constexpr Vector3 faceDirections[CUBE_FACE_COUNT]{
+            {1.0f, 0.0f, 0.0f}, {-1.0f, 0.0f, 0.0f},
+            {0.0f, 1.0f, 0.0f}, {0.0f, -1.0f, 0.0f},
+            {0.0f, 0.0f, 1.0f}, {0.0f, 0.0f, -1.0f}
+        };
+        static constexpr Vector3 faceUps[CUBE_FACE_COUNT]{
+            {0.0f, -1.0f, 0.0f}, {0.0f, -1.0f, 0.0f},
+            {0.0f, 0.0f, 1.0f}, {0.0f, 0.0f, -1.0f},
+            {0.0f, -1.0f, 0.0f}, {0.0f, -1.0f, 0.0f}
+        };
+
+        // Six 90 degree square frustums meet edge to edge, which is what makes them a cube.
+        const float farPlane = std::max(light.range, OMNI_SHADOW_NEAR * 2.0f);
+        const auto projection = MatrixPerspective(90.0f * DEG2RAD, 1.0f, OMNI_SHADOW_NEAR, farPlane);
+
+        // What the scene pass needs to rebuild the depth these passes write, without a matrix
+        // and without knowing which face a lookup lands on: the depth a perspective projection
+        // leaves for a point at distance d along the face axis is scale - scale * near / d.
+        const float depthScale = farPlane / (farPlane - OMNI_SHADOW_NEAR);
+        _shadowData.omniPosition[slice] = {light.position.x, light.position.y, light.position.z, depthScale};
+        const float filterTexels = std::min(light.shadowSoftness * OMNI_SHADOW_FILTER_TEXELS, OMNI_SHADOW_MAX_FILTER_TEXELS);
+        // A face spans twice the distance to the surface across its full width, so one texel is
+        // that much of it divided by the resolution - which is what turns both the filter's
+        // reach and the offset a lookup leaves the surface by from texels into world units, at
+        // whatever distance they end up being applied.
+        constexpr float texelsToWorld = 2.0f / static_cast<float>(OMNI_SHADOW_RESOLUTION);
+        _shadowData.omniParams[slice] = {
+            depthScale * OMNI_SHADOW_NEAR,
+            filterTexels * texelsToWorld,
+            (OMNI_SHADOW_NORMAL_OFFSET_TEXELS + filterTexels) * texelsToWorld,
+            0.0f
+        };
+
+        for (size_t face = 0; face < CUBE_FACE_COUNT; ++face)
+        {
+            const auto target = Vector3Add(light.position, faceDirections[face]);
+            const auto view = MatrixLookAt(light.position, target, faceUps[face]);
+            renderShadowCasters(_omniShadowDSVs[slice * CUBE_FACE_COUNT + face],
+                                MatrixToFloatV(MatrixMultiply(view, projection)));
+        }
     }
 
     void DiligentRenderer::renderCascades(const LightState &light)
@@ -928,6 +1022,7 @@ namespace BreadEngine {
     {
         SceneLightConstants constants{.count = {static_cast<float>(_visibleLights.size()), 0.0f, 0.0f, 0.0f}};
         int spotShadowCount = 0;
+        int omniShadowCount = 0;
         for (size_t index = 0; index < _visibleLights.size(); ++index)
         {
             const auto &visible = _visibleLights[index];
@@ -950,14 +1045,19 @@ namespace BreadEngine {
                     // array may read them.
                     visible.ownsCascades ? 1.0f : 0.0f
                 },
-                .shadow = {static_cast<float>(visible.spotShadowSlice), 0.0f, 0.0f, 0.0f}
+                .shadow = {
+                    static_cast<float>(visible.spotShadowSlice), static_cast<float>(visible.omniShadowSlice),
+                    0.0f, 0.0f
+                }
             };
             spotShadowCount = std::max(spotShadowCount, visible.spotShadowSlice + 1);
+            omniShadowCount = std::max(omniShadowCount, visible.omniShadowSlice + 1);
         }
 
-        // Slices past this one hold whatever the last frame that used them left behind, so the
-        // shader is told how far along the array is live rather than sampling all of it.
+        // Slices past these hold whatever the last frame that used them left behind, so the
+        // shader is told how far along each array is live rather than sampling all of it.
         constants.count.y = static_cast<float>(spotShadowCount);
+        constants.count.z = static_cast<float>(omniShadowCount);
         uploadConstants(_lightConstants, &constants, sizeof(constants));
     }
 

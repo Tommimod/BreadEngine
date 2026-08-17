@@ -32,6 +32,11 @@ cbuffer ShadowConstants
     float4x4         g_SpotShadowTransforms[MAX_SPOT_SHADOWS];
     /// x is the width of that slice's filter kernel, in shadow map UV.
     float4           g_SpotShadowParams[MAX_SPOT_SHADOWS];
+    /// xyz is the omni light's world position, w the far/(far - near) of its cube projection.
+    float4           g_OmniShadowPosition[MAX_OMNI_SHADOWS];
+    /// x is near * far / (far - near); y is the direction offset one filter step covers and z
+    /// the distance a lookup steps off the surface, both per unit of distance from the light.
+    float4           g_OmniShadowParams[MAX_OMNI_SHADOWS];
 };
 
 /// Dimensions of one spot shadow slice: width, height, and the size of a texel in UV.
@@ -42,10 +47,18 @@ cbuffer ShadowConstants
 /// edge on from the light asks for an unbounded bias and stops shadowing anything at all.
 #define SPOT_SHADOW_BIAS_CLAMP 4.0
 
+/// How far a point is drawn back toward an omni light before its depth is compared, as a
+/// fraction of that distance. Relative because the depth a cube holds is shaped like
+/// 1/distance: one absolute offset would swamp the near field and vanish at the light's range.
+/// Small, because the normal offset below is what actually separates a surface from itself.
+#define OMNI_SHADOW_RELATIVE_BIAS 0.005
+
 Texture2DArray<float>  g_ShadowMap;
 SamplerComparisonState g_ShadowMap_sampler;
 Texture2DArray<float>  g_SpotShadowMap;
 SamplerComparisonState g_SpotShadowMap_sampler;
+TextureCubeArray<float> g_OmniShadowMap;
+SamplerComparisonState  g_OmniShadowMap_sampler;
 
 struct SceneLight
 {
@@ -58,13 +71,15 @@ struct SceneLight
     /// x is 1/range², y the cosine of a spot's half-angle, z the reciprocal of the cosine
     /// span its falloff covers, w whether the cascades were fitted to this light.
     float4 Attenuation;
-    /// x is the slice of the spot shadow array rendered for this light, or -1.
+    /// x is the slice of the spot shadow array rendered for this light, y the cube of the omni
+    /// one; either is -1 when this light has no map of that kind.
     float4 Shadow;
 };
 
 cbuffer LightConstants
 {
-    /// x is how many entries of the array the CPU filled in this frame.
+    /// x is how many entries of the array the CPU filled in this frame, y and z how far along
+    /// the spot and omni shadow arrays it filled.
     float4     g_LightCount;
     SceneLight g_Lights[MAX_SCENE_LIGHTS];
 };
@@ -143,6 +158,49 @@ float3 reflectedFraction(float3 albedo, float3 f0, float metallic, float roughne
     return diffuse * nDotL + specular;
 }
 
+/// How much of one omni light reaches a surface facing @a normal, @a fromLight away from it. The
+/// cube map holds what a 90 degree projection wrote, and that depth depends only on the largest
+/// component of the direction - so the value to compare against can be rebuilt without knowing,
+/// or caring, which of the six faces the lookup will land on.
+float filterOmniShadow(int slice, float3 fromLight, float3 normal)
+{
+    float3 axisDistances = abs(fromLight);
+    float majorAxis = max(axisDistances.x, max(axisDistances.y, axisDistances.z));
+
+    // Sampled from just off the surface along its own normal rather than from the surface
+    // itself. One texel of the map covers a patch of surface and records a single depth for all
+    // of it, so a surface compared where it stands shadows itself; stepping off it by what a
+    // texel spans at this distance - by more as the light comes to graze it, which is when a
+    // texel spans the most depth - separates the two without pulling a shadow off its caster.
+    float facing = saturate(dot(normal, -normalize(fromLight)));
+    float3 sampleVector = fromLight + normal * (g_OmniShadowParams[slice].z * majorAxis * sqrt(1.0 - facing * facing));
+
+    axisDistances = abs(sampleVector);
+    majorAxis = max(axisDistances.x, max(axisDistances.y, axisDistances.z));
+    // Drawn back toward the light, never away from it: depth grows with distance, so a point is
+    // lit exactly where its own depth is the smaller of the two.
+    float reference = g_OmniShadowPosition[slice].w
+                    - g_OmniShadowParams[slice].x / (majorAxis * (1.0 - OMNI_SHADOW_RELATIVE_BIAS));
+
+    // A basis across the direction, so the four ring taps spread over the face rather than
+    // along the direction, where they would all land on the same texel.
+    float3 offAxis = float3(0.0, 1.0, 0.0);
+    if (axisDistances.y > 0.99 * majorAxis) offAxis = float3(0.0, 0.0, 1.0);
+    float3 tangent = normalize(cross(offAxis, sampleVector));
+    float3 bitangent = normalize(cross(sampleVector, tangent));
+    float3 tangentStep = tangent * (g_OmniShadowParams[slice].y * majorAxis);
+    float3 bitangentStep = bitangent * (g_OmniShadowParams[slice].y * majorAxis);
+
+    // Each tap is already hardware-filtered across its own 2x2, so five of them cover a disk
+    // rather than five points.
+    float lit = g_OmniShadowMap.SampleCmp(g_OmniShadowMap_sampler, float4(sampleVector, float(slice)), reference);
+    lit += g_OmniShadowMap.SampleCmp(g_OmniShadowMap_sampler, float4(sampleVector + tangentStep, float(slice)), reference);
+    lit += g_OmniShadowMap.SampleCmp(g_OmniShadowMap_sampler, float4(sampleVector - tangentStep, float(slice)), reference);
+    lit += g_OmniShadowMap.SampleCmp(g_OmniShadowMap_sampler, float4(sampleVector + bitangentStep, float(slice)), reference);
+    lit += g_OmniShadowMap.SampleCmp(g_OmniShadowMap_sampler, float4(sampleVector - bitangentStep, float(slice)), reference);
+    return lit * 0.2;
+}
+
 /// How much of a light reaches a point: 1 for a directional one, and for the two punctual
 /// types an inverse square windowed so the light stops exactly at its range, narrowed further
 /// by the cone for a spot.
@@ -213,6 +271,20 @@ void main(in PSInput PSIn, out PSOutput PSOut)
         }
     }
 
+    float omniShadowing[MAX_OMNI_SHADOWS];
+    int omniShadowCount = int(g_LightCount.z);
+    for (int o = 0; o < MAX_OMNI_SHADOWS; ++o)
+    {
+        omniShadowing[o] = 1.0;
+        if (o < omniShadowCount)
+        {
+            // The interpolated surface normal, not the shading one: the offset has to leave the
+            // surface the shadow map actually rasterized, which a normal map knows nothing of.
+            omniShadowing[o] = filterOmniShadow(o, PSIn.WorldPos - g_OmniShadowPosition[o].xyz,
+                                                normalize(PSIn.Normal));
+        }
+    }
+
     float3 color = float3(0.0, 0.0, 0.0);
     int lightCount = int(g_LightCount.x);
     for (int i = 0; i < lightCount; ++i)
@@ -231,6 +303,8 @@ void main(in PSInput PSIn, out PSOutput PSOut)
         float shadowing = lerp(1.0, shadow.fLightAmount, g_Lights[i].Attenuation.w);
         int spotSlice = int(g_Lights[i].Shadow.x);
         if (spotSlice >= 0) shadowing *= spotShadowing[spotSlice];
+        int omniSlice = int(g_Lights[i].Shadow.y);
+        if (omniSlice >= 0) shadowing *= omniShadowing[omniSlice];
         float3 radiance = g_Lights[i].Color.rgb * g_Lights[i].Color.w * lightAttenuation(i, toSurface, distanceSq) * shadowing;
         color += reflectedFraction(albedo, f0, metallic, roughness, normal, view, -toSurface) * radiance;
     }
