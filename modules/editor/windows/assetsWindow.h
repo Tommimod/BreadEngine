@@ -65,6 +65,8 @@ namespace BreadEditor {
 
         void renameAsset(const std::string &guid);
 
+        void createMaterial(const std::string &folderGuid);
+
         void deleteAsset(const std::string &guid);
 
         void rebuild();

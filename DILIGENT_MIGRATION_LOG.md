@@ -6,6 +6,32 @@ The working document — current status, the rules that must not be broken, and 
 
 ---
 
+### Between phases — materials became project assets
+
+Not a phase: a detour requested by the project owner after Phase 5, before Phase 6 started. A `Material` was a procedural value copied into every `MeshRenderer` and `SpriteRenderer`, so the same surface authored twice was two unrelated sets of fields. It is now an asset in the project tree.
+
+**Four decisions were put up before any code was written**, with the inspector's own limits measured first, because two of the options were only cheap or only expensive depending on them:
+
+1. **The component holds a per-slot struct, not a raw `MaterialAsset *`.** This one was not offered as a choice — it is a cost fact. `std::vector<MaterialAsset *>` cannot round-trip through the existing inspector: `TypedVectorAccessor::get/set` `any_cast` the exact pointer type while the asset machinery deals in `Asset *`, `propertyToYaml`'s `VECTOR_L` switch has no `ASSET_LINK` case, and `setPropertyByPath` cannot route a deferred link into `_materials[2]`. A vector of *structs each holding* a link needs none of that — it is exactly what `_materials[0]._albedoTexture` already did. `MaterialLink` is that struct, and it is also the only place a future per-renderer instance flag can live.
+2. **`MeshAsset` drops materials entirely** rather than keeping its auto-wired ones as a fallback or extracting a `.mat` per model material on import. `wireTextures`, `findTexture`, `findConventionalTexture`, the importer's `ModelMaterial`, and `MeshAsset::loadToMemory`'s import-just-to-count-materials all went with it; `MeshAsset` is now geometry and a refcount. The accepted cost is that `scene.gltf` renders untextured until a `.mat` is linked to its slots.
+3. **`SpriteRenderer` keeps both** its `TextureAsset` and a material link: the texture sizes the quad and builds the material drawn while nothing is linked, and a linked `.mat` overrides appearance. It cannot be reconciled further until instanced materials exist, because a shared material's texture set is fixed once created.
+4. **Split by ownership**: `MaterialAsset` under `configs/assets/` with the other assets, `MaterialLink` in `data/` with the components that hold it. `data/material.{h,cpp}` was deleted.
+
+**The storage decision was reversed on review, and that reversal is the interesting part.** The first implementation put the material's fields in `assets_registry.cnf` like a texture's settings, with the `.mat` as a marker file — chosen for costing no new save path at all, since `serializeConfig` already writes every asset. It worked and was verified. The owner rejected it on a ground the implementation had not weighed: **a registry-wide file makes a one-material change unreadable in a diff.** Moving the fields into the `.mat` needed the assets system to grow a real distinction — `Asset::isStoredInOwnFile()` and `saveToOwnFile()`, the encoder skipping self-stored assets, and `AssetsDeserializer` losing the material pass it had just gained. The rule that fell out of it is in Invariants: the two storage kinds are exclusive, because the registry's copy loads last and would win.
+
+**The subtle one: a self-stored asset must load outside a deserialization phase.** `MaterialAsset::loadToMemory` resolves texture links through `InspectorStruct::deserialize`, which defers `ASSET_LINK`s while a phase is open — and `resolveAllDeferredAssetLinks` only delivers to components, so an asset's link would vanish with no error. Load order already satisfies it (`restoreEngineAssetsByFiles` runs after `AssetsDeserializer` closes its phase, and before any scene), and `loadToMemory` now logs a warning if that is ever untrue, so the failure cannot stay silent.
+
+**Two smaller things that had to be right.** An unlinked slot must still produce a *valid* handle, because `endScene` skips a draw whose material does not resolve — so an unlinked mesh would have been invisible rather than untextured, which the "a loaded mesh always has a material" invariant exists to prevent; `Renderer::defaultMaterial()` is the process-wide one, cleared on shutdown so a re-initialized renderer does not name a dead slot. And `MeshRenderer::getMaterials()` now derives the list length from the parts' highest material slot instead of copying it from the asset, since there is no asset list to copy any more.
+
+**Verified on screen, four ways**, against the test scene under both the editor and `ExampleGame`:
+
+- The Cube and `scene.gltf`, both linked to one `.mat`, render with the same albedo/normal/ORM they had before the change — the whole chain, from the file through the registry's guid links to the draw.
+- The Capsule, whose slot links nothing, was checked against a temporarily darkened camera background (white-on-white otherwise, per Phase 5's note): it draws lit and untextured, occluding the grid. That is `Renderer::defaultMaterial()` working.
+- After the switch to file storage, the registry the editor writes on load contains **zero** material entries, and the `.mat` is byte-identical before and after — the load-time `serializeConfig` rewrite is a no-op on unchanged materials, so it produces no diff noise.
+- A zero-byte `.mat` (what "Create Material" leaves on disk before the asset fills it in) loads as defaults and is written out complete, with no warning on either stream.
+
+The scene under `games/example_game/assets/` was migrated by hand to match: `3D/scene.mat` holds the material, `Root.nd`'s slots link it by guid, and the stale `_materials` block under the model's registry entry is gone.
+
 ### Phase 5 — the six generators and the assimp importer
 
 Both halves landed together because the second one decided the shape of the first: once the engine imports geometry itself, the renderer only ever receives `MeshData`, and generating a primitive is the same call as loading a model.

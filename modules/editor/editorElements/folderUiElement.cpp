@@ -63,11 +63,9 @@ namespace BreadEditor {
 
     void FolderUiElement::update(const float deltaTime)
     {
-        if (!_isRootFolder)
-        {
-            updateDraggable(this);
-            updateOptionsOwner();
-        }
+
+        if (!_isRootFolder) updateDraggable(this);
+        updateOptionsOwner();
     }
 
     void FolderUiElement::dispose()
@@ -76,6 +74,7 @@ namespace BreadEditor {
         _isExpanded = true;
         _isRootFolder = false;
         onExpandStateChanged.unsubscribeAll();
+        onCreateMaterialRequested.unsubscribeAll();
         _button = nullptr;
         _expandButton = nullptr;
         _folderGuid.clear();
@@ -102,16 +101,22 @@ namespace BreadEditor {
 
     std::vector<std::string> FolderUiElement::getOptions()
     {
-        return {"Rename", "Delete"};
+
+        if (_isRootFolder) return {"Create Material"};
+        return {"Create Material", "Rename", "Delete"};
     }
 
     void FolderUiElement::handleSelectedOption(const int index)
     {
         if (index == 1)
         {
-            onRenameRequested.invoke(this);
+            onCreateMaterialRequested.invoke(this);
         }
         else if (index == 2)
+        {
+            onRenameRequested.invoke(this);
+        }
+        else if (index == 3)
         {
             onDeleteRequested.invoke(_folderGuid);
         }

@@ -106,7 +106,7 @@ namespace BreadEngine {
 
         void restoreProjectTree(const std::shared_ptr<Folder> &folder, const FilePathList &filePathList);
 
-        void restoreEngineAssetsByFiles(bool withInitialize);
+        void restoreEngineAssetsByFiles();
 
         void initializeExistingEngineAssets();
 

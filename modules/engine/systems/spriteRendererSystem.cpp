@@ -26,7 +26,7 @@ namespace BreadEngine {
             if (!spriteRenderer.isLoaded()) return;
         }
 
-        Renderer::get().drawMesh(spriteRenderer._mesh, spriteRenderer._material.getHandle(), transform.getPosition(), transform.getRotationQuaternion(), transform.getScale());
+        Renderer::get().drawMesh(spriteRenderer._mesh, spriteRenderer.getMaterialHandle(), transform.getPosition(), transform.getRotationQuaternion(), transform.getScale());
     }
 
     void SpriteRendererSystem::onDispose(Node *node, float deltaTime)

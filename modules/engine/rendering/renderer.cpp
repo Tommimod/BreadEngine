@@ -9,6 +9,7 @@
 
 namespace BreadEngine {
     std::unique_ptr<IRenderer> Renderer::_instance = nullptr;
+    MaterialHandle Renderer::_defaultMaterial{};
 
     void Renderer::initialize(const int sceneWidth, const int sceneHeight)
     {
@@ -23,8 +24,17 @@ namespace BreadEngine {
     {
         if (_instance == nullptr) return;
 
+        // The backend frees its own pools, so only the cached handle has to go - a next
+        // initialize() has to build the default material again rather than name a dead slot.
+        _defaultMaterial = {};
         _instance->shutdown();
         _instance.reset();
+    }
+
+    MaterialHandle Renderer::defaultMaterial()
+    {
+        if (!_defaultMaterial.isValid()) _defaultMaterial = get().createMaterial(MaterialDesc{});
+        return _defaultMaterial;
     }
 
     bool Renderer::isAlive()

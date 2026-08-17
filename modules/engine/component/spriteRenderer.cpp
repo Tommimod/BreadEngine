@@ -34,10 +34,11 @@ namespace BreadEngine {
         quad.width = static_cast<float>(size.width) * SPRITE_SCALE;
         quad.height = static_cast<float>(size.height) * SPRITE_SCALE;
 
-        _mesh = Renderer::get().createMesh(generatePrimitive(quad, forward));
-        _material = Material();
-        _material.setAlbedoTexture(_textureAsset);
-        _quadTexture = _textureAsset->getTexture();
+        auto &renderer = Renderer::get();
+        _mesh = renderer.createMesh(generatePrimitive(quad, forward));
+        _acquiredTexture = _textureAsset;
+        _quadTexture = _textureAsset->acquire();
+        _textureMaterial = renderer.createMaterial(MaterialDesc{.albedo = _quadTexture});
         _isLoaded = true;
     }
 
@@ -45,11 +46,16 @@ namespace BreadEngine {
     {
         if (!_isLoaded) return;
 
-        Renderer::get().destroyMesh(_mesh);
+        auto &renderer = Renderer::get();
+        renderer.destroyMesh(_mesh);
+        renderer.destroyMaterial(_textureMaterial);
+        if (_acquiredTexture != nullptr) _acquiredTexture->release();
+
         _mesh = {};
+        _textureMaterial = {};
+        _acquiredTexture = nullptr;
         _quadTexture = {};
         _isLoaded = false;
-        _material.unload();
     }
 
     bool SpriteRenderer::isLoaded() const
@@ -60,6 +66,11 @@ namespace BreadEngine {
     bool SpriteRenderer::isQuadStale()
     {
         return _textureAsset == nullptr || _quadTexture != _textureAsset->getTexture();
+    }
+
+    MaterialHandle SpriteRenderer::getMaterialHandle() const
+    {
+        return _material.isLinked() ? _material.getHandle() : _textureMaterial;
     }
 
     void SpriteRenderer::setTextureAsset(TextureAsset *textureAsset, const Vector3 forward)

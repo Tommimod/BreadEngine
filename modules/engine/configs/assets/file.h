@@ -103,9 +103,15 @@ namespace BreadEngine {
             return _extension == node;
         }
 
+        [[nodiscard]] bool isMaterial() const
+        {
+            constexpr auto material = ReservedFileNames::MARKER_MATERIAL;
+            return _extension == material;
+        }
+
         [[nodiscard]] bool IsUnexpectedType() const
         {
-            return !isImage() && !is3DModel() && !isAudio() && !isConfig() && !isNode() && !isText() && !isVideo();
+            return !isImage() && !is3DModel() && !isAudio() && !isConfig() && !isNode() && !isText() && !isVideo() && !isMaterial();
         }
 
     private:

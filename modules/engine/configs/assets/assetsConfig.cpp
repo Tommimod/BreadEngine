@@ -8,6 +8,7 @@
 #include "assetsConfigYaml.h"
 #include "assetsDeserializer.h"
 #include "logger.h"
+#include "materialAsset.h"
 #include "meshAsset.h"
 #include "textureAsset.h"
 #include "tracy/Tracy.hpp"
@@ -34,6 +35,12 @@ namespace BreadEngine {
         process.clear();
         process << YAML::Node(*this);
         process.close();
+
+        for (const auto &[guid, asset]: _guidToAsset)
+        {
+            if (asset == nullptr || !_guidToFile.contains(guid)) continue;
+            asset->saveToOwnFile();
+        }
     }
 
     void AssetsConfig::deserializeConfig(const char *filePath)
@@ -45,7 +52,7 @@ namespace BreadEngine {
         if (rawConfig.IsNull())
         {
             buildFullProjectTree(_projectPath.c_str());
-            restoreEngineAssetsByFiles(true);
+            restoreEngineAssetsByFiles();
             serializeConfig();
             return;
         }
@@ -63,7 +70,7 @@ namespace BreadEngine {
 
         serializeConfig();
         buildIndexes();
-        restoreEngineAssetsByFiles(false);
+        restoreEngineAssetsByFiles();
         initializeExistingEngineAssets();
     }
 
@@ -121,6 +128,7 @@ namespace BreadEngine {
 
         if (file->is3DModel()) asset = std::make_shared<MeshAsset>(guid);
         else if (file->isImage()) asset = std::make_shared<TextureAsset>(guid);
+        else if (file->isMaterial()) asset = std::make_shared<MaterialAsset>(guid);
         else return nullptr;
 
         _guidToAsset[guid] = asset;
@@ -567,52 +575,22 @@ namespace BreadEngine {
         }
     }
 
-    void AssetsConfig::restoreEngineAssetsByFiles(const bool withInitialize)
+    void AssetsConfig::restoreEngineAssetsByFiles()
     {
-        std::vector<Asset *> textures;
-        std::vector<Asset *> models;
-        for (auto &[guid, file]: _guidToFile)
+
+        for (const auto &[guid, file]: _guidToFile)
         {
             if (_guidToAsset.contains(guid)) continue;
-            auto asset = getAsset(file);
-            if (!withInitialize) continue;
-
-            if (file->isImage()) textures.emplace_back(asset.get());
-            if (file->is3DModel()) models.emplace_back(asset.get());
-        }
-
-        if (!withInitialize) return;
-        for (const auto asset: textures)
-        {
-            asset->loadToMemory();
-        }
-
-        for (const auto asset: models)
-        {
-            asset->loadToMemory();
+            getAsset(file);
         }
     }
 
     void AssetsConfig::initializeExistingEngineAssets()
     {
-        std::vector<Asset *> textures;
-        std::vector<Asset *> models;
-        for (auto &[guid, asset]: _guidToAsset)
+        for (const auto &[guid, asset]: _guidToAsset)
         {
-            if (asset == nullptr) continue;
-            const auto file = _guidToFile[guid.data()];
-            if (file == nullptr) continue;
-            if (file->isImage()) textures.emplace_back(asset.get());
-            if (file->is3DModel()) models.emplace_back(asset.get());
-        }
 
-        for (const auto asset: textures)
-        {
-            asset->loadToMemory();
-        }
-
-        for (const auto asset: models)
-        {
+            if (asset == nullptr || !_guidToFile.contains(guid)) continue;
             asset->loadToMemory();
         }
     }

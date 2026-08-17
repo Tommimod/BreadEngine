@@ -1,7 +1,5 @@
 #include "modelImporter.h"
 
-#include <span>
-
 #include <assimp/Importer.hpp>
 #include <assimp/postprocess.h>
 #include <assimp/scene.h>
@@ -75,50 +73,6 @@ namespace BreadEngine {
             return mesh;
         }
 
-        /// The first of @p types the material names a texture for, empty if it names none.
-        [[nodiscard]] std::string firstTexturePath(const aiMaterial &material, const std::span<const aiTextureType> types)
-        {
-            for (const auto type: types)
-            {
-                aiString path;
-                if (material.GetTexture(type, 0, &path) != AI_SUCCESS || path.length == 0) continue;
-
-                // An embedded texture is reported as *<index> into the scene's own image list.
-                // The asset pipeline resolves files in the project, so there is nothing to name.
-                if (path.data[0] == '*') continue;
-
-                return std::string{path.C_Str(), path.length};
-            }
-
-            return {};
-        }
-
-        /**
-         * Reads the texture set a material declares. Each engine slot has more than one possible
-         * source because the formats disagree: the metallic-roughness types a glTF sets come
-         * first, then the classic ones older formats use for the same map.
-         */
-        [[nodiscard]] ModelMaterial toModelMaterial(const aiMaterial &material)
-        {
-            constexpr aiTextureType ALBEDO[]{aiTextureType_BASE_COLOR, aiTextureType_DIFFUSE};
-            constexpr aiTextureType NORMAL[]{aiTextureType_NORMALS};
-            // glTF's own packed metalness-roughness image first. Failing that, any single map
-            // covering part of the trio is still the best stand-in for the packed slot - and
-            // occlusion last, since a file that has only that one usually shares the image.
-            constexpr aiTextureType ORM[]{
-                aiTextureType_GLTF_METALLIC_ROUGHNESS, aiTextureType_METALNESS,
-                aiTextureType_DIFFUSE_ROUGHNESS, aiTextureType_LIGHTMAP
-            };
-            constexpr aiTextureType EMISSION[]{aiTextureType_EMISSIVE};
-
-            return ModelMaterial{
-                .albedo = firstTexturePath(material, ALBEDO),
-                .normal = firstTexturePath(material, NORMAL),
-                .orm = firstTexturePath(material, ORM),
-                .emission = firstTexturePath(material, EMISSION)
-            };
-        }
-
         /// Walks the hierarchy, accumulating each node's transform into the meshes beneath it.
         void appendNode(ModelData &model, const aiScene &scene, const aiNode &node, const aiMatrix4x4 &parentTransform)
         {
@@ -159,12 +113,6 @@ namespace BreadEngine {
         }
 
         ModelData model;
-        model.materials.reserve(scene->mNumMaterials);
-        for (unsigned int index = 0; index < scene->mNumMaterials; ++index)
-        {
-            model.materials.push_back(toModelMaterial(*scene->mMaterials[index]));
-        }
-
         appendNode(model, *scene, *scene->mRootNode, aiMatrix4x4{});
 
         if (model.isEmpty()) Logger::LogWarning("Model " + path + " holds no drawable geometry");

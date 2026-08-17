@@ -1,44 +1,48 @@
-#include "material.h"
+#include "materialAsset.h"
 
+#include <fstream>
+#include <yaml-cpp/yaml.h>
+
+#include "logger.h"
 #include "rendering/renderer.h"
 
 namespace BreadEngine {
-    DEFINE_STATIC_PROPS(Material)
+    DEFINE_STATIC_PROPS(MaterialAsset)
 
-    Material::Material(const Material &other) : InspectorStruct(other)
+    void MaterialAsset::loadToMemory()
     {
-        copyLinksFrom(other);
+        if (_isLoaded) return;
+
+        _isLoaded = true;
+        if (isInDeserializationPhase())
+        {
+            Logger::LogWarning("Material " + getAssetName() + " was loaded during deserialization; its textures will be missing");
+        }
+
+        const auto &path = getAssetPath();
+        if (!FileExists(path.c_str())) return;
+        if (const auto raw = YAML::LoadFile(path); raw.IsMap()) deserialize(raw);
     }
 
-    Material &Material::operator=(const Material &other)
+    void MaterialAsset::saveToOwnFile()
     {
-        if (this == &other) return *this;
+        std::ofstream file(getAssetPath());
+        if (!file)
+        {
+            Logger::LogError("Failed to write material " + getAssetPath());
+            return;
+        }
 
-        unload();
-        InspectorStruct::operator=(other);
-        copyLinksFrom(other);
-        return *this;
+        file << serialize();
+        file.close();
     }
 
-    Material::~Material()
+    MaterialAsset::~MaterialAsset()
     {
-        // Nodes and assets outlive the renderer during shutdown, where everything it held is
-        // already gone and asking for it would throw out of a destructor.
         if (Renderer::isAlive()) unload();
     }
 
-    void Material::copyLinksFrom(const Material &other)
-    {
-        // Everything a copy carries, which is everything the inspector serializes: a new
-        // field of that kind belongs in this list.
-        _shaderPath = other._shaderPath;
-        _albedoTexture = other._albedoTexture;
-        _normalTexture = other._normalTexture;
-        _omrTexture = other._omrTexture;
-        _emissionTexture = other._emissionTexture;
-    }
-
-    void Material::unload()
+    void MaterialAsset::unload()
     {
         if (_handle.isValid()) Renderer::get().destroyMaterial(_handle);
         _handle = {};
@@ -52,12 +56,12 @@ namespace BreadEngine {
         _acquired = {};
     }
 
-    Material::TextureLinks Material::textureLinks() const
+    MaterialAsset::TextureLinks MaterialAsset::textureLinks() const
     {
         return {_albedoTexture, _normalTexture, _omrTexture, _emissionTexture};
     }
 
-    bool Material::isBuiltFrom(const TextureLinks &links)
+    bool MaterialAsset::isBuiltFrom(const TextureLinks &links)
     {
         for (size_t slot = 0; slot < TEXTURE_SLOTS; ++slot)
         {
@@ -69,7 +73,7 @@ namespace BreadEngine {
         return true;
     }
 
-    MaterialHandle Material::getHandle()
+    MaterialHandle MaterialAsset::getHandle()
     {
         const auto links = textureLinks();
         if (_isResolved && isBuiltFrom(links)) return _handle;

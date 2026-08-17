@@ -31,6 +31,9 @@ _rootFolder:
         - _pathFromRoot: 3D\scene.gltf
           _extension: .gltf
           _guid: f60dd131-e1a4-4807-9309-162ab7b28686
+        - _pathFromRoot: 3D\scene.mat
+          _extension: .mat
+          _guid: c0ffee00-1111-4222-8333-444455556666
       _folders:
         - _depth: 2
           _guid: db8d00d3-eb84-4c38-94bf-1fdc0ec0dbf0
@@ -66,25 +69,6 @@ _rootFolder:
           _guid: e2a87b00-d9d3-4a59-a2cb-c85fc170286b
       _folders: ~
 _guidToAsset:
-  f60dd131-e1a4-4807-9309-162ab7b28686:
-    _materials:
-      - _shaderPath: ""
-        _albedoTexture:
-          guid: 785ae127-defa-41f7-9821-3906cf7b240c
-          type: TextureAsset
-        _normalTexture:
-          guid: f7d10568-d9f9-47ad-8954-da8c8dde6db4
-          type: TextureAsset
-        _omrTexture:
-          guid: 9482642b-c801-4c06-af24-2801a401e4ca
-          type: TextureAsset
-        _emissionTexture: ~
-      - _shaderPath: ""
-        _albedoTexture: ~
-        _normalTexture: ~
-        _omrTexture: ~
-        _emissionTexture: ~
-    type: MeshAsset
   e2a87b00-d9d3-4a59-a2cb-c85fc170286b:
     _textureType: 0
     _withColor: true

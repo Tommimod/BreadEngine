@@ -14,6 +14,7 @@ namespace BreadEditor {
         static constexpr auto elementIdFormat = "FoldInsT_%s_%d";
         Action<FolderUiElement *> onExpandStateChanged;
         Action<FolderUiElement *> onRenameRequested;
+        Action<FolderUiElement *> onCreateMaterialRequested;
         Action<std::string &> onDeleteRequested;
 
         FolderUiElement();

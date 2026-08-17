@@ -135,6 +135,8 @@ namespace YAML {
             for (auto &[guid, value]: rhs._guidToAsset)
             {
                 if (value == nullptr) continue;
+                if (value->isStoredInOwnFile()) continue;
+
                 auto data = value->serialize();
                 data[typeKey] = value->getTypeName();
                 assetsNode[guid] = data;

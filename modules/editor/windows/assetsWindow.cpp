@@ -3,6 +3,7 @@
 #include "editor.h"
 #include "models/reservedFileNames.h"
 #include "commands/commandsHandler.h"
+#include "commands/assetsCommands/createMaterialCommand.h"
 #include "commands/assetsCommands/deleteAssetCommand.h"
 #include "commands/assetsCommands/moveAssetCommand.h"
 #include "commands/assetsCommands/renameAssetCommand.h"
@@ -99,6 +100,7 @@ namespace BreadEditor {
         element->onDragEnded.subscribe([this](UiElement *uiElement) { onFolderElementDragEnded(uiElement); });
         element->onDeleteRequested.subscribe([this](const std::string &guid) { deleteAsset(guid); });
         element->onRenameRequested.subscribe([this](const FolderUiElement *uiElement) { renameAsset(uiElement->getFolderGuid()); });
+        element->onCreateMaterialRequested.subscribe([this](const FolderUiElement *uiElement) { createMaterial(uiElement->getFolderGuid()); });
         _folderUiElements.emplace_back(element);
         return *element;
     }
@@ -231,7 +233,7 @@ namespace BreadEditor {
         {
             inspectorWindow->lookupStruct(&Engine::getInstance().getGlobalLightSettings());
         }
-        else if (file->is3DModel() || file->isImage() || file->isAudio() || file->isVideo() || file->isText() || file->isConfig() || file->isText()) inspectorWindow->lookupStruct(_assetConfig.getAsset(file).get());
+        else if (file->is3DModel() || file->isImage() || file->isMaterial() || file->isAudio() || file->isVideo() || file->isText() || file->isConfig()) inspectorWindow->lookupStruct(_assetConfig.getAsset(file).get());
     }
 
     void AssetsWindow::onElementDragStarted(UiElement *uiElement)
@@ -330,6 +332,12 @@ namespace BreadEditor {
             renameWindow.getParentElement()->destroyChild(&renameWindow);
             rebuild();
         });
+    }
+
+    void AssetsWindow::createMaterial(const std::string &folderGuid)
+    {
+        CommandsHandler::execute(std::make_unique<CreateMaterialCommand>(folderGuid));
+        rebuild();
     }
 
     void AssetsWindow::deleteAsset(const std::string &guid)

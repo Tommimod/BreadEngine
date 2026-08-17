@@ -140,6 +140,10 @@ namespace BreadEditor {
         {
             icon = ICON_MODE_3D;
         }
+        else if (_file->isMaterial())
+        {
+            icon = ICON_COLOR_BUCKET;
+        }
         else if (_file->isAudio())
         {
             icon = ICON_FILETYPE_AUDIO;

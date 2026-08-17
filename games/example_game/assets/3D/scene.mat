@@ -1,0 +1,11 @@
+_shaderPath: ""
+_albedoTexture:
+  guid: 785ae127-defa-41f7-9821-3906cf7b240c
+  type: TextureAsset
+_normalTexture:
+  guid: f7d10568-d9f9-47ad-8954-da8c8dde6db4
+  type: TextureAsset
+_omrTexture:
+  guid: 9482642b-c801-4c06-af24-2801a401e4ca
+  type: TextureAsset
+_emissionTexture: ~

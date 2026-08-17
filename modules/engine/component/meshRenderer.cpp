@@ -1,5 +1,6 @@
 #include "meshRenderer.h"
 
+#include <algorithm>
 #include <sstream>
 
 #include "node.h"
@@ -44,7 +45,6 @@ namespace BreadEngine {
         if (_parts.empty()) return;
 
         _acquiredAsset = _meshAsset;
-        _materials = _meshAsset->getMaterials();
     }
 
     void MeshRenderer::unload()
@@ -75,9 +75,14 @@ namespace BreadEngine {
         return !_parts.empty();
     }
 
-    std::vector<Material> &MeshRenderer::getMaterials()
+    std::vector<MaterialLink> &MeshRenderer::getMaterials()
     {
-        if (isLoaded() && _materials.empty()) _materials.emplace_back();
+        if (!isLoaded()) return _materials;
+
+        size_t slots = 1;
+        for (const auto &[mesh, materialSlot]: _parts) slots = std::max(slots, static_cast<size_t>(materialSlot) + 1);
+        if (_materials.size() < slots) _materials.resize(slots);
+
         return _materials;
     }
 
@@ -95,7 +100,6 @@ namespace BreadEngine {
         _meshAsset = nullptr;
         _meshPrimitiveData = serializeMeshData(primitiveData);
         createPrimitivePart(primitiveData);
-        _materials = {Material()};
         _loadAttempted = true;
     }
 

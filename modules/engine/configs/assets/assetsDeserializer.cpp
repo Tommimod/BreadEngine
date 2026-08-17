@@ -5,7 +5,7 @@
 #include "nameof.h"
 #include <yaml-cpp/node/node.h>
 
-#include "meshAsset.h"
+#include "textureAsset.h"
 
 namespace BreadEngine {
     static std::string getTypeName(const char *typeName)
@@ -30,18 +30,13 @@ namespace BreadEngine {
 
         auto assetNode = node[guidToAssetName].as<YAML::Node>();
         InspectorStruct::beginDeserializationPhase();
-        std::vector<YAML::detail::iterator_value> meshValues;
         for (auto iteratorValues: assetNode)
         {
             auto key = iteratorValues.first.as<std::string>();
             if (rhs.getFileByGuid(key) == nullptr) continue;
 
-            auto dataType = iteratorValues.second[typeKey].as<std::string>();
-            if (TextIsEqual(dataType.c_str(), getTypeName(typeid(MeshAsset).name()).c_str()))
-            {
-                meshValues.emplace_back(iteratorValues);
-            }
-            else if (TextIsEqual(dataType.c_str(), getTypeName(typeid(TextureAsset).name()).c_str()))
+            if (auto dataType = iteratorValues.second[typeKey].as<std::string>();
+                TextIsEqual(dataType.c_str(), getTypeName(typeid(TextureAsset).name()).c_str()))
             {
                 auto data = iteratorValues.second.as<YAML::Node>();
                 rhs._guidToAsset[key] = std::make_shared<TextureAsset>(key);
@@ -50,13 +45,5 @@ namespace BreadEngine {
         }
         InspectorStruct::resolveAllDeferredAssetLinks();
         InspectorStruct::endDeserializationPhase();
-
-        for (const auto &iteratorValues: meshValues)
-        {
-            auto key = iteratorValues.first.as<std::string>();
-            auto data = iteratorValues.second.as<YAML::Node>();
-            rhs._guidToAsset[key] = std::make_shared<MeshAsset>(key);
-            rhs._guidToAsset[key]->deserialize(data);
-        }
     }
 } // BreadEngine

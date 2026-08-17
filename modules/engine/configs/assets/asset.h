@@ -32,6 +32,12 @@ namespace BreadEngine {
 
         virtual void loadToMemory() = 0;
 
+        [[nodiscard]] virtual bool isStoredInOwnFile() const { return false; }
+
+        virtual void saveToOwnFile()
+        {
+        }
+
     protected:
         std::string _fileGuid;
 

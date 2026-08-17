@@ -4,7 +4,7 @@
 #include "data/primitives/meshPrimitiveData.h"
 #include "configs/assets/meshAsset.h"
 #include "core/component.h"
-#include "data/material.h"
+#include "data/materialLink.h"
 #include "rendering/renderTypes.h"
 
 namespace BreadEngine {
@@ -29,12 +29,12 @@ namespace BreadEngine {
         [[nodiscard]] bool isLoaded() const;
 
         /**
-         * The materials this renderer draws with, never empty while it has something to draw:
-         * a mesh renders with the default material rather than not at all. The list can be
-         * emptied from the inspector at any time and raises no flag doing so, so the guarantee
-         * is restored here rather than only in load().
+         * One slot per material slot the loaded source names, and never none while there is
+         * something to draw: a slot that links nothing renders with the default material rather
+         * than not at all. The list can be shortened from the inspector at any time and raises no
+         * flag doing so, so the length is restored here rather than only in load().
          */
-        [[nodiscard]] std::vector<Material> &getMaterials();
+        [[nodiscard]] std::vector<MaterialLink> &getMaterials();
 
         void setMeshAsset(MeshAsset *meshAsset);
 
@@ -44,7 +44,7 @@ namespace BreadEngine {
         friend class MeshRendererSystem;
         std::vector<MeshPart> _parts;
         std::string _meshPrimitiveData;
-        std::vector<Material> _materials;
+        std::vector<MaterialLink> _materials;
         MeshAsset *_meshAsset = nullptr;
         /**
          * The asset the parts were acquired from. It is both what the reference has to go back

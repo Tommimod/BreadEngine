@@ -22,7 +22,15 @@ namespace BreadEngine {
         /// that has already shut down is the end of the process rather than a bug.
         [[nodiscard]] static bool isAlive();
 
+        /**
+         * The surface a renderer slot draws with while it links no material of its own: no
+         * textures, so the backend's own fallbacks stand in. One per process, built on first
+         * use, since a draw with an invalid material handle is silently skipped.
+         */
+        [[nodiscard]] static MaterialHandle defaultMaterial();
+
     private:
         static std::unique_ptr<IRenderer> _instance;
+        static MaterialHandle _defaultMaterial;
     };
 } // namespace BreadEngine

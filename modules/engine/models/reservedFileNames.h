@@ -5,6 +5,7 @@ namespace BreadEngine {
     {
     public:
         constexpr static auto MARKER_NODE = ".nd";
+        constexpr static auto MARKER_MATERIAL = ".mat";
         constexpr static auto PROJECT_SETTINGS_NAME = "project_settings.cnf";
         constexpr static auto ASSETS_REGISTRY_NAME = "assets_registry.cnf";
         constexpr static auto EDITOR_IN_PROJECT_SETTINGS_NAME = "editor_settings.cnf";
