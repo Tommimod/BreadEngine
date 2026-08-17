@@ -6,6 +6,55 @@ The working document — current status, the rules that must not be broken, and 
 
 ---
 
+### Phase 5 — the six generators and the assimp importer
+
+Both halves landed together because the second one decided the shape of the first: once the engine imports geometry itself, the renderer only ever receives `MeshData`, and generating a primitive is the same call as loading a model.
+
+**Three decisions were put to the project owner before any code was written**, and all three took the recommendation:
+
+1. **Model import moved in front of the seam.** `ModelHandle` and its four methods (`loadModel`, `destroyModel`, `getModelMaterialCount`, `setModelMaterial`, `drawModel`) are gone, replaced by one `createMesh(const MeshData &)`. `createPrimitive(MeshPrimitiveData, forward)` collapsed into it too, so the renderer no longer includes an inspector type and no longer knows what a primitive is — `generatePrimitive` is called by `MeshRenderer`/`SpriteRenderer` instead. Net: `IRenderer` lost five methods and gained one, and assimp is now reachable only from import-time code, which is what Phase 9 needs in order to drop it from the shipped runtime.
+2. **"Cached mesh format" means in-memory for this phase.** `MeshAsset` imports once per run and drops the CPU-side geometry as soon as it is uploaded. A binary on-disk cache is deliberately deferred — the test scene has one model, so startup time is not yet measurable, and the format would need versioning against `MeshVertex`, which is a documented contract.
+3. **`MeshAsset` owns the model's buffers, refcounted**, mirroring `TextureAsset` exactly: `acquire()`/`release()`, an empty import takes no reference, and two nodes on one model share one set of buffers.
+
+**The importer flattens the hierarchy.** `appendNode` walks the scene accumulating each node's transform into the vertices beneath it, so a part is drawable with nothing but the renderer's object transform. Positions take the 4x4 (assimp's `matrix * vector` adds the translation column); normals take the inverse transpose of its 3x3 part, so a non-uniformly scaled node keeps its normals perpendicular. `aiProcess_PreTransformVertices` would have done the flattening in one flag and was passed over on purpose: it also strips bones and animations, which Phase 10 needs, and the explicit walk is the code that phase extends rather than replaces. Nothing in the flag set rewrites the coordinate system — assimp keeps the file's right-handed, counter-clockwise, v-down convention, which is already the engine's, and the model rendered with readable (un-mirrored) decal text on the first try.
+
+**`MeshPart` is the unit both halves produce**: a `MeshHandle` plus the material slot it draws with, in `renderTypes.h` because the asset and the component both need it. A primitive is one part at slot 0; the test model is 46 parts over 2 slots. The draw loop clamps the slot with `std::min(materialSlot, lastSlot)` — not defensive padding, but required: the inspector can shorten the material list at any time without raising a flag, while the slot indices come from the source file.
+
+**`MeshRenderer` keeps `_acquiredAsset` separate from `_meshAsset`.** Same trap Phase 4 paid for with textures: the inspector rewrites the asset-link field directly, so the field cannot be trusted to name the asset a reference was taken from. The field doubles as the discriminator for who owns the parts — non-null means borrowed from an asset and released, null means generated here and destroyed here.
+
+**Verification, and two false alarms it produced.** The first full-scene screenshot showed the model rendering (its first appearance ever under Diligent — `loadModel` had been a stub since 3.6) but neither the Cube nor the Capsule, which read as a regression against the one thing 3.c had verified. Both were artefacts of the test scene, not the code:
+
+- The **Capsule has no textures**, and the scene's ambient is white at energy 1 against a white background, so an untextured surface is white-on-white by construction. It is genuinely there — it shows up as the capsule-shaped gap it punches in the rlgl grid lines, which incidentally re-confirms the depth-shared overlay still works.
+- The **Cube was behind the model**, which is several units long and sits over the origin from that camera. Deactivating the model node in the build-directory scene copy showed the cube rendering correctly at the origin.
+
+**What actually settled it was numbers, not pixels.** Under flat white ambient there is no shading gradient, so a small cylinder is indistinguishable from a flat quad on screen at test-scene scale. Logging each generator's vertex/index counts and bounding box was decisive and cheap: cube `[-0.5,0.5]³`; sphere r=1 `[-1,1]³`; hemisphere `y ∈ [0,1]`; cylinder r=0.5 h=1 `[-0.5,0.5]³` with 2 wall rings × 31 + 2 caps × 32 = 126 vertices; capsule `y ∈ [-1.5,1.5]`, i.e. exactly `height + 2·radius`; plane flat in Y; quad flat in Z facing the node's forward. Sphere, hemisphere, capsule and quad silhouettes were also confirmed visually side by side.
+
+**A trap in hand-writing test nodes into `Root.nd`:** six nodes given ids 100–105 crashed the game during scene load, before the first frame, with no message on either stream. The same six nodes with ids 10–15 loaded and ran fine. Whatever the engine does with node ids is not id-agnostic — worth knowing before authoring scene YAML by hand again, and worth a look if a scene ever fails to load for no visible reason.
+
+#### Three defects found after Phase 5 landed, two of them pre-existing
+
+Found by the project owner using the editor, which is where all three had to surface — none was reachable from the test scene.
+
+**Primitives from the toolbar produced empty nodes.** `CreatePrimitiveCommand::applyData()` guards on `!node->has<MeshRenderer>()`, but its node comes from `CreateEmptyNodeCommand`, which makes a Transform-only node. Nothing ever added the component, so that guard bailed out on every call and the primitive was never built. The sibling `CreateLightCommand` does `node->add<Light>()` in its own `onNodeCreated`; the primitive command was simply missing the equivalent. Pre-existing, and invisible until now because a mesh that is never built looks the same as a mesh that fails to render.
+
+**Adding that line exposed a null owner in `ComponentsProvider::addImpl`.** It never called `setOwner`, unlike all three `addDynamic` overloads, so `Node::add<T>()` returned a component whose `_owner` was null — and `MeshRenderer::createPrimitivePart` reaches its node's `Transform` through it. Everything loaded from a scene file goes through `addDynamic`, which is why this had never been hit: nothing had added a `_owner`-using component in code before. Fixed at the root, in `addImpl`, before `onCreate` so the ordering matches `addDynamic`.
+
+**Imported UVs were vertically flipped**, which is not something to reason about from convention — `glTF2Importer.cpp` does `values[i].y = 1 - values[i].y` with the comment "Flip Y coords", because assimp's internal UV origin is the bottom-left while glTF's is the top-left. The engine samples top-left, so the fix is `aiProcess_FlipUVs`, which the vendored `postprocess.h` documents as producing exactly that origin. Reading the file first also ruled out the alternatives: one material, all 46 primitives on `TEXCOORD_0`, and no `extensionsUsed`, hence no `KHR_texture_transform` to honour.
+
+Worth recording about the verification: **nothing built before this point actually tested the V orientation.** The cube maps 0..1 per face over an atlas, so a flip there produces arbitrary-but-plausible content on every face and reads as normal. It took a model with a real unwrap to expose it.
+
+#### Materials now come from the model file
+
+Asked for immediately after, and the natural completion of the phase: the importer already reads materials, so wiring textures by file name was leaving the file's own references on the floor. `ModelData::materialCount` became `ModelData::materials`, a `ModelMaterial` per slot holding the four declared paths — one source of truth instead of a count plus a separate convention. Each engine slot draws from an ordered list of assimp types, because the formats disagree: `BASE_COLOR` then `DIFFUSE` for albedo, and for the packed ORM slot `GLTF_METALLIC_ROUGHNESS`, `METALNESS`, `DIFFUSE_ROUGHNESS`, `LIGHTMAP` in that order. Embedded textures (reported as `*<index>`) are skipped — the asset pipeline resolves project files, and a GLB's images are not files.
+
+The importer still touches no assets: it returns paths, and `MeshAsset` resolves them against the registry, normalising forward slashes to the separator the registry keys on. The convention survives as a per-slot fallback, deliberately, because the checked-in test model cannot exercise the new path at all: `scene.gltf` names `textures/lambert1_baseColor.jpeg`, and those files were renamed to `scene_albedo.jpeg` etc. to satisfy the old convention, so the declared paths resolve to nothing. Removing the fallback would have silently un-textured the test scene.
+
+**Colour space was deliberately left out of this**, and the reasoning is in Invariants so it does not get re-proposed: the import could infer that a normal or ORM map is data and clear `_withColor` itself, and the project owner ruled against it — a `TextureAsset` is shared and its fields are serialized, so the import has no business writing settings on an asset the model does not own. Reading the registry while working on this turned up that the scene's normal and ORM maps both carry `_withColor: true`, so they are being gamma-decoded today; that is a scene-data fix for whoever wants it, not a shader bug to chase.
+
+**Capsule `height` is the straight section, not the total.** The stored defaults settle it rather than taste: `height = 1, radius = 1` would be a negative-length shape under the total-height reading, so the serialized field can only ever have meant the cylindrical part.
+
+---
+
 ### Phase 4 — `MaterialHandle` and texture refcounting
 
 The two halves left after 3.c landed together because they are the same problem seen from both ends: a material that owns a binding must also own the texture references that binding was built from.

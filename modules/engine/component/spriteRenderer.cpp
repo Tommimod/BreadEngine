@@ -2,6 +2,7 @@
 
 #include "data/primitives/planePrimitiveData.h"
 #include "rendering/renderer.h"
+#include "rendering/geometry/primitiveGenerator.h"
 
 namespace BreadEngine {
     DEFINE_STATIC_PROPS(SpriteRenderer)
@@ -33,7 +34,7 @@ namespace BreadEngine {
         quad.width = static_cast<float>(size.width) * SPRITE_SCALE;
         quad.height = static_cast<float>(size.height) * SPRITE_SCALE;
 
-        _mesh = Renderer::get().createPrimitive(quad, forward);
+        _mesh = Renderer::get().createMesh(generatePrimitive(quad, forward));
         _material = Material();
         _material.setAlbedoTexture(_textureAsset);
         _quadTexture = _textureAsset->getTexture();

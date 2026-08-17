@@ -3,12 +3,11 @@
 
 #include "renderHandles.h"
 #include "renderTypes.h"
+#include "geometry/meshData.h"
 #include "configs/light/environmentSettings.h"
 #include "configs/light/skyboxProceduralParameters.h"
 
 namespace BreadEngine {
-    struct MeshPrimitiveData;
-
     /// Everything the engine is allowed to ask of the GPU.
     class IRenderer
     {
@@ -85,25 +84,12 @@ namespace BreadEngine {
 
         // --- meshes ---
 
-        /// @param forward orientation for primitives built around a facing direction (quad, poly).
-        [[nodiscard]] virtual MeshHandle createPrimitive(const MeshPrimitiveData &data, Vector3 forward) = 0;
+        /// Uploads geometry the engine has already built, whether generated or imported.
+        [[nodiscard]] virtual MeshHandle createMesh(const MeshData &data) = 0;
 
         virtual void destroyMesh(MeshHandle handle) = 0;
 
         virtual void drawMesh(MeshHandle handle, MaterialHandle material, Vector3 position, Quaternion rotation, Vector3 scale) = 0;
-
-        // --- models ---
-
-        [[nodiscard]] virtual ModelHandle loadModel(const std::string &path) = 0;
-
-        virtual void destroyModel(ModelHandle handle) = 0;
-
-        /// How many material slots setModelMaterial accepts for @p handle.
-        [[nodiscard]] virtual int getModelMaterialCount(ModelHandle handle) const = 0;
-
-        virtual void setModelMaterial(ModelHandle handle, int slot, MaterialHandle material) = 0;
-
-        virtual void drawModel(ModelHandle handle, Vector3 position, Quaternion rotation, Vector3 scale) = 0;
 
         // --- environment ---
 

@@ -5,7 +5,7 @@
 #include "configs/assets/meshAsset.h"
 #include "core/component.h"
 #include "data/material.h"
-#include "rendering/renderHandles.h"
+#include "rendering/renderTypes.h"
 
 namespace BreadEngine {
     struct MeshRenderer : Component
@@ -42,12 +42,16 @@ namespace BreadEngine {
 
     private:
         friend class MeshRendererSystem;
-        /// A renderer either draws a generated primitive or an imported model, never both.
-        MeshHandle _mesh{};
-        ModelHandle _model{};
+        std::vector<MeshPart> _parts;
         std::string _meshPrimitiveData;
         std::vector<Material> _materials;
         MeshAsset *_meshAsset = nullptr;
+        /**
+         * The asset the parts were acquired from. It is both what the reference has to go back
+         * to and what says the parts are borrowed rather than owned - the inspector rewrites
+         * _meshAsset behind this component's back, so that field cannot be trusted at unload.
+         */
+        MeshAsset *_acquiredAsset = nullptr;
         /// Whether load() has already run for the current source. Latches a failed load so a
         /// missing model is not re-imported from disk every frame; unload() clears it.
         bool _loadAttempted = false;
@@ -55,6 +59,9 @@ namespace BreadEngine {
         static std::string serializeMeshData(MeshPrimitiveData &primitiveData);
 
         void deserializeMeshData(const std::string &data);
+
+        /// Generates @p primitiveData's geometry and takes the single part it becomes.
+        void createPrimitivePart(const MeshPrimitiveData &primitiveData);
 
         INSPECTOR_BEGIN(MeshRenderer)
             INSPECT_FIELD_OPT(_meshPrimitiveData, Property::Options::HIDDEN)

@@ -14,7 +14,6 @@
 #include "raymath.h"
 #include "rlgl.h"
 
-#include "../geometry/primitiveGenerator.h"
 #include "utils/workerPool.h"
 
 namespace BreadEngine {
@@ -683,11 +682,9 @@ namespace BreadEngine {
 
     // --- meshes ---
 
-    MeshHandle DiligentRenderer::createPrimitive(const MeshPrimitiveData &data, const Vector3 forward)
+    MeshHandle DiligentRenderer::createMesh(const MeshData &geometry)
     {
         if (!_device) return {};
-
-        const MeshData geometry = generatePrimitive(data, forward);
         if (geometry.isEmpty()) return {};
 
         MeshSlot slot;
@@ -710,7 +707,7 @@ namespace BreadEngine {
 
         if (!slot.vertices || !slot.indices)
         {
-            Logger::LogError("Diligent failed to upload a primitive's geometry");
+            Logger::LogError("Diligent failed to upload a mesh's geometry");
             return {};
         }
 
@@ -731,30 +728,6 @@ namespace BreadEngine {
                                                            QuaternionToMatrix(rotation)),
                                             MatrixTranslate(position.x, position.y, position.z));
         _draws.push_back(DrawItem{.mesh = handle, .material = material, .model = model});
-    }
-
-    // --- models ---
-
-    ModelHandle DiligentRenderer::loadModel(const std::string &path)
-    {
-        return {};
-    }
-
-    void DiligentRenderer::destroyModel(const ModelHandle handle)
-    {
-    }
-
-    int DiligentRenderer::getModelMaterialCount(const ModelHandle handle) const
-    {
-        return 0;
-    }
-
-    void DiligentRenderer::setModelMaterial(const ModelHandle handle, const int slot, const MaterialHandle material)
-    {
-    }
-
-    void DiligentRenderer::drawModel(const ModelHandle handle, const Vector3 position, const Quaternion rotation, const Vector3 scale)
-    {
     }
 
     // --- environment ---

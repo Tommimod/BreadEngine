@@ -55,6 +55,7 @@ namespace BreadEditor {
 
         node->setName(std::string(magic_enum::enum_name(_primitiveType)));
         _nodeId = node->getId();
+        node->add<MeshRenderer>();
         applyData();
 
         auto &viewportWindow = Editor::getInstance().mainWindow.getViewportWindow();

@@ -1,4 +1,6 @@
-﻿#include "meshAsset.h"
+#include "meshAsset.h"
+
+#include <algorithm>
 
 #include "engine.h"
 #include "rendering/renderer.h"
@@ -9,75 +11,103 @@ namespace BreadEngine {
     void MeshAsset::loadToMemory()
     {
         if (_isLoaded) return;
-        if (!_materials.empty())
-        {
-            _isLoaded = true;
-            return;
-        }
 
         _isLoaded = true;
-        // Only reached the first time this model is registered - once _materials exists it is
-        // read back from the registry, so the import here does not repeat per run.
+        if (!_materials.empty()) return;
+
+        const ModelData model = importModel(getAssetPath());
+        _materials.resize(model.materials.size());
+        wireTextures(model.materials);
+    }
+
+    const std::vector<MeshPart> &MeshAsset::acquire()
+    {
+        if (_parts.empty()) importParts();
+        if (!_parts.empty()) ++_references;
+
+        return _parts;
+    }
+
+    void MeshAsset::release()
+    {
+        if (_references == 0) return;
+        if (--_references > 0) return;
+
         auto &renderer = Renderer::get();
-        const auto model = renderer.loadModel(getAssetPath());
-        const auto materialCount = renderer.getModelMaterialCount(model);
-        renderer.destroyModel(model);
-        for (int i = 0; i < materialCount; i++)
+        for (const auto &[mesh, materialSlot]: _parts) renderer.destroyMesh(mesh);
+
+        _parts.clear();
+    }
+
+    void MeshAsset::importParts()
+    {
+        const ModelData model = importModel(getAssetPath());
+        auto &renderer = Renderer::get();
+
+        _parts.reserve(model.parts.size());
+        for (const auto &[geometry, materialSlot]: model.parts)
         {
-            _materials.emplace_back();
+            const auto mesh = renderer.createMesh(geometry);
+            if (mesh.isValid()) _parts.push_back(MeshPart{.mesh = mesh, .materialSlot = materialSlot});
         }
+    }
 
-        if (materialCount == 0) return;
+    void MeshAsset::wireTextures(const std::vector<ModelMaterial> &declared)
+    {
+        struct MaterialSlot
+        {
+            std::string ModelMaterial::*declared;
+            const char *conventionalSuffix;
+            void (Material::*apply)(TextureAsset *);
+        };
 
-        const char *folder = "textures";
-        const char *albedo_name = "_albedo";
-        const char *normal_name = "_normal";
-        const char *omr_name = "_omr";
-        const char *emission_name = "_emission";
-        const char *jpg_format = ".jpg";
-        const char *jpeg_format = ".jpeg";
-        const char *png_format = ".png";
+        constexpr MaterialSlot SLOTS[]{
+            {&ModelMaterial::albedo, "_albedo", &Material::setAlbedoTexture},
+            {&ModelMaterial::normal, "_normal", &Material::setNormalTexture},
+            {&ModelMaterial::orm, "_omr", &Material::setOmrTexture},
+            {&ModelMaterial::emission, "_emission", &Material::setEmissionTexture}
+        };
 
-        const auto formats = {jpg_format, jpeg_format, png_format};
-        auto &material = _materials[0];
-        auto file = getFile();
-        const auto fileName = GetFileNameWithoutExt(file->getFullPath().c_str());
-        const auto directory = GetDirectoryPath(file->getFullPath().c_str());
-        const std::string albedoPath = TextFormat("%s\\%s\\%s%s", directory, folder, fileName, albedo_name);
-        const std::string normalPath = TextFormat("%s\\%s\\%s%s", directory, folder, fileName, normal_name);
-        const std::string omrPath = TextFormat("%s\\%s\\%s%s", directory, folder, fileName, omr_name);
-        const std::string emissionPath = TextFormat("%s\\%s\\%s%s", directory, folder, fileName, emission_name);
+        const auto file = getFile();
+        const std::string directory = GetDirectoryPath(file->getFullPath().c_str());
+        const std::string modelName = GetFileNameWithoutExt(file->getFullPath().c_str());
+
+        for (size_t slot = 0; slot < _materials.size() && slot < declared.size(); ++slot)
+        {
+            for (const auto &[declaredPath, suffix, apply]: SLOTS)
+            {
+                auto *texture = findTexture(directory, declared[slot].*declaredPath);
+                if (texture == nullptr && slot == 0) texture = findConventionalTexture(directory, modelName, suffix);
+                if (texture != nullptr) (_materials[slot].*apply)(texture);
+            }
+        }
+    }
+
+    TextureAsset *MeshAsset::findTexture(const std::string &modelDirectory, const std::string &pathFromModel)
+    {
+        if (pathFromModel.empty()) return nullptr;
+
+        std::string relativePath = pathFromModel;
+        std::ranges::replace(relativePath, '/', '\\');
+
         auto &assetsConfig = Engine::getInstance().getAssetsConfig();
-        for (auto &format: formats)
+        const auto textureFile = assetsConfig.getFileByPath(TextFormat("%s\\%s", modelDirectory.c_str(), relativePath.c_str()));
+        if (!textureFile) return nullptr;
+
+        return dynamic_cast<TextureAsset *>(assetsConfig.getAsset(textureFile).get());
+    }
+
+    TextureAsset *MeshAsset::findConventionalTexture(const std::string &modelDirectory, const std::string &modelName, const char *suffix)
+    {
+        constexpr const char *FORMATS[]{".jpg", ".jpeg", ".png"};
+        for (const auto *format: FORMATS)
         {
-            const auto textureFile = assetsConfig.getFileByPath(TextFormat("%s%s", albedoPath.c_str(), format));
-            if (!textureFile) continue;
-            const auto textureAsset = dynamic_cast<TextureAsset *>(assetsConfig.getAsset(textureFile).get());
-            material.setAlbedoTexture(textureAsset);
+            if (auto *texture = findTexture(modelDirectory, TextFormat("textures\\%s%s%s", modelName.c_str(), suffix, format)))
+            {
+                return texture;
+            }
         }
 
-        for (auto &format: formats)
-        {
-            const auto textureFile = assetsConfig.getFileByPath(TextFormat("%s%s", normalPath.c_str(), format));
-            if (!textureFile) continue;
-            const auto textureAsset = dynamic_cast<TextureAsset *>(assetsConfig.getAsset(textureFile).get());
-            material.setNormalTexture(textureAsset);
-        }
-
-        for (auto &format: formats)
-        {
-            const auto textureFile = assetsConfig.getFileByPath(TextFormat("%s%s", omrPath.c_str(), format));
-            if (!textureFile) continue;
-            const auto textureAsset = dynamic_cast<TextureAsset *>(assetsConfig.getAsset(textureFile).get());
-            material.setOmrTexture(textureAsset);
-        }
-
-        for (auto &format: formats)
-        {
-            const auto textureFile = assetsConfig.getFileByPath(TextFormat("%s%s", emissionPath.c_str(), format));
-            if (!textureFile) continue;
-            const auto textureAsset = dynamic_cast<TextureAsset *>(assetsConfig.getAsset(textureFile).get());
-            material.setEmissionTexture(textureAsset);
-        }
+        return nullptr;
     }
 } // BreadEngine

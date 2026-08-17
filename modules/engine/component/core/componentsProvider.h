@@ -327,6 +327,7 @@ namespace BreadEngine {
         static T &addImpl(unsigned int ownerId, T component)
         {
             auto &chunk = emplaceChunk<T>();
+            component.setOwner(NodeProvider::getNode(ownerId));
             component.onCreate();
             auto &comp = chunk.add(ownerId, std::move(component), false);
             onComponentAdded.invoke(ownerId, std::type_index(typeid(T)));

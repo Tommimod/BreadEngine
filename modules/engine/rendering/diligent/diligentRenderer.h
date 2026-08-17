@@ -60,21 +60,11 @@ namespace BreadEngine {
 
         void destroyMaterial(MaterialHandle handle) override;
 
-        [[nodiscard]] MeshHandle createPrimitive(const MeshPrimitiveData &data, Vector3 forward) override;
+        [[nodiscard]] MeshHandle createMesh(const MeshData &data) override;
 
         void destroyMesh(MeshHandle handle) override;
 
         void drawMesh(MeshHandle handle, MaterialHandle material, Vector3 position, Quaternion rotation, Vector3 scale) override;
-
-        [[nodiscard]] ModelHandle loadModel(const std::string &path) override;
-
-        void destroyModel(ModelHandle handle) override;
-
-        [[nodiscard]] int getModelMaterialCount(ModelHandle handle) const override;
-
-        void setModelMaterial(ModelHandle handle, int slot, MaterialHandle material) override;
-
-        void drawModel(ModelHandle handle, Vector3 position, Quaternion rotation, Vector3 scale) override;
 
         void setEnvironment(const EnvironmentSettings &settings) override;
 

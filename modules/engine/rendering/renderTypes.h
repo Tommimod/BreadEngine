@@ -148,6 +148,17 @@ namespace BreadEngine {
         };
     }
 
+    /**
+     * One drawable piece of a mesh source, and which of the source's material slots draws it.
+     * A generated primitive is a single part at slot 0; an imported model is one part per
+     * submesh, and several of them may name the same slot.
+     */
+    struct MeshPart
+    {
+        MeshHandle mesh{};
+        int materialSlot = 0;
+    };
+
     /// PBR texture set a material is built from. An invalid handle leaves the renderer's
     /// default in place. The texture set is fixed once the material exists: changing it means
     /// creating another material.

@@ -10,6 +10,7 @@
 #include "data/primitives/planePrimitiveData.h"
 #include "data/primitives/spherePrimitiveData.h"
 #include "rendering/renderer.h"
+#include "rendering/geometry/primitiveGenerator.h"
 
 namespace BreadEngine {
     DEFINE_STATIC_PROPS(MeshRenderer)
@@ -39,7 +40,10 @@ namespace BreadEngine {
             return;
         }
 
-        _model = Renderer::get().loadModel(_meshAsset->getAssetPath());
+        _parts = _meshAsset->acquire();
+        if (_parts.empty()) return;
+
+        _acquiredAsset = _meshAsset;
         _materials = _meshAsset->getMaterials();
     }
 
@@ -47,18 +51,18 @@ namespace BreadEngine {
     {
         _loadAttempted = false;
 
-        auto &renderer = Renderer::get();
-        if (_mesh.isValid())
+        if (_acquiredAsset != nullptr)
         {
-            renderer.destroyMesh(_mesh);
-            _mesh = {};
+            _acquiredAsset->release();
+            _acquiredAsset = nullptr;
+        }
+        else if (!_parts.empty())
+        {
+            auto &renderer = Renderer::get();
+            for (const auto &[mesh, materialSlot]: _parts) renderer.destroyMesh(mesh);
         }
 
-        if (_model.isValid())
-        {
-            renderer.destroyModel(_model);
-            _model = {};
-        }
+        _parts.clear();
     }
 
     void MeshRenderer::onDestroy()
@@ -68,7 +72,7 @@ namespace BreadEngine {
 
     bool MeshRenderer::isLoaded() const
     {
-        return _mesh.isValid() || _model.isValid();
+        return !_parts.empty();
     }
 
     std::vector<Material> &MeshRenderer::getMaterials()
@@ -88,13 +92,18 @@ namespace BreadEngine {
     {
         unload();
 
-        // A generated primitive replaces the imported model outright - holding both would
-        // leave load() silently preferring the asset over the mesh just built here.
         _meshAsset = nullptr;
         _meshPrimitiveData = serializeMeshData(primitiveData);
-        _mesh = Renderer::get().createPrimitive(primitiveData, _owner->get<Transform>().getForward());
+        createPrimitivePart(primitiveData);
         _materials = {Material()};
         _loadAttempted = true;
+    }
+
+    void MeshRenderer::createPrimitivePart(const MeshPrimitiveData &primitiveData)
+    {
+        const auto forward = _owner->get<Transform>().getForward();
+        const auto mesh = Renderer::get().createMesh(generatePrimitive(primitiveData, forward));
+        if (mesh.isValid()) _parts.push_back(MeshPart{.mesh = mesh});
     }
 
     std::string MeshRenderer::serializeMeshData(MeshPrimitiveData &primitiveData)
@@ -112,7 +121,7 @@ namespace BreadEngine {
         const auto build = [&](MeshPrimitiveData &primitiveData)
         {
             primitiveData.deserialize(rawNode);
-            _mesh = Renderer::get().createPrimitive(primitiveData, _owner->get<Transform>().getForward());
+            createPrimitivePart(primitiveData);
         };
 
         switch (static_cast<MeshPrimitiveType>(rawNode["type"].as<int>()))

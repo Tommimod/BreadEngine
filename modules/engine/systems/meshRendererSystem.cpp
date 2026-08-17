@@ -1,5 +1,7 @@
 #include "meshRendererSystem.h"
 
+#include <algorithm>
+
 #include "meshRenderer.h"
 #include "transform.h"
 #include "rendering/renderer.h"
@@ -20,20 +22,14 @@ namespace BreadEngine {
         auto &transform = node->get<Transform>();
         auto &renderer = Renderer::get();
         auto &materials = meshRenderer.getMaterials();
-        if (meshRenderer._mesh.isValid())
+        // getMaterials() guarantees at least one, but nothing guarantees the list still reaches
+        // the slots the imported model named: the inspector can shorten it at any time.
+        const auto lastSlot = static_cast<int>(materials.size()) - 1;
+        for (const auto &[mesh, materialSlot]: meshRenderer._parts)
         {
-            renderer.drawMesh(meshRenderer._mesh, materials[0].getHandle(), transform.getPosition(), transform.getRotationQuaternion(), transform.getScale());
-            return;
+            renderer.drawMesh(mesh, materials[std::min(materialSlot, lastSlot)].getHandle(),
+                              transform.getPosition(), transform.getRotationQuaternion(), transform.getScale());
         }
-
-        if (!meshRenderer._model.isValid()) return;
-
-        for (auto i = 0; i < static_cast<int>(materials.size()); i++)
-        {
-            renderer.setModelMaterial(meshRenderer._model, i, materials[i].getHandle());
-        }
-
-        renderer.drawModel(meshRenderer._model, transform.getPosition(), transform.getRotationQuaternion(), transform.getScale());
     }
 
     void MeshRendererSystem::onDispose(Node *node, float deltaTime)
