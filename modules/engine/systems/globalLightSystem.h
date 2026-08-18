@@ -8,16 +8,26 @@ namespace BreadEngine {
     {
     public:
         void startFrame(float deltaTime) override;
+
         void onDispose(float deltaTime) override;
 
     private:
-        /// The background and its ambient map are built on the first frame regardless of what
-        /// changed; cleared on dispose so leaving play mode rebuilds them.
+        struct BakedSun
+        {
+            Vector3 direction{};
+            Color color{};
+            float energy = 0.0f;
+        };
+
         bool _hasStarted = false;
+        BakedSun _bakedSun{};
 
         static void updateProceduralSkybox(GlobalLightSettings &globalLight);
+
         static void updateCubemapSkybox(GlobalLightSettings &globalLight);
+
         static void updateCustomSkybox(GlobalLightSettings &globalLight);
-        static void updateProceduralSunPosition(GlobalLightSettings &globalLight);
+
+        [[nodiscard]] bool trackProceduralSun(GlobalLightSettings &globalLight);
     };
 } // namespace BreadEngine

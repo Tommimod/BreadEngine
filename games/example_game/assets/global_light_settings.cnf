@@ -1,31 +1,19 @@
 _type: 0
 _proceduralSkyboxSettings:
-  skyTopColor:
-    r: 0
-    g: 0
-    b: 0
-    a: 0
-  skyHorizonColor:
-    r: 0
-    g: 0
-    b: 0
-    a: 0
-  skyHorizonCurve: 0
-  skyEnergy: 0
-  groundBottomColor:
-    r: 0
-    g: 0
-    b: 0
-    a: 0
-  groundHorizonColor:
-    r: 0
-    g: 0
-    b: 0
-    a: 0
-  groundHorizonCurve: 0
-  groundEnergy: 0
-  sunSize: 0
-  sunCurve: 0
+  turbidity: 3
+  groundAlbedo:
+    r: 72
+    g: 38
+    b: 11
+    a: 255
+  skyTint:
+    r: 255
+    g: 255
+    b: 255
+    a: 255
+  skyEnergy: 1
+  sunSize: 0.27
+  sunIntensity: 20
 _skyboxTexture: ~
 _skyboxShaderPath: ""
 _background:

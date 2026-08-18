@@ -1,0 +1,152 @@
+// Turns the linear high dynamic range scene into the image that is actually displayed:
+// exposure, one tone mapping operator, the colour adjustments, and the encode the target
+// wants. Everything downstream of this - the editor's rlgl overlay, the blit into the
+// viewport - works on the encoded result and must not be run through it a second time.
+
+// For AgX's output transform, which undoes the encode its curve bakes in. Compiled into
+// DiligentFX rather than shipped next to the executable, so it only resolves through the
+// compound source factory.
+#include "SRGBUtilities.fxh"
+
+// Matching TonemapMode's declaration order, which is a serialization contract.
+#define TONEMAP_LINEAR   0
+#define TONEMAP_REINHARD 1
+#define TONEMAP_FILMIC   2
+#define TONEMAP_ACES     3
+#define TONEMAP_AGX      4
+
+/// Rec. 709 luminance. Both the saturation adjustment and Reinhard's luminance form need a
+/// single brightness for a colour, and this is the one the rest of the pipeline assumes.
+#define LUMINANCE_WEIGHTS float3(0.2126, 0.7152, 0.0722)
+
+/// Midpoint the contrast adjustment pivots around. Contrast scales distance from a reference
+/// grey; half of the displayable range is the only reference this pass has.
+#define CONTRAST_PIVOT 0.5
+
+cbuffer PostConstants
+{
+    /// x is which operator to run, matching the TONEMAP_ values above; y the exposure the
+    /// scene is scaled by before it; z the reference white point, for the two operators that
+    /// take one.
+    float4 g_Tonemap;
+    /// x is brightness, y contrast, z saturation, w the exponent the graded result leaves
+    /// through - 1/2.2 for a gamma-space target, 1 for one that wants the linear value.
+    float4 g_Grading;
+};
+
+Texture2D    g_SceneColor;
+SamplerState g_SceneColor_sampler;
+
+struct PSInput
+{
+    float4 Position     : SV_POSITION;
+    float2 NormalizedXY : NORMALIZED_XY;
+};
+
+struct PSOutput
+{
+    float4 Color : SV_TARGET;
+};
+
+/// Reinhard, in its extended form: the classic curve rescaled so a colour at the white point
+/// lands exactly on 1 instead of only approaching it. Applied to luminance rather than to each
+/// channel, which is what keeps a bright colour from drifting toward white as it compresses.
+float3 tonemapReinhard(float3 color, float white)
+{
+    float luminance = max(dot(color, LUMINANCE_WEIGHTS), 1e-6);
+    float mapped = luminance * (1.0 + luminance / max(white * white, 1e-6)) / (1.0 + luminance);
+    return color * (mapped / luminance);
+}
+
+/// Uncharted 2's filmic curve. Not a tone mapper on its own - it has no fixed point, so the
+/// caller has to divide by the curve's own value at the white point.
+float3 filmicCurve(float3 x)
+{
+    float shoulderStrength = 0.15;
+    float linearStrength = 0.50;
+    float linearAngle = 0.10;
+    float toeStrength = 0.20;
+    float toeNumerator = 0.02;
+    float toeDenominator = 0.30;
+
+    return ((x * (shoulderStrength * x + linearAngle * linearStrength) + toeStrength * toeNumerator) /
+            (x * (shoulderStrength * x + linearStrength) + toeStrength * toeDenominator)) - toeNumerator / toeDenominator;
+}
+
+float3 tonemapFilmic(float3 color, float white)
+{
+    // The bias is part of the published curve: it is exposed for a scene whose middle grey
+    // sits at twice what the curve's own toe expects.
+    float exposureBias = 2.0;
+    float3 white3 = float3(white, white, white);
+    return filmicCurve(exposureBias * color) / filmicCurve(white3);
+}
+
+/// Narkowicz's fit to the ACES filmic curve. The 0.6 is part of the fit rather than an
+/// exposure choice - it maps the engine's middle grey onto the one ACES is defined around.
+float3 tonemapAces(float3 color)
+{
+    float3 x = color * 0.6;
+    return saturate((x * (2.51 * x + 0.03)) / (x * (2.43 * x + 0.59) + 0.14));
+}
+
+/// Sigmoid approximation to AgX's contrast curve, over a log2-encoded [0,1] range.
+float3 agxContrast(float3 x)
+{
+    float3 x2 = x * x;
+    float3 x4 = x2 * x2;
+
+    return 15.5 * x4 * x2 - 40.14 * x4 * x + 31.96 * x4 - 6.868 * x2 * x + 0.4298 * x2 + 0.1191 * x - 0.00232;
+}
+
+/// AgX, in the minimal form the reference implementation publishes: rotate into AgX's own
+/// primaries, compress in log2 space, run the contrast sigmoid, then rotate back out. The
+/// curve leaves its result display-encoded, so the outset undoes that encode - this pass
+/// applies its own at the very end, and doing both would gamma the image twice.
+float3 tonemapAgx(float3 color)
+{
+    float3x3 inset = MatrixFromRows(
+        float3(0.842479062253094, 0.0784335999999992, 0.0792237451477643),
+        float3(0.0423282422610123, 0.878468636469772, 0.0791661274605434),
+        float3(0.0423756549057051, 0.0784336, 0.879142973793104));
+    float3x3 outset = MatrixFromRows(
+        float3(+1.19687900512017, -0.0980208811401368, -0.0990297440797205),
+        float3(-0.0528968517574562, +1.15190312990417, -0.0989611768448433),
+        float3(-0.0529716355144438, -0.0980434501171241, +1.15107367264116));
+
+    // The exposure range the curve spans, in stops either side of middle grey.
+    float minEv = -12.47393;
+    float maxEv = 4.026069;
+
+    float3 encoded = clamp(log2(mul(inset, color)), minEv, maxEv);
+    float3 curved = agxContrast((encoded - minEv) / (maxEv - minEv));
+    return FastSRGBToLinear(mul(outset, curved));
+}
+
+float3 tonemap(float3 color, int mode, float white)
+{
+    if (mode == TONEMAP_REINHARD) return tonemapReinhard(color, white);
+    if (mode == TONEMAP_FILMIC) return tonemapFilmic(color, white);
+    if (mode == TONEMAP_ACES) return tonemapAces(color);
+    if (mode == TONEMAP_AGX) return tonemapAgx(color);
+
+    // TONEMAP_LINEAR: the scene passes through, and only the target's own range clips it.
+    return color;
+}
+
+void main(in PSInput PSIn, out PSOutput PSOut)
+{
+    float3 color = g_SceneColor.Sample(g_SceneColor_sampler, NormalizedDeviceXYToTexUV(PSIn.NormalizedXY)).rgb;
+
+    color = tonemap(max(color, 0.0) * g_Tonemap.y, int(g_Tonemap.x), g_Tonemap.z);
+
+    // Adjustments run after the operator, on the compressed image: they are authored against
+    // what is seen, and the same contrast applied to unbounded scene values would mean
+    // something different for every pixel above white.
+    color *= g_Grading.x;
+    color = (color - CONTRAST_PIVOT) * g_Grading.y + CONTRAST_PIVOT;
+    color = lerp(float3(dot(color, LUMINANCE_WEIGHTS), dot(color, LUMINANCE_WEIGHTS), dot(color, LUMINANCE_WEIGHTS)),
+                 color, g_Grading.z);
+
+    PSOut.Color = float4(pow(max(color, 0.0), g_Grading.www), 1.0);
+}

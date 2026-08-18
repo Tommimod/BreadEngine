@@ -5,6 +5,7 @@
 #include "nodeProvider.h"
 #include "transform.h"
 #include "component/light.h"
+#include "raymath.h"
 #include "rendering/renderer.h"
 #include "systems/core/filterOption.h"
 #include "utils/colorUtils.h"
@@ -19,6 +20,8 @@ namespace BreadEngine {
 
         const bool isFirstCall = !_hasStarted;
         _hasStarted = true;
+
+        const bool hasSunMoved = trackProceduralSun(globalLight);
 
         static const FilterOption kCameraDirectorFilter = FilterOption::empty().with<CameraDirector>();
         Node *cameraDirectorNode = nullptr;
@@ -40,7 +43,7 @@ namespace BreadEngine {
                 const bool isSolidColorUpdate = mode == Camera::SOLID_COLOR &&
                                                 !ColorUtils::IsCompare(globalLight._background.color, camera->getBackgroundColor());
 
-                if (globalLight.isChangedFromEditor || isFirstCall || isSolidColorUpdate)
+                if (globalLight.isChangedFromEditor || isFirstCall || isSolidColorUpdate || hasSunMoved)
                 {
                     globalLight.isChangedFromEditor = false;
 
@@ -70,7 +73,6 @@ namespace BreadEngine {
         }
 
         renderer.setEnvironment(globalLight.environment());
-        updateProceduralSunPosition(globalLight);
     }
 
     void GlobalLightSystem::onDispose(const float deltaTime)
@@ -79,15 +81,11 @@ namespace BreadEngine {
         globalLight._background.clearTexture();
         globalLight._ambient.clear();
         _hasStarted = false;
+        _bakedSun = {};
     }
 
     void GlobalLightSystem::updateProceduralSkybox(GlobalLightSettings &globalLight)
     {
-        if (!globalLight._proceduralSkyboxSettings.isCreated)
-        {
-            globalLight._proceduralSkyboxSettings = SkyboxProceduralParameters::defaultParameters();
-        }
-
         globalLight._background.clearTexture();
         globalLight._background.sky = Renderer::get().createProceduralSky(PROCEDURAL_SKY_RESOLUTION, globalLight._proceduralSkyboxSettings);
         globalLight._ambient.generateFromCubemap(globalLight._background.sky);
@@ -95,13 +93,15 @@ namespace BreadEngine {
 
     void GlobalLightSystem::updateCubemapSkybox(GlobalLightSettings &globalLight)
     {
+        globalLight._background.setTexture(globalLight._skyboxTexture);
+        globalLight._ambient.generateFromCubemap(globalLight._background.sky);
     }
 
     void GlobalLightSystem::updateCustomSkybox(GlobalLightSettings &globalLight)
     {
     }
 
-    void GlobalLightSystem::updateProceduralSunPosition(GlobalLightSettings &globalLight)
+    bool GlobalLightSystem::trackProceduralSun(GlobalLightSettings &globalLight)
     {
         auto &nodes = NodeProvider::getAllNodes();
         Light *light = nullptr;
@@ -119,13 +119,22 @@ namespace BreadEngine {
             }
         }
 
-        if (light == nullptr) return;
+        if (light == nullptr) return false;
 
-        const auto &transform = light->getOwner()->get<Transform>();
-        if (!transform.isChangedFromEditor && !light->isChangedFromEditor) return;
+        auto &sky = globalLight._proceduralSkyboxSettings;
+        sky.sunDirection = light->getOwner()->get<Transform>().getForward();
+        sky.sunColor = light->color;
+        sky.sunEnergy = light->intensity;
 
-        globalLight._proceduralSkyboxSettings.sunDirection = transform.getForward();
-        globalLight._proceduralSkyboxSettings.sunColor = light->color;
-        globalLight._proceduralSkyboxSettings.sunEnergy = light->intensity;
+
+        if (globalLight._type != GlobalLightSettings::Type::Procedural) return false;
+
+        const bool hasMoved = !Vector3Equals(sky.sunDirection, _bakedSun.direction) ||
+                              !ColorUtils::IsCompare(sky.sunColor, _bakedSun.color) ||
+                              sky.sunEnergy != _bakedSun.energy;
+        if (!hasMoved) return false;
+
+        _bakedSun = BakedSun{.direction = sky.sunDirection, .color = sky.sunColor, .energy = sky.sunEnergy};
+        return true;
     }
 } // namespace BreadEngine

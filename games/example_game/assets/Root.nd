@@ -28,7 +28,7 @@ Childs:
     ParentId: 2
     Components:
       - ComponentType: Camera
-        _backgroundMode: 0
+        _backgroundMode: 1
         _backgroundColor:
           r: 66
           g: 78
@@ -64,6 +64,7 @@ Childs:
         _materials:
           - _materialAsset: ~
             _isInstanced: false
+        castShadows: true
       - ComponentType: Transform
         _localPosition:
           x: -3
@@ -94,6 +95,7 @@ Childs:
               guid: c0ffee00-1111-4222-8333-444455556666
               type: MaterialAsset
             _isInstanced: false
+        castShadows: true
       - ComponentType: Transform
         _localPosition:
           x: 0
@@ -128,6 +130,7 @@ Childs:
             _isInstanced: false
           - _materialAsset: ~
             _isInstanced: false
+        castShadows: true
       - ComponentType: Transform
         _localPosition:
           x: 3
@@ -153,13 +156,15 @@ Childs:
       - ComponentType: Light
         lightType: 0
         withShadows: true
-        shadowSoftness: 1
+        shadowSoftness: 4
         color:
           r: 255
           g: 244
           b: 214
           a: 255
         range: 50
+        spotAngle: 45
+        spotBlend: 0.15
         intensity: 3
       - ComponentType: Transform
         _localPosition:
@@ -200,6 +205,41 @@ Childs:
           y: 0
           z: 0
           w: 1
+        _localScale:
+          x: 1
+          y: 1
+          z: 1
+    Childs:
+      []
+    IsNodePrefab: true
+  - IsActive: true
+    Id: 15
+    Name: Test Light
+    ParentId: 2
+    Components:
+      - ComponentType: Light
+        lightType: 1
+        withShadows: true
+        shadowSoftness: 5
+        color:
+          r: 255
+          g: 255
+          b: 255
+          a: 1
+        range: 5000
+        spotAngle: 90
+        spotBlend: 0.1
+        intensity: 100
+      - ComponentType: Transform
+        _localPosition:
+          x: -0.9498922
+          y: 2.0966911
+          z: 5.4388113
+        _localRotationQ:
+          x: 0
+          y: 0.9999846
+          z: 0
+          w: -0.00555547
         _localScale:
           x: 1
           y: 1

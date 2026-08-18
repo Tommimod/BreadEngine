@@ -18,6 +18,7 @@
 #include "raymath.h"
 #include "rlgl.h"
 
+#include "rendering/sky/hosekWilkie.h"
 #include "utils/workerPool.h"
 
 namespace BreadEngine {
@@ -26,9 +27,30 @@ namespace BreadEngine {
     constexpr int DEPTH_PIXEL_FORMAT = 19;
 
     /// The scene target's formats are fixed, so every pipeline that renders into it can be
-    /// built against them once instead of being rebuilt when the target is resized.
-    constexpr Diligent::TEXTURE_FORMAT SCENE_COLOR_FORMAT = Diligent::TEX_FORMAT_RGBA8_UNORM;
+    /// built against them once instead of being rebuilt when the target is resized. The scene
+    /// shades into a float target because a light brighter than white has to survive as far as
+    /// the tone mapper; only the composite pass's output is bounded to what a screen can show.
+    constexpr Diligent::TEXTURE_FORMAT SCENE_COLOR_FORMAT = Diligent::TEX_FORMAT_RGBA16_FLOAT;
     constexpr Diligent::TEXTURE_FORMAT SCENE_DEPTH_FORMAT = Diligent::TEX_FORMAT_D32_FLOAT;
+    constexpr Diligent::TEXTURE_FORMAT SCENE_OUTPUT_FORMAT = Diligent::TEX_FORMAT_RGBA8_UNORM;
+
+    /// Environment cubes are float for the same reason the scene target is: a sky carries a sun,
+    /// and the whole point of baking one is that the values above white survive to light with.
+    constexpr Diligent::TEXTURE_FORMAT SKY_FORMAT = Diligent::TEX_FORMAT_RGBA16_FLOAT;
+
+    /// What the sky model's physical radiance is divided by on its way into the engine's own
+    /// units. Hosek-Wilkie returns absolute radiance, in W / (m^2 sr nm); a Light's intensity is
+    /// an authored multiplier with no unit at all. The two have to be reconciled somewhere, and
+    /// it is done here rather than by moving the lights, because every intensity already
+    /// authored in a scene stays valid this way and none of them would survive the alternative.
+    /// The value puts a clear day's zenith near 1, so a scene reads before any exposure is set.
+    constexpr float SKY_RADIANCE_SCALE = 1.0f / 25.0f;
+
+    /// Bounds on the cube a loaded equirectangular image is unwrapped into. A face covers a
+    /// quarter turn where the source spans a full one, so half the source's height is the size
+    /// at which neither is resolving detail the other does not have.
+    constexpr int MIN_SKY_RESOLUTION = 64;
+    constexpr int MAX_SKY_RESOLUTION = 2048;
 
     /// Where the engine's shader sources sit relative to the executable.
     constexpr const char *SHADER_DIRECTORY = "shaders";
@@ -101,7 +123,6 @@ namespace BreadEngine {
         /// the camera-space depth the cascade selection compares against.
         Vector4 cameraForward;
         Vector4 ambientColor;
-        Vector4 outputEncoding;
     };
 
     struct SceneDrawConstants
@@ -140,6 +161,30 @@ namespace BreadEngine {
         SceneLight lights[MAX_SCENE_LIGHTS];
     };
 
+    /// Mirrors composite.psh's cbuffer, and float4-only for the same reason the scene's blocks
+    /// are: it is the only member layout the struct and the shader cannot drift apart over.
+    struct PostConstants
+    {
+        /// x is the TonemapMode, y the exposure, z the reference white point.
+        Vector4 tonemap;
+        /// x is brightness, y contrast, z saturation, w the exponent the result leaves through.
+        Vector4 grading;
+    };
+
+    /// An authored colour as the linear scene target needs it. A colour is picked in the
+    /// encoded space a screen shows, and the composite pass encodes on the way back out, so
+    /// what is written here has to be decoded by exactly the inverse of that encode - which
+    /// also makes the whole round trip an identity when the output is asked to stay linear.
+    Vector4 toSceneLinear(const Color color, const float encoding)
+    {
+        const auto normalized = ColorNormalize(color);
+        const float exponent = 1.0f / encoding;
+        return {
+            std::pow(normalized.x, exponent), std::pow(normalized.y, exponent),
+            std::pow(normalized.z, exponent), normalized.w
+        };
+    }
+
     void DiligentRenderer::initialize(const int sceneWidth, const int sceneHeight)
     {
         // Window.hWnd is deliberately left null. A non-null handle sends the Win32 GL backend
@@ -166,6 +211,8 @@ namespace BreadEngine {
         createShadowMaps();
         createScenePipeline();
         createShadowPipeline();
+        createCompositePipeline();
+        createSkyPipelines();
     }
 
     void DiligentRenderer::shutdown()
@@ -186,7 +233,16 @@ namespace BreadEngine {
         });
         _textures.clear();
         _materialFallbacks = {};
+        _cubemaps.clear();
         _scenePipeline.Release();
+        _compositeBinding.Release();
+        _compositePipeline.Release();
+        _skyBakeBinding.Release();
+        _skyBakePipeline.Release();
+        _equirectBakeBinding.Release();
+        _equirectBakePipeline.Release();
+        _skyboxBinding.Release();
+        _skyboxPipeline.Release();
         _shadowBinding.Release();
         _shadowPipeline.Release();
         _shadowMap = {};
@@ -199,6 +255,9 @@ namespace BreadEngine {
         _lightConstants.Release();
         _shadowConstants.Release();
         _shadowPassConstants.Release();
+        _postConstants.Release();
+        _skyBakeConstants.Release();
+        _skyboxConstants.Release();
 
         _context.Release();
         _device.Release();
@@ -234,17 +293,32 @@ namespace BreadEngine {
         depthDesc.BindFlags = Diligent::BIND_DEPTH_STENCIL;
         _device->CreateTexture(depthDesc, nullptr, &_sceneDepth);
 
-        if (!_sceneColor || !_sceneDepth)
+        Diligent::TextureDesc outputDesc = colorDesc;
+        outputDesc.Name = "Scene output";
+        outputDesc.Format = SCENE_OUTPUT_FORMAT;
+        _device->CreateTexture(outputDesc, nullptr, &_sceneOutput);
+
+        if (!_sceneColor || !_sceneDepth || !_sceneOutput)
         {
             Logger::LogError("Diligent failed to create the scene render target");
             return;
         }
 
+        // The composite pass reads this target one texel to one pixel, so point sampling is
+        // not an approximation of the read - it is the read. Stated rather than left to the
+        // backend's default, which filters and would soften the image by half a texel.
+        Diligent::SamplerDesc sceneSampler;
+        sceneSampler.MinFilter = sceneSampler.MagFilter = sceneSampler.MipFilter = Diligent::FILTER_TYPE_POINT;
+        sceneSampler.AddressU = sceneSampler.AddressV = sceneSampler.AddressW = Diligent::TEXTURE_ADDRESS_CLAMP;
+        Diligent::RefCntAutoPtr<Diligent::ISampler> sceneColorSampler;
+        _device->CreateSampler(sceneSampler, &sceneColorSampler);
+        _sceneColor->GetDefaultView(Diligent::TEXTURE_VIEW_SHADER_RESOURCE)->SetSampler(sceneColorSampler);
+
         // The GL backend's native handle is the texture name itself, which is all raylib
         // needs to treat these as its own.
         _overlay.id = rlLoadFramebuffer();
         _overlay.texture = Texture2D{
-            .id = static_cast<unsigned int>(_sceneColor->GetNativeHandle()),
+            .id = static_cast<unsigned int>(_sceneOutput->GetNativeHandle()),
             .width = width,
             .height = height,
             .mipmaps = 1,
@@ -277,6 +351,7 @@ namespace BreadEngine {
 
         _sceneColor.Release();
         _sceneDepth.Release();
+        _sceneOutput.Release();
     }
 
     void DiligentRenderer::createScenePipeline()
@@ -304,13 +379,7 @@ namespace BreadEngine {
         constantsDesc.Size = sizeof(Diligent::float4x4);
         _device->CreateBuffer(constantsDesc, nullptr, &_shadowPassConstants);
 
-        Diligent::RefCntAutoPtr<Diligent::IShaderSourceInputStreamFactory> engineSources;
-        const std::string shaderDirectory = std::string(GetApplicationDirectory()) + SHADER_DIRECTORY;
-        Diligent::GetEngineFactoryOpenGL()->CreateDefaultShaderSourceStreamFactory(shaderDirectory.c_str(), &engineSources);
-        // DiligentFX's .fxh files are compiled into the library rather than shipped next to the
-        // executable, so an #include of one only resolves through its own factory.
-        const auto shaderSources = Diligent::CreateCompoundShaderSourceFactory(
-            {&Diligent::DiligentFXShaderSourceStreamFactory::GetInstance(), engineSources});
+        const auto shaderSources = createShaderSources();
 
         const std::string maxLights = std::to_string(MAX_SCENE_LIGHTS);
         const std::string maxSpotShadows = std::to_string(MAX_SPOT_SHADOWS);
@@ -346,7 +415,7 @@ namespace BreadEngine {
 
         if (!vertexShader || !pixelShader)
         {
-            Logger::LogError("Diligent failed to compile the scene shaders from " + shaderDirectory);
+            Logger::LogError("Diligent failed to compile the scene shaders");
             return;
         }
 
@@ -410,6 +479,192 @@ namespace BreadEngine {
         _scenePipeline->GetStaticVariableByName(Diligent::SHADER_TYPE_PIXEL, "g_OmniShadowMap")->Set(_omniShadowSRV);
 
         createMaterialFallbacks();
+    }
+
+    void DiligentRenderer::createCompositePipeline()
+    {
+        if (!_device) return;
+
+        Diligent::BufferDesc constantsDesc;
+        constantsDesc.Name = "Post constants";
+        constantsDesc.Usage = Diligent::USAGE_DYNAMIC;
+        constantsDesc.BindFlags = Diligent::BIND_UNIFORM_BUFFER;
+        constantsDesc.CPUAccessFlags = Diligent::CPU_ACCESS_WRITE;
+        constantsDesc.Size = sizeof(PostConstants);
+        _device->CreateBuffer(constantsDesc, nullptr, &_postConstants);
+
+        const auto shaderSources = createShaderSources();
+
+        Diligent::ShaderCreateInfo shaderInfo;
+        shaderInfo.SourceLanguage = Diligent::SHADER_SOURCE_LANGUAGE_HLSL;
+        shaderInfo.pShaderSourceStreamFactory = shaderSources;
+
+        Diligent::RefCntAutoPtr<Diligent::IShader> vertexShader;
+        shaderInfo.Desc = {"Composite VS", Diligent::SHADER_TYPE_VERTEX, true};
+        shaderInfo.FilePath = "fullscreen.vsh";
+        _device->CreateShader(shaderInfo, &vertexShader);
+
+        Diligent::RefCntAutoPtr<Diligent::IShader> pixelShader;
+        shaderInfo.Desc = {"Composite PS", Diligent::SHADER_TYPE_PIXEL, true};
+        shaderInfo.FilePath = "composite.psh";
+        _device->CreateShader(shaderInfo, &pixelShader);
+
+        if (!vertexShader || !pixelShader)
+        {
+            Logger::LogError("Diligent failed to compile the composite shaders");
+            return;
+        }
+
+        Diligent::GraphicsPipelineStateCreateInfo pipelineInfo;
+        pipelineInfo.PSODesc.Name = "Scene composite";
+        pipelineInfo.pVS = vertexShader;
+        pipelineInfo.pPS = pixelShader;
+
+        auto &graphics = pipelineInfo.GraphicsPipeline;
+        graphics.NumRenderTargets = 1;
+        graphics.RTVFormats[0] = SCENE_OUTPUT_FORMAT;
+        graphics.PrimitiveTopology = Diligent::PRIMITIVE_TOPOLOGY_TRIANGLE_LIST;
+        // No input layout: the one triangle is built from the vertex index, so its winding is
+        // an artefact of how the corners are indexed rather than something to depend on.
+        graphics.RasterizerDesc.CullMode = Diligent::CULL_MODE_NONE;
+        // The pass covers every pixel of its target and runs with no depth attachment, because
+        // the scene's depth has to reach the overlay that draws after it untouched.
+        graphics.DepthStencilDesc.DepthEnable = Diligent::False;
+
+        // Dynamic rather than mutable: the view changes every time the scene target is resized,
+        // and a mutable variable cannot be re-pointed once it has been set.
+        const Diligent::ShaderResourceVariableDesc variables[]{
+            {Diligent::SHADER_TYPE_PIXEL, "g_SceneColor", Diligent::SHADER_RESOURCE_VARIABLE_TYPE_DYNAMIC}
+        };
+        pipelineInfo.PSODesc.ResourceLayout.Variables = variables;
+        pipelineInfo.PSODesc.ResourceLayout.NumVariables = static_cast<Diligent::Uint32>(std::size(variables));
+
+        _device->CreateGraphicsPipelineState(pipelineInfo, &_compositePipeline);
+        if (!_compositePipeline)
+        {
+            Logger::LogError("Diligent failed to create the composite pipeline state");
+            return;
+        }
+
+        _compositePipeline->GetStaticVariableByName(Diligent::SHADER_TYPE_PIXEL, "PostConstants")->Set(_postConstants);
+        _compositePipeline->CreateShaderResourceBinding(&_compositeBinding, true);
+    }
+
+    Diligent::RefCntAutoPtr<Diligent::IShaderSourceInputStreamFactory> DiligentRenderer::createShaderSources() const
+    {
+        Diligent::RefCntAutoPtr<Diligent::IShaderSourceInputStreamFactory> engineSources;
+        const std::string shaderDirectory = std::string(GetApplicationDirectory()) + SHADER_DIRECTORY;
+        Diligent::GetEngineFactoryOpenGL()->CreateDefaultShaderSourceStreamFactory(shaderDirectory.c_str(), &engineSources);
+
+        // DiligentFX's .fxh files are compiled into the library rather than shipped next to the
+        // executable, so an #include of one only resolves through its own factory.
+        return Diligent::CreateCompoundShaderSourceFactory(
+            {&Diligent::DiligentFXShaderSourceStreamFactory::GetInstance(), engineSources});
+    }
+
+    void DiligentRenderer::createSkyPipelines()
+    {
+        if (!_device) return;
+
+        Diligent::BufferDesc constantsDesc;
+        constantsDesc.Usage = Diligent::USAGE_DYNAMIC;
+        constantsDesc.BindFlags = Diligent::BIND_UNIFORM_BUFFER;
+        constantsDesc.CPUAccessFlags = Diligent::CPU_ACCESS_WRITE;
+        constantsDesc.Name = "Sky bake constants";
+        constantsDesc.Size = sizeof(SkyBakeConstants);
+        _device->CreateBuffer(constantsDesc, nullptr, &_skyBakeConstants);
+        constantsDesc.Name = "Skybox constants";
+        constantsDesc.Size = sizeof(SkyboxConstants);
+        _device->CreateBuffer(constantsDesc, nullptr, &_skyboxConstants);
+
+        const auto shaderSources = createShaderSources();
+        Diligent::ShaderCreateInfo shaderInfo;
+        shaderInfo.SourceLanguage = Diligent::SHADER_SOURCE_LANGUAGE_HLSL;
+        shaderInfo.pShaderSourceStreamFactory = shaderSources;
+
+        Diligent::RefCntAutoPtr<Diligent::IShader> vertexShader;
+        shaderInfo.Desc = {"Fullscreen VS", Diligent::SHADER_TYPE_VERTEX, true};
+        shaderInfo.FilePath = "fullscreen.vsh";
+        _device->CreateShader(shaderInfo, &vertexShader);
+
+        Diligent::RefCntAutoPtr<Diligent::IShader> proceduralShader;
+        shaderInfo.Desc = {"Procedural sky PS", Diligent::SHADER_TYPE_PIXEL, true};
+        shaderInfo.FilePath = "skyProcedural.psh";
+        _device->CreateShader(shaderInfo, &proceduralShader);
+
+        Diligent::RefCntAutoPtr<Diligent::IShader> equirectangularShader;
+        shaderInfo.Desc = {"Equirectangular sky PS", Diligent::SHADER_TYPE_PIXEL, true};
+        shaderInfo.FilePath = "skyEquirect.psh";
+        _device->CreateShader(shaderInfo, &equirectangularShader);
+
+        Diligent::RefCntAutoPtr<Diligent::IShader> skyboxShader;
+        shaderInfo.Desc = {"Skybox PS", Diligent::SHADER_TYPE_PIXEL, true};
+        shaderInfo.FilePath = "skybox.psh";
+        _device->CreateShader(shaderInfo, &skyboxShader);
+
+        if (!vertexShader || !proceduralShader || !equirectangularShader || !skyboxShader)
+        {
+            Logger::LogError("Diligent failed to compile the sky shaders");
+            return;
+        }
+
+        // All three passes are the same one triangle over a whole target; only what they sample
+        // and where they land differ.
+        Diligent::GraphicsPipelineStateCreateInfo pipelineInfo;
+        pipelineInfo.pVS = vertexShader;
+        auto &graphics = pipelineInfo.GraphicsPipeline;
+        graphics.NumRenderTargets = 1;
+        graphics.RTVFormats[0] = SKY_FORMAT;
+        graphics.PrimitiveTopology = Diligent::PRIMITIVE_TOPOLOGY_TRIANGLE_LIST;
+        graphics.RasterizerDesc.CullMode = Diligent::CULL_MODE_NONE;
+        graphics.DepthStencilDesc.DepthEnable = Diligent::False;
+
+        pipelineInfo.PSODesc.Name = "Procedural sky bake";
+        pipelineInfo.pPS = proceduralShader;
+        _device->CreateGraphicsPipelineState(pipelineInfo, &_skyBakePipeline);
+
+        // Dynamic for the same reason the composite pass's input is: the source changes every
+        // time a different image is loaded, and a mutable variable cannot be re-pointed.
+        const Diligent::ShaderResourceVariableDesc equirectangularVariables[]{
+            {Diligent::SHADER_TYPE_PIXEL, "g_Equirect", Diligent::SHADER_RESOURCE_VARIABLE_TYPE_DYNAMIC}
+        };
+        pipelineInfo.PSODesc.Name = "Equirectangular sky bake";
+        pipelineInfo.pPS = equirectangularShader;
+        pipelineInfo.PSODesc.ResourceLayout.Variables = equirectangularVariables;
+        pipelineInfo.PSODesc.ResourceLayout.NumVariables = 1;
+        _device->CreateGraphicsPipelineState(pipelineInfo, &_equirectBakePipeline);
+
+        // The background pass lands in the scene target instead, at the far plane under a
+        // LESS_EQUAL test, which is what confines it to the pixels no geometry reached. It
+        // writes no depth: the editor's overlay tests against this buffer, and a sky is not
+        // something the grid should be hidden behind.
+        const Diligent::ShaderResourceVariableDesc skyboxVariables[]{
+            {Diligent::SHADER_TYPE_PIXEL, "g_Sky", Diligent::SHADER_RESOURCE_VARIABLE_TYPE_DYNAMIC}
+        };
+        pipelineInfo.PSODesc.Name = "Skybox";
+        pipelineInfo.pPS = skyboxShader;
+        pipelineInfo.PSODesc.ResourceLayout.Variables = skyboxVariables;
+        pipelineInfo.PSODesc.ResourceLayout.NumVariables = 1;
+        graphics.RTVFormats[0] = SCENE_COLOR_FORMAT;
+        graphics.DSVFormat = SCENE_DEPTH_FORMAT;
+        graphics.DepthStencilDesc.DepthEnable = Diligent::True;
+        graphics.DepthStencilDesc.DepthWriteEnable = Diligent::False;
+        graphics.DepthStencilDesc.DepthFunc = Diligent::COMPARISON_FUNC_LESS_EQUAL;
+        _device->CreateGraphicsPipelineState(pipelineInfo, &_skyboxPipeline);
+
+        if (!_skyBakePipeline || !_equirectBakePipeline || !_skyboxPipeline)
+        {
+            Logger::LogError("Diligent failed to create the sky pipeline states");
+            return;
+        }
+
+        _skyBakePipeline->GetStaticVariableByName(Diligent::SHADER_TYPE_PIXEL, "SkyConstants")->Set(_skyBakeConstants);
+        _equirectBakePipeline->GetStaticVariableByName(Diligent::SHADER_TYPE_PIXEL, "SkyConstants")->Set(_skyBakeConstants);
+        _skyboxPipeline->GetStaticVariableByName(Diligent::SHADER_TYPE_PIXEL, "SkyboxConstants")->Set(_skyboxConstants);
+
+        _skyBakePipeline->CreateShaderResourceBinding(&_skyBakeBinding, true);
+        _equirectBakePipeline->CreateShaderResourceBinding(&_equirectBakeBinding, true);
+        _skyboxPipeline->CreateShaderResourceBinding(&_skyboxBinding, true);
     }
 
     void DiligentRenderer::createShadowMaps()
@@ -582,7 +837,7 @@ namespace BreadEngine {
 
     void DiligentRenderer::setOutputColorSpace(const OutputColorSpace colorSpace)
     {
-        _outputEncoding = colorSpace == OutputColorSpace::Linear ? LINEAR_ENCODE_EXPONENT : GAMMA_ENCODE_EXPONENT;
+        _post.encoding = colorSpace == OutputColorSpace::Linear ? LINEAR_ENCODE_EXPONENT : GAMMA_ENCODE_EXPONENT;
     }
 
     void DiligentRenderer::beginScene(const CameraView &camera)
@@ -639,11 +894,13 @@ namespace BreadEngine {
         auto *depthStencil = _sceneDepth->GetDefaultView(Diligent::TEXTURE_VIEW_DEPTH_STENCIL);
         _context->SetRenderTargets(1, &renderTarget, depthStencil, Diligent::RESOURCE_STATE_TRANSITION_MODE_TRANSITION);
 
-        const auto clear = ColorNormalize(_clearColor);
+        const auto clear = toSceneLinear(_clearColor, _post.encoding);
         _context->ClearRenderTarget(renderTarget, &clear.x, Diligent::RESOURCE_STATE_TRANSITION_MODE_TRANSITION);
         _context->ClearDepthStencil(depthStencil, Diligent::CLEAR_DEPTH_FLAG, 1.0f, 0, Diligent::RESOURCE_STATE_TRANSITION_MODE_TRANSITION);
 
         submitDraws();
+        drawSkybox();
+        composite();
 
         yieldToRaylib();
 
@@ -684,8 +941,7 @@ namespace BreadEngine {
             .viewProjection = MatrixToFloatV(_viewProjection),
             .cameraPosition = {_camera.position.x, _camera.position.y, _camera.position.z, 1.0f},
             .cameraForward = {forward.x, forward.y, forward.z, 0.0f},
-            .ambientColor = {ambient.x, ambient.y, ambient.z, _ambientEnergy},
-            .outputEncoding = {_outputEncoding, 0.0f, 0.0f, 0.0f}
+            .ambientColor = {ambient.x, ambient.y, ambient.z, _ambientEnergy}
         };
         uploadConstants(_frameConstants, &frame, sizeof(frame));
         uploadLights();
@@ -723,6 +979,31 @@ namespace BreadEngine {
         }
     }
 
+    void DiligentRenderer::composite()
+    {
+        if (!_compositePipeline || !_sceneOutput) return;
+
+        auto *renderTarget = _sceneOutput->GetDefaultView(Diligent::TEXTURE_VIEW_RENDER_TARGET);
+        // Nothing is cleared: the triangle covers the whole target, so every pixel is written.
+        _context->SetRenderTargets(1, &renderTarget, nullptr, Diligent::RESOURCE_STATE_TRANSITION_MODE_TRANSITION);
+
+        const PostConstants constants{
+            .tonemap = {static_cast<float>(_post.tonemap), _post.exposure, _post.whitePoint, 0.0f},
+            .grading = {_post.brightness, _post.contrast, _post.saturation, _post.encoding}
+        };
+        uploadConstants(_postConstants, &constants, sizeof(constants));
+
+        _context->SetPipelineState(_compositePipeline);
+        _compositeBinding->GetVariableByName(Diligent::SHADER_TYPE_PIXEL, "g_SceneColor")
+                         ->Set(_sceneColor->GetDefaultView(Diligent::TEXTURE_VIEW_SHADER_RESOURCE));
+        _context->CommitShaderResources(_compositeBinding, Diligent::RESOURCE_STATE_TRANSITION_MODE_TRANSITION);
+
+        Diligent::DrawAttribs drawAttribs;
+        drawAttribs.NumVertices = 3;
+        drawAttribs.Flags = Diligent::DRAW_FLAG_VERIFY_ALL;
+        _context->Draw(drawAttribs);
+    }
+
     void DiligentRenderer::yieldToRaylib()
     {
         _context->SetRenderTargets(0, nullptr, nullptr, Diligent::RESOURCE_STATE_TRANSITION_MODE_TRANSITION);
@@ -730,11 +1011,17 @@ namespace BreadEngine {
         _context->Flush();
 
         // rlgl tracks the GL state it expects in software and only issues the calls it thinks
-        // are needed, so every piece of state the scene pipeline sets differently has to be put
-        // back by hand. Culling and depth writes already match rlgl's own defaults; blending
-        // and the depth test do not.
+        // are needed, so every piece of state a pipeline sets differently has to be put back by
+        // hand. Depth writes still match rlgl's own defaults; blending, the depth test and
+        // both halves of the face-culling state do not.
         rlEnableColorBlend();
         rlDisableDepthTest();
+        rlEnableBackfaceCulling();
+        // Which winding faces front is the other half, and restoring the cull test without it
+        // is worse than restoring neither: raylib winds counter-clockwise, so a pipeline that
+        // left GL_CW makes every triangle raylib draws a back face. Lines are not subject to
+        // the cull test at all, which is what makes that failure look like "only lines draw".
+        glFrontFace(GL_CCW);
 
         // Diligent binds a sampler object per texture unit; rlgl uses none and relies on each
         // texture's own parameters. A sampler left bound overrides those, and its mipmapped
@@ -1268,22 +1555,228 @@ namespace BreadEngine {
     void DiligentRenderer::setEnvironment(const EnvironmentSettings &settings)
     {
         _clearColor = settings.background.color;
+        _sky = settings.background.sky;
+        _skyRotation = settings.background.rotation;
+        _skyEnergy = settings.background.energy;
+        _skyBlur = settings.background.skyBlur;
         _ambientColor = settings.ambient.color;
         _ambientEnergy = settings.ambient.energy;
+
+        // The encoding is deliberately not set here: it belongs to the project's output colour
+        // space, which is pushed once at startup and is no part of the environment.
+        _post.tonemap = settings.tonemap.mode;
+        _post.exposure = settings.tonemap.exposure;
+        _post.whitePoint = settings.tonemap.white;
+        _post.brightness = settings.finalColor.brightness;
+        _post.contrast = settings.finalColor.contrast;
+        _post.saturation = settings.finalColor.saturation;
     }
 
     CubemapHandle DiligentRenderer::loadCubemap(const std::string &path)
     {
-        return {};
+        if (!_equirectBakePipeline) return {};
+
+        Diligent::TextureLoadInfo loadInfo;
+        loadInfo.Name = "Equirectangular sky";
+        loadInfo.GenerateMips = false;
+        // An .hdr already holds linear radiance; an eight-bit image is encoded. This is the
+        // only chance to say which, because the cube it is unwrapped into is float and nothing
+        // downstream can tell the two apart afterwards.
+        loadInfo.IsSRGB = !path.ends_with(".hdr") && !path.ends_with(".HDR");
+
+        Diligent::RefCntAutoPtr<Diligent::ITextureLoader> loader;
+        Diligent::CreateTextureLoaderFromFile(path.c_str(), Diligent::IMAGE_FILE_FORMAT_UNKNOWN, loadInfo, &loader);
+        if (!loader)
+        {
+            Logger::LogError("Diligent failed to load the skybox image " + path);
+            return {};
+        }
+
+        Diligent::RefCntAutoPtr<Diligent::ITexture> equirectangular;
+        loader->CreateTexture(_device, &equirectangular);
+        restoreRaylibPixelStore();
+        if (!equirectangular) return {};
+
+        const auto &sourceDesc = equirectangular->GetDesc();
+        if (sourceDesc.Type != Diligent::RESOURCE_DIM_TEX_2D)
+        {
+            Logger::LogError("A skybox image must be a single equirectangular picture: " + path);
+            return {};
+        }
+
+        Diligent::SamplerDesc samplerDesc;
+        samplerDesc.MinFilter = samplerDesc.MagFilter = samplerDesc.MipFilter = Diligent::FILTER_TYPE_LINEAR;
+        // Wrapped across the seam and clamped at the poles, which is how the projection runs:
+        // longitude comes back around, latitude stops.
+        samplerDesc.AddressU = Diligent::TEXTURE_ADDRESS_WRAP;
+        samplerDesc.AddressV = samplerDesc.AddressW = Diligent::TEXTURE_ADDRESS_CLAMP;
+        Diligent::RefCntAutoPtr<Diligent::ISampler> sampler;
+        _device->CreateSampler(samplerDesc, &sampler);
+        auto *sourceView = equirectangular->GetDefaultView(Diligent::TEXTURE_VIEW_SHADER_RESOURCE);
+        sourceView->SetSampler(sampler);
+
+        _equirectBakeBinding->GetVariableByName(Diligent::SHADER_TYPE_PIXEL, "g_Equirect")->Set(sourceView);
+
+        const int size = std::clamp(static_cast<int>(sourceDesc.Height) / 2, MIN_SKY_RESOLUTION, MAX_SKY_RESOLUTION);
+        SkyBakeConstants constants{};
+        return bakeCubemap("Skybox cubemap", size, _equirectBakePipeline, _equirectBakeBinding, constants);
     }
 
     CubemapHandle DiligentRenderer::createProceduralSky(const int size, const SkyboxProceduralParameters &sky)
     {
-        return {};
+        if (!_skyBakePipeline) return {};
+
+        // The light's forward is the direction sunlight travels, so the direction *to* the sun
+        // is its opposite - and that is what both the model's elevation and the disc need.
+        const auto toSun = Vector3Normalize(Vector3Negate(sky.sunDirection));
+        const float elevation = std::asin(std::clamp(toSun.y, -1.0f, 1.0f));
+
+        const auto ground = toSceneLinear(sky.groundAlbedo, _post.encoding);
+        const auto cooked = cookHosekWilkieSky(sky.turbidity, Vector3{ground.x, ground.y, ground.z}, elevation);
+
+        const auto tint = toSceneLinear(sky.skyTint, _post.encoding);
+        const auto sunColor = toSceneLinear(sky.sunColor, _post.encoding);
+        const float sunScale = sky.sunIntensity * sky.sunEnergy;
+
+        SkyBakeConstants constants{};
+        for (size_t index = 0; index < std::size(constants.coefficients); ++index)
+        {
+            constants.coefficients[index] = {
+                cooked.coefficients[0][index], cooked.coefficients[1][index], cooked.coefficients[2][index], 0.0f
+            };
+        }
+        constants.radiance = {
+            cooked.radiance[0] * SKY_RADIANCE_SCALE, cooked.radiance[1] * SKY_RADIANCE_SCALE,
+            cooked.radiance[2] * SKY_RADIANCE_SCALE, 0.0f
+        };
+        constants.sun = {toSun.x, toSun.y, toSun.z, std::cos(std::max(sky.sunSize, 0.0f) * DEG2RAD)};
+        constants.sunColor = {sunColor.x * sunScale, sunColor.y * sunScale, sunColor.z * sunScale, 0.0f};
+        constants.tint = {tint.x, tint.y, tint.z, sky.skyEnergy};
+        constants.ground = {ground.x, ground.y, ground.z, 0.0f};
+
+        return bakeCubemap("Procedural sky", size, _skyBakePipeline, _skyBakeBinding, constants);
+    }
+
+    CubemapHandle DiligentRenderer::bakeCubemap(const char *name, const int size, Diligent::IPipelineState *pipeline,
+                                                Diligent::IShaderResourceBinding *binding, SkyBakeConstants &constants)
+    {
+        // The axes each face's texels span, in the cube's own face order, and they are the
+        // direction-to-texel rule read backwards rather than anything intuitive: for +X that
+        // rule is s = -z, t = -y, so u runs along -Z and v runs *down* along -Y. Every one of
+        // the six has v pointing the way that feels upside down, which is precisely why a
+        // wrong one mirrors a face without failing anywhere - the omni shadow cube pays for
+        // the same table.
+        static constexpr Vector3 faceRight[CUBE_FACE_COUNT]{
+            {0.0f, 0.0f, -1.0f}, {0.0f, 0.0f, 1.0f},
+            {1.0f, 0.0f, 0.0f}, {1.0f, 0.0f, 0.0f},
+            {1.0f, 0.0f, 0.0f}, {-1.0f, 0.0f, 0.0f}
+        };
+        static constexpr Vector3 faceUp[CUBE_FACE_COUNT]{
+            {0.0f, -1.0f, 0.0f}, {0.0f, -1.0f, 0.0f},
+            {0.0f, 0.0f, 1.0f}, {0.0f, 0.0f, -1.0f},
+            {0.0f, -1.0f, 0.0f}, {0.0f, -1.0f, 0.0f}
+        };
+        static constexpr Vector3 faceForward[CUBE_FACE_COUNT]{
+            {1.0f, 0.0f, 0.0f}, {-1.0f, 0.0f, 0.0f},
+            {0.0f, 1.0f, 0.0f}, {0.0f, -1.0f, 0.0f},
+            {0.0f, 0.0f, 1.0f}, {0.0f, 0.0f, -1.0f}
+        };
+
+        Diligent::TextureDesc desc;
+        desc.Name = name;
+        desc.Type = Diligent::RESOURCE_DIM_TEX_CUBE;
+        desc.Width = desc.Height = static_cast<Diligent::Uint32>(size);
+        desc.ArraySize = CUBE_FACE_COUNT;
+        // The whole chain: a blurred sky is a coarser mip of the same cube, and the image-based
+        // lighting this feeds will want the chain too.
+        desc.MipLevels = 0;
+        desc.Format = SKY_FORMAT;
+        desc.BindFlags = Diligent::BIND_RENDER_TARGET | Diligent::BIND_SHADER_RESOURCE;
+        desc.MiscFlags = Diligent::MISC_TEXTURE_FLAG_GENERATE_MIPS;
+
+        CubemapSlot slot;
+        _device->CreateTexture(desc, nullptr, &slot.texture);
+        if (!slot.texture)
+        {
+            Logger::LogError(std::string("Diligent failed to create the ") + name);
+            return {};
+        }
+
+        _context->SetPipelineState(pipeline);
+        for (Diligent::Uint32 face = 0; face < CUBE_FACE_COUNT; ++face)
+        {
+            Diligent::TextureViewDesc faceDesc;
+            faceDesc.Name = "Cube face target";
+            faceDesc.ViewType = Diligent::TEXTURE_VIEW_RENDER_TARGET;
+            faceDesc.FirstArraySlice = face;
+            faceDesc.NumArraySlices = 1;
+            Diligent::RefCntAutoPtr<Diligent::ITextureView> faceTarget;
+            slot.texture->CreateView(faceDesc, &faceTarget);
+
+            Diligent::ITextureView *target = faceTarget;
+            _context->SetRenderTargets(1, &target, nullptr, Diligent::RESOURCE_STATE_TRANSITION_MODE_TRANSITION);
+
+            constants.faceRight = {faceRight[face].x, faceRight[face].y, faceRight[face].z, 0.0f};
+            constants.faceUp = {faceUp[face].x, faceUp[face].y, faceUp[face].z, 0.0f};
+            constants.faceForward = {faceForward[face].x, faceForward[face].y, faceForward[face].z, 0.0f};
+            uploadConstants(_skyBakeConstants, &constants, sizeof(constants));
+
+            _context->CommitShaderResources(binding, Diligent::RESOURCE_STATE_TRANSITION_MODE_TRANSITION);
+
+            Diligent::DrawAttribs drawAttribs;
+            drawAttribs.NumVertices = 3;
+            drawAttribs.Flags = Diligent::DRAW_FLAG_VERIFY_ALL;
+            _context->Draw(drawAttribs);
+        }
+
+        auto *cubeView = slot.texture->GetDefaultView(Diligent::TEXTURE_VIEW_SHADER_RESOURCE);
+        _context->GenerateMips(cubeView);
+
+        Diligent::SamplerDesc samplerDesc;
+        samplerDesc.MinFilter = samplerDesc.MagFilter = samplerDesc.MipFilter = Diligent::FILTER_TYPE_LINEAR;
+        samplerDesc.AddressU = samplerDesc.AddressV = samplerDesc.AddressW = Diligent::TEXTURE_ADDRESS_CLAMP;
+        Diligent::RefCntAutoPtr<Diligent::ISampler> sampler;
+        _device->CreateSampler(samplerDesc, &sampler);
+        cubeView->SetSampler(sampler);
+
+        return _cubemaps.add(std::move(slot));
+    }
+
+    void DiligentRenderer::drawSkybox()
+    {
+        if (!_skyboxPipeline) return;
+
+        const auto *slot = _cubemaps.get(_sky);
+        if (slot == nullptr || !slot->texture) return;
+
+        // The inspector's rotation turns the sky; the shader turns the direction it is sampled
+        // with, and those are opposites.
+        const auto rotation = QuaternionInvert(_skyRotation);
+        const auto mipCount = static_cast<float>(slot->texture->GetDesc().MipLevels);
+
+        const SkyboxConstants constants{
+            .inverseViewProjection = MatrixToFloatV(MatrixInvert(_viewProjection)),
+            .cameraPosition = {_camera.position.x, _camera.position.y, _camera.position.z, 1.0f},
+            .rotation = {rotation.x, rotation.y, rotation.z, rotation.w},
+            .params = {_skyEnergy, std::clamp(_skyBlur, 0.0f, 1.0f) * std::max(mipCount - 1.0f, 0.0f), 0.0f, 0.0f}
+        };
+        uploadConstants(_skyboxConstants, &constants, sizeof(constants));
+
+        _context->SetPipelineState(_skyboxPipeline);
+        _skyboxBinding->GetVariableByName(Diligent::SHADER_TYPE_PIXEL, "g_Sky")
+                      ->Set(slot->texture->GetDefaultView(Diligent::TEXTURE_VIEW_SHADER_RESOURCE));
+        _context->CommitShaderResources(_skyboxBinding, Diligent::RESOURCE_STATE_TRANSITION_MODE_TRANSITION);
+
+        Diligent::DrawAttribs drawAttribs;
+        drawAttribs.NumVertices = 3;
+        drawAttribs.Flags = Diligent::DRAW_FLAG_VERIFY_ALL;
+        _context->Draw(drawAttribs);
     }
 
     void DiligentRenderer::destroyCubemap(const CubemapHandle handle)
     {
+        // The slot owns the texture, so clearing it releases it.
+        _cubemaps.remove(handle);
     }
 
     AmbientMapHandle DiligentRenderer::createAmbientMap(const CubemapHandle cubemap)

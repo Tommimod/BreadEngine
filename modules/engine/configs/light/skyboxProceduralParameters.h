@@ -2,48 +2,43 @@
 #include "inspectorObject.h"
 
 namespace BreadEngine {
+    /**
+     * Conditions the analytic sky dome is built from. Everything the model itself takes is
+     * physical; the two tint-and-energy fields sit on top of its result, because a purely
+     * physical daytime sky cannot express a night, a moon or anything that is not Earth.
+     *
+     * The sun is not authored here. Direction, colour and energy are taken from the scene's
+     * directional light every frame, so the sky and the light that casts the shadows cannot
+     * disagree about where the sun is.
+     */
     struct SkyboxProceduralParameters : InspectorStruct
     {
-        Color skyTopColor;
-        Color skyHorizonColor;
-        ///0 - 1 range
-        float skyHorizonCurve;
-        float skyEnergy;
 
-        Color groundBottomColor;
-        Color groundHorizonColor;
-        ///0 - 1 range
-        float groundHorizonCurve;
-        float groundEnergy;
+        float turbidity = 3.0f;
+        Color groundAlbedo{77, 77, 77, 255};
+        Color skyTint = WHITE;
+        float skyEnergy = 1.0f;
 
-        Vector3 sunDirection;
-        Color sunColor;
-        float sunSize;
-        float sunCurve;
-        float sunEnergy;
 
-        bool isCreated = false;
+        float sunSize = 0.27f;
+        float sunIntensity = 20.0f;
+
+        Vector3 sunDirection{0.0f, -1.0f, 0.0f};
+        Color sunColor = WHITE;
+        float sunEnergy = 1.0f;
 
         SkyboxProceduralParameters() = default;
 
         ~SkyboxProceduralParameters() override = default;
 
-        static SkyboxProceduralParameters defaultParameters();
-
     private:
         INSPECTOR_BEGIN(SkyboxProceduralParameters)
-            INSPECT_FIELD(skyTopColor)
-            INSPECT_FIELD(skyHorizonColor)
-            INSPECT_FIELD(skyHorizonCurve)
+            INSPECT_FIELD(turbidity)
+            INSPECT_FIELD(groundAlbedo)
+            INSPECT_FIELD(skyTint)
             INSPECT_FIELD(skyEnergy)
-
-            INSPECT_FIELD(groundBottomColor)
-            INSPECT_FIELD(groundHorizonColor)
-            INSPECT_FIELD(groundHorizonCurve)
-            INSPECT_FIELD(groundEnergy)
-
             INSPECT_FIELD(sunSize)
-            INSPECT_FIELD(sunCurve)
+            INSPECT_FIELD(sunIntensity)
         INSPECTOR_END()
     };
 } // BreadEngine

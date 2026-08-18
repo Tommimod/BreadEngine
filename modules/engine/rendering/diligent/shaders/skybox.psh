@@ -1,0 +1,46 @@
+// Draws the environment cube map behind everything the scene pass rendered. Runs at the far
+// plane under a LESS_EQUAL depth test, so it reaches exactly the pixels no geometry claimed
+// and costs nothing where the view is filled.
+
+cbuffer SkyboxConstants
+{
+    /// Takes a point on the far plane in normalized device space back into the world, which is
+    /// all that is needed to rebuild the view ray - and works for an orthographic camera too.
+    float4x4 g_InverseViewProjection;
+    float4   g_CameraPosition;
+    /// Rotation applied to the view direction before the cube is sampled, as a quaternion.
+    float4   g_SkyRotation;
+    /// x is the energy multiplier, y the mip level the blur setting selects.
+    float4   g_SkyParams;
+};
+
+TextureCube  g_Sky;
+SamplerState g_Sky_sampler;
+
+struct PSInput
+{
+    float4 Position     : SV_POSITION;
+    float2 NormalizedXY : NORMALIZED_XY;
+};
+
+struct PSOutput
+{
+    float4 Color : SV_TARGET;
+};
+
+float3 rotateByQuaternion(float3 v, float4 q)
+{
+    return v + 2.0 * cross(q.xyz, cross(q.xyz, v) + q.w * v);
+}
+
+void main(in PSInput PSIn, out PSOutput PSOut)
+{
+    float4 farPoint = mul(g_InverseViewProjection, float4(PSIn.NormalizedXY, 1.0, 1.0));
+    float3 direction = normalize(farPoint.xyz / farPoint.w - g_CameraPosition.xyz);
+
+    // An explicit level rather than a sampled one: every neighbouring pixel of a sky is a tiny
+    // angular step, so an automatic mip would sit at zero and the blur setting would do nothing.
+    float3 color = g_Sky.SampleLevel(g_Sky_sampler, rotateByQuaternion(direction, g_SkyRotation), g_SkyParams.y).rgb;
+
+    PSOut.Color = float4(color * g_SkyParams.x, 1.0);
+}

@@ -9,7 +9,6 @@ cbuffer FrameConstants
     float4   g_CameraPosition;
     float4   g_CameraForward;
     float4   g_AmbientColor;
-    float4   g_OutputEncoding;
 };
 
 cbuffer DrawConstants

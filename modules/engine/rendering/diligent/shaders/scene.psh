@@ -21,8 +21,6 @@ cbuffer FrameConstants
     float4   g_CameraForward;
     /// rgb is the colour, w the energy.
     float4   g_AmbientColor;
-    /// x is the exponent the linear result leaves through.
-    float4   g_OutputEncoding;
 };
 
 cbuffer ShadowConstants
@@ -312,9 +310,7 @@ void main(in PSInput PSIn, out PSOutput PSOut)
     color += g_AmbientColor.rgb * g_AmbientColor.w * albedo * occlusion;
     color += g_Emission.Sample(g_Emission_sampler, PSIn.UV).rgb;
 
-    // Shading runs in linear space and the scene target is a plain UNORM texture, so the
-    // encode has to happen here. The project picks the exponent: gamma space, or an identity
-    // that writes the linear result out untouched. Tonemapping belongs in front of this and
-    // does not exist yet.
-    PSOut.Color = float4(pow(max(color, 0.0), g_OutputEncoding.xxx), 1.0);
+    // Written linear and unbounded: the target is a float texture, and the composite pass is
+    // what compresses this into a displayable range and encodes it.
+    PSOut.Color = float4(max(color, 0.0), 1.0);
 }

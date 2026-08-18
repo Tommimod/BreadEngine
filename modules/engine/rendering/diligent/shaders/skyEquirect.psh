@@ -1,0 +1,46 @@
+// Unwraps an equirectangular image into one face of a cube map. The source is what an HDRI is
+// actually distributed as; the cube is what everything downstream - the background pass, and
+// the image-based lighting that will be precomputed from it - wants to sample by direction.
+
+#define PI 3.1415926535897932
+
+cbuffer SkyConstants
+{
+    /// The face being rendered, as the axes its texels span. Declared as the prefix of the
+    /// block the procedural sky uses, so both bake passes share one constant buffer.
+    float4 g_FaceRight;
+    float4 g_FaceUp;
+    float4 g_FaceForward;
+};
+
+Texture2D    g_Equirect;
+SamplerState g_Equirect_sampler;
+
+struct PSInput
+{
+    float4 Position     : SV_POSITION;
+    float2 NormalizedXY : NORMALIZED_XY;
+};
+
+struct PSOutput
+{
+    float4 Color : SV_TARGET;
+};
+
+void main(in PSInput PSIn, out PSOutput PSOut)
+{
+    // Through the device's own NDC-to-UV mapping rather than straight off the triangle: the
+    // face axes below are the cube's sampling rule, which is expressed in texture coordinates,
+    // and which way v runs against NDC is exactly what differs between GL and D3D.
+    float2 span = NormalizedDeviceXYToTexUV(PSIn.NormalizedXY) * 2.0 - 1.0;
+    float3 direction = normalize(g_FaceForward.xyz + g_FaceRight.xyz * span.x + g_FaceUp.xyz * span.y);
+
+    // Longitude around Y, latitude down from the zenith - which is the row order the image is
+    // stored in, so v runs from the top of the sky to the bottom without a flip.
+    float2 uv = float2(atan2(direction.z, direction.x) / (2.0 * PI) + 0.5,
+                       acos(clamp(direction.y, -1.0, 1.0)) / PI);
+
+    // No mip selection: the derivative of that longitude jumps a whole turn at the seam, which
+    // an automatic level reads as a minified fetch and resolves to the smallest mip.
+    PSOut.Color = float4(g_Equirect.SampleLevel(g_Equirect_sampler, uv, 0.0).rgb, 1.0);
+}

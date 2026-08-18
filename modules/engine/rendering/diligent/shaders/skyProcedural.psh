@@ -1,0 +1,93 @@
+// Hosek-Wilkie's analytic sky dome, evaluated into one face of a cube map. The nine
+// coefficients per channel arrive already cooked for this sun elevation, turbidity and ground
+// albedo - all that is left here is the part that depends on the direction being looked at.
+//
+// The model describes the sky dome and nothing else: it has no sun disc, and no solution at
+// all below the horizon. Both are supplied here, and neither is physical.
+
+cbuffer SkyConstants
+{
+    /// The face being rendered, as the axes its texels span.
+    float4 g_FaceRight;
+    float4 g_FaceUp;
+    float4 g_FaceForward;
+    /// The model's nine coefficients: one per element, three channels per element.
+    float4 g_Coefficients[9];
+    /// rgb is the absolute radiance the coefficients are scaled by.
+    float4 g_Radiance;
+    /// xyz is the direction *to* the sun, w the cosine of its disc's angular radius.
+    float4 g_Sun;
+    /// rgb is the disc's own colour, already carrying its intensity.
+    float4 g_SunColor;
+    /// rgb is the artistic multiplier over the model, a the overall energy.
+    float4 g_Tint;
+    /// rgb is what the ground reflects, which stands in for the dome below the horizon.
+    float4 g_Ground;
+};
+
+struct PSInput
+{
+    float4 Position     : SV_POSITION;
+    float2 NormalizedXY : NORMALIZED_XY;
+};
+
+struct PSOutput
+{
+    float4 Color : SV_TARGET;
+};
+
+/// The model's closed form. @a cosTheta is measured from the zenith and @a cosGamma from the
+/// sun, and every coefficient index below is the one the reference implementation assigns it.
+float3 skyRadiance(float cosTheta, float cosGamma)
+{
+    float gamma = acos(clamp(cosGamma, -1.0, 1.0));
+    float3 mieG = g_Coefficients[8].rgb;
+
+    float3 expTerm = exp(g_Coefficients[4].rgb * gamma);
+    float rayleigh = cosGamma * cosGamma;
+    // Henyey-Greenstein, which is what puts the bright halo immediately around the sun.
+    float3 mieDenominator = max(1.0 + mieG * mieG - 2.0 * mieG * cosGamma, 1e-4);
+    // The exponent is spelled as a vector: HLSL would promote the scalar, GLSL has no such
+    // overload of pow, and the converter does not insert one.
+    float3 mie = (1.0 + rayleigh) / pow(mieDenominator, float3(1.5, 1.5, 1.5));
+    float zenith = sqrt(max(cosTheta, 0.0));
+
+    // Split in two exactly as the paper does: a gradient that only depends on how far down the
+    // dome the direction is, times the terms that depend on the angle to the sun.
+    float3 gradient = 1.0 + g_Coefficients[0].rgb * exp(g_Coefficients[1].rgb / (cosTheta + 0.01));
+    float3 terms = g_Coefficients[2].rgb
+                 + g_Coefficients[3].rgb * expTerm
+                 + g_Coefficients[5].rgb * rayleigh
+                 + g_Coefficients[6].rgb * mie
+                 + g_Coefficients[7].rgb * zenith;
+
+    return gradient * terms * g_Radiance.rgb;
+}
+
+void main(in PSInput PSIn, out PSOutput PSOut)
+{
+    // Through the device's own NDC-to-UV mapping rather than straight off the triangle: the
+    // face axes below are the cube's sampling rule, which is expressed in texture coordinates,
+    // and which way v runs against NDC is exactly what differs between GL and D3D.
+    float2 span = NormalizedDeviceXYToTexUV(PSIn.NormalizedXY) * 2.0 - 1.0;
+    float3 direction = normalize(g_FaceForward.xyz + g_FaceRight.xyz * span.x + g_FaceUp.xyz * span.y);
+
+    float cosTheta = direction.y;
+    float cosGamma = dot(direction, g_Sun.xyz);
+
+    // Clamped to the horizon rather than extrapolated: the coefficients describe a dome, and
+    // the expression diverges as soon as cosTheta goes negative.
+    float3 sky = skyRadiance(max(cosTheta, 0.0), cosGamma);
+
+    // Below the horizon the same radiance stands in, dimmed by what the ground reflects. It is
+    // the ground's own albedo that already fed the model, so the two stay consistent.
+    float belowHorizon = saturate(-cosTheta * 8.0);
+    float3 color = lerp(sky, sky * g_Ground.rgb, belowHorizon);
+
+    // A soft edge over the outer quarter of the disc: a hard step aliases badly at the
+    // resolutions a sky is baked at, and the real disc has a limb anyway.
+    float disc = smoothstep(g_Sun.w, lerp(g_Sun.w, 1.0, 0.25), cosGamma);
+    color += g_SunColor.rgb * disc * (1.0 - belowHorizon);
+
+    PSOut.Color = float4(max(color * g_Tint.rgb * g_Tint.a, 0.0), 1.0);
+}

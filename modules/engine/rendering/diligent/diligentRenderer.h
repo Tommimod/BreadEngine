@@ -141,6 +141,21 @@ namespace BreadEngine {
             bool castShadows = true;
         };
 
+        /// Everything the composite pass turns the linear scene into a displayable image
+        /// with. Held as values rather than as the parameter blocks themselves: the blocks
+        /// belong to the project's settings and are handed over by reference per frame.
+        struct PostState
+        {
+            TonemapMode tonemap = TonemapMode::Linear;
+            float exposure = 1.0f;
+            float whitePoint = 1.0f;
+            float brightness = 1.0f;
+            float contrast = 1.0f;
+            float saturation = 1.0f;
+            /// Exponent the graded result is raised to on the way to the target.
+            float encoding = GAMMA_ENCODE_EXPONENT;
+        };
+
         /// A material is exactly its binding, and mutable variables cannot be re-pointed, so
         /// the texture set is fixed for as long as the material exists.
         using MaterialSlot = Diligent::RefCntAutoPtr<Diligent::IShaderResourceBinding>;
@@ -176,12 +191,52 @@ namespace BreadEngine {
             Diligent::float4 omniParams[MAX_OMNI_SHADOWS];
         };
 
+        /// What a cube map bake pass reads. The three face axes lead so that the
+        /// equirectangular shader can declare just those and share the buffer: a constant
+        /// block may be a prefix of the buffer behind it, but not a rearrangement of one.
+        struct SkyBakeConstants
+        {
+            Diligent::float4 faceRight;
+            Diligent::float4 faceUp;
+            Diligent::float4 faceForward;
+            /// Hosek-Wilkie's nine coefficients, three channels per element.
+            Diligent::float4 coefficients[9];
+            Diligent::float4 radiance;
+            /// xyz is the direction to the sun, w the cosine of its disc's angular radius.
+            Diligent::float4 sun;
+            Diligent::float4 sunColor;
+            /// rgb an artistic multiplier over the model, a the overall energy.
+            Diligent::float4 tint;
+            Diligent::float4 ground;
+        };
+
+        /// What the background pass reads.
+        struct SkyboxConstants
+        {
+            float16 inverseViewProjection;
+            Diligent::float4 cameraPosition;
+            /// Rotation applied to the view direction, as a quaternion.
+            Diligent::float4 rotation;
+            /// x the energy multiplier, y the mip level the blur setting selects.
+            Diligent::float4 params;
+        };
+
+        struct CubemapSlot
+        {
+            Diligent::RefCntAutoPtr<Diligent::ITexture> texture;
+        };
+
         Diligent::RefCntAutoPtr<Diligent::IRenderDevice> _device;
         Diligent::RefCntAutoPtr<Diligent::IDeviceContext> _context;
+        /// What the scene pass shades into: linear, floating point, and unbounded, so a
+        /// value brighter than white survives to be tone mapped rather than clipping on write.
         Diligent::RefCntAutoPtr<Diligent::ITexture> _sceneColor;
         Diligent::RefCntAutoPtr<Diligent::ITexture> _sceneDepth;
-        /// A raylib framebuffer over the same two GL textures, so an rlgl overlay pass lands
-        /// in the attachments Diligent just rendered into instead of a copy of the colour.
+        /// What the composite pass writes and everything downstream reads: the displayable,
+        /// already-encoded image. The overlay draws here, and this is what gets blitted.
+        Diligent::RefCntAutoPtr<Diligent::ITexture> _sceneOutput;
+        /// A raylib framebuffer over the output colour and the scene's own depth, so an rlgl
+        /// overlay pass is occluded by scene geometry without being tone mapped with it.
         RenderTexture2D _overlay{};
         Color _clearColor = BLACK;
         /// False while the scene target follows the window rather than a caller-chosen size.
@@ -191,6 +246,20 @@ namespace BreadEngine {
         Diligent::RefCntAutoPtr<Diligent::IBuffer> _frameConstants;
         Diligent::RefCntAutoPtr<Diligent::IBuffer> _drawConstants;
         Diligent::RefCntAutoPtr<Diligent::IBuffer> _lightConstants;
+        /// Bakes Hosek-Wilkie into a cube face, and unwraps an equirectangular image into
+        /// one. Two pipelines over one constant buffer, because the passes differ only in
+        /// where the radiance for a direction comes from.
+        Diligent::RefCntAutoPtr<Diligent::IPipelineState> _skyBakePipeline;
+        Diligent::RefCntAutoPtr<Diligent::IShaderResourceBinding> _skyBakeBinding;
+        Diligent::RefCntAutoPtr<Diligent::IPipelineState> _equirectBakePipeline;
+        Diligent::RefCntAutoPtr<Diligent::IShaderResourceBinding> _equirectBakeBinding;
+        Diligent::RefCntAutoPtr<Diligent::IBuffer> _skyBakeConstants;
+        Diligent::RefCntAutoPtr<Diligent::IPipelineState> _skyboxPipeline;
+        Diligent::RefCntAutoPtr<Diligent::IShaderResourceBinding> _skyboxBinding;
+        Diligent::RefCntAutoPtr<Diligent::IBuffer> _skyboxConstants;
+        Diligent::RefCntAutoPtr<Diligent::IPipelineState> _compositePipeline;
+        Diligent::RefCntAutoPtr<Diligent::IShaderResourceBinding> _compositeBinding;
+        Diligent::RefCntAutoPtr<Diligent::IBuffer> _postConstants;
         Diligent::RefCntAutoPtr<Diligent::IPipelineState> _shadowPipeline;
         Diligent::RefCntAutoPtr<Diligent::IShaderResourceBinding> _shadowBinding;
         /// The cascade the shadow pass is currently filling; one matrix, rewritten per cascade.
@@ -213,6 +282,7 @@ namespace BreadEngine {
         ResourcePool<MeshSlot, MeshHandle> _meshes;
         ResourcePool<TextureSlot, TextureHandle> _textures;
         ResourcePool<LightState, LightHandle> _lights;
+        ResourcePool<CubemapSlot, CubemapHandle> _cubemaps;
         /// The active lights of the frame being submitted, rebuilt per frame. A member only
         /// so the per-frame gather reuses one allocation.
         std::vector<VisibleLight> _visibleLights;
@@ -223,8 +293,13 @@ namespace BreadEngine {
         CameraView _camera{};
         Color _ambientColor = BLACK;
         float _ambientEnergy = 0.0f;
-        /// Exponent the shader raises its linear result to on the way to the target.
-        float _outputEncoding = GAMMA_ENCODE_EXPONENT;
+        /// The environment cube the background pass draws, and how. Invalid leaves the frame
+        /// on the flat clear colour, which is what a scene with no skybox wants.
+        CubemapHandle _sky{};
+        Quaternion _skyRotation{0.0f, 0.0f, 0.0f, 1.0f};
+        float _skyEnergy = 1.0f;
+        float _skyBlur = 0.0f;
+        PostState _post{};
 
         void createSceneTarget(int width, int height);
 
@@ -232,6 +307,31 @@ namespace BreadEngine {
 
         /// Compiles the shaders and builds the one pipeline the scene pass draws through.
         void createScenePipeline();
+
+        /// Builds the fullscreen pass that resolves the linear scene into the output texture.
+        void createCompositePipeline();
+
+        /// Resolves an #include from the engine's own shader directory or, failing that, from
+        /// DiligentFX - whose .fxh files are compiled into the library rather than shipped.
+        [[nodiscard]] Diligent::RefCntAutoPtr<Diligent::IShaderSourceInputStreamFactory> createShaderSources() const;
+
+        /// Builds the two cube map bake passes and the background pass that samples the result.
+        void createSkyPipelines();
+
+        /**
+         * Allocates a cube map of @p size and fills its six faces with @p pipeline, rewriting
+         * @p constants' face axes for each. Generates the mip chain, which is what the blur
+         * setting samples down.
+         */
+        [[nodiscard]] CubemapHandle bakeCubemap(const char *name, int size, Diligent::IPipelineState *pipeline,
+                                                Diligent::IShaderResourceBinding *binding, SkyBakeConstants &constants);
+
+        /// Draws the environment cube behind everything the scene pass rendered.
+        void drawSkybox();
+
+        /// Tone maps and grades the scene into _sceneOutput. Leaves that target bound, which
+        /// is what the overlay and the blit both go on to use.
+        void composite();
 
         /// Allocates all three shadow arrays and the comparison sampler the scene pass reads
         /// them with.
