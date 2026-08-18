@@ -157,8 +157,20 @@ namespace BreadEngine {
         };
 
         /// A material is exactly its binding, and mutable variables cannot be re-pointed, so
-        /// the texture set is fixed for as long as the material exists.
-        using MaterialSlot = Diligent::RefCntAutoPtr<Diligent::IShaderResourceBinding>;
+        /// the texture set is fixed for as long as the material exists. The environment cubes
+        /// are the exception and are dynamic: they are replaced whenever the sky is rebaked,
+        /// which neither a static nor a mutable variable could survive.
+        struct MaterialSlot
+        {
+            Diligent::RefCntAutoPtr<Diligent::IShaderResourceBinding> binding;
+            /// Resolved once, so keeping a binding current costs a comparison per draw rather
+            /// than two lookups by name.
+            Diligent::IShaderResourceVariable *irradiance = nullptr;
+            Diligent::IShaderResourceVariable *prefiltered = nullptr;
+            /// Which ambient map those two variables currently point at. The inspector never
+            /// announces that the environment changed, so this is compared rather than trusted.
+            AmbientMapHandle ambientMap{};
+        };
 
         /// A light that reached the shader this frame, and what was rendered for it. The two
         /// shadow kinds are separate because they are separate mechanisms: a cascade array
@@ -221,9 +233,31 @@ namespace BreadEngine {
             Diligent::float4 params;
         };
 
+        /// What the two image-based lighting bake passes read. The face axes lead, as the sky's
+        /// do, because a cube bake is the same pass whatever it is filling.
+        struct IblBakeConstants
+        {
+            Diligent::float4 faceRight;
+            Diligent::float4 faceUp;
+            Diligent::float4 faceForward;
+            /// x is the perceptual roughness the mip being filled stands for, which only the
+            /// reflection pass reads; y the source cube's face size in texels and z its mip
+            /// count, which together decide how coarse a mip each sample is read from; w how
+            /// many directions to sample.
+            Diligent::float4 filter;
+        };
+
         struct CubemapSlot
         {
             Diligent::RefCntAutoPtr<Diligent::ITexture> texture;
+        };
+
+        /// What one environment precomputes to: the irradiance arriving from every direction
+        /// at once, and the reflection of that environment at each roughness, one per mip.
+        struct AmbientMapSlot
+        {
+            Diligent::RefCntAutoPtr<Diligent::ITexture> irradiance;
+            Diligent::RefCntAutoPtr<Diligent::ITexture> prefiltered;
         };
 
         Diligent::RefCntAutoPtr<Diligent::IRenderDevice> _device;
@@ -254,6 +288,21 @@ namespace BreadEngine {
         Diligent::RefCntAutoPtr<Diligent::IPipelineState> _equirectBakePipeline;
         Diligent::RefCntAutoPtr<Diligent::IShaderResourceBinding> _equirectBakeBinding;
         Diligent::RefCntAutoPtr<Diligent::IBuffer> _skyBakeConstants;
+        /// Convolves an environment cube into the two maps the scene pass shades ambient with.
+        /// Separate pipelines over one constant buffer: the passes differ only in which
+        /// distribution they sample the source with.
+        Diligent::RefCntAutoPtr<Diligent::IPipelineState> _irradiancePipeline;
+        Diligent::RefCntAutoPtr<Diligent::IShaderResourceBinding> _irradianceBinding;
+        Diligent::RefCntAutoPtr<Diligent::IPipelineState> _prefilterPipeline;
+        Diligent::RefCntAutoPtr<Diligent::IShaderResourceBinding> _prefilterBinding;
+        Diligent::RefCntAutoPtr<Diligent::IBuffer> _iblBakeConstants;
+        /// The environment-independent half of the split sum. It depends on nothing but the
+        /// BRDF, so it is integrated once at startup and never again.
+        Diligent::RefCntAutoPtr<Diligent::ITexture> _brdfLut;
+        /// Bound wherever a scene has no environment map. Nothing ever reads it - the shader
+        /// takes the flat ambient colour on that branch - but a dynamic variable still has to
+        /// point at something for a draw to validate.
+        Diligent::RefCntAutoPtr<Diligent::ITexture> _ambientFallback;
         Diligent::RefCntAutoPtr<Diligent::IPipelineState> _skyboxPipeline;
         Diligent::RefCntAutoPtr<Diligent::IShaderResourceBinding> _skyboxBinding;
         Diligent::RefCntAutoPtr<Diligent::IBuffer> _skyboxConstants;
@@ -283,6 +332,7 @@ namespace BreadEngine {
         ResourcePool<TextureSlot, TextureHandle> _textures;
         ResourcePool<LightState, LightHandle> _lights;
         ResourcePool<CubemapSlot, CubemapHandle> _cubemaps;
+        ResourcePool<AmbientMapSlot, AmbientMapHandle> _ambientMaps;
         /// The active lights of the frame being submitted, rebuilt per frame. A member only
         /// so the per-frame gather reuses one allocation.
         std::vector<VisibleLight> _visibleLights;
@@ -293,6 +343,9 @@ namespace BreadEngine {
         CameraView _camera{};
         Color _ambientColor = BLACK;
         float _ambientEnergy = 0.0f;
+        /// The environment the scene pass shades ambient from. Invalid falls back to the flat
+        /// colour above, which is what a scene with no skybox wants.
+        AmbientMapHandle _ambientMap{};
         /// The environment cube the background pass draws, and how. Invalid leaves the frame
         /// on the flat clear colour, which is what a scene with no skybox wants.
         CubemapHandle _sky{};
@@ -325,6 +378,27 @@ namespace BreadEngine {
          */
         [[nodiscard]] CubemapHandle bakeCubemap(const char *name, int size, Diligent::IPipelineState *pipeline,
                                                 Diligent::IShaderResourceBinding *binding, SkyBakeConstants &constants);
+
+        /// Builds the two precompute passes and integrates the BRDF table they are sampled
+        /// alongside. Runs before the scene pipeline, which binds that table for its lifetime.
+        void createIblPipelines();
+
+        /// Integrates the preintegrated GGX table. Depends on nothing but the shading model,
+        /// so it runs once and the pass that fills it is discarded with it.
+        void precomputeBrdfLut();
+
+        /**
+         * Allocates a cube of @p size with @p mipCount levels and fills every face of every one
+         * of them with @p pipeline, rewriting @p constants' face axes and the roughness the mip
+         * stands for before each draw.
+         */
+        [[nodiscard]] Diligent::RefCntAutoPtr<Diligent::ITexture> bakeIblCube(
+            const char *name, int size, Diligent::Uint32 mipCount, Diligent::IPipelineState *pipeline,
+            Diligent::IShaderResourceBinding *binding, IblBakeConstants &constants);
+
+        /// Points @p slot's environment variables at @p map, or at the fallback cube when it
+        /// names none.
+        void bindAmbientMap(MaterialSlot &slot, AmbientMapHandle map);
 
         /// Draws the environment cube behind everything the scene pass rendered.
         void drawSkybox();

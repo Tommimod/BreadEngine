@@ -46,6 +46,25 @@ namespace BreadEngine {
     /// The value puts a clear day's zenith near 1, so a scene reads before any exposure is set.
     constexpr float SKY_RADIANCE_SCALE = 1.0f / 25.0f;
 
+    /// Face size of the diffuse irradiance cube, and how many directions each of its texels
+    /// integrates over. It holds a cosine convolution of the whole sky, so there is nothing in
+    /// it finer than a slow gradient and a small face resolves it completely.
+    constexpr int IRRADIANCE_CUBE_SIZE = 64;
+    constexpr float IRRADIANCE_SAMPLE_COUNT = 256.0f;
+
+    /// Face size of the reflection cube and how many of its mips are filled, which is also how
+    /// many roughness steps the scene pass interpolates between. Mip 0 is a mirror and the last
+    /// is fully rough; below four levels the steps become visible as bands on a curved surface.
+    constexpr int PREFILTERED_CUBE_SIZE = 128;
+    constexpr Diligent::Uint32 PREFILTERED_CUBE_MIPS = 6;
+    constexpr float PREFILTERED_SAMPLE_COUNT = 128.0f;
+
+    /// The preintegrated GGX table, indexed by the cosine of the viewing angle and by
+    /// roughness. Both axes are smooth, which is why so small a table is enough; the sample
+    /// count is generous because it is paid once at startup.
+    constexpr Diligent::Uint32 BRDF_LUT_SIZE = 256;
+    constexpr Diligent::Uint32 BRDF_LUT_SAMPLE_COUNT = 512;
+
     /// Bounds on the cube a loaded equirectangular image is unwrapped into. A face covers a
     /// quarter turn where the source spans a full one, so half the source's height is the size
     /// at which neither is resolving detail the other does not have.
@@ -122,7 +141,13 @@ namespace BreadEngine {
         /// xyz is the direction the camera looks in. The pixel shader projects onto it to get
         /// the camera-space depth the cascade selection compares against.
         Vector4 cameraForward;
+        /// rgb is the ambient colour used where no environment map is bound, w the energy.
         Vector4 ambientColor;
+        /// Turns a world direction into the environment cube's space, as a quaternion. Already
+        /// inverted: the authored rotation turns the sky, and this turns the lookup.
+        Vector4 skyRotation;
+        /// x is 1 while an environment map is bound, y the highest mip of the reflection cube.
+        Vector4 ambientParams;
     };
 
     struct SceneDrawConstants
@@ -171,6 +196,28 @@ namespace BreadEngine {
         Vector4 grading;
     };
 
+    /// Faces of a cube map, in the order every graphics API agrees on, as the axes one face's
+    /// texels span. They are the direction-to-texel rule read backwards rather than anything
+    /// intuitive: for +X that rule is s = -z, t = -y, so u runs along -Z and v runs *down*
+    /// along -Y. Every one of the six has v pointing the way that feels upside down, which is
+    /// precisely why a wrong one mirrors a face without failing anywhere - the omni shadow cube
+    /// pays for the same table.
+    constexpr Vector3 CUBE_FACE_RIGHT[]{
+        {0.0f, 0.0f, -1.0f}, {0.0f, 0.0f, 1.0f},
+        {1.0f, 0.0f, 0.0f}, {1.0f, 0.0f, 0.0f},
+        {1.0f, 0.0f, 0.0f}, {-1.0f, 0.0f, 0.0f}
+    };
+    constexpr Vector3 CUBE_FACE_UP[]{
+        {0.0f, -1.0f, 0.0f}, {0.0f, -1.0f, 0.0f},
+        {0.0f, 0.0f, 1.0f}, {0.0f, 0.0f, -1.0f},
+        {0.0f, -1.0f, 0.0f}, {0.0f, -1.0f, 0.0f}
+    };
+    constexpr Vector3 CUBE_FACE_FORWARD[]{
+        {1.0f, 0.0f, 0.0f}, {-1.0f, 0.0f, 0.0f},
+        {0.0f, 1.0f, 0.0f}, {0.0f, -1.0f, 0.0f},
+        {0.0f, 0.0f, 1.0f}, {0.0f, 0.0f, -1.0f}
+    };
+
     /// An authored colour as the linear scene target needs it. A colour is picked in the
     /// encoded space a screen shows, and the composite pass encodes on the way back out, so
     /// what is written here has to be decoded by exactly the inverse of that encode - which
@@ -209,10 +256,19 @@ namespace BreadEngine {
         // Before the scene pipeline: the cascade array is one of its static resources, so it
         // has to exist by the time that pipeline is built.
         createShadowMaps();
+        // Also before the scene pipeline: the BRDF table is one of its static resources, and a
+        // static variable can only be set while no binding has been created against it yet.
+        createIblPipelines();
         createScenePipeline();
         createShadowPipeline();
         createCompositePipeline();
         createSkyPipelines();
+
+        // The BRDF table is integrated by a real pass, so this is the first work that draws
+        // before a frame has ever been opened. raylib goes on to load its fonts and draw the
+        // editor's first frame through the same context, and it would do both into the table's
+        // framebuffer with the pipeline's state still applied.
+        yieldToRaylib();
     }
 
     void DiligentRenderer::shutdown()
@@ -234,6 +290,13 @@ namespace BreadEngine {
         _textures.clear();
         _materialFallbacks = {};
         _cubemaps.clear();
+        _ambientMaps.clear();
+        _brdfLut.Release();
+        _ambientFallback.Release();
+        _irradianceBinding.Release();
+        _irradiancePipeline.Release();
+        _prefilterBinding.Release();
+        _prefilterPipeline.Release();
         _scenePipeline.Release();
         _compositeBinding.Release();
         _compositePipeline.Release();
@@ -258,6 +321,7 @@ namespace BreadEngine {
         _postConstants.Release();
         _skyBakeConstants.Release();
         _skyboxConstants.Release();
+        _iblBakeConstants.Release();
 
         _context.Release();
         _device.Release();
@@ -447,16 +511,22 @@ namespace BreadEngine {
         graphics.InputLayout.NumElements = static_cast<Diligent::Uint32>(std::size(vertexLayout));
 
         // The material textures belong to the binding rather than to the pipeline, which is
-        // what MUTABLE means here; everything else - the two constant buffers - is static and
-        // stays bound for the pipeline's life.
-        Diligent::ShaderResourceVariableDesc materialVariables[MATERIAL_TEXTURE_COUNT];
+        // what MUTABLE means here. The two environment cubes live on the binding as well but
+        // are DYNAMIC, because a rebaked sky replaces them and neither of the other two kinds
+        // can be re-set; everything left - the constant buffers, the shadow arrays and the BRDF
+        // table - is static and stays bound for the pipeline's life.
+        Diligent::ShaderResourceVariableDesc pixelVariables[MATERIAL_TEXTURE_COUNT + 2];
         for (size_t slot = 0; slot < MATERIAL_TEXTURE_COUNT; ++slot)
         {
-            materialVariables[slot] = {Diligent::SHADER_TYPE_PIXEL, MATERIAL_TEXTURE_NAMES[slot],
-                                       Diligent::SHADER_RESOURCE_VARIABLE_TYPE_MUTABLE};
+            pixelVariables[slot] = {Diligent::SHADER_TYPE_PIXEL, MATERIAL_TEXTURE_NAMES[slot],
+                                    Diligent::SHADER_RESOURCE_VARIABLE_TYPE_MUTABLE};
         }
-        pipelineInfo.PSODesc.ResourceLayout.Variables = materialVariables;
-        pipelineInfo.PSODesc.ResourceLayout.NumVariables = static_cast<Diligent::Uint32>(MATERIAL_TEXTURE_COUNT);
+        pixelVariables[MATERIAL_TEXTURE_COUNT] = {Diligent::SHADER_TYPE_PIXEL, "g_Irradiance",
+                                                  Diligent::SHADER_RESOURCE_VARIABLE_TYPE_DYNAMIC};
+        pixelVariables[MATERIAL_TEXTURE_COUNT + 1] = {Diligent::SHADER_TYPE_PIXEL, "g_Prefiltered",
+                                                      Diligent::SHADER_RESOURCE_VARIABLE_TYPE_DYNAMIC};
+        pipelineInfo.PSODesc.ResourceLayout.Variables = pixelVariables;
+        pipelineInfo.PSODesc.ResourceLayout.NumVariables = static_cast<Diligent::Uint32>(std::size(pixelVariables));
 
         _device->CreateGraphicsPipelineState(pipelineInfo, &_scenePipeline);
         if (!_scenePipeline)
@@ -477,6 +547,10 @@ namespace BreadEngine {
         _scenePipeline->GetStaticVariableByName(Diligent::SHADER_TYPE_PIXEL, "g_ShadowMap")->Set(_shadowMap.GetSRV());
         _scenePipeline->GetStaticVariableByName(Diligent::SHADER_TYPE_PIXEL, "g_SpotShadowMap")->Set(_spotShadowSRV);
         _scenePipeline->GetStaticVariableByName(Diligent::SHADER_TYPE_PIXEL, "g_OmniShadowMap")->Set(_omniShadowSRV);
+        // The BRDF table depends on nothing but the shading model, so it never changes and
+        // belongs to the pipeline rather than to any one environment.
+        _scenePipeline->GetStaticVariableByName(Diligent::SHADER_TYPE_PIXEL, "g_BrdfLut")
+                      ->Set(_brdfLut->GetDefaultView(Diligent::TEXTURE_VIEW_SHADER_RESOURCE));
 
         createMaterialFallbacks();
     }
@@ -665,6 +739,188 @@ namespace BreadEngine {
         _skyBakePipeline->CreateShaderResourceBinding(&_skyBakeBinding, true);
         _equirectBakePipeline->CreateShaderResourceBinding(&_equirectBakeBinding, true);
         _skyboxPipeline->CreateShaderResourceBinding(&_skyboxBinding, true);
+    }
+
+    void DiligentRenderer::createIblPipelines()
+    {
+        if (!_device) return;
+
+        Diligent::BufferDesc constantsDesc;
+        constantsDesc.Usage = Diligent::USAGE_DYNAMIC;
+        constantsDesc.BindFlags = Diligent::BIND_UNIFORM_BUFFER;
+        constantsDesc.CPUAccessFlags = Diligent::CPU_ACCESS_WRITE;
+        constantsDesc.Name = "IBL bake constants";
+        constantsDesc.Size = sizeof(IblBakeConstants);
+        _device->CreateBuffer(constantsDesc, nullptr, &_iblBakeConstants);
+
+        const auto shaderSources = createShaderSources();
+        Diligent::ShaderCreateInfo shaderInfo;
+        shaderInfo.SourceLanguage = Diligent::SHADER_SOURCE_LANGUAGE_HLSL;
+        shaderInfo.pShaderSourceStreamFactory = shaderSources;
+
+        Diligent::RefCntAutoPtr<Diligent::IShader> vertexShader;
+        shaderInfo.Desc = {"Fullscreen VS", Diligent::SHADER_TYPE_VERTEX, true};
+        shaderInfo.FilePath = "fullscreen.vsh";
+        _device->CreateShader(shaderInfo, &vertexShader);
+
+        Diligent::RefCntAutoPtr<Diligent::IShader> irradianceShader;
+        shaderInfo.Desc = {"Irradiance bake PS", Diligent::SHADER_TYPE_PIXEL, true};
+        shaderInfo.FilePath = "iblIrradiance.psh";
+        _device->CreateShader(shaderInfo, &irradianceShader);
+
+        Diligent::RefCntAutoPtr<Diligent::IShader> prefilterShader;
+        shaderInfo.Desc = {"Reflection bake PS", Diligent::SHADER_TYPE_PIXEL, true};
+        shaderInfo.FilePath = "iblSpecular.psh";
+        _device->CreateShader(shaderInfo, &prefilterShader);
+
+        if (!vertexShader || !irradianceShader || !prefilterShader)
+        {
+            Logger::LogError("Diligent failed to compile the image-based lighting shaders");
+            return;
+        }
+
+        // Both passes are the same one triangle over a whole cube face; only the distribution
+        // they sample the source with differs.
+        Diligent::GraphicsPipelineStateCreateInfo pipelineInfo;
+        pipelineInfo.pVS = vertexShader;
+        auto &graphics = pipelineInfo.GraphicsPipeline;
+        graphics.NumRenderTargets = 1;
+        graphics.RTVFormats[0] = SKY_FORMAT;
+        graphics.PrimitiveTopology = Diligent::PRIMITIVE_TOPOLOGY_TRIANGLE_LIST;
+        graphics.RasterizerDesc.CullMode = Diligent::CULL_MODE_NONE;
+        graphics.DepthStencilDesc.DepthEnable = Diligent::False;
+
+        // Dynamic for the same reason the background pass's cube is: the source is a different
+        // texture every time the sky is rebaked, and a mutable variable cannot be re-pointed.
+        const Diligent::ShaderResourceVariableDesc environmentVariables[]{
+            {Diligent::SHADER_TYPE_PIXEL, "g_Environment", Diligent::SHADER_RESOURCE_VARIABLE_TYPE_DYNAMIC}
+        };
+        pipelineInfo.PSODesc.ResourceLayout.Variables = environmentVariables;
+        pipelineInfo.PSODesc.ResourceLayout.NumVariables = 1;
+
+        pipelineInfo.PSODesc.Name = "Irradiance bake";
+        pipelineInfo.pPS = irradianceShader;
+        _device->CreateGraphicsPipelineState(pipelineInfo, &_irradiancePipeline);
+
+        pipelineInfo.PSODesc.Name = "Reflection bake";
+        pipelineInfo.pPS = prefilterShader;
+        _device->CreateGraphicsPipelineState(pipelineInfo, &_prefilterPipeline);
+
+        if (!_irradiancePipeline || !_prefilterPipeline)
+        {
+            Logger::LogError("Diligent failed to create the image-based lighting pipeline states");
+            return;
+        }
+
+        _irradiancePipeline->GetStaticVariableByName(Diligent::SHADER_TYPE_PIXEL, "IblBakeConstants")->Set(_iblBakeConstants);
+        _prefilterPipeline->GetStaticVariableByName(Diligent::SHADER_TYPE_PIXEL, "IblBakeConstants")->Set(_iblBakeConstants);
+        _irradiancePipeline->CreateShaderResourceBinding(&_irradianceBinding, true);
+        _prefilterPipeline->CreateShaderResourceBinding(&_prefilterBinding, true);
+
+        // One texel per face. It is bound wherever a scene has no environment map, where the
+        // shader branches away from it before any fetch - but a draw still validates every
+        // binding it has, so the variable cannot be left pointing at nothing.
+        constexpr Diligent::Uint64 emptyFace = 0;
+        Diligent::TextureSubResData faces[CUBE_FACE_COUNT];
+        for (auto &face: faces) face = {&emptyFace, sizeof(emptyFace)};
+        const Diligent::TextureData fallbackData{faces, CUBE_FACE_COUNT};
+
+        Diligent::TextureDesc fallbackDesc;
+        fallbackDesc.Name = "Ambient fallback cube";
+        fallbackDesc.Type = Diligent::RESOURCE_DIM_TEX_CUBE;
+        fallbackDesc.Width = fallbackDesc.Height = 1;
+        fallbackDesc.ArraySize = CUBE_FACE_COUNT;
+        fallbackDesc.MipLevels = 1;
+        fallbackDesc.Format = SKY_FORMAT;
+        fallbackDesc.BindFlags = Diligent::BIND_SHADER_RESOURCE;
+        _device->CreateTexture(fallbackDesc, &fallbackData, &_ambientFallback);
+        restoreRaylibPixelStore();
+
+        precomputeBrdfLut();
+    }
+
+    void DiligentRenderer::precomputeBrdfLut()
+    {
+        Diligent::TextureDesc desc;
+        desc.Name = "Preintegrated GGX";
+        desc.Type = Diligent::RESOURCE_DIM_TEX_2D;
+        desc.Width = desc.Height = BRDF_LUT_SIZE;
+        desc.MipLevels = 1;
+        // Two terms and nothing else: the scale and the offset the split sum applies to f0.
+        desc.Format = Diligent::TEX_FORMAT_RG16_FLOAT;
+        desc.BindFlags = Diligent::BIND_SHADER_RESOURCE | Diligent::BIND_RENDER_TARGET;
+        _device->CreateTexture(desc, nullptr, &_brdfLut);
+        if (!_brdfLut)
+        {
+            Logger::LogError("Diligent failed to create the preintegrated GGX table");
+            return;
+        }
+
+        // Both stages come straight out of DiligentFX. Nothing about this integral is specific
+        // to the engine, and the table is read at exactly the two coordinates it is written at.
+        const auto samples = std::to_string(BRDF_LUT_SAMPLE_COUNT) + "u";
+        const Diligent::ShaderMacro macros[]{{"NUM_SAMPLES", samples.c_str()}};
+
+        Diligent::ShaderCreateInfo shaderInfo;
+        shaderInfo.SourceLanguage = Diligent::SHADER_SOURCE_LANGUAGE_HLSL;
+        shaderInfo.pShaderSourceStreamFactory = &Diligent::DiligentFXShaderSourceStreamFactory::GetInstance();
+        shaderInfo.Macros = {macros, 1};
+
+        Diligent::RefCntAutoPtr<Diligent::IShader> vertexShader;
+        shaderInfo.Desc = {"Full screen triangle VS", Diligent::SHADER_TYPE_VERTEX, true};
+        shaderInfo.EntryPoint = "FullScreenTriangleVS";
+        shaderInfo.FilePath = "FullScreenTriangleVS.fx";
+        _device->CreateShader(shaderInfo, &vertexShader);
+
+        Diligent::RefCntAutoPtr<Diligent::IShader> pixelShader;
+        shaderInfo.Desc = {"Precompute BRDF PS", Diligent::SHADER_TYPE_PIXEL, true};
+        shaderInfo.EntryPoint = "PrecomputeBRDF_PS";
+        shaderInfo.FilePath = "PrecomputeBRDF.psh";
+        _device->CreateShader(shaderInfo, &pixelShader);
+
+        if (!vertexShader || !pixelShader)
+        {
+            Logger::LogError("Diligent failed to compile the BRDF integration shaders");
+            return;
+        }
+
+        Diligent::GraphicsPipelineStateCreateInfo pipelineInfo;
+        pipelineInfo.PSODesc.Name = "Precompute BRDF";
+        pipelineInfo.pVS = vertexShader;
+        pipelineInfo.pPS = pixelShader;
+        auto &graphics = pipelineInfo.GraphicsPipeline;
+        graphics.NumRenderTargets = 1;
+        graphics.RTVFormats[0] = desc.Format;
+        graphics.PrimitiveTopology = Diligent::PRIMITIVE_TOPOLOGY_TRIANGLE_LIST;
+        graphics.RasterizerDesc.CullMode = Diligent::CULL_MODE_NONE;
+        graphics.DepthStencilDesc.DepthEnable = Diligent::False;
+
+        // Local: the table outlives the pass that fills it, and nothing ever fills it again.
+        Diligent::RefCntAutoPtr<Diligent::IPipelineState> pipeline;
+        _device->CreateGraphicsPipelineState(pipelineInfo, &pipeline);
+        if (!pipeline)
+        {
+            Logger::LogError("Diligent failed to create the BRDF integration pipeline state");
+            return;
+        }
+
+        auto *target = _brdfLut->GetDefaultView(Diligent::TEXTURE_VIEW_RENDER_TARGET);
+        _context->SetRenderTargets(1, &target, nullptr, Diligent::RESOURCE_STATE_TRANSITION_MODE_TRANSITION);
+        _context->SetPipelineState(pipeline);
+
+        Diligent::DrawAttribs drawAttribs;
+        drawAttribs.NumVertices = 3;
+        drawAttribs.Flags = Diligent::DRAW_FLAG_VERIFY_ALL;
+        _context->Draw(drawAttribs);
+
+        // Clamped on both axes: the table is indexed by a cosine and by a roughness, and
+        // wrapping either would fold a grazing view back onto a head-on one.
+        Diligent::SamplerDesc samplerDesc;
+        samplerDesc.MinFilter = samplerDesc.MagFilter = samplerDesc.MipFilter = Diligent::FILTER_TYPE_LINEAR;
+        samplerDesc.AddressU = samplerDesc.AddressV = samplerDesc.AddressW = Diligent::TEXTURE_ADDRESS_CLAMP;
+        Diligent::RefCntAutoPtr<Diligent::ISampler> sampler;
+        _device->CreateSampler(samplerDesc, &sampler);
+        _brdfLut->GetDefaultView(Diligent::TEXTURE_VIEW_SHADER_RESOURCE)->SetSampler(sampler);
     }
 
     void DiligentRenderer::createShadowMaps()
@@ -937,11 +1193,17 @@ namespace BreadEngine {
 
         const auto ambient = ColorNormalize(_ambientColor);
         const auto forward = Vector3Normalize(Vector3Subtract(_camera.target, _camera.position));
+        // The same inverse the background pass turns its view ray by, so a reflection lands
+        // where the sky it reflects is drawn.
+        const auto skyRotation = QuaternionInvert(_skyRotation);
+        const bool hasAmbientMap = _ambientMaps.get(_ambientMap) != nullptr;
         const SceneFrameConstants frame{
             .viewProjection = MatrixToFloatV(_viewProjection),
             .cameraPosition = {_camera.position.x, _camera.position.y, _camera.position.z, 1.0f},
             .cameraForward = {forward.x, forward.y, forward.z, 0.0f},
-            .ambientColor = {ambient.x, ambient.y, ambient.z, _ambientEnergy}
+            .ambientColor = {ambient.x, ambient.y, ambient.z, _ambientEnergy},
+            .skyRotation = {skyRotation.x, skyRotation.y, skyRotation.z, skyRotation.w},
+            .ambientParams = {hasAmbientMap ? 1.0f : 0.0f, static_cast<float>(PREFILTERED_CUBE_MIPS - 1), 0.0f, 0.0f}
         };
         uploadConstants(_frameConstants, &frame, sizeof(frame));
         uploadLights();
@@ -951,8 +1213,13 @@ namespace BreadEngine {
         for (const auto &[mesh, material, model, castShadows]: _draws)
         {
             const auto *slot = _meshes.get(mesh);
-            const auto *binding = _materials.get(material);
-            if (slot == nullptr || binding == nullptr) continue;
+            auto *surface = _materials.get(material);
+            if (slot == nullptr || surface == nullptr) continue;
+
+            // Compared rather than waited on: nothing announces that the environment was
+            // rebaked, and a binding left pointing at the previous one keeps a freed cube alive
+            // and lights the surface with a sky that is no longer in the scene.
+            if (surface->ambientMap != _ambientMap) bindAmbientMap(*surface, _ambientMap);
 
             const SceneDrawConstants draw{
                 .model = MatrixToFloatV(model),
@@ -969,7 +1236,7 @@ namespace BreadEngine {
             _context->SetIndexBuffer(slot->indices, 0, Diligent::RESOURCE_STATE_TRANSITION_MODE_TRANSITION);
             // Committed after the draw constants were remapped, so the draw reads this
             // iteration's values and not the ones the previous one left bound.
-            _context->CommitShaderResources(*binding, Diligent::RESOURCE_STATE_TRANSITION_MODE_TRANSITION);
+            _context->CommitShaderResources(surface->binding, Diligent::RESOURCE_STATE_TRANSITION_MODE_TRANSITION);
 
             Diligent::DrawIndexedAttribs drawAttribs;
             drawAttribs.IndexType = Diligent::VT_UINT32;
@@ -1472,9 +1739,9 @@ namespace BreadEngine {
     {
         if (!_scenePipeline) return {};
 
-        MaterialSlot binding;
-        _scenePipeline->CreateShaderResourceBinding(&binding, true);
-        if (!binding)
+        MaterialSlot material;
+        _scenePipeline->CreateShaderResourceBinding(&material.binding, true);
+        if (!material.binding)
         {
             Logger::LogError("Diligent failed to create a material's resource binding");
             return {};
@@ -1485,13 +1752,19 @@ namespace BreadEngine {
         {
             // Null when the shader does not sample this slot - the sources are compiled from
             // disk at runtime, so which variables exist is not fixed at build time.
-            auto *variable = binding->GetVariableByName(Diligent::SHADER_TYPE_PIXEL, MATERIAL_TEXTURE_NAMES[slot]);
+            auto *variable = material.binding->GetVariableByName(Diligent::SHADER_TYPE_PIXEL, MATERIAL_TEXTURE_NAMES[slot]);
             if (variable == nullptr) continue;
 
             variable->Set(materialTextureView(handles[slot], _materialFallbacks[slot]));
         }
 
-        return _materials.add(std::move(binding));
+        material.irradiance = material.binding->GetVariableByName(Diligent::SHADER_TYPE_PIXEL, "g_Irradiance");
+        material.prefiltered = material.binding->GetVariableByName(Diligent::SHADER_TYPE_PIXEL, "g_Prefiltered");
+        // Unconditionally, unlike the per-draw call: a dynamic variable starts out pointing at
+        // nothing, which is not a state a draw can validate.
+        bindAmbientMap(material, _ambientMap);
+
+        return _materials.add(std::move(material));
     }
 
     void DiligentRenderer::destroyMaterial(const MaterialHandle handle)
@@ -1561,6 +1834,7 @@ namespace BreadEngine {
         _skyBlur = settings.background.skyBlur;
         _ambientColor = settings.ambient.color;
         _ambientEnergy = settings.ambient.energy;
+        _ambientMap = settings.ambient.map;
 
         // The encoding is deliberately not set here: it belongs to the project's output colour
         // space, which is pushed once at startup and is no part of the environment.
@@ -1660,28 +1934,6 @@ namespace BreadEngine {
     CubemapHandle DiligentRenderer::bakeCubemap(const char *name, const int size, Diligent::IPipelineState *pipeline,
                                                 Diligent::IShaderResourceBinding *binding, SkyBakeConstants &constants)
     {
-        // The axes each face's texels span, in the cube's own face order, and they are the
-        // direction-to-texel rule read backwards rather than anything intuitive: for +X that
-        // rule is s = -z, t = -y, so u runs along -Z and v runs *down* along -Y. Every one of
-        // the six has v pointing the way that feels upside down, which is precisely why a
-        // wrong one mirrors a face without failing anywhere - the omni shadow cube pays for
-        // the same table.
-        static constexpr Vector3 faceRight[CUBE_FACE_COUNT]{
-            {0.0f, 0.0f, -1.0f}, {0.0f, 0.0f, 1.0f},
-            {1.0f, 0.0f, 0.0f}, {1.0f, 0.0f, 0.0f},
-            {1.0f, 0.0f, 0.0f}, {-1.0f, 0.0f, 0.0f}
-        };
-        static constexpr Vector3 faceUp[CUBE_FACE_COUNT]{
-            {0.0f, -1.0f, 0.0f}, {0.0f, -1.0f, 0.0f},
-            {0.0f, 0.0f, 1.0f}, {0.0f, 0.0f, -1.0f},
-            {0.0f, -1.0f, 0.0f}, {0.0f, -1.0f, 0.0f}
-        };
-        static constexpr Vector3 faceForward[CUBE_FACE_COUNT]{
-            {1.0f, 0.0f, 0.0f}, {-1.0f, 0.0f, 0.0f},
-            {0.0f, 1.0f, 0.0f}, {0.0f, -1.0f, 0.0f},
-            {0.0f, 0.0f, 1.0f}, {0.0f, 0.0f, -1.0f}
-        };
-
         Diligent::TextureDesc desc;
         desc.Name = name;
         desc.Type = Diligent::RESOURCE_DIM_TEX_CUBE;
@@ -1716,9 +1968,9 @@ namespace BreadEngine {
             Diligent::ITextureView *target = faceTarget;
             _context->SetRenderTargets(1, &target, nullptr, Diligent::RESOURCE_STATE_TRANSITION_MODE_TRANSITION);
 
-            constants.faceRight = {faceRight[face].x, faceRight[face].y, faceRight[face].z, 0.0f};
-            constants.faceUp = {faceUp[face].x, faceUp[face].y, faceUp[face].z, 0.0f};
-            constants.faceForward = {faceForward[face].x, faceForward[face].y, faceForward[face].z, 0.0f};
+            constants.faceRight = {CUBE_FACE_RIGHT[face].x, CUBE_FACE_RIGHT[face].y, CUBE_FACE_RIGHT[face].z, 0.0f};
+            constants.faceUp = {CUBE_FACE_UP[face].x, CUBE_FACE_UP[face].y, CUBE_FACE_UP[face].z, 0.0f};
+            constants.faceForward = {CUBE_FACE_FORWARD[face].x, CUBE_FACE_FORWARD[face].y, CUBE_FACE_FORWARD[face].z, 0.0f};
             uploadConstants(_skyBakeConstants, &constants, sizeof(constants));
 
             _context->CommitShaderResources(binding, Diligent::RESOURCE_STATE_TRANSITION_MODE_TRANSITION);
@@ -1781,10 +2033,126 @@ namespace BreadEngine {
 
     AmbientMapHandle DiligentRenderer::createAmbientMap(const CubemapHandle cubemap)
     {
-        return {};
+        if (!_irradiancePipeline || !_prefilterPipeline) return {};
+
+        const auto *source = _cubemaps.get(cubemap);
+        if (source == nullptr || !source->texture) return {};
+
+        auto *sourceView = source->texture->GetDefaultView(Diligent::TEXTURE_VIEW_SHADER_RESOURCE);
+        _irradianceBinding->GetVariableByName(Diligent::SHADER_TYPE_PIXEL, "g_Environment")->Set(sourceView);
+        _prefilterBinding->GetVariableByName(Diligent::SHADER_TYPE_PIXEL, "g_Environment")->Set(sourceView);
+
+        // Both passes read the source's own dimensions to decide which of its mips a sample
+        // comes from, which is what keeps a sun disc from arriving as a scatter of hot pixels.
+        const auto &sourceDesc = source->texture->GetDesc();
+        IblBakeConstants constants{};
+        constants.filter = {
+            0.0f, static_cast<float>(sourceDesc.Width), static_cast<float>(sourceDesc.MipLevels), IRRADIANCE_SAMPLE_COUNT
+        };
+
+        AmbientMapSlot slot;
+        slot.irradiance = bakeIblCube("Irradiance cube", IRRADIANCE_CUBE_SIZE, 1,
+                                      _irradiancePipeline, _irradianceBinding, constants);
+        constants.filter.w = PREFILTERED_SAMPLE_COUNT;
+        slot.prefiltered = bakeIblCube("Reflection cube", PREFILTERED_CUBE_SIZE, PREFILTERED_CUBE_MIPS,
+                                       _prefilterPipeline, _prefilterBinding, constants);
+        if (!slot.irradiance || !slot.prefiltered) return {};
+
+        return _ambientMaps.add(std::move(slot));
+    }
+
+    Diligent::RefCntAutoPtr<Diligent::ITexture> DiligentRenderer::bakeIblCube(
+        const char *name, const int size, const Diligent::Uint32 mipCount, Diligent::IPipelineState *pipeline,
+        Diligent::IShaderResourceBinding *binding, IblBakeConstants &constants)
+    {
+        Diligent::TextureDesc desc;
+        desc.Name = name;
+        desc.Type = Diligent::RESOURCE_DIM_TEX_CUBE;
+        desc.Width = desc.Height = static_cast<Diligent::Uint32>(size);
+        desc.ArraySize = CUBE_FACE_COUNT;
+        // Exactly the levels this fills. Nothing generates the rest, and a level left unwritten
+        // would be sampled as black wherever a roughness selected it.
+        desc.MipLevels = mipCount;
+        desc.Format = SKY_FORMAT;
+        desc.BindFlags = Diligent::BIND_RENDER_TARGET | Diligent::BIND_SHADER_RESOURCE;
+
+        Diligent::RefCntAutoPtr<Diligent::ITexture> cube;
+        _device->CreateTexture(desc, nullptr, &cube);
+        if (!cube)
+        {
+            Logger::LogError(std::string("Diligent failed to create the ") + name);
+            return {};
+        }
+
+        _context->SetPipelineState(pipeline);
+        for (Diligent::Uint32 mip = 0; mip < mipCount; ++mip)
+        {
+            // Mip 0 stands for a mirror and the last for a fully rough surface, which is the
+            // ramp the scene pass reverses when it picks a level from a roughness. A cube with
+            // one level is the irradiance one, and its roughness means nothing.
+            constants.filter.x = mipCount > 1 ? static_cast<float>(mip) / static_cast<float>(mipCount - 1) : 0.0f;
+
+            for (Diligent::Uint32 face = 0; face < CUBE_FACE_COUNT; ++face)
+            {
+                Diligent::TextureViewDesc faceDesc;
+                faceDesc.Name = "Cube face target";
+                faceDesc.ViewType = Diligent::TEXTURE_VIEW_RENDER_TARGET;
+                faceDesc.FirstArraySlice = face;
+                faceDesc.NumArraySlices = 1;
+                faceDesc.MostDetailedMip = mip;
+                Diligent::RefCntAutoPtr<Diligent::ITextureView> faceTarget;
+                cube->CreateView(faceDesc, &faceTarget);
+
+                Diligent::ITextureView *target = faceTarget;
+                _context->SetRenderTargets(1, &target, nullptr, Diligent::RESOURCE_STATE_TRANSITION_MODE_TRANSITION);
+
+                constants.faceRight = {CUBE_FACE_RIGHT[face].x, CUBE_FACE_RIGHT[face].y, CUBE_FACE_RIGHT[face].z, 0.0f};
+                constants.faceUp = {CUBE_FACE_UP[face].x, CUBE_FACE_UP[face].y, CUBE_FACE_UP[face].z, 0.0f};
+                constants.faceForward = {CUBE_FACE_FORWARD[face].x, CUBE_FACE_FORWARD[face].y, CUBE_FACE_FORWARD[face].z, 0.0f};
+                uploadConstants(_iblBakeConstants, &constants, sizeof(constants));
+
+                _context->CommitShaderResources(binding, Diligent::RESOURCE_STATE_TRANSITION_MODE_TRANSITION);
+
+                Diligent::DrawAttribs drawAttribs;
+                drawAttribs.NumVertices = 3;
+                drawAttribs.Flags = Diligent::DRAW_FLAG_VERIFY_ALL;
+                _context->Draw(drawAttribs);
+            }
+        }
+
+        // Trilinear, so a roughness between two levels reads between the two roughnesses they
+        // were filtered for rather than snapping to the nearer one.
+        Diligent::SamplerDesc samplerDesc;
+        samplerDesc.MinFilter = samplerDesc.MagFilter = samplerDesc.MipFilter = Diligent::FILTER_TYPE_LINEAR;
+        samplerDesc.AddressU = samplerDesc.AddressV = samplerDesc.AddressW = Diligent::TEXTURE_ADDRESS_CLAMP;
+        Diligent::RefCntAutoPtr<Diligent::ISampler> sampler;
+        _device->CreateSampler(samplerDesc, &sampler);
+        cube->GetDefaultView(Diligent::TEXTURE_VIEW_SHADER_RESOURCE)->SetSampler(sampler);
+
+        return cube;
+    }
+
+    void DiligentRenderer::bindAmbientMap(MaterialSlot &slot, const AmbientMapHandle map)
+    {
+        const auto *ambient = _ambientMaps.get(map);
+        auto *irradiance = ambient != nullptr ? ambient->irradiance.RawPtr() : _ambientFallback.RawPtr();
+        auto *prefiltered = ambient != nullptr ? ambient->prefiltered.RawPtr() : _ambientFallback.RawPtr();
+
+        if (slot.irradiance != nullptr)
+        {
+            slot.irradiance->Set(irradiance->GetDefaultView(Diligent::TEXTURE_VIEW_SHADER_RESOURCE));
+        }
+        if (slot.prefiltered != nullptr)
+        {
+            slot.prefiltered->Set(prefiltered->GetDefaultView(Diligent::TEXTURE_VIEW_SHADER_RESOURCE));
+        }
+        slot.ambientMap = map;
     }
 
     void DiligentRenderer::destroyAmbientMap(const AmbientMapHandle handle)
     {
+        // The slot owns both cubes, so clearing it releases them. A material binding still
+        // holding one keeps it alive until the next draw notices the handle changed.
+        _ambientMaps.remove(handle);
     }
 } // namespace BreadEngine

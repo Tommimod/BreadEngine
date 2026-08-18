@@ -9,6 +9,8 @@
 #include "BasicStructures.fxh"
 #include "Shadows.fxh"
 
+#include "environment.fxh"
+
 // Matching LightType's declaration order, which is a serialization contract.
 #define LIGHT_TYPE_DIRECTIONAL 0.0
 #define LIGHT_TYPE_SPOT        1.0
@@ -19,8 +21,15 @@ cbuffer FrameConstants
     float4   g_CameraPosition;
     /// xyz is the direction the camera looks in.
     float4   g_CameraForward;
-    /// rgb is the colour, w the energy.
+    /// rgb is the ambient colour used where no environment map is bound, w the energy that
+    /// scales the ambient term whichever of the two supplies it.
     float4   g_AmbientColor;
+    /// Turns a world direction into the environment cube's space, as a quaternion; already
+    /// inverted, because the authored rotation turns the sky and this turns the lookup.
+    float4   g_SkyRotation;
+    /// x is 1 while an environment map is bound and 0 while the flat colour stands in for one;
+    /// y is the highest mip of the reflection cube, which is what full roughness selects.
+    float4   g_AmbientParams;
 };
 
 cbuffer ShadowConstants
@@ -90,6 +99,16 @@ Texture2D    g_Orm;
 SamplerState g_Orm_sampler;
 Texture2D    g_Emission;
 SamplerState g_Emission_sampler;
+
+/// What the environment leaves on a surface, precomputed from the same cube the background
+/// pass draws: the irradiance arriving from the whole sky at once, the reflection of it at each
+/// roughness, and how much of that reflection survives the surface's own microfacets.
+TextureCube  g_Irradiance;
+SamplerState g_Irradiance_sampler;
+TextureCube  g_Prefiltered;
+SamplerState g_Prefiltered_sampler;
+Texture2D    g_BrdfLut;
+SamplerState g_BrdfLut_sampler;
 
 struct PSInput
 {
@@ -197,6 +216,43 @@ float filterOmniShadow(int slice, float3 fromLight, float3 normal)
     lit += g_OmniShadowMap.SampleCmp(g_OmniShadowMap_sampler, float4(sampleVector + bitangentStep, float(slice)), reference);
     lit += g_OmniShadowMap.SampleCmp(g_OmniShadowMap_sampler, float4(sampleVector - bitangentStep, float(slice)), reference);
     return lit * 0.2;
+}
+
+/// Everything the environment leaves on a surface. With no map bound the flat ambient colour
+/// stands in for the whole sky, and the substitution is exact rather than an approximation: a
+/// constant-radiance environment convolves to itself in both maps, so the only thing that
+/// changes is where the two values come from.
+float3 ambientLight(float3 albedo, float3 f0, float metallic, float roughness, float occlusion,
+                    float3 normal, float3 view)
+{
+    float nDotV = max(dot(normal, view), 1e-4);
+
+    float3 irradiance = g_AmbientColor.rgb;
+    float3 reflection = g_AmbientColor.rgb;
+    // Uniform across the whole pass, so both branches cost one of them rather than both.
+    if (g_AmbientParams.x > 0.5)
+    {
+        float3 lookupNormal = toEnvironmentSpace(normal, g_SkyRotation);
+        float3 lookupReflection = toEnvironmentSpace(reflect(-view, normal), g_SkyRotation);
+        irradiance = g_Irradiance.SampleLevel(g_Irradiance_sampler, lookupNormal, 0.0).rgb;
+        reflection = g_Prefiltered.SampleLevel(g_Prefiltered_sampler, lookupReflection,
+                                               roughness * g_AmbientParams.y).rgb;
+    }
+
+    // Schlick's Fresnel bounded by the surface's own roughness: a rough surface never reaches
+    // the mirror reflectance the head-on term would extrapolate to at a grazing angle, and
+    // without the bound every rough object picks up a white rim from the sky.
+    float3 grazing = max(float3(1.0 - roughness, 1.0 - roughness, 1.0 - roughness), f0);
+    float3 fresnel = f0 + (grazing - f0) * pow(1.0 - nDotV, 5.0);
+
+    // The environment-independent half of the split sum: how much of what is reflected leaves
+    // the surface, as a scale and an offset on f0.
+    float2 brdf = g_BrdfLut.SampleLevel(g_BrdfLut_sampler, float2(nDotV, roughness), 0.0).rg;
+
+    float3 diffuse = irradiance * albedo * (1.0 - metallic) * (float3(1.0, 1.0, 1.0) - fresnel);
+    float3 specular = reflection * (f0 * brdf.x + brdf.y);
+
+    return (diffuse + specular) * occlusion * g_AmbientColor.w;
 }
 
 /// How much of a light reaches a point: 1 for a directional one, and for the two punctual
@@ -307,7 +363,7 @@ void main(in PSInput PSIn, out PSOutput PSOut)
         color += reflectedFraction(albedo, f0, metallic, roughness, normal, view, -toSurface) * radiance;
     }
 
-    color += g_AmbientColor.rgb * g_AmbientColor.w * albedo * occlusion;
+    color += ambientLight(albedo, f0, metallic, roughness, occlusion, normal, view);
     color += g_Emission.Sample(g_Emission_sampler, PSIn.UV).rgb;
 
     // Written linear and unbounded: the target is a float texture, and the composite pass is

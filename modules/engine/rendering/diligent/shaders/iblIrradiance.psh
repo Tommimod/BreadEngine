@@ -1,0 +1,71 @@
+// Cosine-convolves an environment cube into the diffuse irradiance one, a face at a time.
+//
+// What lands in the cube is E / PI rather than E: the estimator divides each sample by the
+// cosine-hemisphere probability that produced it, and that carries the PI the Lambert lobe
+// would otherwise cancel. So a surface's ambient diffuse is one fetch times its albedo - and a
+// constant environment convolves to exactly itself, which is what lets a flat ambient colour
+// stand in for this map with no second formula.
+
+#include "PBR_PrecomputeCommon.fxh"
+#include "ShaderUtilities.fxh"
+
+cbuffer IblBakeConstants
+{
+    /// The face being rendered, as the axes its texels span.
+    float4 g_FaceRight;
+    float4 g_FaceUp;
+    float4 g_FaceForward;
+    /// x is the roughness the mip being filled stands for, which this pass has no use for;
+    /// y the source cube's face size in texels and z its mip count; w how many directions to
+    /// sample.
+    float4 g_Filter;
+};
+
+TextureCube  g_Environment;
+SamplerState g_Environment_sampler;
+
+struct PSInput
+{
+    float4 Position     : SV_POSITION;
+    float2 NormalizedXY : NORMALIZED_XY;
+};
+
+struct PSOutput
+{
+    float4 Color : SV_TARGET;
+};
+
+void main(in PSInput PSIn, out PSOutput PSOut)
+{
+    // Through the device's own NDC-to-UV mapping rather than straight off the triangle: the
+    // face axes are the cube's sampling rule, which is expressed in texture coordinates.
+    float2 span = NormalizedDeviceXYToTexUV(PSIn.NormalizedXY) * 2.0 - 1.0;
+    float3 normal = normalize(g_FaceForward.xyz + g_FaceRight.xyz * span.x + g_FaceUp.xyz * span.y);
+
+    float3 tangent;
+    float3 bitangent;
+    BasisFromNormal(normal, tangent, bitangent);
+
+    uint sampleCount = uint(g_Filter.w);
+    // How much of the sphere one source texel covers. A sample that spreads wider than that is
+    // read from a coarser mip instead, which is what keeps a small bright sun arriving as a
+    // gradient rather than as a scatter of isolated hot pixels.
+    float texelSolidAngle = ComputeCubeMapPixelSolidAngle(g_Filter.y, g_Filter.y);
+
+    float3 irradiance = float3(0.0, 0.0, 0.0);
+    for (uint i = 0u; i < sampleCount; ++i)
+    {
+        float3 direction;
+        float probability;
+        SampleDirectionCosineHemisphere(Hammersley2D(i, sampleCount), direction, probability);
+        direction = normalize(direction.x * tangent + direction.y * bitangent + direction.z * normal);
+
+        float sampleSolidAngle = 1.0 / (float(sampleCount) * probability);
+        // The extra level of bias is not a correction: it trades resolution the convolution
+        // throws away anyway for a quieter result at these sample counts.
+        float mip = clamp(0.5 * log2(sampleSolidAngle / max(texelSolidAngle, 1e-10)) + 1.0, 0.0, g_Filter.z - 1.0);
+        irradiance += g_Environment.SampleLevel(g_Environment_sampler, direction, mip).rgb;
+    }
+
+    PSOut.Color = float4(irradiance / float(sampleCount), 1.0);
+}
