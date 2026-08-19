@@ -1,0 +1,114 @@
+// Blends the fog colour over everything the scene pass and the background pass left in the
+// scene target, by how much fog one view ray crosses. Runs against the depth buffer rather
+// than inside the shading pass so that geometry, the sky and the bare clear colour are all
+// fogged by this one formula - the last two sit at the far plane, which is where skyAffect
+// applies. Writes linear values, like everything else that lands in the scene target.
+
+// Matching FogMode's declaration order, which is a serialization contract - Exp2 really does
+// come before Exp, and reordering them here would silently retune every saved scene.
+#define FOG_MODE_LINEAR 1
+#define FOG_MODE_EXP2   2
+#define FOG_MODE_EXP    3
+
+/// Height span below which a view ray is treated as horizontal. The averaged density divides
+/// by that span, and the limit it approaches is the density at the ray's own height.
+#define FOG_FLAT_RAY_SPAN 1e-4
+
+cbuffer FogConstants
+{
+    /// Takes a point in normalized device space back into the world, which is what turns the
+    /// depth buffer into the position the ray ended at.
+    float4x4 g_InverseViewProjection;
+    float4   g_CameraPosition;
+    /// rgb is the fog colour in the scene's own linear space, a how much of the fog reaches
+    /// the pixels no geometry claimed.
+    float4   g_FogColor;
+    /// x is which distribution to run, matching the FOG_MODE_ values above; y the distance the
+    /// linear mode starts fogging at and z the reciprocal of the span it takes to reach full;
+    /// w the density the two exponential modes are shaped by.
+    float4   g_FogParams;
+    /// x is the world height the fog is at full density up to, y how fast it thins above that;
+    /// zero in y leaves the fog evenly distributed and skips the height integral entirely.
+    float4   g_FogHeight;
+};
+
+Texture2D    g_SceneDepth;
+SamplerState g_SceneDepth_sampler;
+
+struct PSInput
+{
+    float4 Position     : SV_POSITION;
+    float2 NormalizedXY : NORMALIZED_XY;
+};
+
+struct PSOutput
+{
+    float4 Color : SV_TARGET;
+};
+
+/// How much fog stands between the layer's own height and @a height, in units of the density
+/// authored for the layer. Piecewise because the density is flat below that datum and decays
+/// exponentially above it: the integral of the one is the height itself, of the other the
+/// familiar exponential, and the two meet at zero.
+float fogDepthTo(float height, float falloff)
+{
+    if (height < 0.0) return height;
+    return (1.0 - exp(-falloff * height)) / falloff;
+}
+
+/// The fraction of the authored density a ray from @a fromHeight to @a toHeight crosses on
+/// average. Multiplying a distance by this is what makes fog pool low and thin out with
+/// altitude: a ray along the ground keeps all of it, one climbing out of the layer keeps
+/// progressively less, and one entirely above it keeps almost none.
+float averageDensity(float fromHeight, float toHeight, float falloff)
+{
+    float from = fromHeight - g_FogHeight.x;
+    float to = toHeight - g_FogHeight.x;
+    float span = to - from;
+
+    if (abs(span) < FOG_FLAT_RAY_SPAN) return exp(-falloff * max(from, 0.0));
+
+    return (fogDepthTo(to, falloff) - fogDepthTo(from, falloff)) / span;
+}
+
+void main(in PSInput PSIn, out PSOutput PSOut)
+{
+    float2 screenUV = NormalizedDeviceXYToTexUV(PSIn.NormalizedXY);
+    float depth = g_SceneDepth.Sample(g_SceneDepth_sampler, screenUV).r;
+
+    float4 worldPoint = mul(g_InverseViewProjection,
+                            float4(PSIn.NormalizedXY, DepthToNormalizedDeviceZ(depth), 1.0));
+    float3 worldPos = worldPoint.xyz / worldPoint.w;
+
+    // Radial rather than measured along the view axis: a point's own distance is what decides
+    // how much fog stands in front of it, and turning the camera must not change it. Scaled by
+    // the layer's density along the way, so what the distributions below see is how much fog
+    // the ray crossed rather than how far it ran.
+    float fogDistance = length(worldPos - g_CameraPosition.xyz);
+    if (g_FogHeight.y > 0.0) fogDistance *= averageDensity(g_CameraPosition.y, worldPos.y, g_FogHeight.y);
+
+    float fogAmount;
+    int mode = int(g_FogParams.x);
+    if (mode == FOG_MODE_LINEAR)
+    {
+        fogAmount = saturate((fogDistance - g_FogParams.y) * g_FogParams.z);
+    }
+    else
+    {
+        float thickness = g_FogParams.w * fogDistance;
+        // Exp2 squares the exponent, which is what gives it a clear near field and a much
+        // harder wall beyond it than Exp's steady accumulation.
+        if (mode == FOG_MODE_EXP2) thickness *= thickness;
+        fogAmount = 1.0 - exp(-thickness);
+    }
+
+    // Nothing was drawn at the far plane except the background, so this is the sky - whether
+    // that is a cube map or the flat clear colour. It is already fogged by the same ray the
+    // rest of the frame is, which leaves the horizon hazy while the zenith stays clear; this
+    // only scales how much of that reaches it.
+    if (depth >= 1.0) fogAmount *= g_FogColor.a;
+
+    // The pass blends src-alpha over the target, so this is exactly a lerp toward the fog
+    // colour by that amount.
+    PSOut.Color = float4(g_FogColor.rgb, fogAmount);
+}

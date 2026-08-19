@@ -159,6 +159,24 @@ namespace BreadEngine {
             float encoding = GAMMA_ENCODE_EXPONENT;
         };
 
+        /// What the fog pass turns a view ray's length into a fog amount with. Held as values
+        /// for the same reason PostState is: the block it comes from belongs to the project's
+        /// settings and is handed over by reference per frame.
+        struct FogState
+        {
+            FogMode mode = FogMode::Disabled;
+            /// Authored, and decoded into the scene's linear space where it is uploaded - the
+            /// same treatment the clear colour gets, and for the same reason: fog is looked at
+            /// rather than lit with.
+            Color color = WHITE;
+            float start = 0.0f;
+            float end = 0.0f;
+            float density = 0.0f;
+            float height = 0.0f;
+            float heightFalloff = 0.0f;
+            float skyAffect = 0.0f;
+        };
+
         /// A material is exactly its binding, and mutable variables cannot be re-pointed, so
         /// the texture set is fixed for as long as the material exists. The environment cubes
         /// are the exception and are dynamic: they are replaced whenever the sky is rebaked,
@@ -336,6 +354,9 @@ namespace BreadEngine {
         Diligent::RefCntAutoPtr<Diligent::IPipelineState> _skyboxPipeline;
         Diligent::RefCntAutoPtr<Diligent::IShaderResourceBinding> _skyboxBinding;
         Diligent::RefCntAutoPtr<Diligent::IBuffer> _skyboxConstants;
+        Diligent::RefCntAutoPtr<Diligent::IPipelineState> _fogPipeline;
+        Diligent::RefCntAutoPtr<Diligent::IShaderResourceBinding> _fogBinding;
+        Diligent::RefCntAutoPtr<Diligent::IBuffer> _fogConstants;
         Diligent::RefCntAutoPtr<Diligent::IPipelineState> _compositePipeline;
         Diligent::RefCntAutoPtr<Diligent::IShaderResourceBinding> _compositeBinding;
         Diligent::RefCntAutoPtr<Diligent::IBuffer> _postConstants;
@@ -383,6 +404,7 @@ namespace BreadEngine {
         float _skyEnergy = 1.0f;
         float _skyBlur = 0.0f;
         PostState _post{};
+        FogState _fog{};
 
         void createSceneTarget(int width, int height);
 
@@ -391,8 +413,8 @@ namespace BreadEngine {
         /// Compiles the shaders and builds the one pipeline the scene pass draws through.
         void createScenePipeline();
 
-        /// Builds the fullscreen pass that resolves the linear scene into the output texture.
         void createCompositePipeline();
+        void createFogPipeline();
 
         /// Resolves an #include from the engine's own shader directory or, failing that, from
         /// DiligentFX - whose .fxh files are compiled into the library rather than shipped.
@@ -442,6 +464,11 @@ namespace BreadEngine {
 
         /// Draws the environment cube behind everything the scene pass rendered.
         void drawSkybox();
+
+        /// Blends fog over everything in the scene target, geometry and background alike.
+        /// Runs after the background pass, so the sky is fogged by the same view ray the rest
+        /// of the frame is, and before the composite, so what is tone mapped is one linear image.
+        void drawFog();
 
         /// Tone maps and grades the scene into _sceneOutput. Leaves that target bound, which
         /// is what the overlay and the blit both go on to use.

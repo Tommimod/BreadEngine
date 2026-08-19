@@ -6,6 +6,30 @@ The working document — current status, the rules that must not be broken, and 
 
 ---
 
+### Phase 7.d — fog
+
+Two decisions to the project owner up front. Both went the way that costs a little more code, and the first one is the one that shaped everything else.
+
+- **A standalone depth-driven pass**, over fog inside `scene.psh` and over folding it into the composite. The alternatives are cheaper and both were rejected for the same reason twice over. Fog in the shading pass means the formula and its constants exist in `scene.psh`, again in `skybox.psh`, and a third time on the CPU to pre-blend the clear colour — one decision in three places. Folding it into `composite.psh` costs nothing at all, and puts fog on the wrong side of 7.e: bloom is inserted *before* the composite and has to read an already-fogged frame. The standalone pass has one formula, and geometry, the sky and the bare clear colour are all fogged by it, the last two because they sit at the far plane. It also lands the depth shader-resource view that 7.f's SSAO and SSR need anyway.
+- **Height falloff, added to the parameter block** rather than left for later. Legal because Phase 7 has the append-only rule lifted for `configs/light/`, and worth it for the genre: none of the three authored modes can pool fog on the ground, which is the effect a horror scene actually wants. Two fields, `height` and `heightFalloff`, appended - so every saved config keeps its C++ defaults and reads as uniform fog.
+
+**The height model is analytic rather than sampled.** Density is flat up to `height` and decays exponentially above it, and what a ray crosses is the *average* of that over its own segment - the integral of the flat part is the height itself, of the decaying part the familiar exponential, and the two meet at zero, so one piecewise antiderivative covers both. That average scales the **distance**, not the fog amount, which is what lets all three distributions keep their meaning and still saturate; scaling the amount instead looks nearly identical at close range and can never reach full fog. `heightFalloff` at zero skips the integral entirely and the fog fills the world evenly, which is the old behaviour and the default.
+
+**Verified by prediction, not by looking.** Every input is known, so every output pixel is computable in closed form: intersect the camera ray for a pixel with the floor plane, take the radial distance, run the distribution, blend in linear space, undo the exposure and the encode. That is the only check that proves the inverse view-projection reconstruction and the depth convention, and the invariants already record that both fail *plausibly* - a monotonic haze would look right over an entirely wrong reconstruction.
+
+The first attempt at it proved nothing, and the reason is worth keeping: **the floor is clipped at 255,255,236 under the scene's own exposure**, and a saturated pixel has no recoverable linear value to predict from. Dropping `_tonemap.exposure` to 0.25 in the build directory's config put the whole floor back in range at 139,137,125.
+
+- **Exp, density 0.05, fog colour 200,60,30, `skyAffect` 1.** Nine floor points from 4.4 to 33.8 units away, predicted `#71453b · #755047 · #7b6056 · #7b6157 · #7e6a60 · #807167 · #84786d · #867b71 · #867e72`, measured within **one unit on every channel of every one of them**. The sky reads `#6a2010` at all three points sampled - which is the fog colour taken through the 0.25 exposure and the encode, so the far plane is fully fogged, exactly as it should be.
+- **The same, with `skyAffect` 0.** The three sky points return to the unfogged baseline byte for byte while the floor points stay byte-identical to the run above. That isolates the far-plane branch and nothing else.
+- **Height: datum 0, falloff 0.3.** The signature is that one setting fogs the horizon completely and barely touches the zenith. Measured `#6a2010` at the horizon against a prediction of full fog, and `#492f34` at the zenith against a prediction of `#492f34`. The camera sits above the datum and the floor below it, so this also exercises both halves of the piecewise integral in a single frame.
+- **Linear and Exp2**, each against its own predictions, both within a unit. The Linear run includes a floor point *inside* the start distance, which comes back exactly the unfogged baseline.
+
+**A scare that was not a regression, and the reason to record it.** The first capture, taken 11 s in, showed the flat clear colour where the HDRI sky belongs - which looks exactly like a broken skybox and is instead the 4K Radiance decode not having landed. At 2560x1369 in a debug build the sky only appears around **30 s**; the recorded reference values (`495762` at the horizon) then match. Any environment screenshot taken earlier than that here is measuring nothing.
+
+**Two things noted and left alone.** The editor's rlgl overlay draws after the composite, so the grid stays sharp against a fogged distance while everything behind it hazes out - expected, and it goes away when Phase 8 moves the grid into the renderer as real geometry. And the fog pass declares an RGB-only write mask because the scene target's alpha has no consumer; the composite's own pipeline puts the mask back, and the editor's UI rendering intact is what proves it.
+
+**The failure path was re-run for the new shader**: a renamed symbol in `fog.psh` produces one legible `Diligent failed to compile the fog shaders`, the frame loop is reached, and the process shuts down cleanly - `drawFog` is guarded on the pipeline that never got built.
+
 ### After the HDRI — a stabilisation pass over everything 7.c touched
 
 Requested by the project owner before moving on: a full review of the phase and the HDRI work that followed, for defects, leaks and lifetime problems. Eight fixes; **none of them was findable by building or by running**, which is the point worth keeping. The tree compiled clean, both hosts ran with no Diligent error on any stream, and every visible claim had already been verified on screen before this pass started.

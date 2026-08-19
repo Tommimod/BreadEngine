@@ -197,6 +197,21 @@ namespace BreadEngine {
         Vector4 grading;
     };
 
+    /// Mirrors fog.psh's cbuffer, float4-only like the blocks above it.
+    struct FogConstants
+    {
+        float16 inverseViewProjection;
+        Vector4 cameraPosition;
+        /// rgb is the fog colour in the scene's linear space, a how much of the fog reaches
+        /// the pixels no geometry claimed.
+        Vector4 color;
+        /// x is the FogMode, y the distance the linear mode starts fogging at, z the reciprocal
+        /// of the span it takes to reach full, w the two exponential modes' density.
+        Vector4 params;
+        /// x is the world height the fog is at full density up to, y how fast it thins above.
+        Vector4 height;
+    };
+
     /// Faces of a cube map, in the order every graphics API agrees on, as the axes one face's
     /// texels span. They are the direction-to-texel rule read backwards rather than anything
     /// intuitive: for +X that rule is s = -z, t = -y, so u runs along -Z and v runs *down*
@@ -263,6 +278,7 @@ namespace BreadEngine {
         createScenePipeline();
         createShadowPipeline();
         createCompositePipeline();
+        createFogPipeline();
         createSkyPipelines();
 
         // The BRDF table is integrated by a real pass, so this is the first work that draws
@@ -360,7 +376,7 @@ namespace BreadEngine {
         Diligent::TextureDesc depthDesc = colorDesc;
         depthDesc.Name = "Scene depth";
         depthDesc.Format = SCENE_DEPTH_FORMAT;
-        depthDesc.BindFlags = Diligent::BIND_DEPTH_STENCIL;
+        depthDesc.BindFlags = Diligent::BIND_DEPTH_STENCIL | Diligent::BIND_SHADER_RESOURCE;
         _device->CreateTexture(depthDesc, nullptr, &_sceneDepth);
 
         Diligent::TextureDesc outputDesc = colorDesc;
@@ -383,6 +399,7 @@ namespace BreadEngine {
         Diligent::RefCntAutoPtr<Diligent::ISampler> sceneColorSampler;
         _device->CreateSampler(sceneSampler, &sceneColorSampler);
         _sceneColor->GetDefaultView(Diligent::TEXTURE_VIEW_SHADER_RESOURCE)->SetSampler(sceneColorSampler);
+        _sceneDepth->GetDefaultView(Diligent::TEXTURE_VIEW_SHADER_RESOURCE)->SetSampler(sceneColorSampler);
 
         // The GL backend's native handle is the texture name itself, which is all raylib
         // needs to treat these as its own.
@@ -633,6 +650,75 @@ namespace BreadEngine {
 
         _compositePipeline->GetStaticVariableByName(Diligent::SHADER_TYPE_PIXEL, "PostConstants")->Set(_postConstants);
         _compositePipeline->CreateShaderResourceBinding(&_compositeBinding, true);
+    }
+
+    void DiligentRenderer::createFogPipeline()
+    {
+        if (!_device) return;
+
+        Diligent::BufferDesc constantsDesc;
+        constantsDesc.Name = "Fog constants";
+        constantsDesc.Usage = Diligent::USAGE_DYNAMIC;
+        constantsDesc.BindFlags = Diligent::BIND_UNIFORM_BUFFER;
+        constantsDesc.CPUAccessFlags = Diligent::CPU_ACCESS_WRITE;
+        constantsDesc.Size = sizeof(FogConstants);
+        _device->CreateBuffer(constantsDesc, nullptr, &_fogConstants);
+
+        const auto shaderSources = createShaderSources();
+
+        Diligent::ShaderCreateInfo shaderInfo;
+        shaderInfo.SourceLanguage = Diligent::SHADER_SOURCE_LANGUAGE_HLSL;
+        shaderInfo.pShaderSourceStreamFactory = shaderSources;
+
+        Diligent::RefCntAutoPtr<Diligent::IShader> vertexShader;
+        shaderInfo.Desc = {"Fog VS", Diligent::SHADER_TYPE_VERTEX, true};
+        shaderInfo.FilePath = "fullscreen.vsh";
+        _device->CreateShader(shaderInfo, &vertexShader);
+
+        Diligent::RefCntAutoPtr<Diligent::IShader> pixelShader;
+        shaderInfo.Desc = {"Fog PS", Diligent::SHADER_TYPE_PIXEL, true};
+        shaderInfo.FilePath = "fog.psh";
+        _device->CreateShader(shaderInfo, &pixelShader);
+
+        if (!vertexShader || !pixelShader)
+        {
+            Logger::LogError("Diligent failed to compile the fog shaders");
+            return;
+        }
+
+        Diligent::GraphicsPipelineStateCreateInfo pipelineInfo;
+        pipelineInfo.PSODesc.Name = "Scene fog";
+        pipelineInfo.pVS = vertexShader;
+        pipelineInfo.pPS = pixelShader;
+
+        auto &graphics = pipelineInfo.GraphicsPipeline;
+        graphics.NumRenderTargets = 1;
+        graphics.RTVFormats[0] = SCENE_COLOR_FORMAT;
+        graphics.PrimitiveTopology = Diligent::PRIMITIVE_TOPOLOGY_TRIANGLE_LIST;
+        graphics.RasterizerDesc.CullMode = Diligent::CULL_MODE_NONE;
+        graphics.DepthStencilDesc.DepthEnable = Diligent::False;
+
+        auto &blend = graphics.BlendDesc.RenderTargets[0];
+        blend.BlendEnable = Diligent::True;
+        blend.SrcBlend = Diligent::BLEND_FACTOR_SRC_ALPHA;
+        blend.DestBlend = Diligent::BLEND_FACTOR_INV_SRC_ALPHA;
+        blend.RenderTargetWriteMask = Diligent::COLOR_MASK_RGB;
+
+        const Diligent::ShaderResourceVariableDesc variables[]{
+            {Diligent::SHADER_TYPE_PIXEL, "g_SceneDepth", Diligent::SHADER_RESOURCE_VARIABLE_TYPE_DYNAMIC}
+        };
+        pipelineInfo.PSODesc.ResourceLayout.Variables = variables;
+        pipelineInfo.PSODesc.ResourceLayout.NumVariables = static_cast<Diligent::Uint32>(std::size(variables));
+
+        _device->CreateGraphicsPipelineState(pipelineInfo, &_fogPipeline);
+        if (!_fogPipeline)
+        {
+            Logger::LogError("Diligent failed to create the fog pipeline state");
+            return;
+        }
+
+        _fogPipeline->GetStaticVariableByName(Diligent::SHADER_TYPE_PIXEL, "FogConstants")->Set(_fogConstants);
+        _fogPipeline->CreateShaderResourceBinding(&_fogBinding, true);
     }
 
     Diligent::RefCntAutoPtr<Diligent::IShaderSourceInputStreamFactory> DiligentRenderer::createShaderSources() const
@@ -1184,6 +1270,7 @@ namespace BreadEngine {
 
         submitDraws();
         drawSkybox();
+        drawFog();
         composite();
 
         yieldToRaylib();
@@ -1272,6 +1359,37 @@ namespace BreadEngine {
             drawAttribs.Flags = Diligent::DRAW_FLAG_VERIFY_ALL;
             _context->DrawIndexed(drawAttribs);
         }
+    }
+
+    void DiligentRenderer::drawFog()
+    {
+        if (!_fogPipeline || _fog.mode == FogMode::Disabled) return;
+
+        auto *renderTarget = _sceneColor->GetDefaultView(Diligent::TEXTURE_VIEW_RENDER_TARGET);
+        _context->SetRenderTargets(1, &renderTarget, nullptr, Diligent::RESOURCE_STATE_TRANSITION_MODE_TRANSITION);
+
+        const auto color = toSceneLinear(_fog.color, _post.encoding);
+        const FogConstants constants{
+            .inverseViewProjection = MatrixToFloatV(MatrixInvert(_viewProjection)),
+            .cameraPosition = {_camera.position.x, _camera.position.y, _camera.position.z, 1.0f},
+            .color = {color.x, color.y, color.z, std::clamp(_fog.skyAffect, 0.0f, 1.0f)},
+            .params = {
+                static_cast<float>(_fog.mode), _fog.start,
+                1.0f / std::max(_fog.end - _fog.start, 1e-4f), _fog.density
+            },
+            .height = {_fog.height, std::max(_fog.heightFalloff, 0.0f), 0.0f, 0.0f}
+        };
+        uploadConstants(_fogConstants, &constants, sizeof(constants));
+
+        _context->SetPipelineState(_fogPipeline);
+        _fogBinding->GetVariableByName(Diligent::SHADER_TYPE_PIXEL, "g_SceneDepth")
+                   ->Set(_sceneDepth->GetDefaultView(Diligent::TEXTURE_VIEW_SHADER_RESOURCE));
+        _context->CommitShaderResources(_fogBinding, Diligent::RESOURCE_STATE_TRANSITION_MODE_TRANSITION);
+
+        Diligent::DrawAttribs drawAttribs;
+        drawAttribs.NumVertices = 3;
+        drawAttribs.Flags = Diligent::DRAW_FLAG_VERIFY_ALL;
+        _context->Draw(drawAttribs);
     }
 
     void DiligentRenderer::composite()
@@ -1872,6 +1990,15 @@ namespace BreadEngine {
         _post.brightness = settings.finalColor.brightness;
         _post.contrast = settings.finalColor.contrast;
         _post.saturation = settings.finalColor.saturation;
+
+        _fog.mode = settings.fog.mode;
+        _fog.color = settings.fog.color;
+        _fog.start = settings.fog.start;
+        _fog.end = settings.fog.end;
+        _fog.density = settings.fog.density;
+        _fog.height = settings.fog.height;
+        _fog.heightFalloff = settings.fog.heightFalloff;
+        _fog.skyAffect = settings.fog.skyAffect;
     }
 
     CubemapHandle DiligentRenderer::loadCubemap(const std::string &path, const SkyboxCubemapParameters &settings)
