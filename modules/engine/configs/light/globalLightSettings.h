@@ -1,5 +1,6 @@
 #pragma once
 #include "environmentSettings.h"
+#include "skyboxCubemapParameters.h"
 #include "skyboxProceduralParameters.h"
 #include "../baseYamlConfig.h"
 #include "../assets/textureAsset.h"
@@ -27,6 +28,7 @@ namespace BreadEngine {
 
         TextureAsset *_skyboxTexture = nullptr;
         SkyboxProceduralParameters _proceduralSkyboxSettings{};
+        SkyboxCubemapParameters _cubemapSkyboxSettings{};
         std::string _skyboxShaderPath;
 
         EnvironmentBackgroudParameters _background{};
@@ -64,6 +66,7 @@ namespace BreadEngine {
             INSPECT_FIELD(_type);
             INSPECT_FIELD_COND(_proceduralSkyboxSettings, [](const GlobalLightSettings* s){return s->_type == Type::Procedural;});
             INSPECT_FIELD_COND(_skyboxTexture, [](const GlobalLightSettings* s){return s->_type == Type::Cubemap;});
+            INSPECT_FIELD_COND(_cubemapSkyboxSettings, [](const GlobalLightSettings* s){return s->_type == Type::Cubemap;});
             INSPECT_FIELD_COND(_skyboxShaderPath, [](const GlobalLightSettings* s){return s->_type == Type::Custom;});
             INSPECT_FIELD(_background);
             INSPECT_FIELD(_ambient);

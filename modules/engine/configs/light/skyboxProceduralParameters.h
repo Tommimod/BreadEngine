@@ -31,6 +31,33 @@ namespace BreadEngine {
 
         ~SkyboxProceduralParameters() override = default;
 
+        /**
+         * Compares what a bake would read, the sun included - it is written into the three
+         * fields below from the scene's light every frame, so it belongs to the conditions as
+         * much as the authored ones do. The inspector's own change flag is no substitute: it
+         * is raised for every field of every block it shows, including the post-effects a sky
+         * knows nothing about. A field added above and not added here stops triggering a
+         * rebake, which shows up as an inspector edit that does nothing.
+         */
+        [[nodiscard]] bool operator==(const SkyboxProceduralParameters &other) const
+        {
+            return turbidity == other.turbidity && skyEnergy == other.skyEnergy &&
+                   sunSize == other.sunSize && sunIntensity == other.sunIntensity &&
+                   sunEnergy == other.sunEnergy &&
+                   isSameColor(groundAlbedo, other.groundAlbedo) && isSameColor(skyTint, other.skyTint) &&
+                   isSameColor(sunColor, other.sunColor) &&
+                   sunDirection.x == other.sunDirection.x && sunDirection.y == other.sunDirection.y &&
+                   sunDirection.z == other.sunDirection.z;
+        }
+
+    private:
+        [[nodiscard]] static bool isSameColor(const Color a, const Color b)
+        {
+            return a.r == b.r && a.g == b.g && a.b == b.b && a.a == b.a;
+        }
+
+    public:
+
     private:
         INSPECTOR_BEGIN(SkyboxProceduralParameters)
             INSPECT_FIELD(turbidity)

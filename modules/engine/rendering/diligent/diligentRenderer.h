@@ -79,7 +79,10 @@ namespace BreadEngine {
 
         void setEnvironment(const EnvironmentSettings &settings) override;
 
-        [[nodiscard]] CubemapHandle loadCubemap(const std::string &path) override;
+        [[nodiscard]] CubemapHandle loadCubemap(const std::string &path,
+                                                const SkyboxCubemapParameters &settings) override;
+
+        [[nodiscard]] bool isCubemapReady(CubemapHandle handle) const override;
 
         [[nodiscard]] CubemapHandle createProceduralSky(int size, const SkyboxProceduralParameters &sky) override;
 
@@ -219,6 +222,9 @@ namespace BreadEngine {
             Diligent::float4 sunColor;
             /// rgb an artistic multiplier over the model, a the overall energy.
             Diligent::float4 tint;
+            /// rgb is what the ground reflects. w is whether the equirectangular pass carries
+            /// the horizon down over the lower half at all; the analytic dome always fills its
+            /// own and ignores w.
             Diligent::float4 ground;
         };
 
@@ -247,9 +253,33 @@ namespace BreadEngine {
             Diligent::float4 filter;
         };
 
+        /**
+         * A cube map, and - while one is still on its way - what it takes to finish it.
+         *
+         * A procedural sky is baked on the spot and arrives with nothing but its texture. An
+         * environment image is decoded off the render thread, so its slot exists and is empty
+         * for as long as that takes; a non-null texture is what says it is there.
+         */
         struct CubemapSlot
         {
             Diligent::RefCntAutoPtr<Diligent::ITexture> texture;
+            /// Decoding produces a loader, which then builds the source texture on the thread
+            /// that owns the device. Dropped once the cube has been baked from it.
+            Diligent::RefCntAutoPtr<Diligent::ITextureLoader> loader;
+            /// The job writes into this slot, so every path that frees or recycles the slot
+            /// has to wait on it first - dropping the future does not wait on its own.
+            std::future<void> decodeJob;
+            /// The ground fill the bake will apply, taken when the load was asked for rather
+            /// than when it lands: the settings it came from may have been edited since.
+            Diligent::float4 ground{};
+            /// Kept for the failure message. The load is asynchronous, so by the time one can
+            /// be reported the caller's own path argument is long gone.
+            std::string path;
+            /// Set when the owner let go while the decode was still writing here. The slot
+            /// cannot be recycled under a running job and waiting for one would put back the
+            /// freeze that moving the decode off the frame removed, so finalizeCubemaps frees
+            /// it on whichever frame the job lands.
+            bool abandoned = false;
         };
 
         /// What one environment precomputes to: the irradiance arriving from every direction
@@ -372,16 +402,22 @@ namespace BreadEngine {
         void createSkyPipelines();
 
         /**
-         * Allocates a cube map of @p size and fills its six faces with @p pipeline, rewriting
-         * @p constants' face axes for each. Generates the mip chain, which is what the blur
-         * setting samples down.
+         * Gives @p slot a cube map of @p size and fills its six faces with @p pipeline,
+         * rewriting @p constants' face axes for each. Generates the mip chain, which is what
+         * the blur setting samples down. Fills a slot rather than returning one because a
+         * loaded cube's slot has to exist before its image does.
          */
-        [[nodiscard]] CubemapHandle bakeCubemap(const char *name, int size, Diligent::IPipelineState *pipeline,
-                                                Diligent::IShaderResourceBinding *binding, SkyBakeConstants &constants);
+        void bakeCubemap(CubemapSlot &slot, const char *name, int size, Diligent::IPipelineState *pipeline,
+                         Diligent::IShaderResourceBinding *binding, SkyBakeConstants &constants);
 
         /// Builds the two precompute passes and integrates the BRDF table they are sampled
         /// alongside. Runs before the scene pipeline, which binds that table for its lifetime.
         void createIblPipelines();
+
+        /// Builds the two things every draw needs whether or not an environment is ever
+        /// precomputed: the cube bound where a scene has none, and the BRDF table. Runs before
+        /// the parts of image-based lighting that can fail.
+        void createAmbientFallbacks();
 
         /// Integrates the preintegrated GGX table. Depends on nothing but the shading model,
         /// so it runs once and the pass that fills it is discarded with it.
@@ -399,6 +435,10 @@ namespace BreadEngine {
         /// Points @p slot's environment variables at @p map, or at the fallback cube when it
         /// names none.
         void bindAmbientMap(MaterialSlot &slot, AmbientMapHandle map);
+
+        /// Bakes any cube whose image has finished decoding. Called at the top of the frame,
+        /// before the scene target is bound, because baking one binds targets of its own.
+        void finalizeCubemaps();
 
         /// Draws the environment cube behind everything the scene pass rendered.
         void drawSkybox();

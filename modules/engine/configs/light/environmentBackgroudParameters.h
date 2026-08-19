@@ -1,5 +1,6 @@
 ﻿#pragma once
 #include "inspectorObject.h"
+#include "skyboxCubemapParameters.h"
 #include "rendering/renderTypes.h"
 #include "configs/assets/textureAsset.h"
 
@@ -16,15 +17,12 @@ namespace BreadEngine {
 
         ~EnvironmentBackgroudParameters() override = default;
 
-        void setTexture(TextureAsset *texture);
+        void setTexture(TextureAsset *texture, const SkyboxCubemapParameters &settings);
 
         void clearTexture();
 
     private:
-        TextureAsset *_skyboxTexture = nullptr;
-
         INSPECTOR_BEGIN(EnvironmentBackgroudParameters)
-            INSPECT_FIELD(_skyboxTexture)
             INSPECT_FIELD(skyBlur)
             INSPECT_FIELD(energy)
             INSPECT_FIELD(color)

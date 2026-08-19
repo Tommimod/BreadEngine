@@ -54,13 +54,37 @@ namespace BreadEngine {
         {
             if (get(handle) == nullptr) return;
 
-            auto &entry = _entries[handle.index];
+            release(handle.index);
+        }
+
+        /**
+         * Frees every live slot @p predicate accepts, and hands it a mutable slot so it can
+         * settle whatever the slot still owes first. Separate from forEachAlive because a
+         * visitor there has no way to name the slot it is standing on, and so no way to free it.
+         */
+        template<typename Fn>
+        void removeIf(Fn &&predicate)
+        {
+            for (uint32_t index = 0; index < _entries.size(); ++index)
+            {
+                auto &entry = _entries[index];
+                if (!entry.alive || !predicate(entry.slot)) continue;
+
+                release(index);
+            }
+        }
+
+    private:
+        void release(const uint32_t index)
+        {
+            auto &entry = _entries[index];
             entry.slot = Slot{};
             entry.alive = false;
             ++entry.generation;
-            _freeIndices.push_back(handle.index);
+            _freeIndices.push_back(index);
         }
 
+    public:
         template<typename Fn>
         void forEachAlive(Fn &&fn)
         {

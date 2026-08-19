@@ -1,16 +1,35 @@
 // Unwraps an equirectangular image into one face of a cube map. The source is what an HDRI is
 // actually distributed as; the cube is what everything downstream - the background pass, and
-// the image-based lighting that will be precomputed from it - wants to sample by direction.
+// the image-based lighting precomputed from it - wants to sample by direction.
 
 #define PI 3.1415926535897932
 
+/// How far above the horizon the colour carried down over the lower half is taken from, as a
+/// fraction of the image's full latitude span - two degrees. Not taken at the horizon itself:
+/// a sky-only image routinely stops a row or two short of the exact midpoint, and this one
+/// does, so sampling the midpoint picks up the very black that is being replaced. Two degrees
+/// is far enough inside the data for any such image and near enough that the colour is still
+/// the horizon's own.
+#define HORIZON_MARGIN (2.0 / 180.0)
+
+// The whole of the sky bake block, not the prefix this pass reads: both bake passes are bound
+// to one buffer, and a cbuffer may be a prefix of the buffer behind it but never a rearranged
+// one. Declaring all of it is what keeps the two declarations from drifting apart.
 cbuffer SkyConstants
 {
-    /// The face being rendered, as the axes its texels span. Declared as the prefix of the
-    /// block the procedural sky uses, so both bake passes share one constant buffer.
+    /// The face being rendered, as the axes its texels span.
     float4 g_FaceRight;
     float4 g_FaceUp;
     float4 g_FaceForward;
+    /// The analytic model's coefficients and sun, none of which this pass has any use for.
+    float4 g_Coefficients[9];
+    float4 g_Radiance;
+    float4 g_Sun;
+    float4 g_SunColor;
+    float4 g_Tint;
+    /// rgb is what the ground reflects; w is whether this pass carries the horizon down over
+    /// the lower half at all. The analytic dome always fills its own and ignores w.
+    float4 g_Ground;
 };
 
 Texture2D    g_Equirect;
@@ -36,11 +55,28 @@ void main(in PSInput PSIn, out PSOutput PSOut)
     float3 direction = normalize(g_FaceForward.xyz + g_FaceRight.xyz * span.x + g_FaceUp.xyz * span.y);
 
     // Longitude around Y, latitude down from the zenith - which is the row order the image is
-    // stored in, so v runs from the top of the sky to the bottom without a flip.
+    // stored in, so v runs from the top of the sky to the bottom without a flip. The horizon
+    // is therefore exactly halfway down.
     float2 uv = float2(atan2(direction.z, direction.x) / (2.0 * PI) + 0.5,
                        acos(clamp(direction.y, -1.0, 1.0)) / PI);
 
+    // A sky-only image holds nothing under its horizon and reads as black there, which is both
+    // an ugly lower half and an environment that lights nothing from below. Clamping the
+    // latitude carries the horizon's own colour down instead, and the ground albedo dims it -
+    // the same two steps, in the same order, that the analytic dome applies to its own.
+    float belowHorizon = 0.0;
+    // Uniform across the whole pass, so it costs one branch rather than both sides of one.
+    if (g_Ground.w > 0.5)
+    {
+        belowHorizon = saturate(-direction.y * 8.0);
+        // Applies above the horizon as well as below it, which is the point: the last couple
+        // of rows before the midpoint are part of the same empty region.
+        uv.y = min(uv.y, 0.5 - HORIZON_MARGIN);
+    }
+
     // No mip selection: the derivative of that longitude jumps a whole turn at the seam, which
     // an automatic level reads as a minified fetch and resolves to the smallest mip.
-    PSOut.Color = float4(g_Equirect.SampleLevel(g_Equirect_sampler, uv, 0.0).rgb, 1.0);
+    float3 color = g_Equirect.SampleLevel(g_Equirect_sampler, uv, 0.0).rgb;
+
+    PSOut.Color = float4(lerp(color, color * g_Ground.rgb, belowHorizon), 1.0);
 }

@@ -5,6 +5,7 @@
 #include "renderTypes.h"
 #include "geometry/meshData.h"
 #include "configs/light/environmentSettings.h"
+#include "configs/light/skyboxCubemapParameters.h"
 #include "configs/light/skyboxProceduralParameters.h"
 
 namespace BreadEngine {
@@ -95,7 +96,16 @@ namespace BreadEngine {
 
         virtual void setEnvironment(const EnvironmentSettings &settings) = 0;
 
-        [[nodiscard]] virtual CubemapHandle loadCubemap(const std::string &path) = 0;
+        /**
+         * Returns immediately with a handle whose cube is not filled yet: an environment image
+         * is large enough that decoding it on the render thread stalls the frame for seconds.
+         * isCubemapReady() says when it has arrived.
+         */
+        [[nodiscard]] virtual CubemapHandle loadCubemap(const std::string &path,
+                                                        const SkyboxCubemapParameters &settings) = 0;
+
+        /// False while a loaded cube is still being decoded, and for a handle naming nothing.
+        [[nodiscard]] virtual bool isCubemapReady(CubemapHandle handle) const = 0;
 
         [[nodiscard]] virtual CubemapHandle createProceduralSky(int size, const SkyboxProceduralParameters &sky) = 0;
 

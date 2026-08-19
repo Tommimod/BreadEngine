@@ -6,7 +6,7 @@
 namespace BreadEngine {
     DEFINE_STATIC_PROPS(EnvironmentBackgroudParameters)
 
-    void EnvironmentBackgroudParameters::setTexture(TextureAsset *texture)
+    void EnvironmentBackgroudParameters::setTexture(TextureAsset *texture, const SkyboxCubemapParameters &settings)
     {
         if (texture->getTextureType() != TextureAsset::TextureType::Cube)
         {
@@ -15,13 +15,11 @@ namespace BreadEngine {
         }
 
         clearTexture();
-        _skyboxTexture = texture;
-        sky = Renderer::get().loadCubemap(texture->getAssetPath());
+        sky = Renderer::get().loadCubemap(texture->getAssetPath(), settings);
     }
 
     void EnvironmentBackgroudParameters::clearTexture()
     {
-        _skyboxTexture = nullptr;
         Renderer::get().destroyCubemap(sky);
         sky = {};
     }

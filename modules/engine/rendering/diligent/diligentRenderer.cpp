@@ -4,6 +4,7 @@
 #include <GL/glew.h>
 
 #include <algorithm>
+#include <chrono>
 #include <cmath>
 #include <cstring>
 #include <string>
@@ -289,6 +290,11 @@ namespace BreadEngine {
         });
         _textures.clear();
         _materialFallbacks = {};
+        // Every slot the pool is about to drop may still have a decode running into it.
+        _cubemaps.forEachAlive([](CubemapSlot &slot)
+        {
+            if (slot.decodeJob.valid()) slot.decodeJob.get();
+        });
         _cubemaps.clear();
         _ambientMaps.clear();
         _brdfLut.Release();
@@ -548,9 +554,14 @@ namespace BreadEngine {
         _scenePipeline->GetStaticVariableByName(Diligent::SHADER_TYPE_PIXEL, "g_SpotShadowMap")->Set(_spotShadowSRV);
         _scenePipeline->GetStaticVariableByName(Diligent::SHADER_TYPE_PIXEL, "g_OmniShadowMap")->Set(_omniShadowSRV);
         // The BRDF table depends on nothing but the shading model, so it never changes and
-        // belongs to the pipeline rather than to any one environment.
-        _scenePipeline->GetStaticVariableByName(Diligent::SHADER_TYPE_PIXEL, "g_BrdfLut")
-                      ->Set(_brdfLut->GetDefaultView(Diligent::TEXTURE_VIEW_SHADER_RESOURCE));
+        // belongs to the pipeline rather than to any one environment. Guarded because it is
+        // built by a pass of its own, and a renderer that failed to build it should say so
+        // rather than take the process down here.
+        if (_brdfLut)
+        {
+            _scenePipeline->GetStaticVariableByName(Diligent::SHADER_TYPE_PIXEL, "g_BrdfLut")
+                          ->Set(_brdfLut->GetDefaultView(Diligent::TEXTURE_VIEW_SHADER_RESOURCE));
+        }
 
         createMaterialFallbacks();
     }
@@ -753,6 +764,12 @@ namespace BreadEngine {
         constantsDesc.Size = sizeof(IblBakeConstants);
         _device->CreateBuffer(constantsDesc, nullptr, &_iblBakeConstants);
 
+        // Ahead of anything that can fail. The scene pipeline binds the table for its lifetime
+        // and every material binds the fallback cube, so a shader that does not compile has to
+        // leave this renderer without ambient maps - not without the two things every draw
+        // needs whether or not an environment was ever precomputed.
+        createAmbientFallbacks();
+
         const auto shaderSources = createShaderSources();
         Diligent::ShaderCreateInfo shaderInfo;
         shaderInfo.SourceLanguage = Diligent::SHADER_SOURCE_LANGUAGE_HLSL;
@@ -816,7 +833,10 @@ namespace BreadEngine {
         _prefilterPipeline->GetStaticVariableByName(Diligent::SHADER_TYPE_PIXEL, "IblBakeConstants")->Set(_iblBakeConstants);
         _irradiancePipeline->CreateShaderResourceBinding(&_irradianceBinding, true);
         _prefilterPipeline->CreateShaderResourceBinding(&_prefilterBinding, true);
+    }
 
+    void DiligentRenderer::createAmbientFallbacks()
+    {
         // One texel per face. It is bound wherever a scene has no environment map, where the
         // shader branches away from it before any fetch - but a draw still validates every
         // binding it has, so the variable cannot be left pointing at nothing.
@@ -835,6 +855,7 @@ namespace BreadEngine {
         fallbackDesc.BindFlags = Diligent::BIND_SHADER_RESOURCE;
         _device->CreateTexture(fallbackDesc, &fallbackData, &_ambientFallback);
         restoreRaylibPixelStore();
+        if (!_ambientFallback) Logger::LogError("Diligent failed to create the ambient fallback cube");
 
         precomputeBrdfLut();
     }
@@ -1129,11 +1150,18 @@ namespace BreadEngine {
 
     void DiligentRenderer::endScene()
     {
-        if (!_sceneColor) return;
+        if (!_context) return;
 
         // raylib has been drawing through the same context since the last frame ended, so
         // whatever Diligent remembers about the GL state it left behind is stale.
         _context->InvalidateState();
+
+        // Ahead of everything that binds the scene target, because baking a cube binds six
+        // targets of its own - and ahead of the early return below, because a decode that has
+        // landed should become usable whether or not there is a target to draw into this frame.
+        finalizeCubemaps();
+
+        if (!_sceneColor) return;
 
         // Ahead of the scene pass, which is the one that reads the result. A frame with no
         // directional caster leaves the cascade count at zero, which Shadows.fxh reads as
@@ -1846,54 +1874,113 @@ namespace BreadEngine {
         _post.saturation = settings.finalColor.saturation;
     }
 
-    CubemapHandle DiligentRenderer::loadCubemap(const std::string &path)
+    CubemapHandle DiligentRenderer::loadCubemap(const std::string &path, const SkyboxCubemapParameters &settings)
     {
         if (!_equirectBakePipeline) return {};
 
-        Diligent::TextureLoadInfo loadInfo;
-        loadInfo.Name = "Equirectangular sky";
-        loadInfo.GenerateMips = false;
-        // An .hdr already holds linear radiance; an eight-bit image is encoded. This is the
-        // only chance to say which, because the cube it is unwrapped into is float and nothing
-        // downstream can tell the two apart afterwards.
-        loadInfo.IsSRGB = !path.ends_with(".hdr") && !path.ends_with(".HDR");
+        const auto ground = toSceneLinear(settings.groundAlbedo, _post.encoding);
+        CubemapSlot slot;
+        slot.ground = {ground.x, ground.y, ground.z, settings.fillBelowHorizon ? 1.0f : 0.0f};
+        slot.path = path;
 
-        Diligent::RefCntAutoPtr<Diligent::ITextureLoader> loader;
-        Diligent::CreateTextureLoaderFromFile(path.c_str(), Diligent::IMAGE_FILE_FORMAT_UNKNOWN, loadInfo, &loader);
-        if (!loader)
+        const auto handle = _cubemaps.add(std::move(slot));
+        auto *pending = _cubemaps.get(handle);
+
+        // A four-thousand-pixel environment image takes seconds to decode, and doing it here
+        // would stall every frame in which a sky is picked or an unrelated setting is touched.
+        // Decoding needs no device, so it runs off the render thread; finalizeCubemaps does
+        // the half that does. Pool slots keep a stable address, so the job captures one.
+        // Nothing is reported from in here. Logger appends to a shared buffer and notifies
+        // the editor's console, neither of which is synchronised, so the job leaves a null
+        // loader behind and finalizeCubemaps says so from the render thread.
+        pending->decodeJob = WorkerPool::submit([pending]
         {
-            Logger::LogError("Diligent failed to load the skybox image " + path);
-            return {};
-        }
+            Diligent::TextureLoadInfo loadInfo;
+            loadInfo.Name = "Equirectangular sky";
+            loadInfo.GenerateMips = false;
+            // An .hdr already holds linear radiance; an eight-bit image is encoded. This is the
+            // only chance to say which, because the cube it is unwrapped into is float and
+            // nothing downstream can tell the two apart afterwards.
+            loadInfo.IsSRGB = !pending->path.ends_with(".hdr") && !pending->path.ends_with(".HDR");
 
-        Diligent::RefCntAutoPtr<Diligent::ITexture> equirectangular;
-        loader->CreateTexture(_device, &equirectangular);
-        restoreRaylibPixelStore();
-        if (!equirectangular) return {};
+            Diligent::CreateTextureLoaderFromFile(pending->path.c_str(), Diligent::IMAGE_FILE_FORMAT_UNKNOWN,
+                                                  loadInfo, &pending->loader);
+        });
 
-        const auto &sourceDesc = equirectangular->GetDesc();
-        if (sourceDesc.Type != Diligent::RESOURCE_DIM_TEX_2D)
+        return handle;
+    }
+
+    bool DiligentRenderer::isCubemapReady(const CubemapHandle handle) const
+    {
+        const auto *slot = _cubemaps.get(handle);
+        return slot != nullptr && slot->texture;
+    }
+
+    void DiligentRenderer::finalizeCubemaps()
+    {
+        // Slots whose owner let go mid-decode, freed on whichever frame the job lands. First,
+        // so a cube nobody wants is never baked.
+        _cubemaps.removeIf([](CubemapSlot &slot)
         {
-            Logger::LogError("A skybox image must be a single equirectangular picture: " + path);
-            return {};
-        }
+            if (!slot.abandoned) return false;
+            if (slot.decodeJob.valid())
+            {
+                if (slot.decodeJob.wait_for(std::chrono::seconds(0)) != std::future_status::ready) return false;
+                slot.decodeJob.get();
+            }
 
-        Diligent::SamplerDesc samplerDesc;
-        samplerDesc.MinFilter = samplerDesc.MagFilter = samplerDesc.MipFilter = Diligent::FILTER_TYPE_LINEAR;
-        // Wrapped across the seam and clamped at the poles, which is how the projection runs:
-        // longitude comes back around, latitude stops.
-        samplerDesc.AddressU = Diligent::TEXTURE_ADDRESS_WRAP;
-        samplerDesc.AddressV = samplerDesc.AddressW = Diligent::TEXTURE_ADDRESS_CLAMP;
-        Diligent::RefCntAutoPtr<Diligent::ISampler> sampler;
-        _device->CreateSampler(samplerDesc, &sampler);
-        auto *sourceView = equirectangular->GetDefaultView(Diligent::TEXTURE_VIEW_SHADER_RESOURCE);
-        sourceView->SetSampler(sampler);
+            return true;
+        });
 
-        _equirectBakeBinding->GetVariableByName(Diligent::SHADER_TYPE_PIXEL, "g_Equirect")->Set(sourceView);
+        _cubemaps.forEachAlive([this](CubemapSlot &slot)
+        {
+            if (slot.abandoned || !slot.decodeJob.valid()) return;
+            // Polled rather than waited on: the whole point of the job is that the frame it
+            // was queued in does not stop for it.
+            if (slot.decodeJob.wait_for(std::chrono::seconds(0)) != std::future_status::ready) return;
 
-        const int size = std::clamp(static_cast<int>(sourceDesc.Height) / 2, MIN_SKY_RESOLUTION, MAX_SKY_RESOLUTION);
-        SkyBakeConstants constants{};
-        return bakeCubemap("Skybox cubemap", size, _equirectBakePipeline, _equirectBakeBinding, constants);
+            slot.decodeJob.get();
+            // Reported here rather than from the job, which runs on a worker thread.
+            if (!slot.loader)
+            {
+                Logger::LogError("Diligent failed to load the skybox image " + slot.path);
+                return;
+            }
+
+            Diligent::RefCntAutoPtr<Diligent::ITexture> equirectangular;
+            slot.loader->CreateTexture(_device, &equirectangular);
+            restoreRaylibPixelStore();
+            // The decoded pixels live in the loader, and the texture now owns its own copy.
+            slot.loader.Release();
+            if (!equirectangular) return;
+
+            const auto &sourceDesc = equirectangular->GetDesc();
+            if (sourceDesc.Type != Diligent::RESOURCE_DIM_TEX_2D)
+            {
+                Logger::LogError("A skybox image must be a single equirectangular picture: " + slot.path);
+                return;
+            }
+
+            Diligent::SamplerDesc samplerDesc;
+            samplerDesc.MinFilter = samplerDesc.MagFilter = samplerDesc.MipFilter = Diligent::FILTER_TYPE_LINEAR;
+            // Wrapped across the seam and clamped at the poles, which is how the projection
+            // runs: longitude comes back around, latitude stops.
+            samplerDesc.AddressU = Diligent::TEXTURE_ADDRESS_WRAP;
+            samplerDesc.AddressV = samplerDesc.AddressW = Diligent::TEXTURE_ADDRESS_CLAMP;
+            Diligent::RefCntAutoPtr<Diligent::ISampler> sampler;
+            _device->CreateSampler(samplerDesc, &sampler);
+            auto *sourceView = equirectangular->GetDefaultView(Diligent::TEXTURE_VIEW_SHADER_RESOURCE);
+            sourceView->SetSampler(sampler);
+
+            _equirectBakeBinding->GetVariableByName(Diligent::SHADER_TYPE_PIXEL, "g_Equirect")->Set(sourceView);
+
+            // A face covers a quarter turn where the source spans a full one, so half the
+            // source's height is the size at which neither resolves detail the other lacks.
+            const int size = std::clamp(static_cast<int>(sourceDesc.Height) / 2, MIN_SKY_RESOLUTION, MAX_SKY_RESOLUTION);
+            SkyBakeConstants constants{};
+            constants.ground = slot.ground;
+            bakeCubemap(slot, "Skybox cubemap", size, _equirectBakePipeline, _equirectBakeBinding, constants);
+        });
     }
 
     CubemapHandle DiligentRenderer::createProceduralSky(const int size, const SkyboxProceduralParameters &sky)
@@ -1928,11 +2015,16 @@ namespace BreadEngine {
         constants.tint = {tint.x, tint.y, tint.z, sky.skyEnergy};
         constants.ground = {ground.x, ground.y, ground.z, 0.0f};
 
-        return bakeCubemap("Procedural sky", size, _skyBakePipeline, _skyBakeBinding, constants);
+        CubemapSlot slot;
+        bakeCubemap(slot, "Procedural sky", size, _skyBakePipeline, _skyBakeBinding, constants);
+        if (!slot.texture) return {};
+
+        return _cubemaps.add(std::move(slot));
     }
 
-    CubemapHandle DiligentRenderer::bakeCubemap(const char *name, const int size, Diligent::IPipelineState *pipeline,
-                                                Diligent::IShaderResourceBinding *binding, SkyBakeConstants &constants)
+    void DiligentRenderer::bakeCubemap(CubemapSlot &slot, const char *name, const int size,
+                                       Diligent::IPipelineState *pipeline,
+                                       Diligent::IShaderResourceBinding *binding, SkyBakeConstants &constants)
     {
         Diligent::TextureDesc desc;
         desc.Name = name;
@@ -1946,12 +2038,11 @@ namespace BreadEngine {
         desc.BindFlags = Diligent::BIND_RENDER_TARGET | Diligent::BIND_SHADER_RESOURCE;
         desc.MiscFlags = Diligent::MISC_TEXTURE_FLAG_GENERATE_MIPS;
 
-        CubemapSlot slot;
         _device->CreateTexture(desc, nullptr, &slot.texture);
         if (!slot.texture)
         {
             Logger::LogError(std::string("Diligent failed to create the ") + name);
-            return {};
+            return;
         }
 
         _context->SetPipelineState(pipeline);
@@ -1990,8 +2081,6 @@ namespace BreadEngine {
         Diligent::RefCntAutoPtr<Diligent::ISampler> sampler;
         _device->CreateSampler(samplerDesc, &sampler);
         cubeView->SetSampler(sampler);
-
-        return _cubemaps.add(std::move(slot));
     }
 
     void DiligentRenderer::drawSkybox()
@@ -2027,6 +2116,19 @@ namespace BreadEngine {
 
     void DiligentRenderer::destroyCubemap(const CubemapHandle handle)
     {
+        auto *slot = _cubemaps.get(handle);
+        if (slot == nullptr) return;
+
+        // A job still writing into this slot cannot have it recycled underneath it, and waiting
+        // for one here would put the multi-second freeze back into the one gesture the
+        // asynchronous load exists for: picking a second image while the first is still
+        // decoding. finalizeCubemaps frees it once the job lands.
+        if (slot->decodeJob.valid())
+        {
+            slot->abandoned = true;
+            return;
+        }
+
         // The slot owns the texture, so clearing it releases it.
         _cubemaps.remove(handle);
     }
@@ -2137,6 +2239,10 @@ namespace BreadEngine {
         const auto *ambient = _ambientMaps.get(map);
         auto *irradiance = ambient != nullptr ? ambient->irradiance.RawPtr() : _ambientFallback.RawPtr();
         auto *prefiltered = ambient != nullptr ? ambient->prefiltered.RawPtr() : _ambientFallback.RawPtr();
+        // Only when the fallback itself failed to build, which createAmbientFallbacks has
+        // already reported. Leaving the variables unset costs a validation message per draw;
+        // dereferencing nothing costs the process.
+        if (irradiance == nullptr || prefiltered == nullptr) return;
 
         if (slot.irradiance != nullptr)
         {

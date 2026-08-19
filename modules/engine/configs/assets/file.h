@@ -53,7 +53,8 @@ namespace BreadEngine {
             constexpr auto jpeg = ".jpeg";
             constexpr auto png = ".png";
             constexpr auto ico = ".ico";
-            return _extension == jpg || _extension == jpeg || _extension == png || _extension == ico;
+            constexpr auto hdr = ".hdr";
+            return _extension == jpg || _extension == jpeg || _extension == png || _extension == ico || _extension == hdr;
         }
 
         [[nodiscard]] bool is3DModel() const
