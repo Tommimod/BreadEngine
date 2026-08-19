@@ -14,10 +14,18 @@ _proceduralSkyboxSettings:
   skyEnergy: 1
   sunSize: 0.27
   sunIntensity: 20
-_skyboxTexture: ~
+_skyboxTexture:
+  guid: e2e97bdc-8903-4594-8e7e-ff9b137a9d8c
+  type: TextureAsset
+_cubemapSkyboxSettings:
+  fillBelowHorizon: true
+  groundAlbedo:
+    r: 77
+    g: 77
+    b: 77
+    a: 255
 _skyboxShaderPath: ""
 _background:
-  _skyboxTexture: ~
   skyBlur: 0
   energy: 1
   color:
@@ -38,14 +46,14 @@ _ambient:
     a: 255
   energy: 0.35
 _ssao:
-  enabled: false
+  enabled: true
   sampleCount: 16
   intensity: 0.5
   power: 1.5
   radius: 0.5
-  bias: 0.02
+  bias: 0.1
 _ssil:
-  enabled: false
+  enabled: true
   radius: 2
   thickness: 1
   intensity: 1
@@ -54,7 +62,7 @@ _ssil:
   sliceCount: 4
   denoiseSteps: 4
 _ssgi:
-  enabled: false
+  enabled: true
   stepSize: 0.125
   maxDistance: 4
   intensity: 3
@@ -64,7 +72,7 @@ _ssgi:
   maxRaySteps: 32
   denoiseSteps: 5
 _ssr:
-  enabled: false
+  enabled: true
   stepSize: 0.125
   thickness: 0.2
   maxDistance: 4
@@ -79,15 +87,17 @@ _bloom:
   softThreshold: 0.5
   filterRadius: 1
 _fog:
-  mode: 0
+  mode: 1
   color:
-    r: 255
-    g: 255
-    b: 255
+    r: 71
+    g: 40
+    b: 3
     a: 255
   start: 1
   end: 50
-  density: 0.05
+  density: 0.11
+  height: 0.5
+  heightFalloff: 0.5
   skyAffect: 0.5
 _depthOfField:
   mode: 0
