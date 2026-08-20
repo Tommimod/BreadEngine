@@ -1,0 +1,209 @@
+// Replaces the environment reflected in a surface with whatever part of the scene is actually
+// in front of it, where the frame contains one.
+//
+// The scene pass has already reflected the sky off every surface, through the same prefiltered
+// cube the background is drawn from, and recorded in the surface target the one number that
+// reflection was scaled by. So this pass does not add a reflection - it swaps one for another:
+// what a marched ray lands on, minus what the cube put there, times that same number. A ray
+// that hits nothing leaves the frame exactly as the scene pass left it.
+
+#include "environment.fxh"
+#include "sceneTargets.fxh"
+
+/// The roughest surface still allowed a screen-space reflection. A marched ray is one sharp
+/// sample, so it can only stand in for a reflection sharp enough to be one; past this the cube
+/// the scene pass already used is both blurrier and more correct.
+#define REFLECTION_MAX_ROUGHNESS 0.5
+
+/// How much of the ray's own range the reflection fades out over as it runs out. Without it a
+/// large flat surface reflects perfectly up to a circle drawn in mid-air and nothing past it.
+#define REFLECTION_DISTANCE_FADE 0.25
+
+/// Stands in for the depth difference at a pixel with no geometry in it. Large and negative, so
+/// the march reads it as "still in front of everything" and keeps going.
+#define REFLECTION_NO_SURFACE 1e6
+
+cbuffer ReflectionConstants
+{
+    float4x4 g_ViewProjection;
+    /// Takes a point in normalized device space back into the world, which is what turns the
+    /// depth buffer into the surface it was written from.
+    float4x4 g_InverseViewProjection;
+    float4   g_CameraPosition;
+    /// xyz is the direction the camera looks in. Depths are compared by projecting onto it,
+    /// which is a linear distance and free of any handedness convention.
+    float4   g_CameraForward;
+    /// x is how far a ray advances per step, y how far behind the depth buffer it may pass and
+    /// still count as a hit, z how far it may travel in total, w the fraction of the screen its
+    /// reflection fades out over at the edges.
+    float4   g_RayParams;
+    /// x is how many steps a ray may take, y how many times a hit is then bisected.
+    float4   g_RayLimits;
+    /// rgb is the ambient colour the scene pass reflected where no environment map is bound,
+    /// w the energy it scaled it by.
+    float4   g_AmbientColor;
+    /// Turns a world direction into the environment cube's space, as a quaternion; already
+    /// inverted, because the authored rotation turns the sky and this turns the lookup.
+    float4   g_SkyRotation;
+    /// x is 1 while an environment map is bound, y the highest mip of the reflection cube.
+    float4   g_AmbientParams;
+};
+
+Texture2D    g_SceneColor;
+SamplerState g_SceneColor_sampler;
+Texture2D    g_SceneDepth;
+SamplerState g_SceneDepth_sampler;
+Texture2D    g_SceneSurface;
+SamplerState g_SceneSurface_sampler;
+/// What the occlusion pass left, or a white texel while that effect is off. The ambient in the
+/// target has already been darkened by it, so the reflection being swapped out has to be too.
+Texture2D    g_Occlusion;
+SamplerState g_Occlusion_sampler;
+TextureCube  g_Prefiltered;
+SamplerState g_Prefiltered_sampler;
+
+struct PSInput
+{
+    float4 Position     : SV_POSITION;
+    float2 NormalizedXY : NORMALIZED_XY;
+};
+
+struct PSOutput
+{
+    float4 Color : SV_TARGET;
+};
+
+/// Where a world point lands on screen, and whether it landed on the screen at all.
+bool projectToScreen(float3 worldPos, out float2 uv)
+{
+    uv = float2(0.0, 0.0);
+
+    float4 clip = mul(g_ViewProjection, float4(worldPos, 1.0));
+    if (clip.w <= 0.0) return false;
+
+    float2 normalizedXY = clip.xy / clip.w;
+    if (max(abs(normalizedXY.x), abs(normalizedXY.y)) > 1.0) return false;
+
+    uv = NormalizedDeviceXYToTexUV(normalizedXY);
+    return true;
+}
+
+/// How far behind the frame's own geometry @a worldPos is, along the camera's axis. Negative
+/// while the point is still in front of everything the camera can see, which is where a ray
+/// that has not hit anything yet lives.
+float depthBehindScene(float3 worldPos, float2 uv)
+{
+    float depth = g_SceneDepth.Sample(g_SceneDepth_sampler, uv).r;
+    if (depth >= 1.0) return -REFLECTION_NO_SURFACE;
+
+    float3 scenePos = worldPositionAt(g_InverseViewProjection, TexUVToNormalizedDeviceXY(uv), depth);
+    return dot(worldPos - scenePos, g_CameraForward.xyz);
+}
+
+/// Marches @a direction through the depth buffer looking for the first surface it passes
+/// behind by less than the thickness those surfaces are treated as having. Returns how much of
+/// the hit to believe - zero for no hit at all - and where on screen it landed.
+float traceReflection(float3 origin, float3 direction, out float2 hitUV)
+{
+    hitUV = float2(0.0, 0.0);
+
+    float stepSize = max(g_RayParams.x, 1e-4);
+    float thickness = g_RayParams.y;
+    float maxDistance = g_RayParams.z;
+    int maxSteps = int(g_RayLimits.x);
+    int binarySteps = int(g_RayLimits.y);
+
+    // The step before the current one, which is the last place the ray was known to be in
+    // front of everything - the far end of the bisection below.
+    float lastClear = 0.0;
+    float travelled = 0.0;
+
+    for (int step = 0; step < maxSteps; ++step)
+    {
+        lastClear = travelled;
+        travelled += stepSize;
+        if (travelled > maxDistance) return 0.0;
+
+        float2 stepUV;
+        // Off the screen there is nothing left to reflect, and no later step can bring the ray
+        // back into a part of the frame that was rendered.
+        if (!projectToScreen(origin + direction * travelled, stepUV)) return 0.0;
+
+        float behind = depthBehindScene(origin + direction * travelled, stepUV);
+        // Still in front of everything, or already through and out the other side of something
+        // thicker than a hit is allowed to be. The second case keeps marching rather than
+        // stopping, so a ray passing a thin railing can still reflect the floor beyond it.
+        if (behind < 0.0 || behind > thickness) continue;
+
+        // The step landed inside a surface; the crossing is somewhere in the step before it.
+        // Bisecting puts the reflection on the surface rather than up to one step past it.
+        float low = lastClear;
+        float high = travelled;
+        for (int refine = 0; refine < binarySteps; ++refine)
+        {
+            float middle = 0.5 * (low + high);
+            float2 middleUV;
+            if (!projectToScreen(origin + direction * middle, middleUV)) break;
+
+            if (depthBehindScene(origin + direction * middle, middleUV) >= 0.0) high = middle;
+            else low = middle;
+        }
+
+        if (!projectToScreen(origin + direction * high, hitUV)) return 0.0;
+
+        // A reflection cut off at the edge of the screen is a seam, and one cut off at the end
+        // of the ray's range is a circle drawn on the floor. Both fade instead.
+        float2 edge = abs(hitUV * 2.0 - 1.0);
+        float edgeFade = saturate((1.0 - max(edge.x, edge.y)) / max(g_RayParams.w, 1e-4));
+        float distanceFade = saturate((maxDistance - high) / (maxDistance * REFLECTION_DISTANCE_FADE));
+        return edgeFade * distanceFade;
+    }
+
+    return 0.0;
+}
+
+void main(in PSInput PSIn, out PSOutput PSOut)
+{
+    // Blended onto the frame, so nothing written is nothing changed - which is what every path
+    // that gives up below wants.
+    PSOut.Color = float4(0.0, 0.0, 0.0, 0.0);
+
+    float2 screenUV = NormalizedDeviceXYToTexUV(PSIn.NormalizedXY);
+    float depth = g_SceneDepth.Sample(g_SceneDepth_sampler, screenUV).r;
+    // The background is the sky itself, not a surface reflecting it.
+    if (depth >= 1.0) return;
+
+    float4 surface = g_SceneSurface.Sample(g_SceneSurface_sampler, screenUV);
+    // Everything the reflected radiance is multiplied by on its way out of this surface, as
+    // the scene pass computed it. Zero where the surface reflects nothing at all.
+    float specularWeight = surface.w;
+    if (specularWeight <= 0.0) return;
+
+    float roughness = surface.z;
+    float roughnessFade = saturate(1.0 - roughness / REFLECTION_MAX_ROUGHNESS);
+    if (roughnessFade <= 0.0) return;
+
+    float3 normal = decodeSurfaceNormal(surface.xy);
+    float3 worldPos = worldPositionAt(g_InverseViewProjection, PSIn.NormalizedXY, depth);
+    float3 view = normalize(g_CameraPosition.xyz - worldPos);
+    float3 rayDirection = reflect(-view, normal);
+
+    float2 hitUV;
+    float confidence = traceReflection(worldPos, rayDirection, hitUV);
+    if (confidence <= 0.0) return;
+
+    // What the scene pass reflected off this surface, reproduced exactly: the same cube, the
+    // same rotation, the same mip, and the flat colour standing in for all of it where no cube
+    // is bound - the substitution the scene pass makes for the same reason.
+    float3 reflected = g_AmbientColor.rgb;
+    if (g_AmbientParams.x > 0.5)
+    {
+        float3 lookup = toEnvironmentSpace(rayDirection, g_SkyRotation);
+        reflected = g_Prefiltered.SampleLevel(g_Prefiltered_sampler, lookup, roughness * g_AmbientParams.y).rgb;
+    }
+
+    float3 hitColor = g_SceneColor.Sample(g_SceneColor_sampler, hitUV).rgb;
+    float ambientAccess = g_Occlusion.Sample(g_Occlusion_sampler, screenUV).r;
+
+    PSOut.Color = float4((hitColor - reflected) * specularWeight * ambientAccess * confidence * roughnessFade, 0.0);
+}

@@ -10,6 +10,7 @@
 #include "Shadows.fxh"
 
 #include "environment.fxh"
+#include "sceneTargets.fxh"
 
 // Matching LightType's declaration order, which is a serialization contract.
 #define LIGHT_TYPE_DIRECTIONAL 0.0
@@ -121,7 +122,14 @@ struct PSInput
 
 struct PSOutput
 {
-    float4 Color : SV_TARGET;
+    float4 Color : SV_TARGET0;
+    /// The ambient light this pixel received, on its own, so that a pass which only learns how
+    /// occluded the pixel is can take part of that light back out again without touching what
+    /// the lights and the emission put there.
+    float4 Ambient : SV_TARGET1;
+    /// The surface itself, as surface.fxh packs it, for the passes that shade it a second time
+    /// from screen space.
+    float4 Surface : SV_TARGET2;
 };
 
 float3 shadingNormal(in PSInput PSIn)
@@ -222,8 +230,11 @@ float filterOmniShadow(int slice, float3 fromLight, float3 normal)
 /// stands in for the whole sky, and the substitution is exact rather than an approximation: a
 /// constant-radiance environment convolves to itself in both maps, so the only thing that
 /// changes is where the two values come from.
+/// @param specularWeight everything the reflected radiance is multiplied by on its way out of
+///        this surface - the split sum's own weight, the occlusion map and the ambient energy.
+///        The reflection pass needs exactly this to swap one reflected radiance for another.
 float3 ambientLight(float3 albedo, float3 f0, float metallic, float roughness, float occlusion,
-                    float3 normal, float3 view)
+                    float3 normal, float3 view, out float specularWeight)
 {
     float nDotV = max(dot(normal, view), 1e-4);
 
@@ -251,6 +262,12 @@ float3 ambientLight(float3 albedo, float3 f0, float metallic, float roughness, f
 
     float3 diffuse = irradiance * albedo * (1.0 - metallic) * (float3(1.0, 1.0, 1.0) - fresnel);
     float3 specular = reflection * (f0 * brdf.x + brdf.y);
+
+    // The same weight the line above applies, as one number rather than three: a coloured
+    // metal's own tint is the one thing that cannot survive the trip through a single channel,
+    // and it is the only part of the ambient specular the reflection pass reproduces wrongly.
+    float f0Luminance = dot(f0, float3(0.2126, 0.7152, 0.0722));
+    specularWeight = (f0Luminance * brdf.x + brdf.y) * occlusion * g_AmbientColor.w;
 
     return (diffuse + specular) * occlusion * g_AmbientColor.w;
 }
@@ -363,10 +380,14 @@ void main(in PSInput PSIn, out PSOutput PSOut)
         color += reflectedFraction(albedo, f0, metallic, roughness, normal, view, -toSurface) * radiance;
     }
 
-    color += ambientLight(albedo, f0, metallic, roughness, occlusion, normal, view);
+    float specularWeight;
+    float3 ambient = ambientLight(albedo, f0, metallic, roughness, occlusion, normal, view, specularWeight);
+    color += ambient;
     color += g_Emission.Sample(g_Emission_sampler, PSIn.UV).rgb;
 
     // Written linear and unbounded: the target is a float texture, and the composite pass is
     // what compresses this into a displayable range and encodes it.
     PSOut.Color = float4(max(color, 0.0), 1.0);
+    PSOut.Ambient = float4(max(ambient, 0.0), 1.0);
+    PSOut.Surface = float4(encodeSurfaceNormal(normal), roughness, specularWeight);
 }

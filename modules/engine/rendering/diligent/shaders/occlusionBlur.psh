@@ -1,0 +1,78 @@
+// Averages the occlusion pass's per-pixel rotation away. Three by three texels, which is nine
+// different rotations of the same spiral, so the average is close to what one pixel would have
+// measured with nine times the samples.
+//
+// Weighted by depth rather than taken flat: a tap on the far side of a silhouette measured a
+// different surface entirely, and averaging it in is what draws a halo of someone else's
+// occlusion around every object.
+
+#include "sceneTargets.fxh"
+
+/// Half-width of the kernel, in whole texels, so that every tap lands on a texel centre and
+/// the centre of the kernel is the pixel itself.
+#define OCCLUSION_BLUR_RADIUS 1.0
+
+/// How far a tap's own distance from the camera may differ from the centre's, as a fraction of
+/// that distance, before it stops counting. Relative because the depth buffer's own precision
+/// is, and because a centimetre matters at arm's length and not at fifty metres.
+#define OCCLUSION_BLUR_DEPTH_TOLERANCE 0.02
+
+// Declared identically in occlusion.psh, which fills the same buffer: this pass uses only the
+// reconstruction half of it.
+cbuffer OcclusionConstants
+{
+    float4x4 g_ViewProjection;
+    float4x4 g_InverseViewProjection;
+    float4   g_CameraPosition;
+    float4   g_CameraForward;
+    float4   g_OcclusionParams;
+    /// x is how many samples the pass before this one took; yz is one texel of the target.
+    float4   g_OcclusionTarget;
+};
+
+Texture2D    g_SceneDepth;
+SamplerState g_SceneDepth_sampler;
+Texture2D    g_Occlusion;
+SamplerState g_Occlusion_sampler;
+
+struct PSInput
+{
+    float4 Position     : SV_POSITION;
+    float2 NormalizedXY : NORMALIZED_XY;
+};
+
+struct PSOutput
+{
+    float4 Color : SV_TARGET;
+};
+
+/// How far the surface at @a uv is from the camera, measured along the camera's own axis.
+float sceneDistanceAt(float2 uv)
+{
+    float depth = g_SceneDepth.Sample(g_SceneDepth_sampler, uv).r;
+    float3 worldPos = worldPositionAt(g_InverseViewProjection, TexUVToNormalizedDeviceXY(uv), depth);
+    return dot(worldPos - g_CameraPosition.xyz, g_CameraForward.xyz);
+}
+
+void main(in PSInput PSIn, out PSOutput PSOut)
+{
+    float2 screenUV = NormalizedDeviceXYToTexUV(PSIn.NormalizedXY);
+    float centerDistance = sceneDistanceAt(screenUV);
+    float tolerance = max(abs(centerDistance) * OCCLUSION_BLUR_DEPTH_TOLERANCE, 1e-3);
+
+    float total = 0.0;
+    float weightSum = 0.0;
+    for (float y = -OCCLUSION_BLUR_RADIUS; y <= OCCLUSION_BLUR_RADIUS; y += 1.0)
+    {
+        for (float x = -OCCLUSION_BLUR_RADIUS; x <= OCCLUSION_BLUR_RADIUS; x += 1.0)
+        {
+            float2 tapUV = screenUV + float2(x, y) * g_OcclusionTarget.yz;
+            float weight = saturate(1.0 - abs(sceneDistanceAt(tapUV) - centerDistance) / tolerance);
+            total += g_Occlusion.Sample(g_Occlusion_sampler, tapUV).r * weight;
+            weightSum += weight;
+        }
+    }
+
+    // The centre tap always weighs one, so the sum can never be zero.
+    PSOut.Color = float4(total / weightSum, 0.0, 0.0, 1.0);
+}

@@ -104,22 +104,20 @@ namespace BreadEngine {
         _ambientMap = settings.ambient.map;
     }
 
-    Vector4 EnvironmentMaps::ambientColor() const
+    AmbientLookup EnvironmentMaps::ambientLookup() const
     {
         const auto color = ColorNormalize(_ambientColor);
-        return {color.x, color.y, color.z, _ambientEnergy};
-    }
-
-    Vector4 EnvironmentMaps::ambientLookupRotation() const
-    {
+        // The inspector's rotation turns the sky and this turns the direction it is sampled
+        // with, and those are opposites.
         const auto rotation = QuaternionInvert(_skyRotation);
-        return {rotation.x, rotation.y, rotation.z, rotation.w};
-    }
-
-    Vector4 EnvironmentMaps::ambientParams() const
-    {
         const bool hasAmbientMap = _ambientMaps.get(_ambientMap) != nullptr;
-        return {hasAmbientMap ? 1.0f : 0.0f, static_cast<float>(PREFILTERED_CUBE_MIPS - 1), 0.0f, 0.0f};
+
+        return {
+            .prefiltered = prefilteredView(_ambientMap),
+            .color = {color.x, color.y, color.z, _ambientEnergy},
+            .rotation = {rotation.x, rotation.y, rotation.z, rotation.w},
+            .params = {hasAmbientMap ? 1.0f : 0.0f, static_cast<float>(PREFILTERED_CUBE_MIPS - 1), 0.0f, 0.0f}
+        };
     }
 
     void EnvironmentMaps::createSkyPipelines()

@@ -77,20 +77,17 @@ namespace BreadEngine {
         /// passes after it tell background from geometry.
         void drawSkybox(const CameraView &camera, const Matrix &viewProjection);
 
-        /// The flat ambient the scene pass shades with where no environment is bound: rgb the
-        /// colour, w the energy. Not decoded into linear, unlike the background - which makes
-        /// a solid-colour scene brighter in ambient than the same colour as a sky, and is
-        /// deliberate.
-        [[nodiscard]] Vector4 ambientColor() const;
-
-        /// Turns a world direction into the environment cube's space, as a quaternion. Already
-        /// inverted, because the authored rotation turns the sky and this turns the lookup -
-        /// the same inverse the background pass turns its view ray by, so a reflection lands
-        /// where the sky it reflects is drawn.
-        [[nodiscard]] Vector4 ambientLookupRotation() const;
-
-        /// x is 1 while an environment map is bound, y the highest mip of the reflection cube.
-        [[nodiscard]] Vector4 ambientParams() const;
+        /**
+         * Everything needed to shade ambient from this environment: the reflection cube, the
+         * rotation its lookups are turned by, and the flat colour that stands in for the whole
+         * sky where no cube is bound. The scene pass uploads it into its frame block; the
+         * reflection pass reads it to reproduce, and then replace, what the scene pass left.
+         *
+         * The flat colour is not decoded into linear, unlike the background - which makes a
+         * solid-colour scene brighter in ambient than the same colour as a sky, and is
+         * deliberate.
+         */
+        [[nodiscard]] AmbientLookup ambientLookup() const;
 
         /// Which environment the scene pass shades ambient from. Nothing announces a rebake,
         /// so a material binding compares against this rather than trusting it.
@@ -110,8 +107,8 @@ namespace BreadEngine {
     private:
         /// How many mips of the reflection cube are filled, and so how many roughness steps the
         /// scene pass interpolates between. Mip 0 is a mirror and the last is fully rough; below
-        /// four levels the steps become visible as bands on a curved surface. The scene pass
-        /// reads the top of this range through ambientParams().
+        /// four levels the steps become visible as bands on a curved surface. The passes that
+        /// sample the cube read the top of this range through ambientLookup().
         static constexpr Diligent::Uint32 PREFILTERED_CUBE_MIPS = 6;
 
         /// What a cube map bake pass reads. The three face axes lead so that the

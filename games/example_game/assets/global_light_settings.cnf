@@ -52,25 +52,6 @@ _ssao:
   power: 1.5
   radius: 0.5
   bias: 0.1
-_ssil:
-  enabled: true
-  radius: 2
-  thickness: 1
-  intensity: 1
-  aoPower: 1
-  sampleCount: 2
-  sliceCount: 4
-  denoiseSteps: 4
-_ssgi:
-  enabled: true
-  stepSize: 0.125
-  maxDistance: 4
-  intensity: 3
-  fadeStart: 8
-  fadeEnd: 16
-  sampleCount: 2
-  maxRaySteps: 32
-  denoiseSteps: 5
 _ssr:
   enabled: true
   stepSize: 0.125

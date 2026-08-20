@@ -61,6 +61,12 @@ namespace BreadEngine {
     constexpr Diligent::TEXTURE_FORMAT SCENE_DEPTH_FORMAT = Diligent::TEX_FORMAT_D32_FLOAT;
     constexpr Diligent::TEXTURE_FORMAT SCENE_OUTPUT_FORMAT = Diligent::TEX_FORMAT_RGBA8_UNORM;
 
+    /// What the scene pass writes beside its colour, for the screen-space passes that shade
+    /// again from the outside: the surface's normal and roughness, and the ambient light it
+    /// already applied. Floating point for the same reason the colour is - the ambient is a
+    /// radiance and the encoded normal is signed.
+    constexpr Diligent::TEXTURE_FORMAT SCENE_SURFACE_FORMAT = Diligent::TEX_FORMAT_RGBA16_FLOAT;
+
     /**
      * Mirrors scene.vsh's cbuffers. Everything is a float4 or a float4x4 on purpose: those
      * are the only members whose std140 placement is the same as their placement here, so the
@@ -175,6 +181,28 @@ namespace BreadEngine {
         {1.0f, 0.0f, 0.0f}, {-1.0f, 0.0f, 0.0f},
         {0.0f, 1.0f, 0.0f}, {0.0f, -1.0f, 0.0f},
         {0.0f, 0.0f, 1.0f}, {0.0f, 0.0f, -1.0f}
+    };
+
+    /**
+     * What a pass outside the scene shader needs to reproduce the ambient light that shader
+     * already applied: the same reflection cube, turned by the same lookup rotation, with the
+     * same flat colour standing in when no cube is bound.
+     *
+     * Bundled rather than fetched one field at a time because the three numbers are only ever
+     * meaningful together - a rotation applied to the wrong cube, or an energy applied to the
+     * wrong colour, is a reflection that lands somewhere other than where the sky is drawn.
+     */
+    struct AmbientLookup
+    {
+        /// The reflection cube the scene pass shaded with, or the fallback when the scene has
+        /// no environment. Null only when that fallback itself failed to build.
+        Diligent::ITextureView *prefiltered = nullptr;
+        /// rgb is the flat ambient colour used where no environment map is bound, w the energy.
+        Vector4 color{};
+        /// Turns a world direction into the cube's space, as an already-inverted quaternion.
+        Vector4 rotation{};
+        /// x is 1 while an environment map is bound, y the highest mip of the reflection cube.
+        Vector4 params{};
     };
 
     /// An authored colour as the linear scene target needs it. A colour is picked in the

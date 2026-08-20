@@ -6,6 +6,7 @@
 #include "diligentEnvironmentMaps.h"
 #include "diligentInternal.h"
 #include "diligentPostChain.h"
+#include "diligentScreenSpace.h"
 #include "diligentShadowPass.h"
 
 #include "../resourcePool.h"
@@ -18,7 +19,8 @@ namespace BreadEngine {
      * Owns the device, the scene's own targets, the pools every handle resolves through and
      * the scene pass that draws into them. The passes on either side of that one are members
      * with their own state: ShadowPass fills the maps the scene shades with, EnvironmentMaps
-     * holds the sky it is drawn against and lit by, and PostChain finishes the frame.
+     * holds the sky it is drawn against and lit by, ScreenSpaceEffects corrects the lighting
+     * from what landed on screen, and PostChain finishes the frame.
      */
     class DiligentRenderer final : public IRenderer
     {
@@ -125,6 +127,12 @@ namespace BreadEngine {
         /// What the scene pass shades into: linear, floating point, and unbounded, so a
         /// value brighter than white survives to be tone mapped rather than clipping on write.
         Diligent::RefCntAutoPtr<Diligent::ITexture> _sceneColor;
+        /// The ambient half of what the scene pass shaded, on its own, so that the occlusion
+        /// pass can take part of it back out without touching the direct light beside it.
+        Diligent::RefCntAutoPtr<Diligent::ITexture> _sceneAmbient;
+        /// The surface each pixel was shaded from, packed as sceneTargets.fxh describes, for
+        /// the screen-space passes that shade it a second time.
+        Diligent::RefCntAutoPtr<Diligent::ITexture> _sceneSurface;
         Diligent::RefCntAutoPtr<Diligent::ITexture> _sceneDepth;
         /// What the composite pass writes and everything downstream reads: the displayable,
         /// already-encoded image. The overlay draws here, and this is what gets blitted.
@@ -164,6 +172,9 @@ namespace BreadEngine {
         /// The sky the frame is drawn against and the maps it is lit by, with the pools every
         /// cube map and ambient map handle resolves through.
         EnvironmentMaps _environment;
+        /// Ambient occlusion and reflections, which correct the lighting the scene pass
+        /// applied before anything downstream starts finishing the image.
+        ScreenSpaceEffects _screenSpace;
         /// Fog, bloom and the composite, in the order the frame passes through them.
         PostChain _postChain;
 

@@ -204,6 +204,7 @@ namespace BreadEngine {
         // After it, because the depth pass uploads a caster's model matrix through the buffer
         // the scene pipeline created.
         _shadowPass.initializePipeline(_drawConstants);
+        _screenSpace.initialize(_device, _context);
         _postChain.initialize(_device, _context);
         _environment.initializeSky();
 
@@ -234,6 +235,7 @@ namespace BreadEngine {
         _materialFallbacks = {};
         _shadowPass.shutdown();
         _environment.shutdown();
+        _screenSpace.shutdown();
         _postChain.shutdown();
         _scenePipeline.Release();
         _frameConstants.Release();
@@ -268,6 +270,15 @@ namespace BreadEngine {
         colorDesc.BindFlags = Diligent::BIND_RENDER_TARGET | Diligent::BIND_SHADER_RESOURCE;
         _device->CreateTexture(colorDesc, nullptr, &_sceneColor);
 
+        Diligent::TextureDesc ambientDesc = colorDesc;
+        ambientDesc.Name = "Scene ambient";
+        _device->CreateTexture(ambientDesc, nullptr, &_sceneAmbient);
+
+        Diligent::TextureDesc surfaceDesc = colorDesc;
+        surfaceDesc.Name = "Scene surface";
+        surfaceDesc.Format = SCENE_SURFACE_FORMAT;
+        _device->CreateTexture(surfaceDesc, nullptr, &_sceneSurface);
+
         Diligent::TextureDesc depthDesc = colorDesc;
         depthDesc.Name = "Scene depth";
         depthDesc.Format = SCENE_DEPTH_FORMAT;
@@ -279,7 +290,7 @@ namespace BreadEngine {
         outputDesc.Format = SCENE_OUTPUT_FORMAT;
         _device->CreateTexture(outputDesc, nullptr, &_sceneOutput);
 
-        if (!_sceneColor || !_sceneDepth || !_sceneOutput)
+        if (!_sceneColor || !_sceneAmbient || !_sceneSurface || !_sceneDepth || !_sceneOutput)
         {
             Logger::LogError("Diligent failed to create the scene render target");
             return;
@@ -294,6 +305,11 @@ namespace BreadEngine {
         Diligent::RefCntAutoPtr<Diligent::ISampler> sceneColorSampler;
         _device->CreateSampler(sceneSampler, &sceneColorSampler);
         _sceneColor->GetDefaultView(Diligent::TEXTURE_VIEW_SHADER_RESOURCE)->SetSampler(sceneColorSampler);
+        // The three targets the screen-space passes read are walked the same way: a texel at a
+        // time, at the resolution they were written. A reconstructed position or a decoded
+        // normal blended between two texels belongs to neither of the surfaces it came from.
+        _sceneAmbient->GetDefaultView(Diligent::TEXTURE_VIEW_SHADER_RESOURCE)->SetSampler(sceneColorSampler);
+        _sceneSurface->GetDefaultView(Diligent::TEXTURE_VIEW_SHADER_RESOURCE)->SetSampler(sceneColorSampler);
         _sceneDepth->GetDefaultView(Diligent::TEXTURE_VIEW_SHADER_RESOURCE)->SetSampler(sceneColorSampler);
 
         // The GL backend's native handle is the texture name itself, which is all raylib
@@ -332,7 +348,10 @@ namespace BreadEngine {
         }
 
         _postChain.releaseBloomChain();
+        _screenSpace.releaseTargets();
         _sceneColor.Release();
+        _sceneAmbient.Release();
+        _sceneSurface.Release();
         _sceneDepth.Release();
         _sceneOutput.Release();
     }
@@ -353,6 +372,7 @@ namespace BreadEngine {
         _clearColor = settings.background.color;
 
         _environment.setSettings(settings);
+        _screenSpace.setSettings(settings);
         _postChain.setSettings(settings);
     }
 
@@ -413,20 +433,40 @@ namespace BreadEngine {
         // The pass is bound and cleared here rather than in beginScene because the engine
         // pushes the environment - and with it the background colour - from a start-frame
         // system that runs after beginScene has already returned.
-        auto *renderTarget = _sceneColor->GetDefaultView(Diligent::TEXTURE_VIEW_RENDER_TARGET);
+        Diligent::ITextureView *sceneTargets[]{
+            _sceneColor->GetDefaultView(Diligent::TEXTURE_VIEW_RENDER_TARGET),
+            _sceneAmbient->GetDefaultView(Diligent::TEXTURE_VIEW_RENDER_TARGET),
+            _sceneSurface->GetDefaultView(Diligent::TEXTURE_VIEW_RENDER_TARGET)
+        };
         auto *depthStencil = _sceneDepth->GetDefaultView(Diligent::TEXTURE_VIEW_DEPTH_STENCIL);
-        _context->SetRenderTargets(1, &renderTarget, depthStencil, Diligent::RESOURCE_STATE_TRANSITION_MODE_TRANSITION);
+        _context->SetRenderTargets(static_cast<Diligent::Uint32>(std::size(sceneTargets)), sceneTargets, depthStencil,
+                                   Diligent::RESOURCE_STATE_TRANSITION_MODE_TRANSITION);
 
         const auto clear = toSceneLinear(_clearColor, _outputEncoding);
-        _context->ClearRenderTarget(renderTarget, &clear.x, Diligent::RESOURCE_STATE_TRANSITION_MODE_TRANSITION);
+        // Zero in the other two is what the background means to everything downstream: no
+        // ambient light to take back, and a surface reflecting nothing. Both are then left
+        // alone, because only the scene pass writes them.
+        constexpr float empty[]{0.0f, 0.0f, 0.0f, 0.0f};
+        _context->ClearRenderTarget(sceneTargets[0], &clear.x, Diligent::RESOURCE_STATE_TRANSITION_MODE_TRANSITION);
+        _context->ClearRenderTarget(sceneTargets[1], empty, Diligent::RESOURCE_STATE_TRANSITION_MODE_TRANSITION);
+        _context->ClearRenderTarget(sceneTargets[2], empty, Diligent::RESOURCE_STATE_TRANSITION_MODE_TRANSITION);
         _context->ClearDepthStencil(depthStencil, Diligent::CLEAR_DEPTH_FLAG, 1.0f, 0, Diligent::RESOURCE_STATE_TRANSITION_MODE_TRANSITION);
 
         const auto probeHeight = sceneDesc.Height;
         probeFrame("clear", probeHeight);
         submitDraws();
         probeFrame("geometry", probeHeight);
+
+        // Everything past the scene pass writes colour alone, and a pipeline's target count is
+        // part of it - so the background is drawn against one target rather than three.
+        _context->SetRenderTargets(1, sceneTargets, depthStencil, Diligent::RESOURCE_STATE_TRANSITION_MODE_TRANSITION);
         _environment.drawSkybox(_camera, _viewProjection);
         probeFrame("background", probeHeight);
+        _screenSpace.drawAmbientOcclusion(_sceneColor, _sceneAmbient, _sceneDepth, _sceneSurface, _camera, _viewProjection);
+        probeFrame("occlusion", probeHeight);
+        _screenSpace.drawReflections(_sceneColor, _sceneDepth, _sceneSurface, _camera, _viewProjection,
+                                     _environment.ambientLookup());
+        probeFrame("reflections", probeHeight);
         _postChain.drawFog(_sceneColor, _sceneDepth, _camera, _viewProjection, _outputEncoding);
         probeFrame("fog", probeHeight);
         _postChain.drawBloom(_sceneColor);

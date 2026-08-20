@@ -1,0 +1,131 @@
+// Measures how much of the sky each pixel can actually see, by asking how many points in the
+// hemisphere above it are already inside something else. Reads the depth buffer and the scene
+// pass's surface target, and writes one channel: the fraction of the ambient light that still
+// reaches the pixel. Noisy on purpose - the sampling pattern is rotated per pixel and the blur
+// pass after this one is what turns that rotation into smoothness.
+
+#include "sceneTargets.fxh"
+
+/// Consecutive samples separated by the golden angle land as far from each other as a spiral
+/// allows, so a handful of them still covers the disk evenly.
+#define OCCLUSION_GOLDEN_ANGLE 2.3999632
+#define OCCLUSION_TAU 6.2831853
+
+/// The shortest reach a sample may be placed at, as a fraction of the radius. Samples bunch
+/// toward the pixel rather than spreading evenly through the hemisphere, because contact is
+/// where occlusion is worth resolving and the far end of the radius contributes a haze.
+#define OCCLUSION_NEAR_REACH 0.2
+
+// Declared identically in occlusionBlur.psh, which reads the same buffer: the two passes
+// reconstruct the same positions from the same depth, and only this one uses the parameters.
+cbuffer OcclusionConstants
+{
+    float4x4 g_ViewProjection;
+    /// Takes a point in normalized device space back into the world, which is what turns the
+    /// depth buffer into the surface it was written from.
+    float4x4 g_InverseViewProjection;
+    float4   g_CameraPosition;
+    /// xyz is the direction the camera looks in. Depths are compared by projecting onto it,
+    /// which is a linear distance and free of any handedness convention.
+    float4   g_CameraForward;
+    /// x is the radius occluders are looked for within, y how far behind a sample a surface
+    /// has to be to count as one, z how much of the result is applied and w the exponent it is
+    /// then shaped by.
+    float4   g_OcclusionParams;
+    /// x is how many samples to take per pixel; yz is one texel of the target.
+    float4   g_OcclusionTarget;
+};
+
+Texture2D    g_SceneDepth;
+SamplerState g_SceneDepth_sampler;
+Texture2D    g_SceneSurface;
+SamplerState g_SceneSurface_sampler;
+
+struct PSInput
+{
+    float4 Position     : SV_POSITION;
+    float2 NormalizedXY : NORMALIZED_XY;
+};
+
+struct PSOutput
+{
+    float4 Color : SV_TARGET;
+};
+
+/// A different rotation for every pixel, from the pixel alone. Interleaved gradient noise
+/// rather than a noise texture: it costs three instructions, needs nothing bound, and its
+/// values are arranged so that a box blur over a small neighbourhood averages a near-uniform
+/// spread of angles - which is exactly what the pass after this one does.
+float interleavedGradientNoise(float2 pixel)
+{
+    return frac(52.9829189 * frac(dot(pixel, float2(0.06711056, 0.00583715))));
+}
+
+void main(in PSInput PSIn, out PSOutput PSOut)
+{
+    float2 screenUV = NormalizedDeviceXYToTexUV(PSIn.NormalizedXY);
+    float depth = g_SceneDepth.Sample(g_SceneDepth_sampler, screenUV).r;
+
+    // Nothing was drawn here but the background, which received no ambient light for this to
+    // take away. Fully unoccluded, so the blur across the silhouette leans the right way.
+    if (depth >= 1.0)
+    {
+        PSOut.Color = float4(1.0, 1.0, 1.0, 1.0);
+        return;
+    }
+
+    float3 worldPos = worldPositionAt(g_InverseViewProjection, PSIn.NormalizedXY, depth);
+    float3 normal = decodeSurfaceNormal(g_SceneSurface.Sample(g_SceneSurface_sampler, screenUV).xy);
+    float centerDepth = dot(worldPos - g_CameraPosition.xyz, g_CameraForward.xyz);
+
+    // Any basis around the normal will do - the spiral below is rotated per pixel anyway, so
+    // where it starts is arbitrary. The branch only avoids the axis the cross product would
+    // collapse on.
+    float3 reference = float3(0.0, 1.0, 0.0);
+    if (abs(normal.y) > 0.99) reference = float3(1.0, 0.0, 0.0);
+    float3 tangent = normalize(cross(reference, normal));
+    float3 bitangent = cross(normal, tangent);
+
+    float rotation = interleavedGradientNoise(PSIn.Position.xy) * OCCLUSION_TAU;
+    int sampleCount = int(g_OcclusionTarget.x);
+    float occlusion = 0.0;
+
+    for (int i = 0; i < sampleCount; ++i)
+    {
+        float slice = (float(i) + 0.5) / float(sampleCount);
+        float angle = float(i) * OCCLUSION_GOLDEN_ANGLE + rotation;
+        // Cosine weighted, which is the distribution the ambient term itself integrates over:
+        // the disk radius is the square root of the slice and the height makes up the rest.
+        float diskRadius = sqrt(slice);
+        float3 direction = tangent * (diskRadius * cos(angle)) +
+                           bitangent * (diskRadius * sin(angle)) +
+                           normal * sqrt(1.0 - slice);
+        float reach = g_OcclusionParams.x * lerp(OCCLUSION_NEAR_REACH, 1.0, slice * slice);
+        float3 samplePos = worldPos + direction * reach;
+
+        float4 sampleClip = mul(g_ViewProjection, float4(samplePos, 1.0));
+        if (sampleClip.w <= 0.0) continue;
+        float2 sampleNDC = sampleClip.xy / sampleClip.w;
+        if (max(abs(sampleNDC.x), abs(sampleNDC.y)) > 1.0) continue;
+
+        float2 sampleUV = NormalizedDeviceXYToTexUV(sampleNDC);
+        float sampleDepth = g_SceneDepth.Sample(g_SceneDepth_sampler, sampleUV).r;
+        // The background is behind everything, so it occludes nothing.
+        if (sampleDepth >= 1.0) continue;
+
+        float3 surfacePos = worldPositionAt(g_InverseViewProjection, sampleNDC, sampleDepth);
+        float surfaceDepth = dot(surfacePos - g_CameraPosition.xyz, g_CameraForward.xyz);
+        float samplePointDepth = dot(samplePos - g_CameraPosition.xyz, g_CameraForward.xyz);
+
+        // The surface the camera sees at that pixel is nearer than the point being tested, so
+        // the point is buried inside geometry and the sky never reached it.
+        if (surfaceDepth >= samplePointDepth - g_OcclusionParams.y) continue;
+
+        // ...unless what buried it is a wall in the distance rather than anything near this
+        // pixel, in which case the two are unrelated and only look adjacent on screen.
+        occlusion += saturate(g_OcclusionParams.x / max(abs(centerDepth - surfaceDepth), 1e-4));
+    }
+
+    float ambientAccess = 1.0 - saturate(occlusion / float(sampleCount) * g_OcclusionParams.z);
+    PSOut.Color = float4(pow(ambientAccess, g_OcclusionParams.w), 0.0, 0.0, 1.0);
+}

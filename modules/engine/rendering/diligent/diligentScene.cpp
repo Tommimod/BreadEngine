@@ -88,8 +88,14 @@ namespace BreadEngine {
         pipelineInfo.pPS = pixelShader;
 
         auto &graphics = pipelineInfo.GraphicsPipeline;
-        graphics.NumRenderTargets = 1;
+        // The colour, the ambient part of it on its own, and the surface the two came from.
+        // Written by every draw whether or not a screen-space pass will read them: a pipeline's
+        // target count is fixed once it exists, and a second pipeline for the frames where
+        // nothing reads them would mean a second resource binding for every material.
+        graphics.NumRenderTargets = 3;
         graphics.RTVFormats[0] = SCENE_COLOR_FORMAT;
+        graphics.RTVFormats[1] = SCENE_COLOR_FORMAT;
+        graphics.RTVFormats[2] = SCENE_SURFACE_FORMAT;
         graphics.DSVFormat = SCENE_DEPTH_FORMAT;
         graphics.PrimitiveTopology = Diligent::PRIMITIVE_TOPOLOGY_TRIANGLE_LIST;
         graphics.RasterizerDesc.CullMode = Diligent::CULL_MODE_BACK;
@@ -179,13 +185,14 @@ namespace BreadEngine {
         if (!_scenePipeline || _draws.empty()) return;
 
         const auto forward = Vector3Normalize(Vector3Subtract(_camera.target, _camera.position));
+        const auto ambient = _environment.ambientLookup();
         const SceneFrameConstants frame{
             .viewProjection = MatrixToFloatV(_viewProjection),
             .cameraPosition = {_camera.position.x, _camera.position.y, _camera.position.z, 1.0f},
             .cameraForward = {forward.x, forward.y, forward.z, 0.0f},
-            .ambientColor = _environment.ambientColor(),
-            .skyRotation = _environment.ambientLookupRotation(),
-            .ambientParams = _environment.ambientParams()
+            .ambientColor = ambient.color,
+            .skyRotation = ambient.rotation,
+            .ambientParams = ambient.params
         };
         uploadConstants(_context, _frameConstants, &frame, sizeof(frame));
         uploadLights();

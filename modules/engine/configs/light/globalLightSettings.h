@@ -34,8 +34,6 @@ namespace BreadEngine {
         EnvironmentBackgroudParameters _background{};
         EnvironmentAmbientParameters _ambient{};
         EnvironmentSSAOParameters _ssao{};
-        EnvironmentSSILParameters _ssil{};
-        EnvironmentSSGIParameters _ssgi{};
         EnvironmentSSRParameters _ssr{};
         EnvironmentBloomParameters _bloom{};
         EnvironmentFogParameters _fog{};
@@ -51,8 +49,6 @@ namespace BreadEngine {
                 .background = _background,
                 .ambient = _ambient,
                 .ssao = _ssao,
-                .ssil = _ssil,
-                .ssgi = _ssgi,
                 .ssr = _ssr,
                 .bloom = _bloom,
                 .fog = _fog,
@@ -71,8 +67,6 @@ namespace BreadEngine {
             INSPECT_FIELD(_background);
             INSPECT_FIELD(_ambient);
             INSPECT_FIELD(_ssao);
-            INSPECT_FIELD(_ssil);
-            INSPECT_FIELD(_ssgi);
             INSPECT_FIELD(_ssr);
             INSPECT_FIELD(_bloom);
             INSPECT_FIELD(_fog);

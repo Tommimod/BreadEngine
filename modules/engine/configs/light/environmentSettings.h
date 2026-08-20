@@ -6,8 +6,6 @@
 #include "environmentDOFParameters.h"
 #include "environmentFogParameters.h"
 #include "environmentSSAOParameters.h"
-#include "environmentSSGIParameters.h"
-#include "environmentSSILParameters.h"
 #include "environmentSSRParameters.h"
 #include "environmentTonemapParameters.h"
 
@@ -23,8 +21,6 @@ namespace BreadEngine {
         EnvironmentBackgroudParameters &background;
         EnvironmentAmbientParameters &ambient;
         EnvironmentSSAOParameters &ssao;
-        EnvironmentSSILParameters &ssil;
-        EnvironmentSSGIParameters &ssgi;
         EnvironmentSSRParameters &ssr;
         EnvironmentBloomParameters &bloom;
         EnvironmentFogParameters &fog;

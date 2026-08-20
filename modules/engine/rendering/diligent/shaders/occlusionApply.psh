@@ -1,0 +1,37 @@
+// Takes the ambient light a pixel never received back out of the frame.
+//
+// This is the whole reason the scene pass writes its ambient term to a target of its own: the
+// occlusion is only known once the frame is on screen, and by then the colour is a sum of
+// direct light, ambient and emission that cannot be separated again. Subtracting the part of
+// the recorded ambient the pixel turned out not to see leaves the other two untouched, which
+// is what makes this ambient occlusion rather than a darkening of everything.
+//
+// The pass blends its output away from the target, so what is written here is the light to
+// remove and not the colour to keep.
+
+Texture2D    g_SceneAmbient;
+SamplerState g_SceneAmbient_sampler;
+Texture2D    g_Occlusion;
+SamplerState g_Occlusion_sampler;
+
+struct PSInput
+{
+    float4 Position     : SV_POSITION;
+    float2 NormalizedXY : NORMALIZED_XY;
+};
+
+struct PSOutput
+{
+    float4 Color : SV_TARGET;
+};
+
+void main(in PSInput PSIn, out PSOutput PSOut)
+{
+    float2 screenUV = NormalizedDeviceXYToTexUV(PSIn.NormalizedXY);
+    float3 ambient = g_SceneAmbient.Sample(g_SceneAmbient_sampler, screenUV).rgb;
+    float ambientAccess = g_Occlusion.Sample(g_Occlusion_sampler, screenUV).r;
+
+    // Nothing is written where the background is: the scene pass cleared the ambient target
+    // and never drew there, so this is zero and the subtraction is one already.
+    PSOut.Color = float4(ambient * (1.0 - ambientAccess), 0.0);
+}

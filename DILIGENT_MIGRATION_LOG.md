@@ -6,6 +6,7 @@ History, not instructions. The working document — current status, the rules th
 
 | phase | what it records |
 | --- | --- |
+| [`7f-screen-space`](docs/migration-log/7f-screen-space.md) | Ambient occlusion and reflections: the ambient target, the packed surface target, and why DiligentFX lost again |
 | [`7-renderer-decomposition`](docs/migration-log/7-renderer-decomposition.md) | The renderer split into four objects: what each holds, what it borrows, and the order that was forced |
 | [`7e-bloom`](docs/migration-log/7e-bloom.md) | Bloom: the chain, why DiligentFX was turned down, and the rlgl blend-function bug |
 | [`7d-fog`](docs/migration-log/7d-fog.md) | Fog: the standalone depth-driven pass, height falloff, and the closed-form check |
