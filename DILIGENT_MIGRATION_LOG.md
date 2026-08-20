@@ -6,6 +6,7 @@ History, not instructions. The working document — current status, the rules th
 
 | phase | what it records |
 | --- | --- |
+| [`7-renderer-decomposition`](docs/migration-log/7-renderer-decomposition.md) | The renderer split into four objects: what each holds, what it borrows, and the order that was forced |
 | [`7e-bloom`](docs/migration-log/7e-bloom.md) | Bloom: the chain, why DiligentFX was turned down, and the rlgl blend-function bug |
 | [`7d-fog`](docs/migration-log/7d-fog.md) | Fog: the standalone depth-driven pass, height falloff, and the closed-form check |
 | [`7c-image-based-ambient`](docs/migration-log/7c-image-based-ambient.md) | Image-based ambient, the first real HDRI, and the stabilisation pass after it |

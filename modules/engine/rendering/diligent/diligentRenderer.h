@@ -1,34 +1,24 @@
 #pragma once
 #include <array>
 #include <future>
-#include <span>
 #include <vector>
 
-#include <Buffer.h>
-#include <DeviceContext.h>
-#include <PipelineState.h>
-#include <RefCntAutoPtr.hpp>
-#include <RenderDevice.h>
-#include <ShaderResourceBinding.h>
-#include <TextureLoader.h>
-// raylib's raymath.h defines PI as a macro, and Diligent declares a constant of that name. A
-// translation unit that reaches raylib first would otherwise break on this include alone.
-#pragma push_macro("PI")
-#undef PI
-#include <Components/interface/ShadowMapManager.hpp>
-#pragma pop_macro("PI")
+#include "diligentEnvironmentMaps.h"
+#include "diligentInternal.h"
+#include "diligentPostChain.h"
+#include "diligentShadowPass.h"
 
-#include "../IRenderer.h"
 #include "../resourcePool.h"
-
-// float16 is raymath's, and it is the form every matrix reaches the GPU in. After IRenderer.h,
-// because raymath declares raylib's vector types unguarded and raylib.h has to win.
-#include "raymath.h"
 
 namespace BreadEngine {
     /**
      * Renders through DiligentEngine, attached to the OpenGL context raylib already created
      * so the scene target is a GL texture rlgl can composite and draw over without a copy.
+     *
+     * Owns the device, the scene's own targets, the pools every handle resolves through and
+     * the scene pass that draws into them. The passes on either side of that one are members
+     * with their own state: ShadowPass fills the maps the scene shades with, EnvironmentMaps
+     * holds the sky it is drawn against and lit by, and PostChain finishes the frame.
      */
     class DiligentRenderer final : public IRenderer
     {
@@ -96,35 +86,10 @@ namespace BreadEngine {
         /// Material texture slots, in the order MaterialDesc declares them.
         static constexpr size_t MATERIAL_TEXTURE_COUNT = 4;
 
-        /// Slices of the spot shadow array, and so how many spot lights can cast at once.
-        static constexpr size_t MAX_SPOT_SHADOWS = 4;
-
-        /// Cubes of the omni shadow array, and so how many omni lights can cast at once. Each
-        /// one costs six depth passes rather than the spot's one, which is what keeps the
-        /// count and the face resolution smaller than the spot array's.
-        static constexpr size_t MAX_OMNI_SHADOWS = 4;
-
-        /// Blend modes the bloom glow can be combined through, which is every BloomMode but
-        /// Disabled. A pipeline's blend state is fixed once it exists, so this is also how
-        /// many combine pipelines there are.
-        static constexpr size_t BLOOM_BLEND_MODE_COUNT = 3;
-
-        /// Faces of a cube map, in the order every graphics API agrees on: +X, -X, +Y, -Y,
-        /// +Z, -Z. Diligent indexes a cube array in layer-faces, so a cube's first face is at
-        /// slice * CUBE_FACE_COUNT.
-        static constexpr size_t CUBE_FACE_COUNT = 6;
-
         /// Encoding exponents for the two OutputColorSpace values: the sRGB approximation, and
         /// the identity that leaves the linear result alone.
         static constexpr float GAMMA_ENCODE_EXPONENT = 1.0f / 2.2f;
         static constexpr float LINEAR_ENCODE_EXPONENT = 1.0f;
-
-        struct MeshSlot
-        {
-            Diligent::RefCntAutoPtr<Diligent::IBuffer> vertices;
-            Diligent::RefCntAutoPtr<Diligent::IBuffer> indices;
-            Diligent::Uint32 indexCount = 0;
-        };
 
         struct TextureSlot
         {
@@ -137,65 +102,6 @@ namespace BreadEngine {
             /// has to wait on it first - dropping the future does not wait on its own.
             std::future<void> decodeJob;
             bool uploaded = false;
-        };
-
-        /// A draw the scene pass has taken but not yet issued: the pass runs between
-        /// beginScene and endScene, and the render target is not bound until endScene.
-        struct DrawItem
-        {
-            MeshHandle mesh;
-            MaterialHandle material;
-            Matrix model;
-            bool castShadows = true;
-        };
-
-        /// Everything the composite pass turns the linear scene into a displayable image
-        /// with. Held as values rather than as the parameter blocks themselves: the blocks
-        /// belong to the project's settings and are handed over by reference per frame.
-        struct PostState
-        {
-            TonemapMode tonemap = TonemapMode::Linear;
-            float exposure = 1.0f;
-            float whitePoint = 1.0f;
-            float brightness = 1.0f;
-            float contrast = 1.0f;
-            float saturation = 1.0f;
-            /// Exponent the graded result is raised to on the way to the target.
-            float encoding = GAMMA_ENCODE_EXPONENT;
-        };
-
-        /// What the fog pass turns a view ray's length into a fog amount with. Held as values
-        /// for the same reason PostState is: the block it comes from belongs to the project's
-        /// settings and is handed over by reference per frame.
-        struct FogState
-        {
-            FogMode mode = FogMode::Disabled;
-            /// Authored, and decoded into the scene's linear space where it is uploaded - the
-            /// same treatment the clear colour gets, and for the same reason: fog is looked at
-            /// rather than lit with.
-            Color color = WHITE;
-            float start = 0.0f;
-            float end = 0.0f;
-            float density = 0.0f;
-            float height = 0.0f;
-            float heightFalloff = 0.0f;
-            float skyAffect = 0.0f;
-        };
-
-        /// What the bloom chain is built and combined with. Held as values for the same reason
-        /// PostState and FogState are: the block it comes from belongs to the project's
-        /// settings and is handed over by reference per frame.
-        struct BloomState
-        {
-            BloomMode mode = BloomMode::Disabled;
-            /// How much of the chain the scene target has room for to actually build, from
-            /// one level at the fine end to all of them.
-            float levels = 0.0f;
-            float intensity = 0.0f;
-            float threshold = 0.0f;
-            float softThreshold = 0.0f;
-            /// Width of the upsample tent, in texels of the level it reads.
-            float filterRadius = 1.0f;
         };
 
         /// A material is exactly its binding, and mutable variables cannot be re-pointed, so
@@ -214,121 +120,6 @@ namespace BreadEngine {
             AmbientMapHandle ambientMap{};
         };
 
-        /// A light that reached the shader this frame, and what was rendered for it. The two
-        /// shadow kinds are separate because they are separate mechanisms: a cascade array
-        /// fitted to the camera, or one slice of a fixed perspective map.
-        struct VisibleLight
-        {
-            const LightState *light = nullptr;
-            /// Slice of the spot shadow array this light was rendered into, or -1.
-            int spotShadowSlice = -1;
-            /// Cube of the omni shadow array this light was rendered into, or -1.
-            int omniShadowSlice = -1;
-            bool ownsCascades = false;
-        };
-
-        /// What the scene pass reads shadowing from.
-        struct ShadowConstants
-        {
-            Diligent::ShadowMapAttribs cascades;
-            Diligent::float4x4 spotTransforms[MAX_SPOT_SHADOWS];
-            /// x is the width of that slice's filter kernel, in shadow map UV.
-            Diligent::float4 spotParams[MAX_SPOT_SHADOWS];
-            /// An omni light gets no transform: the depth its cube holds depends only on the
-            /// largest component of the direction to the surface, so the scene pass rebuilds it
-            /// from the light's own position without knowing which face it will land on.
-            /// xyz is that position, w the far/(far - near) of the cube's projection.
-            Diligent::float4 omniPosition[MAX_OMNI_SHADOWS];
-            /// x is near * far / (far - near), the other half of that depth; y and z turn a
-            /// distance from the light into the offset one filter step covers, and into the
-            /// distance a lookup steps off the surface before it compares.
-            Diligent::float4 omniParams[MAX_OMNI_SHADOWS];
-        };
-
-        /// What a cube map bake pass reads. The three face axes lead so that the
-        /// equirectangular shader can declare just those and share the buffer: a constant
-        /// block may be a prefix of the buffer behind it, but not a rearrangement of one.
-        struct SkyBakeConstants
-        {
-            Diligent::float4 faceRight;
-            Diligent::float4 faceUp;
-            Diligent::float4 faceForward;
-            /// Hosek-Wilkie's nine coefficients, three channels per element.
-            Diligent::float4 coefficients[9];
-            Diligent::float4 radiance;
-            /// xyz is the direction to the sun, w the cosine of its disc's angular radius.
-            Diligent::float4 sun;
-            Diligent::float4 sunColor;
-            /// rgb an artistic multiplier over the model, a the overall energy.
-            Diligent::float4 tint;
-            /// rgb is what the ground reflects. w is whether the equirectangular pass carries
-            /// the horizon down over the lower half at all; the analytic dome always fills its
-            /// own and ignores w.
-            Diligent::float4 ground;
-        };
-
-        /// What the background pass reads.
-        struct SkyboxConstants
-        {
-            float16 inverseViewProjection;
-            Diligent::float4 cameraPosition;
-            /// Rotation applied to the view direction, as a quaternion.
-            Diligent::float4 rotation;
-            /// x the energy multiplier, y the mip level the blur setting selects.
-            Diligent::float4 params;
-        };
-
-        /// What the two image-based lighting bake passes read. The face axes lead, as the sky's
-        /// do, because a cube bake is the same pass whatever it is filling.
-        struct IblBakeConstants
-        {
-            Diligent::float4 faceRight;
-            Diligent::float4 faceUp;
-            Diligent::float4 faceForward;
-            /// x is the perceptual roughness the mip being filled stands for, which only the
-            /// reflection pass reads; y the source cube's face size in texels and z its mip
-            /// count, which together decide how coarse a mip each sample is read from; w how
-            /// many directions to sample.
-            Diligent::float4 filter;
-        };
-
-        /**
-         * A cube map, and - while one is still on its way - what it takes to finish it.
-         *
-         * A procedural sky is baked on the spot and arrives with nothing but its texture. An
-         * environment image is decoded off the render thread, so its slot exists and is empty
-         * for as long as that takes; a non-null texture is what says it is there.
-         */
-        struct CubemapSlot
-        {
-            Diligent::RefCntAutoPtr<Diligent::ITexture> texture;
-            /// Decoding produces a loader, which then builds the source texture on the thread
-            /// that owns the device. Dropped once the cube has been baked from it.
-            Diligent::RefCntAutoPtr<Diligent::ITextureLoader> loader;
-            /// The job writes into this slot, so every path that frees or recycles the slot
-            /// has to wait on it first - dropping the future does not wait on its own.
-            std::future<void> decodeJob;
-            /// The ground fill the bake will apply, taken when the load was asked for rather
-            /// than when it lands: the settings it came from may have been edited since.
-            Diligent::float4 ground{};
-            /// Kept for the failure message. The load is asynchronous, so by the time one can
-            /// be reported the caller's own path argument is long gone.
-            std::string path;
-            /// Set when the owner let go while the decode was still writing here. The slot
-            /// cannot be recycled under a running job and waiting for one would put back the
-            /// freeze that moving the decode off the frame removed, so finalizeCubemaps frees
-            /// it on whichever frame the job lands.
-            bool abandoned = false;
-        };
-
-        /// What one environment precomputes to: the irradiance arriving from every direction
-        /// at once, and the reflection of that environment at each roughness, one per mip.
-        struct AmbientMapSlot
-        {
-            Diligent::RefCntAutoPtr<Diligent::ITexture> irradiance;
-            Diligent::RefCntAutoPtr<Diligent::ITexture> prefiltered;
-        };
-
         Diligent::RefCntAutoPtr<Diligent::IRenderDevice> _device;
         Diligent::RefCntAutoPtr<Diligent::IDeviceContext> _context;
         /// What the scene pass shades into: linear, floating point, and unbounded, so a
@@ -342,6 +133,11 @@ namespace BreadEngine {
         /// overlay pass is occluded by scene geometry without being tone mapped with it.
         RenderTexture2D _overlay{};
         Color _clearColor = BLACK;
+        /// The exponent the frame leaves the composite through, and so the one every authored
+        /// colour written into the linear scene target has to be decoded by. Set once from the
+        /// project's output colour space; read by the clear, by the sky bakes and by the
+        /// composite, which is why it belongs to the renderer rather than to any one of them.
+        float _outputEncoding = GAMMA_ENCODE_EXPONENT;
         /// False while the scene target follows the window rather than a caller-chosen size.
         bool _hasExplicitTarget = false;
 
@@ -349,79 +145,12 @@ namespace BreadEngine {
         Diligent::RefCntAutoPtr<Diligent::IBuffer> _frameConstants;
         Diligent::RefCntAutoPtr<Diligent::IBuffer> _drawConstants;
         Diligent::RefCntAutoPtr<Diligent::IBuffer> _lightConstants;
-        /// Bakes Hosek-Wilkie into a cube face, and unwraps an equirectangular image into
-        /// one. Two pipelines over one constant buffer, because the passes differ only in
-        /// where the radiance for a direction comes from.
-        Diligent::RefCntAutoPtr<Diligent::IPipelineState> _skyBakePipeline;
-        Diligent::RefCntAutoPtr<Diligent::IShaderResourceBinding> _skyBakeBinding;
-        Diligent::RefCntAutoPtr<Diligent::IPipelineState> _equirectBakePipeline;
-        Diligent::RefCntAutoPtr<Diligent::IShaderResourceBinding> _equirectBakeBinding;
-        Diligent::RefCntAutoPtr<Diligent::IBuffer> _skyBakeConstants;
-        /// Convolves an environment cube into the two maps the scene pass shades ambient with.
-        /// Separate pipelines over one constant buffer: the passes differ only in which
-        /// distribution they sample the source with.
-        Diligent::RefCntAutoPtr<Diligent::IPipelineState> _irradiancePipeline;
-        Diligent::RefCntAutoPtr<Diligent::IShaderResourceBinding> _irradianceBinding;
-        Diligent::RefCntAutoPtr<Diligent::IPipelineState> _prefilterPipeline;
-        Diligent::RefCntAutoPtr<Diligent::IShaderResourceBinding> _prefilterBinding;
-        Diligent::RefCntAutoPtr<Diligent::IBuffer> _iblBakeConstants;
-        /// The environment-independent half of the split sum. It depends on nothing but the
-        /// BRDF, so it is integrated once at startup and never again.
-        Diligent::RefCntAutoPtr<Diligent::ITexture> _brdfLut;
-        /// Bound wherever a scene has no environment map. Nothing ever reads it - the shader
-        /// takes the flat ambient colour on that branch - but a dynamic variable still has to
-        /// point at something for a draw to validate.
-        Diligent::RefCntAutoPtr<Diligent::ITexture> _ambientFallback;
-        Diligent::RefCntAutoPtr<Diligent::IPipelineState> _skyboxPipeline;
-        Diligent::RefCntAutoPtr<Diligent::IShaderResourceBinding> _skyboxBinding;
-        Diligent::RefCntAutoPtr<Diligent::IBuffer> _skyboxConstants;
-        Diligent::RefCntAutoPtr<Diligent::IPipelineState> _fogPipeline;
-        Diligent::RefCntAutoPtr<Diligent::IShaderResourceBinding> _fogBinding;
-        Diligent::RefCntAutoPtr<Diligent::IBuffer> _fogConstants;
-        /// Filters the scene down the bloom chain and blurs it back up. Two pipelines over one
-        /// constant buffer, because the two directions differ only in their kernel and in
-        /// whether they blend into what is already there.
-        Diligent::RefCntAutoPtr<Diligent::IPipelineState> _bloomDownsamplePipeline;
-        Diligent::RefCntAutoPtr<Diligent::IShaderResourceBinding> _bloomDownsampleBinding;
-        Diligent::RefCntAutoPtr<Diligent::IPipelineState> _bloomUpsamplePipeline;
-        Diligent::RefCntAutoPtr<Diligent::IShaderResourceBinding> _bloomUpsampleBinding;
-        /// One per BloomMode past Disabled. The combine is the last upsample by another name -
-        /// same shaders, same resources - and the modes differ only in how the result meets
-        /// the scene, which is blend state and so fixed once a pipeline exists.
-        std::array<Diligent::RefCntAutoPtr<Diligent::IPipelineState>, BLOOM_BLEND_MODE_COUNT> _bloomCombinePipelines;
-        std::array<Diligent::RefCntAutoPtr<Diligent::IShaderResourceBinding>, BLOOM_BLEND_MODE_COUNT> _bloomCombineBindings;
-        Diligent::RefCntAutoPtr<Diligent::IBuffer> _bloomConstants;
-        /// The chain itself, finest first, each level half the size of the one before it. A
-        /// texture per level rather than the mips of one, because a level is a render target
-        /// and a shader resource in the same pass and only whole textures are both everywhere.
-        std::vector<Diligent::RefCntAutoPtr<Diligent::ITexture>> _bloomChain;
-        Diligent::RefCntAutoPtr<Diligent::IPipelineState> _compositePipeline;
-        Diligent::RefCntAutoPtr<Diligent::IShaderResourceBinding> _compositeBinding;
-        Diligent::RefCntAutoPtr<Diligent::IBuffer> _postConstants;
-        Diligent::RefCntAutoPtr<Diligent::IPipelineState> _shadowPipeline;
-        Diligent::RefCntAutoPtr<Diligent::IShaderResourceBinding> _shadowBinding;
-        /// The cascade the shadow pass is currently filling; one matrix, rewritten per cascade.
-        Diligent::RefCntAutoPtr<Diligent::IBuffer> _shadowPassConstants;
-        /// What the scene pass reads back: the cascade transforms and the filtering parameters.
-        Diligent::RefCntAutoPtr<Diligent::IBuffer> _shadowConstants;
-        Diligent::ShadowMapManager _shadowMap;
-        /// The spot lights' shadow maps, one array slice each. Not the cascade manager's job:
-        /// a spot needs a single perspective map, not a set fitted to the camera's frustum.
-        Diligent::RefCntAutoPtr<Diligent::ITextureView> _spotShadowSRV;
-        std::array<Diligent::RefCntAutoPtr<Diligent::ITextureView>, MAX_SPOT_SHADOWS> _spotShadowDSVs;
-        /// The omni lights' shadow maps, one cube each. A cube rather than six flat slices so
-        /// the scene pass picks the face from the direction it is already holding.
-        Diligent::RefCntAutoPtr<Diligent::ITextureView> _omniShadowSRV;
-        std::array<Diligent::RefCntAutoPtr<Diligent::ITextureView>, MAX_OMNI_SHADOWS * CUBE_FACE_COUNT> _omniShadowDSVs;
-        ShadowConstants _shadowData;
         /// What stands in wherever a material leaves a texture slot unset.
         std::array<Diligent::RefCntAutoPtr<Diligent::ITexture>, MATERIAL_TEXTURE_COUNT> _materialFallbacks;
         ResourcePool<MaterialSlot, MaterialHandle> _materials;
         ResourcePool<MeshSlot, MeshHandle> _meshes;
         ResourcePool<TextureSlot, TextureHandle> _textures;
         ResourcePool<LightState, LightHandle> _lights;
-        ResourcePool<CubemapSlot, CubemapHandle> _cubemaps;
-        ResourcePool<AmbientMapSlot, AmbientMapHandle> _ambientMaps;
         /// The active lights of the frame being submitted, rebuilt per frame. A member only
         /// so the per-frame gather reuses one allocation.
         std::vector<VisibleLight> _visibleLights;
@@ -430,20 +159,13 @@ namespace BreadEngine {
         /// Kept whole rather than reduced to a matrix: fitting the shadow cascades needs the
         /// camera's basis and its field of view, not just the transform they combine into.
         CameraView _camera{};
-        Color _ambientColor = BLACK;
-        float _ambientEnergy = 0.0f;
-        /// The environment the scene pass shades ambient from. Invalid falls back to the flat
-        /// colour above, which is what a scene with no skybox wants.
-        AmbientMapHandle _ambientMap{};
-        /// The environment cube the background pass draws, and how. Invalid leaves the frame
-        /// on the flat clear colour, which is what a scene with no skybox wants.
-        CubemapHandle _sky{};
-        Quaternion _skyRotation{0.0f, 0.0f, 0.0f, 1.0f};
-        float _skyEnergy = 1.0f;
-        float _skyBlur = 0.0f;
-        PostState _post{};
-        FogState _fog{};
-        BloomState _bloom{};
+        /// Every shadow map the scene pass samples, filled ahead of it each frame.
+        ShadowPass _shadowPass;
+        /// The sky the frame is drawn against and the maps it is lit by, with the pools every
+        /// cube map and ambient map handle resolves through.
+        EnvironmentMaps _environment;
+        /// Fog, bloom and the composite, in the order the frame passes through them.
+        PostChain _postChain;
 
         void createSceneTarget(int width, int height);
 
@@ -452,130 +174,12 @@ namespace BreadEngine {
         /// Compiles the shaders and builds the one pipeline the scene pass draws through.
         void createScenePipeline();
 
-        void createCompositePipeline();
-        void createFogPipeline();
-
-        /// Builds the two passes the bloom chain is filled with, and the three the glow meets
-        /// the scene through - one per blend mode.
-        void createBloomPipelines();
-
-        /// Resolves an #include from the engine's own shader directory or, failing that, from
-        /// DiligentFX - whose .fxh files are compiled into the library rather than shipped.
-        [[nodiscard]] Diligent::RefCntAutoPtr<Diligent::IShaderSourceInputStreamFactory> createShaderSources() const;
-
-        /// Builds the two cube map bake passes and the background pass that samples the result.
-        void createSkyPipelines();
-
-        /**
-         * Gives @p slot a cube map of @p size and fills its six faces with @p pipeline,
-         * rewriting @p constants' face axes for each. Generates the mip chain, which is what
-         * the blur setting samples down. Fills a slot rather than returning one because a
-         * loaded cube's slot has to exist before its image does.
-         */
-        void bakeCubemap(CubemapSlot &slot, const char *name, int size, Diligent::IPipelineState *pipeline,
-                         Diligent::IShaderResourceBinding *binding, SkyBakeConstants &constants);
-
-        /// Builds the two precompute passes and integrates the BRDF table they are sampled
-        /// alongside. Runs before the scene pipeline, which binds that table for its lifetime.
-        void createIblPipelines();
-
-        /// Builds the two things every draw needs whether or not an environment is ever
-        /// precomputed: the cube bound where a scene has none, and the BRDF table. Runs before
-        /// the parts of image-based lighting that can fail.
-        void createAmbientFallbacks();
-
-        /// Integrates the preintegrated GGX table. Depends on nothing but the shading model,
-        /// so it runs once and the pass that fills it is discarded with it.
-        void precomputeBrdfLut();
-
-        /**
-         * Allocates a cube of @p size with @p mipCount levels and fills every face of every one
-         * of them with @p pipeline, rewriting @p constants' face axes and the roughness the mip
-         * stands for before each draw.
-         */
-        [[nodiscard]] Diligent::RefCntAutoPtr<Diligent::ITexture> bakeIblCube(
-            const char *name, int size, Diligent::Uint32 mipCount, Diligent::IPipelineState *pipeline,
-            Diligent::IShaderResourceBinding *binding, IblBakeConstants &constants);
-
         /// Points @p slot's environment variables at @p map, or at the fallback cube when it
         /// names none.
         void bindAmbientMap(MaterialSlot &slot, AmbientMapHandle map);
 
-        /// Bakes any cube whose image has finished decoding. Called at the top of the frame,
-        /// before the scene target is bound, because baking one binds targets of its own.
-        void finalizeCubemaps();
-
-        /// Draws the environment cube behind everything the scene pass rendered.
-        void drawSkybox();
-
-        /// Blends fog over everything in the scene target, geometry and background alike.
-        /// Runs after the background pass, so the sky is fogged by the same view ray the rest
-        /// of the frame is, and before the composite, so what is tone mapped is one linear image.
-        void drawFog();
-
-        /// Sizes the bloom chain to the scene target and to the level count currently asked
-        /// for. Nothing announces either changing, so both are compared rather than trusted.
-        void resizeBloomChain();
-
-        /// Draws one step of the bloom chain: @p source, read through @p binding, into
-        /// @p target. The constants are the caller's, because they are what differs between
-        /// filtering down the chain, blurring back up it, and reaching the scene.
-        void drawBloomStep(Diligent::IPipelineState *pipeline, Diligent::IShaderResourceBinding *binding,
-                           Diligent::ITexture *source, Diligent::ITextureView *target);
-
-        /// Filters the frame down the chain, blurs it back up, and blends the glow over the
-        /// scene target. Runs after the fog, so what glows is the frame as it will be seen,
-        /// and before the composite, so the glow is added in the linear space it belongs in.
-        void drawBloom();
-
-        /// Tone maps and grades the scene into _sceneOutput. Leaves that target bound, which
-        /// is what the overlay and the blit both go on to use.
-        void composite();
-
-        /// Allocates all three shadow arrays and the comparison sampler the scene pass reads
-        /// them with.
-        void createShadowMaps();
-
-        /// Allocates one depth array of @p sliceDSVs.size() slices, the view the scene pass
-        /// samples it through, and one depth-stencil view per slice for the passes that fill it.
-        void createShadowArray(const char *name, Diligent::RESOURCE_DIMENSION dimension, Diligent::Uint32 resolution,
-                               Diligent::ISampler *comparisonSampler,
-                               Diligent::RefCntAutoPtr<Diligent::ITextureView> &srv,
-                               std::span<Diligent::RefCntAutoPtr<Diligent::ITextureView>> sliceDSVs);
-
-        /// Draws every shadow-casting item of the frame into @p target, seen through
-        /// @p worldToLightClip. Already in upload order, because its two callers arrive at it
-        /// from different places - one from raylib's math, one out of DiligentFX.
-        void renderShadowCasters(Diligent::ITextureView *target, const float16 &worldToLightClip);
-
-        /// Fits and fills the cascade array for one directional light.
-        void renderCascades(const LightState &light);
-
-        /// Fills one slice of the spot shadow array, and records the transform to sample it with.
-        void renderSpotShadow(const LightState &light, int slice);
-
-        /// Fills all six faces of one cube of the omni shadow array, and records what the scene
-        /// pass rebuilds their depth with.
-        void renderOmniShadow(const LightState &light, int slice);
-
-        /// Builds the depth-only pipeline the cascades are filled through.
-        void createShadowPipeline();
-
-        /// Fills every shadow map the frame's assignments call for. Leaves nothing bound: the
-        /// scene pass rebinds its own target.
-        void renderShadowMaps();
-
         /// Builds the 1x1 stand-ins bound wherever a material leaves a texture slot unset.
         void createMaterialFallbacks();
-
-        /// Puts back the pixel-unpack state raylib's own texture uploads depend on. Call
-        /// after anything that hands pixels to Diligent.
-        static void restoreRaylibPixelStore();
-
-        /// Overwrites a whole dynamic constant buffer. Matrices go in as MatrixToFloatV
-        /// leaves them - the column-major order rlgl uploads its own in, which is what the
-        /// shaders' cbuffer packing expects.
-        void uploadConstants(Diligent::IBuffer *buffer, const void *data, size_t size);
 
         /// Joins the background decode and creates the GPU texture, unless already created.
         void finalizeTexture(TextureSlot &slot);
@@ -597,10 +201,6 @@ namespace BreadEngine {
         /// Fills _visibleLights with the lights the shader should see, most significant first.
         /// Ordering only costs anything when there are more lights than the buffer has room for.
         void selectVisibleLights(size_t capacity);
-
-        /// Hands out the frame's shadow maps: the cascades to the first directional caster, and
-        /// a slice of the spot array to each of the next few spot casters.
-        void assignShadowSlots();
 
         /// Undoes the bindings and the GL state Diligent changed behind rlgl's back, so
         /// raylib's next draw lands where and how it expects.

@@ -1,31 +1,57 @@
 #pragma once
-#include "diligentRenderer.h"
+#include <cmath>
+#include <cstddef>
+
+// raylib's raymath.h defines PI as a macro and Diligent declares a constant of that name, so
+// a translation unit that reached raylib first would break on these includes alone. This is the
+// only place the backend reaches Diligent, so the guard is here rather than at each of them.
+#pragma push_macro("PI")
+#undef PI
+#include <BasicMath.hpp>
+#include <Buffer.h>
+#include <DeviceContext.h>
+#include <EngineFactory.h>
+#include <PipelineState.h>
+#include <RefCntAutoPtr.hpp>
+#include <RenderDevice.h>
+#include <ShaderResourceBinding.h>
+#include <Texture.h>
+#include <TextureLoader.h>
+#pragma pop_macro("PI")
+
+#include "../IRenderer.h"
+
+// float16 is raymath's, and it is the form every matrix reaches the GPU in. After IRenderer.h,
+// because raymath declares raylib's vector types unguarded and raylib.h has to win.
+#include "raymath.h"
 
 /**
- * The half of the renderer's internals that more than one of its translation units needs:
- * the scene target's formats, the layout of the constant buffers the scene shaders read,
- * the cube-face axis table, and the one conversion into the scene's linear space.
+ * What the rest of the Diligent backend is built on: the one place its headers are reached
+ * through, the scene target's formats, the layout of the constant buffers the scene shaders
+ * read, the cube-face axis table, and the few helpers no single subsystem owns.
  *
- * Everything a single concern owns lives next to that concern's code instead - the shadow
- * resolutions in diligentLighting.cpp, the sky and precompute sizes in
- * diligentEnvironment.cpp, the post chain's own blocks in diligentPost.cpp. A constant that
- * gains a second reader belongs here; one that loses its second reader belongs back there.
+ * Everything one concern owns lives with that concern instead - the shadow maps' own state in
+ * diligentShadowPass.h, the sky and precompute sizes in diligentEnvironmentMaps.h, the post
+ * chain's own blocks in diligentPostChain.h. A constant that gains a second reader belongs
+ * here; one that loses its second reader belongs back there.
  */
 namespace BreadEngine {
     /// Where the engine's shader sources sit relative to the executable. Read by the one
     /// helper that resolves them and by the shadow pass, which builds its own factory.
     constexpr const char *SHADER_DIRECTORY = "shaders";
 
+    /// Slices of the spot shadow array and cubes of the omni one, and so how many lights of
+    /// each kind may cast at once. An omni caster costs six depth passes where a spot costs
+    /// one, which is what keeps its count - and its face resolution - from growing. The scene
+    /// pass sizes its own arrays from these two, which is why they are not the shadow pass's
+    /// own business alone.
+    constexpr size_t MAX_SPOT_SHADOWS = 4;
+    constexpr size_t MAX_OMNI_SHADOWS = 4;
+
     /// A spot covers one cone rather than the whole visible world, so it needs far less of a
     /// map than a cascade does. The scene pass is told this so it can size its filter kernel
     /// in texels, which is why it is not the shadow pass's own business alone.
     constexpr Diligent::Uint32 SPOT_SHADOW_RESOLUTION = 1024;
-
-    /// How many mips of the reflection cube are filled, and so how many roughness steps the
-    /// scene pass interpolates between. Mip 0 is a mirror and the last is fully rough; below
-    /// four levels the steps become visible as bands on a curved surface. Shared because the
-    /// precompute fills them and the scene pass picks between them.
-    constexpr Diligent::Uint32 PREFILTERED_CUBE_MIPS = 6;
 
     /// The scene target's formats are fixed, so every pipeline that renders into it can be
     /// built against them once instead of being rebuilt when the target is resized. The scene
@@ -62,6 +88,26 @@ namespace BreadEngine {
         float16 normalMatrix;
     };
 
+    /// One mesh as the GPU holds it. Both passes that draw geometry reach it the same way: the
+    /// scene pass for the image, the shadow pass for the depth the image is shadowed by.
+    struct MeshSlot
+    {
+        Diligent::RefCntAutoPtr<Diligent::IBuffer> vertices;
+        Diligent::RefCntAutoPtr<Diligent::IBuffer> indices;
+        Diligent::Uint32 indexCount = 0;
+    };
+
+    /// A draw taken but not yet issued: draws arrive between beginScene and endScene, and no
+    /// render target is bound until endScene. The shadow pass walks the same list first,
+    /// skipping everything that does not cast.
+    struct DrawItem
+    {
+        MeshHandle mesh;
+        MaterialHandle material;
+        Matrix model;
+        bool castShadows = true;
+    };
+
     /// How many lights the pixel shader loops over. The shader is told this number rather than
     /// repeating it, so the array and the loop cannot disagree.
     constexpr size_t MAX_SCENE_LIGHTS = 32;
@@ -92,12 +138,29 @@ namespace BreadEngine {
         SceneLight lights[MAX_SCENE_LIGHTS];
     };
 
-    /// Faces of a cube map, in the order every graphics API agrees on, as the axes one face's
-    /// texels span. They are the direction-to-texel rule read backwards rather than anything
-    /// intuitive: for +X that rule is s = -z, t = -y, so u runs along -Z and v runs *down*
-    /// along -Y. Every one of the six has v pointing the way that feels upside down, which is
-    /// precisely why a wrong one mirrors a face without failing anywhere - the omni shadow cube
-    /// pays for the same table.
+    /// A light that reached the shader this frame, and what the shadow pass rendered for it.
+    /// The two shadow kinds are separate because they are separate mechanisms: a cascade array
+    /// fitted to the camera, or one slice of a fixed perspective map.
+    struct VisibleLight
+    {
+        const LightState *light = nullptr;
+        /// Slice of the spot shadow array this light was rendered into, or -1.
+        int spotShadowSlice = -1;
+        /// Cube of the omni shadow array this light was rendered into, or -1.
+        int omniShadowSlice = -1;
+        bool ownsCascades = false;
+    };
+
+    /// Faces of a cube map, in the order every graphics API agrees on: +X, -X, +Y, -Y, +Z, -Z.
+    /// Diligent indexes a cube array in layer-faces, so a cube's first face is at
+    /// slice * CUBE_FACE_COUNT.
+    constexpr size_t CUBE_FACE_COUNT = 6;
+
+    /// Those same six faces as the axes one face's texels span. They are the direction-to-texel
+    /// rule read backwards rather than anything intuitive: for +X that rule is s = -z, t = -y,
+    /// so u runs along -Z and v runs *down* along -Y. Every one of the six has v pointing the
+    /// way that feels upside down, which is precisely why a wrong one mirrors a face without
+    /// failing anywhere - the omni shadow cube pays for the same table.
     constexpr Vector3 CUBE_FACE_RIGHT[]{
         {0.0f, 0.0f, -1.0f}, {0.0f, 0.0f, 1.0f},
         {1.0f, 0.0f, 0.0f}, {1.0f, 0.0f, 0.0f},
@@ -127,4 +190,17 @@ namespace BreadEngine {
             std::pow(normalized.z, exponent), normalized.w
         };
     }
+
+    /// Resolves an #include from the engine's own shader directory or, failing that, from
+    /// DiligentFX - whose .fxh files are compiled into the library rather than shipped.
+    [[nodiscard]] Diligent::RefCntAutoPtr<Diligent::IShaderSourceInputStreamFactory> createShaderSources();
+
+    /// Overwrites a whole dynamic constant buffer. Matrices go in as MatrixToFloatV leaves
+    /// them - the column-major order rlgl uploads its own in, which is what the shaders'
+    /// cbuffer packing expects.
+    void uploadConstants(Diligent::IDeviceContext *context, Diligent::IBuffer *buffer, const void *data, size_t size);
+
+    /// Puts back the pixel-unpack state raylib's own texture uploads depend on. Call after
+    /// anything that hands pixels to Diligent.
+    void restoreRaylibPixelStore();
 } // namespace BreadEngine

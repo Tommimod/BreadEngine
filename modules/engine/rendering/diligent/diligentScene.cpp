@@ -1,4 +1,4 @@
-#include "diligentInternal.h"
+#include "diligentRenderer.h"
 
 #include <algorithm>
 #include <chrono>
@@ -32,12 +32,6 @@ namespace BreadEngine {
         constantsDesc.Name = "Light constants";
         constantsDesc.Size = sizeof(SceneLightConstants);
         _device->CreateBuffer(constantsDesc, nullptr, &_lightConstants);
-        constantsDesc.Name = "Shadow constants";
-        constantsDesc.Size = sizeof(ShadowConstants);
-        _device->CreateBuffer(constantsDesc, nullptr, &_shadowConstants);
-        constantsDesc.Name = "Shadow pass constants";
-        constantsDesc.Size = sizeof(Diligent::float4x4);
-        _device->CreateBuffer(constantsDesc, nullptr, &_shadowPassConstants);
 
         const auto shaderSources = createShaderSources();
 
@@ -137,20 +131,19 @@ namespace BreadEngine {
         _scenePipeline->GetStaticVariableByName(Diligent::SHADER_TYPE_PIXEL, "FrameConstants")->Set(_frameConstants);
         _scenePipeline->GetStaticVariableByName(Diligent::SHADER_TYPE_VERTEX, "DrawConstants")->Set(_drawConstants);
         _scenePipeline->GetStaticVariableByName(Diligent::SHADER_TYPE_PIXEL, "LightConstants")->Set(_lightConstants);
-        _scenePipeline->GetStaticVariableByName(Diligent::SHADER_TYPE_PIXEL, "ShadowConstants")->Set(_shadowConstants);
-        // One cascade array for the whole scene, so it belongs to the pipeline rather than to
-        // each material's binding.
-        _scenePipeline->GetStaticVariableByName(Diligent::SHADER_TYPE_PIXEL, "g_ShadowMap")->Set(_shadowMap.GetSRV());
-        _scenePipeline->GetStaticVariableByName(Diligent::SHADER_TYPE_PIXEL, "g_SpotShadowMap")->Set(_spotShadowSRV);
-        _scenePipeline->GetStaticVariableByName(Diligent::SHADER_TYPE_PIXEL, "g_OmniShadowMap")->Set(_omniShadowSRV);
+        _scenePipeline->GetStaticVariableByName(Diligent::SHADER_TYPE_PIXEL, "ShadowConstants")->Set(_shadowPass.constants());
+        // One set of shadow maps for the whole scene, so they belong to the pipeline rather
+        // than to each material's binding.
+        _scenePipeline->GetStaticVariableByName(Diligent::SHADER_TYPE_PIXEL, "g_ShadowMap")->Set(_shadowPass.cascadeMaps());
+        _scenePipeline->GetStaticVariableByName(Diligent::SHADER_TYPE_PIXEL, "g_SpotShadowMap")->Set(_shadowPass.spotMaps());
+        _scenePipeline->GetStaticVariableByName(Diligent::SHADER_TYPE_PIXEL, "g_OmniShadowMap")->Set(_shadowPass.omniMaps());
         // The BRDF table depends on nothing but the shading model, so it never changes and
         // belongs to the pipeline rather than to any one environment. Guarded because it is
         // built by a pass of its own, and a renderer that failed to build it should say so
         // rather than take the process down here.
-        if (_brdfLut)
+        if (auto *brdfLut = _environment.brdfLutView())
         {
-            _scenePipeline->GetStaticVariableByName(Diligent::SHADER_TYPE_PIXEL, "g_BrdfLut")
-                          ->Set(_brdfLut->GetDefaultView(Diligent::TEXTURE_VIEW_SHADER_RESOURCE));
+            _scenePipeline->GetStaticVariableByName(Diligent::SHADER_TYPE_PIXEL, "g_BrdfLut")->Set(brdfLut);
         }
 
         createMaterialFallbacks();
@@ -185,21 +178,16 @@ namespace BreadEngine {
     {
         if (!_scenePipeline || _draws.empty()) return;
 
-        const auto ambient = ColorNormalize(_ambientColor);
         const auto forward = Vector3Normalize(Vector3Subtract(_camera.target, _camera.position));
-        // The same inverse the background pass turns its view ray by, so a reflection lands
-        // where the sky it reflects is drawn.
-        const auto skyRotation = QuaternionInvert(_skyRotation);
-        const bool hasAmbientMap = _ambientMaps.get(_ambientMap) != nullptr;
         const SceneFrameConstants frame{
             .viewProjection = MatrixToFloatV(_viewProjection),
             .cameraPosition = {_camera.position.x, _camera.position.y, _camera.position.z, 1.0f},
             .cameraForward = {forward.x, forward.y, forward.z, 0.0f},
-            .ambientColor = {ambient.x, ambient.y, ambient.z, _ambientEnergy},
-            .skyRotation = {skyRotation.x, skyRotation.y, skyRotation.z, skyRotation.w},
-            .ambientParams = {hasAmbientMap ? 1.0f : 0.0f, static_cast<float>(PREFILTERED_CUBE_MIPS - 1), 0.0f, 0.0f}
+            .ambientColor = _environment.ambientColor(),
+            .skyRotation = _environment.ambientLookupRotation(),
+            .ambientParams = _environment.ambientParams()
         };
-        uploadConstants(_frameConstants, &frame, sizeof(frame));
+        uploadConstants(_context, _frameConstants, &frame, sizeof(frame));
         uploadLights();
 
         _context->SetPipelineState(_scenePipeline);
@@ -213,7 +201,8 @@ namespace BreadEngine {
             // Compared rather than waited on: nothing announces that the environment was
             // rebaked, and a binding left pointing at the previous one keeps a freed cube alive
             // and lights the surface with a sky that is no longer in the scene.
-            if (surface->ambientMap != _ambientMap) bindAmbientMap(*surface, _ambientMap);
+            const auto ambientMap = _environment.ambientMap();
+            if (surface->ambientMap != ambientMap) bindAmbientMap(*surface, ambientMap);
 
             const SceneDrawConstants draw{
                 .model = MatrixToFloatV(model),
@@ -221,7 +210,7 @@ namespace BreadEngine {
                 // its normals off it.
                 .normalMatrix = MatrixToFloatV(MatrixTranspose(MatrixInvert(model)))
             };
-            uploadConstants(_drawConstants, &draw, sizeof(draw));
+            uploadConstants(_context, _drawConstants, &draw, sizeof(draw));
 
             Diligent::IBuffer *vertices = slot->vertices;
             constexpr Diligent::Uint64 vertexOffset = 0;
@@ -385,9 +374,23 @@ namespace BreadEngine {
         material.prefiltered = material.binding->GetVariableByName(Diligent::SHADER_TYPE_PIXEL, "g_Prefiltered");
         // Unconditionally, unlike the per-draw call: a dynamic variable starts out pointing at
         // nothing, which is not a state a draw can validate.
-        bindAmbientMap(material, _ambientMap);
+        bindAmbientMap(material, _environment.ambientMap());
 
         return _materials.add(std::move(material));
+    }
+
+    void DiligentRenderer::bindAmbientMap(MaterialSlot &slot, const AmbientMapHandle map)
+    {
+        auto *irradiance = _environment.irradianceView(map);
+        auto *prefiltered = _environment.prefilteredView(map);
+        // Only when the fallback cube itself failed to build, which the environment has already
+        // reported. Leaving the variables unset costs a validation message per draw;
+        // dereferencing nothing costs the process.
+        if (irradiance == nullptr || prefiltered == nullptr) return;
+
+        if (slot.irradiance != nullptr) slot.irradiance->Set(irradiance);
+        if (slot.prefiltered != nullptr) slot.prefiltered->Set(prefiltered);
+        slot.ambientMap = map;
     }
 
     void DiligentRenderer::destroyMaterial(const MaterialHandle handle)
@@ -445,6 +448,4 @@ namespace BreadEngine {
                                             MatrixTranslate(draw.position.x, draw.position.y, draw.position.z));
         _draws.push_back(DrawItem{.mesh = draw.mesh, .material = draw.material, .model = model, .castShadows = draw.castShadows});
     }
-
-    // --- environment ---
 } // namespace BreadEngine

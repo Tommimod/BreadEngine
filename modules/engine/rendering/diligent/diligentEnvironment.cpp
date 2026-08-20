@@ -1,4 +1,4 @@
-#include "diligentInternal.h"
+#include "diligentRenderer.h"
 
 #include <algorithm>
 #include <chrono>
@@ -33,7 +33,6 @@ namespace BreadEngine {
     constexpr float IRRADIANCE_SAMPLE_COUNT = 256.0f;
 
     /// Face size of the reflection cube, and how many samples each of its texels averages.
-    /// How many mips it has is the scene pass's business too and lives in the shared header.
     constexpr int PREFILTERED_CUBE_SIZE = 128;
     constexpr float PREFILTERED_SAMPLE_COUNT = 128.0f;
 
@@ -49,7 +48,81 @@ namespace BreadEngine {
     constexpr int MIN_SKY_RESOLUTION = 64;
     constexpr int MAX_SKY_RESOLUTION = 2048;
 
-    void DiligentRenderer::createSkyPipelines()
+    void EnvironmentMaps::initializeAmbient(Diligent::IRenderDevice *device, Diligent::IDeviceContext *context)
+    {
+        _device = device;
+        _context = context;
+
+        createIblPipelines();
+    }
+
+    void EnvironmentMaps::initializeSky()
+    {
+        createSkyPipelines();
+    }
+
+    void EnvironmentMaps::shutdown()
+    {
+        // Every slot the pool is about to drop may still have a decode running into it, and
+        // the future does not wait on its own. There is no later frame to reap one on.
+        _cubemaps.forEachAlive([](CubemapSlot &slot)
+        {
+            if (slot.decodeJob.valid()) slot.decodeJob.get();
+        });
+        _cubemaps.clear();
+        _ambientMaps.clear();
+
+        _skyboxBinding.Release();
+        _skyboxPipeline.Release();
+        _skyboxConstants.Release();
+        _equirectBakeBinding.Release();
+        _equirectBakePipeline.Release();
+        _skyBakeBinding.Release();
+        _skyBakePipeline.Release();
+        _skyBakeConstants.Release();
+        _prefilterBinding.Release();
+        _prefilterPipeline.Release();
+        _irradianceBinding.Release();
+        _irradiancePipeline.Release();
+        _iblBakeConstants.Release();
+        _ambientFallback.Release();
+        _brdfLut.Release();
+
+        _context = nullptr;
+        _device = nullptr;
+    }
+
+    void EnvironmentMaps::setSettings(const EnvironmentSettings &settings)
+    {
+        _sky = settings.background.sky;
+        _skyRotation = settings.background.rotation;
+        _skyEnergy = settings.background.energy;
+        _skyBlur = settings.background.skyBlur;
+
+        _ambientColor = settings.ambient.color;
+        _ambientEnergy = settings.ambient.energy;
+        _ambientMap = settings.ambient.map;
+    }
+
+    Vector4 EnvironmentMaps::ambientColor() const
+    {
+        const auto color = ColorNormalize(_ambientColor);
+        return {color.x, color.y, color.z, _ambientEnergy};
+    }
+
+    Vector4 EnvironmentMaps::ambientLookupRotation() const
+    {
+        const auto rotation = QuaternionInvert(_skyRotation);
+        return {rotation.x, rotation.y, rotation.z, rotation.w};
+    }
+
+    Vector4 EnvironmentMaps::ambientParams() const
+    {
+        const bool hasAmbientMap = _ambientMaps.get(_ambientMap) != nullptr;
+        return {hasAmbientMap ? 1.0f : 0.0f, static_cast<float>(PREFILTERED_CUBE_MIPS - 1), 0.0f, 0.0f};
+    }
+
+    void EnvironmentMaps::createSkyPipelines()
     {
         if (!_device) return;
 
@@ -154,7 +227,7 @@ namespace BreadEngine {
         _skyboxPipeline->CreateShaderResourceBinding(&_skyboxBinding, true);
     }
 
-    void DiligentRenderer::createIblPipelines()
+    void EnvironmentMaps::createIblPipelines()
     {
         if (!_device) return;
 
@@ -237,7 +310,7 @@ namespace BreadEngine {
         _prefilterPipeline->CreateShaderResourceBinding(&_prefilterBinding, true);
     }
 
-    void DiligentRenderer::createAmbientFallbacks()
+    void EnvironmentMaps::createAmbientFallbacks()
     {
         // One texel per face. It is bound wherever a scene has no environment map, where the
         // shader branches away from it before any fetch - but a draw still validates every
@@ -262,7 +335,7 @@ namespace BreadEngine {
         precomputeBrdfLut();
     }
 
-    void DiligentRenderer::precomputeBrdfLut()
+    void EnvironmentMaps::precomputeBrdfLut()
     {
         Diligent::TextureDesc desc;
         desc.Name = "Preintegrated GGX";
@@ -346,11 +419,12 @@ namespace BreadEngine {
         _brdfLut->GetDefaultView(Diligent::TEXTURE_VIEW_SHADER_RESOURCE)->SetSampler(sampler);
     }
 
-    CubemapHandle DiligentRenderer::loadCubemap(const std::string &path, const SkyboxCubemapParameters &settings)
+    CubemapHandle EnvironmentMaps::loadCubemap(const std::string &path, const SkyboxCubemapParameters &settings,
+                                              const float encoding)
     {
         if (!_equirectBakePipeline) return {};
 
-        const auto ground = toSceneLinear(settings.groundAlbedo, _post.encoding);
+        const auto ground = toSceneLinear(settings.groundAlbedo, encoding);
         CubemapSlot slot;
         slot.ground = {ground.x, ground.y, ground.z, settings.fillBelowHorizon ? 1.0f : 0.0f};
         slot.path = path;
@@ -382,13 +456,13 @@ namespace BreadEngine {
         return handle;
     }
 
-    bool DiligentRenderer::isCubemapReady(const CubemapHandle handle) const
+    bool EnvironmentMaps::isCubemapReady(const CubemapHandle handle) const
     {
         const auto *slot = _cubemaps.get(handle);
         return slot != nullptr && slot->texture;
     }
 
-    void DiligentRenderer::finalizeCubemaps()
+    void EnvironmentMaps::finalizeCubemaps()
     {
         // Slots whose owner let go mid-decode, freed on whichever frame the job lands. First,
         // so a cube nobody wants is never baked.
@@ -455,7 +529,8 @@ namespace BreadEngine {
         });
     }
 
-    CubemapHandle DiligentRenderer::createProceduralSky(const int size, const SkyboxProceduralParameters &sky)
+    CubemapHandle EnvironmentMaps::createProceduralSky(const int size, const SkyboxProceduralParameters &sky,
+                                                      const float encoding)
     {
         if (!_skyBakePipeline) return {};
 
@@ -464,11 +539,11 @@ namespace BreadEngine {
         const auto toSun = Vector3Normalize(Vector3Negate(sky.sunDirection));
         const float elevation = std::asin(std::clamp(toSun.y, -1.0f, 1.0f));
 
-        const auto ground = toSceneLinear(sky.groundAlbedo, _post.encoding);
+        const auto ground = toSceneLinear(sky.groundAlbedo, encoding);
         const auto cooked = cookHosekWilkieSky(sky.turbidity, Vector3{ground.x, ground.y, ground.z}, elevation);
 
-        const auto tint = toSceneLinear(sky.skyTint, _post.encoding);
-        const auto sunColor = toSceneLinear(sky.sunColor, _post.encoding);
+        const auto tint = toSceneLinear(sky.skyTint, encoding);
+        const auto sunColor = toSceneLinear(sky.sunColor, encoding);
         const float sunScale = sky.sunIntensity * sky.sunEnergy;
 
         SkyBakeConstants constants{};
@@ -494,7 +569,7 @@ namespace BreadEngine {
         return _cubemaps.add(std::move(slot));
     }
 
-    void DiligentRenderer::bakeCubemap(CubemapSlot &slot, const char *name, const int size,
+    void EnvironmentMaps::bakeCubemap(CubemapSlot &slot, const char *name, const int size,
                                        Diligent::IPipelineState *pipeline,
                                        Diligent::IShaderResourceBinding *binding, SkyBakeConstants &constants)
     {
@@ -534,7 +609,7 @@ namespace BreadEngine {
             constants.faceRight = {CUBE_FACE_RIGHT[face].x, CUBE_FACE_RIGHT[face].y, CUBE_FACE_RIGHT[face].z, 0.0f};
             constants.faceUp = {CUBE_FACE_UP[face].x, CUBE_FACE_UP[face].y, CUBE_FACE_UP[face].z, 0.0f};
             constants.faceForward = {CUBE_FACE_FORWARD[face].x, CUBE_FACE_FORWARD[face].y, CUBE_FACE_FORWARD[face].z, 0.0f};
-            uploadConstants(_skyBakeConstants, &constants, sizeof(constants));
+            uploadConstants(_context, _skyBakeConstants, &constants, sizeof(constants));
 
             _context->CommitShaderResources(binding, Diligent::RESOURCE_STATE_TRANSITION_MODE_TRANSITION);
 
@@ -555,7 +630,7 @@ namespace BreadEngine {
         cubeView->SetSampler(sampler);
     }
 
-    void DiligentRenderer::drawSkybox()
+    void EnvironmentMaps::drawSkybox(const CameraView &camera, const Matrix &viewProjection)
     {
         if (!_skyboxPipeline) return;
 
@@ -568,12 +643,12 @@ namespace BreadEngine {
         const auto mipCount = static_cast<float>(slot->texture->GetDesc().MipLevels);
 
         const SkyboxConstants constants{
-            .inverseViewProjection = MatrixToFloatV(MatrixInvert(_viewProjection)),
-            .cameraPosition = {_camera.position.x, _camera.position.y, _camera.position.z, 1.0f},
+            .inverseViewProjection = MatrixToFloatV(MatrixInvert(viewProjection)),
+            .cameraPosition = {camera.position.x, camera.position.y, camera.position.z, 1.0f},
             .rotation = {rotation.x, rotation.y, rotation.z, rotation.w},
             .params = {_skyEnergy, std::clamp(_skyBlur, 0.0f, 1.0f) * std::max(mipCount - 1.0f, 0.0f), 0.0f, 0.0f}
         };
-        uploadConstants(_skyboxConstants, &constants, sizeof(constants));
+        uploadConstants(_context, _skyboxConstants, &constants, sizeof(constants));
 
         _context->SetPipelineState(_skyboxPipeline);
         _skyboxBinding->GetVariableByName(Diligent::SHADER_TYPE_PIXEL, "g_Sky")
@@ -586,7 +661,7 @@ namespace BreadEngine {
         _context->Draw(drawAttribs);
     }
 
-    void DiligentRenderer::destroyCubemap(const CubemapHandle handle)
+    void EnvironmentMaps::destroyCubemap(const CubemapHandle handle)
     {
         auto *slot = _cubemaps.get(handle);
         if (slot == nullptr) return;
@@ -605,7 +680,7 @@ namespace BreadEngine {
         _cubemaps.remove(handle);
     }
 
-    AmbientMapHandle DiligentRenderer::createAmbientMap(const CubemapHandle cubemap)
+    AmbientMapHandle EnvironmentMaps::createAmbientMap(const CubemapHandle cubemap)
     {
         if (!_irradiancePipeline || !_prefilterPipeline) return {};
 
@@ -635,7 +710,7 @@ namespace BreadEngine {
         return _ambientMaps.add(std::move(slot));
     }
 
-    Diligent::RefCntAutoPtr<Diligent::ITexture> DiligentRenderer::bakeIblCube(
+    Diligent::RefCntAutoPtr<Diligent::ITexture> EnvironmentMaps::bakeIblCube(
         const char *name, const int size, const Diligent::Uint32 mipCount, Diligent::IPipelineState *pipeline,
         Diligent::IShaderResourceBinding *binding, IblBakeConstants &constants)
     {
@@ -683,7 +758,7 @@ namespace BreadEngine {
                 constants.faceRight = {CUBE_FACE_RIGHT[face].x, CUBE_FACE_RIGHT[face].y, CUBE_FACE_RIGHT[face].z, 0.0f};
                 constants.faceUp = {CUBE_FACE_UP[face].x, CUBE_FACE_UP[face].y, CUBE_FACE_UP[face].z, 0.0f};
                 constants.faceForward = {CUBE_FACE_FORWARD[face].x, CUBE_FACE_FORWARD[face].y, CUBE_FACE_FORWARD[face].z, 0.0f};
-                uploadConstants(_iblBakeConstants, &constants, sizeof(constants));
+                uploadConstants(_context, _iblBakeConstants, &constants, sizeof(constants));
 
                 _context->CommitShaderResources(binding, Diligent::RESOURCE_STATE_TRANSITION_MODE_TRANSITION);
 
@@ -706,31 +781,59 @@ namespace BreadEngine {
         return cube;
     }
 
-    void DiligentRenderer::bindAmbientMap(MaterialSlot &slot, const AmbientMapHandle map)
+    Diligent::ITextureView *EnvironmentMaps::irradianceView(const AmbientMapHandle map) const
     {
         const auto *ambient = _ambientMaps.get(map);
-        auto *irradiance = ambient != nullptr ? ambient->irradiance.RawPtr() : _ambientFallback.RawPtr();
-        auto *prefiltered = ambient != nullptr ? ambient->prefiltered.RawPtr() : _ambientFallback.RawPtr();
-        // Only when the fallback itself failed to build, which createAmbientFallbacks has
-        // already reported. Leaving the variables unset costs a validation message per draw;
-        // dereferencing nothing costs the process.
-        if (irradiance == nullptr || prefiltered == nullptr) return;
-
-        if (slot.irradiance != nullptr)
-        {
-            slot.irradiance->Set(irradiance->GetDefaultView(Diligent::TEXTURE_VIEW_SHADER_RESOURCE));
-        }
-        if (slot.prefiltered != nullptr)
-        {
-            slot.prefiltered->Set(prefiltered->GetDefaultView(Diligent::TEXTURE_VIEW_SHADER_RESOURCE));
-        }
-        slot.ambientMap = map;
+        auto *cube = ambient != nullptr ? ambient->irradiance.RawPtr() : _ambientFallback.RawPtr();
+        return cube != nullptr ? cube->GetDefaultView(Diligent::TEXTURE_VIEW_SHADER_RESOURCE) : nullptr;
     }
 
-    void DiligentRenderer::destroyAmbientMap(const AmbientMapHandle handle)
+    Diligent::ITextureView *EnvironmentMaps::prefilteredView(const AmbientMapHandle map) const
+    {
+        const auto *ambient = _ambientMaps.get(map);
+        auto *cube = ambient != nullptr ? ambient->prefiltered.RawPtr() : _ambientFallback.RawPtr();
+        return cube != nullptr ? cube->GetDefaultView(Diligent::TEXTURE_VIEW_SHADER_RESOURCE) : nullptr;
+    }
+
+    Diligent::ITextureView *EnvironmentMaps::brdfLutView() const
+    {
+        return _brdfLut ? _brdfLut->GetDefaultView(Diligent::TEXTURE_VIEW_SHADER_RESOURCE) : nullptr;
+    }
+
+    void EnvironmentMaps::destroyAmbientMap(const AmbientMapHandle handle)
     {
         // The slot owns both cubes, so clearing it releases them. A material binding still
         // holding one keeps it alive until the next draw notices the handle changed.
         _ambientMaps.remove(handle);
+    }
+
+    CubemapHandle DiligentRenderer::loadCubemap(const std::string &path, const SkyboxCubemapParameters &settings)
+    {
+        return _environment.loadCubemap(path, settings, _outputEncoding);
+    }
+
+    bool DiligentRenderer::isCubemapReady(const CubemapHandle handle) const
+    {
+        return _environment.isCubemapReady(handle);
+    }
+
+    CubemapHandle DiligentRenderer::createProceduralSky(const int size, const SkyboxProceduralParameters &sky)
+    {
+        return _environment.createProceduralSky(size, sky, _outputEncoding);
+    }
+
+    void DiligentRenderer::destroyCubemap(const CubemapHandle handle)
+    {
+        _environment.destroyCubemap(handle);
+    }
+
+    AmbientMapHandle DiligentRenderer::createAmbientMap(const CubemapHandle cubemap)
+    {
+        return _environment.createAmbientMap(cubemap);
+    }
+
+    void DiligentRenderer::destroyAmbientMap(const AmbientMapHandle handle)
+    {
+        _environment.destroyAmbientMap(handle);
     }
 } // namespace BreadEngine

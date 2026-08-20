@@ -1,4 +1,4 @@
-#include "diligentInternal.h"
+#include "diligentRenderer.h"
 
 // Before everything else: GLEW insists on being the first to declare the GL entry points.
 #include <GL/glew.h>
@@ -194,18 +194,18 @@ namespace BreadEngine {
         Logger::LogInfo("Diligent attached to OpenGL " + std::to_string(apiVersion.Major) + "." + std::to_string(apiVersion.Minor));
 
         createSceneTarget(sceneWidth, sceneHeight);
-        // Before the scene pipeline: the cascade array is one of its static resources, so it
-        // has to exist by the time that pipeline is built.
-        createShadowMaps();
+        // Before the scene pipeline: the shadow arrays are static resources of it, so they have
+        // to exist by the time that pipeline is built.
+        _shadowPass.initializeMaps(_device, _context);
         // Also before the scene pipeline: the BRDF table is one of its static resources, and a
         // static variable can only be set while no binding has been created against it yet.
-        createIblPipelines();
+        _environment.initializeAmbient(_device, _context);
         createScenePipeline();
-        createShadowPipeline();
-        createCompositePipeline();
-        createFogPipeline();
-        createBloomPipelines();
-        createSkyPipelines();
+        // After it, because the depth pass uploads a caster's model matrix through the buffer
+        // the scene pipeline created.
+        _shadowPass.initializePipeline(_drawConstants);
+        _postChain.initialize(_device, _context);
+        _environment.initializeSky();
 
         // The BRDF table is integrated by a real pass, so this is the first work that draws
         // before a frame has ever been opened. raylib goes on to load its fonts and draw the
@@ -232,44 +232,13 @@ namespace BreadEngine {
         });
         _textures.clear();
         _materialFallbacks = {};
-        // Every slot the pool is about to drop may still have a decode running into it.
-        _cubemaps.forEachAlive([](CubemapSlot &slot)
-        {
-            if (slot.decodeJob.valid()) slot.decodeJob.get();
-        });
-        _cubemaps.clear();
-        _ambientMaps.clear();
-        _brdfLut.Release();
-        _ambientFallback.Release();
-        _irradianceBinding.Release();
-        _irradiancePipeline.Release();
-        _prefilterBinding.Release();
-        _prefilterPipeline.Release();
+        _shadowPass.shutdown();
+        _environment.shutdown();
+        _postChain.shutdown();
         _scenePipeline.Release();
-        _compositeBinding.Release();
-        _compositePipeline.Release();
-        _skyBakeBinding.Release();
-        _skyBakePipeline.Release();
-        _equirectBakeBinding.Release();
-        _equirectBakePipeline.Release();
-        _skyboxBinding.Release();
-        _skyboxPipeline.Release();
-        _shadowBinding.Release();
-        _shadowPipeline.Release();
-        _shadowMap = {};
-        _spotShadowSRV.Release();
-        _spotShadowDSVs = {};
-        _omniShadowSRV.Release();
-        _omniShadowDSVs = {};
         _frameConstants.Release();
         _drawConstants.Release();
         _lightConstants.Release();
-        _shadowConstants.Release();
-        _shadowPassConstants.Release();
-        _postConstants.Release();
-        _skyBakeConstants.Release();
-        _skyboxConstants.Release();
-        _iblBakeConstants.Release();
 
         _context.Release();
         _device.Release();
@@ -362,7 +331,7 @@ namespace BreadEngine {
             _overlay = {};
         }
 
-        _bloomChain.clear();
+        _postChain.releaseBloomChain();
         _sceneColor.Release();
         _sceneDepth.Release();
         _sceneOutput.Release();
@@ -376,7 +345,15 @@ namespace BreadEngine {
 
     void DiligentRenderer::setOutputColorSpace(const OutputColorSpace colorSpace)
     {
-        _post.encoding = colorSpace == OutputColorSpace::Linear ? LINEAR_ENCODE_EXPONENT : GAMMA_ENCODE_EXPONENT;
+        _outputEncoding = colorSpace == OutputColorSpace::Linear ? LINEAR_ENCODE_EXPONENT : GAMMA_ENCODE_EXPONENT;
+    }
+
+    void DiligentRenderer::setEnvironment(const EnvironmentSettings &settings)
+    {
+        _clearColor = settings.background.color;
+
+        _environment.setSettings(settings);
+        _postChain.setSettings(settings);
     }
 
     void DiligentRenderer::beginScene(const CameraView &camera)
@@ -421,17 +398,17 @@ namespace BreadEngine {
         // Ahead of everything that binds the scene target, because baking a cube binds six
         // targets of its own - and ahead of the early return below, because a decode that has
         // landed should become usable whether or not there is a target to draw into this frame.
-        finalizeCubemaps();
+        _environment.finalizeCubemaps();
 
         if (!_sceneColor) return;
 
-        // Ahead of the scene pass, which is the one that reads the result. A frame with no
-        // directional caster leaves the cascade count at zero, which Shadows.fxh reads as
-        // fully lit rather than as an error.
+        // Ahead of the scene pass, which is the one that reads the maps. The cascades are fitted
+        // to the frustum the frame will be seen through, so the shadow pass is handed the scene
+        // target's aspect - it never renders into the target itself.
+        const auto &sceneDesc = _sceneColor->GetDesc();
         selectVisibleLights(MAX_SCENE_LIGHTS);
-        assignShadowSlots();
-        renderShadowMaps();
-        uploadConstants(_shadowConstants, &_shadowData, sizeof(_shadowData));
+        _shadowPass.render(_visibleLights, ShadowCasters{_draws, _meshes}, _camera,
+                           static_cast<float>(sceneDesc.Width) / static_cast<float>(sceneDesc.Height));
 
         // The pass is bound and cleared here rather than in beginScene because the engine
         // pushes the environment - and with it the background colour - from a start-frame
@@ -440,21 +417,21 @@ namespace BreadEngine {
         auto *depthStencil = _sceneDepth->GetDefaultView(Diligent::TEXTURE_VIEW_DEPTH_STENCIL);
         _context->SetRenderTargets(1, &renderTarget, depthStencil, Diligent::RESOURCE_STATE_TRANSITION_MODE_TRANSITION);
 
-        const auto clear = toSceneLinear(_clearColor, _post.encoding);
+        const auto clear = toSceneLinear(_clearColor, _outputEncoding);
         _context->ClearRenderTarget(renderTarget, &clear.x, Diligent::RESOURCE_STATE_TRANSITION_MODE_TRANSITION);
         _context->ClearDepthStencil(depthStencil, Diligent::CLEAR_DEPTH_FLAG, 1.0f, 0, Diligent::RESOURCE_STATE_TRANSITION_MODE_TRANSITION);
 
-        const auto probeHeight = _sceneColor->GetDesc().Height;
+        const auto probeHeight = sceneDesc.Height;
         probeFrame("clear", probeHeight);
         submitDraws();
         probeFrame("geometry", probeHeight);
-        drawSkybox();
+        _environment.drawSkybox(_camera, _viewProjection);
         probeFrame("background", probeHeight);
-        drawFog();
+        _postChain.drawFog(_sceneColor, _sceneDepth, _camera, _viewProjection, _outputEncoding);
         probeFrame("fog", probeHeight);
-        drawBloom();
+        _postChain.drawBloom(_sceneColor);
         probeFrame("bloom", probeHeight);
-        composite();
+        _postChain.composite(_sceneColor, _sceneOutput, _outputEncoding);
         probeFrame("composite", probeHeight);
 
         yieldToRaylib();
@@ -467,7 +444,7 @@ namespace BreadEngine {
         }
     }
 
-    void DiligentRenderer::uploadConstants(Diligent::IBuffer *buffer, const void *data, const size_t size)
+    void uploadConstants(Diligent::IDeviceContext *context, Diligent::IBuffer *buffer, const void *data, const size_t size)
     {
         // A mapped constant buffer is driver memory with nothing behind it, so writing past the
         // end corrupts whatever the driver keeps there and crashes somewhere else entirely,
@@ -479,14 +456,14 @@ namespace BreadEngine {
         }
 
         void *mapped = nullptr;
-        _context->MapBuffer(buffer, Diligent::MAP_WRITE, Diligent::MAP_FLAG_DISCARD, mapped);
+        context->MapBuffer(buffer, Diligent::MAP_WRITE, Diligent::MAP_FLAG_DISCARD, mapped);
         if (mapped == nullptr) return;
 
         std::memcpy(mapped, data, size);
-        _context->UnmapBuffer(buffer, Diligent::MAP_WRITE);
+        context->UnmapBuffer(buffer, Diligent::MAP_WRITE);
     }
 
-    Diligent::RefCntAutoPtr<Diligent::IShaderSourceInputStreamFactory> DiligentRenderer::createShaderSources() const
+    Diligent::RefCntAutoPtr<Diligent::IShaderSourceInputStreamFactory> createShaderSources()
     {
         Diligent::RefCntAutoPtr<Diligent::IShaderSourceInputStreamFactory> engineSources;
         const std::string shaderDirectory = std::string(GetApplicationDirectory()) + SHADER_DIRECTORY;
@@ -498,7 +475,7 @@ namespace BreadEngine {
             {&Diligent::DiligentFXShaderSourceStreamFactory::GetInstance(), engineSources});
     }
 
-    void DiligentRenderer::restoreRaylibPixelStore()
+    void restoreRaylibPixelStore()
     {
         // Diligent leaves GL_UNPACK_ROW_LENGTH at the stride of whatever it uploaded last, and
         // raylib sets only the alignment before its own uploads - it has always been able to
@@ -576,6 +553,4 @@ namespace BreadEngine {
         const auto height = static_cast<float>(_overlay.texture.height);
         DrawTexturePro(_overlay.texture, Rectangle{0, 0, width, -height}, destination, Vector2{0, 0}, 0, WHITE);
     }
-
-    // --- lights ---
 } // namespace BreadEngine

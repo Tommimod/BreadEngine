@@ -1,4 +1,4 @@
-#include "diligentInternal.h"
+#include "diligentPostChain.h"
 
 #include <algorithm>
 #include <cmath>
@@ -64,7 +64,71 @@ namespace BreadEngine {
         Vector4 combine;
     };
 
-    void DiligentRenderer::createCompositePipeline()
+    void PostChain::initialize(Diligent::IRenderDevice *device, Diligent::IDeviceContext *context)
+    {
+        _device = device;
+        _context = context;
+
+        createCompositePipeline();
+        createFogPipeline();
+        createBloomPipelines();
+    }
+
+    void PostChain::shutdown()
+    {
+        _bloomChain.clear();
+        _bloomCombineBindings = {};
+        _bloomCombinePipelines = {};
+        _bloomUpsampleBinding.Release();
+        _bloomUpsamplePipeline.Release();
+        _bloomDownsampleBinding.Release();
+        _bloomDownsamplePipeline.Release();
+        _bloomConstants.Release();
+        _fogBinding.Release();
+        _fogPipeline.Release();
+        _fogConstants.Release();
+        _compositeBinding.Release();
+        _compositePipeline.Release();
+        _postConstants.Release();
+
+        _context = nullptr;
+        _device = nullptr;
+    }
+
+    void PostChain::setSettings(const EnvironmentSettings &settings)
+    {
+        // The encoding is deliberately not taken here: it belongs to the project's output
+        // colour space, which is pushed once at startup and is no part of the environment.
+        _composite.tonemap = settings.tonemap.mode;
+        _composite.exposure = settings.tonemap.exposure;
+        _composite.whitePoint = settings.tonemap.white;
+        _composite.brightness = settings.finalColor.brightness;
+        _composite.contrast = settings.finalColor.contrast;
+        _composite.saturation = settings.finalColor.saturation;
+
+        _fog.mode = settings.fog.mode;
+        _fog.color = settings.fog.color;
+        _fog.start = settings.fog.start;
+        _fog.end = settings.fog.end;
+        _fog.density = settings.fog.density;
+        _fog.height = settings.fog.height;
+        _fog.heightFalloff = settings.fog.heightFalloff;
+        _fog.skyAffect = settings.fog.skyAffect;
+
+        _bloom.mode = settings.bloom.mode;
+        _bloom.levels = settings.bloom.levels;
+        _bloom.intensity = settings.bloom.intensity;
+        _bloom.threshold = settings.bloom.threshold;
+        _bloom.softThreshold = settings.bloom.softThreshold;
+        _bloom.filterRadius = settings.bloom.filterRadius;
+    }
+
+    void PostChain::releaseBloomChain()
+    {
+        _bloomChain.clear();
+    }
+
+    void PostChain::createCompositePipeline()
     {
         if (!_device) return;
 
@@ -133,7 +197,7 @@ namespace BreadEngine {
         _compositePipeline->CreateShaderResourceBinding(&_compositeBinding, true);
     }
 
-    void DiligentRenderer::createFogPipeline()
+    void PostChain::createFogPipeline()
     {
         if (!_device) return;
 
@@ -202,7 +266,7 @@ namespace BreadEngine {
         _fogPipeline->CreateShaderResourceBinding(&_fogBinding, true);
     }
 
-    void DiligentRenderer::createBloomPipelines()
+    void PostChain::createBloomPipelines()
     {
         if (!_device) return;
 
@@ -339,17 +403,18 @@ namespace BreadEngine {
         }
     }
 
-    void DiligentRenderer::drawFog()
+    void PostChain::drawFog(Diligent::ITexture *sceneColor, Diligent::ITexture *sceneDepth, const CameraView &camera,
+                            const Matrix &viewProjection, const float encoding)
     {
         if (!_fogPipeline || _fog.mode == FogMode::Disabled) return;
 
-        auto *renderTarget = _sceneColor->GetDefaultView(Diligent::TEXTURE_VIEW_RENDER_TARGET);
+        auto *renderTarget = sceneColor->GetDefaultView(Diligent::TEXTURE_VIEW_RENDER_TARGET);
         _context->SetRenderTargets(1, &renderTarget, nullptr, Diligent::RESOURCE_STATE_TRANSITION_MODE_TRANSITION);
 
-        const auto color = toSceneLinear(_fog.color, _post.encoding);
+        const auto color = toSceneLinear(_fog.color, encoding);
         const FogConstants constants{
-            .inverseViewProjection = MatrixToFloatV(MatrixInvert(_viewProjection)),
-            .cameraPosition = {_camera.position.x, _camera.position.y, _camera.position.z, 1.0f},
+            .inverseViewProjection = MatrixToFloatV(MatrixInvert(viewProjection)),
+            .cameraPosition = {camera.position.x, camera.position.y, camera.position.z, 1.0f},
             .color = {color.x, color.y, color.z, std::clamp(_fog.skyAffect, 0.0f, 1.0f)},
             .params = {
                 static_cast<float>(_fog.mode), _fog.start,
@@ -357,11 +422,11 @@ namespace BreadEngine {
             },
             .height = {_fog.height, std::max(_fog.heightFalloff, 0.0f), 0.0f, 0.0f}
         };
-        uploadConstants(_fogConstants, &constants, sizeof(constants));
+        uploadConstants(_context, _fogConstants, &constants, sizeof(constants));
 
         _context->SetPipelineState(_fogPipeline);
         _fogBinding->GetVariableByName(Diligent::SHADER_TYPE_PIXEL, "g_SceneDepth")
-                   ->Set(_sceneDepth->GetDefaultView(Diligent::TEXTURE_VIEW_SHADER_RESOURCE));
+                   ->Set(sceneDepth->GetDefaultView(Diligent::TEXTURE_VIEW_SHADER_RESOURCE));
         _context->CommitShaderResources(_fogBinding, Diligent::RESOURCE_STATE_TRANSITION_MODE_TRANSITION);
 
         Diligent::DrawAttribs drawAttribs;
@@ -370,10 +435,10 @@ namespace BreadEngine {
         _context->Draw(drawAttribs);
     }
 
-    void DiligentRenderer::resizeBloomChain()
+    void PostChain::resizeBloomChain(const Diligent::ITexture *sceneColor)
     {
-        const auto sceneWidth = static_cast<int>(_sceneColor->GetDesc().Width);
-        const auto sceneHeight = static_cast<int>(_sceneColor->GetDesc().Height);
+        const auto sceneWidth = static_cast<int>(sceneColor->GetDesc().Width);
+        const auto sceneHeight = static_cast<int>(sceneColor->GetDesc().Height);
 
         // How many levels this target has room for. The chain starts at half the scene's size
         // - the finest level of a blur has nothing to gain from resolving what the scene
@@ -438,8 +503,8 @@ namespace BreadEngine {
         }
     }
 
-    void DiligentRenderer::drawBloomStep(Diligent::IPipelineState *pipeline, Diligent::IShaderResourceBinding *binding,
-                                         Diligent::ITexture *source, Diligent::ITextureView *target)
+    void PostChain::drawBloomStep(Diligent::IPipelineState *pipeline, Diligent::IShaderResourceBinding *binding,
+                                  Diligent::ITexture *source, Diligent::ITextureView *target)
     {
         // Every step covers its whole target, so nothing is cleared - and the viewport comes
         // with the target, which is what lets one triangle serve every level whatever its size.
@@ -456,7 +521,7 @@ namespace BreadEngine {
         _context->Draw(drawAttribs);
     }
 
-    void DiligentRenderer::drawBloom()
+    void PostChain::drawBloom(Diligent::ITexture *sceneColor)
     {
         const auto blendMode = static_cast<size_t>(_bloom.mode);
         if (blendMode == 0 || blendMode > BLOOM_BLEND_MODE_COUNT || _bloom.intensity <= 0.0f) return;
@@ -467,7 +532,7 @@ namespace BreadEngine {
         // is the whole path standing - including the pipelines it returned early on.
         if (!_bloomCombineBindings[blendIndex]) return;
 
-        resizeBloomChain();
+        resizeBloomChain(sceneColor);
         if (_bloomChain.empty()) return;
 
         BloomConstants constants{
@@ -486,10 +551,10 @@ namespace BreadEngine {
         for (size_t level = 0; level < _bloomChain.size(); ++level)
         {
             constants.filter.w = level == 0 ? 1.0f : 0.0f;
-            uploadConstants(_bloomConstants, &constants, sizeof(constants));
+            uploadConstants(_context, _bloomConstants, &constants, sizeof(constants));
 
             drawBloomStep(_bloomDownsamplePipeline, _bloomDownsampleBinding,
-                          level == 0 ? _sceneColor : _bloomChain[level - 1],
+                          level == 0 ? sceneColor : _bloomChain[level - 1].RawPtr(),
                           _bloomChain[level]->GetDefaultView(Diligent::TEXTURE_VIEW_RENDER_TARGET));
         }
 
@@ -498,7 +563,7 @@ namespace BreadEngine {
         // steps, so the constants are uploaded once for all of them.
         constants.filter.w = 0.0f;
         constants.combine.x = BLOOM_UPSAMPLE_BLEND;
-        uploadConstants(_bloomConstants, &constants, sizeof(constants));
+        uploadConstants(_context, _bloomConstants, &constants, sizeof(constants));
 
         for (size_t level = _bloomChain.size() - 1; level > 0; --level)
         {
@@ -509,71 +574,34 @@ namespace BreadEngine {
         // The last step up is the one that reaches the scene: the same tent over the finest
         // level, at the authored strength, through whichever blend the mode asks for.
         constants.combine.x = _bloom.intensity;
-        uploadConstants(_bloomConstants, &constants, sizeof(constants));
+        uploadConstants(_context, _bloomConstants, &constants, sizeof(constants));
 
         drawBloomStep(_bloomCombinePipelines[blendIndex], _bloomCombineBindings[blendIndex], _bloomChain.front(),
-                      _sceneColor->GetDefaultView(Diligent::TEXTURE_VIEW_RENDER_TARGET));
+                      sceneColor->GetDefaultView(Diligent::TEXTURE_VIEW_RENDER_TARGET));
     }
 
-    void DiligentRenderer::composite()
+    void PostChain::composite(Diligent::ITexture *sceneColor, Diligent::ITexture *sceneOutput, const float encoding)
     {
-        if (!_compositePipeline || !_sceneOutput) return;
+        if (!_compositePipeline || !sceneOutput) return;
 
-        auto *renderTarget = _sceneOutput->GetDefaultView(Diligent::TEXTURE_VIEW_RENDER_TARGET);
+        auto *renderTarget = sceneOutput->GetDefaultView(Diligent::TEXTURE_VIEW_RENDER_TARGET);
         // Nothing is cleared: the triangle covers the whole target, so every pixel is written.
         _context->SetRenderTargets(1, &renderTarget, nullptr, Diligent::RESOURCE_STATE_TRANSITION_MODE_TRANSITION);
 
         const PostConstants constants{
-            .tonemap = {static_cast<float>(_post.tonemap), _post.exposure, _post.whitePoint, 0.0f},
-            .grading = {_post.brightness, _post.contrast, _post.saturation, _post.encoding}
+            .tonemap = {static_cast<float>(_composite.tonemap), _composite.exposure, _composite.whitePoint, 0.0f},
+            .grading = {_composite.brightness, _composite.contrast, _composite.saturation, encoding}
         };
-        uploadConstants(_postConstants, &constants, sizeof(constants));
+        uploadConstants(_context, _postConstants, &constants, sizeof(constants));
 
         _context->SetPipelineState(_compositePipeline);
         _compositeBinding->GetVariableByName(Diligent::SHADER_TYPE_PIXEL, "g_SceneColor")
-                         ->Set(_sceneColor->GetDefaultView(Diligent::TEXTURE_VIEW_SHADER_RESOURCE));
+                         ->Set(sceneColor->GetDefaultView(Diligent::TEXTURE_VIEW_SHADER_RESOURCE));
         _context->CommitShaderResources(_compositeBinding, Diligent::RESOURCE_STATE_TRANSITION_MODE_TRANSITION);
 
         Diligent::DrawAttribs drawAttribs;
         drawAttribs.NumVertices = 3;
         drawAttribs.Flags = Diligent::DRAW_FLAG_VERIFY_ALL;
         _context->Draw(drawAttribs);
-    }
-
-    void DiligentRenderer::setEnvironment(const EnvironmentSettings &settings)
-    {
-        _clearColor = settings.background.color;
-        _sky = settings.background.sky;
-        _skyRotation = settings.background.rotation;
-        _skyEnergy = settings.background.energy;
-        _skyBlur = settings.background.skyBlur;
-        _ambientColor = settings.ambient.color;
-        _ambientEnergy = settings.ambient.energy;
-        _ambientMap = settings.ambient.map;
-
-        // The encoding is deliberately not set here: it belongs to the project's output colour
-        // space, which is pushed once at startup and is no part of the environment.
-        _post.tonemap = settings.tonemap.mode;
-        _post.exposure = settings.tonemap.exposure;
-        _post.whitePoint = settings.tonemap.white;
-        _post.brightness = settings.finalColor.brightness;
-        _post.contrast = settings.finalColor.contrast;
-        _post.saturation = settings.finalColor.saturation;
-
-        _fog.mode = settings.fog.mode;
-        _fog.color = settings.fog.color;
-        _fog.start = settings.fog.start;
-        _fog.end = settings.fog.end;
-        _fog.density = settings.fog.density;
-        _fog.height = settings.fog.height;
-        _fog.heightFalloff = settings.fog.heightFalloff;
-        _fog.skyAffect = settings.fog.skyAffect;
-
-        _bloom.mode = settings.bloom.mode;
-        _bloom.levels = settings.bloom.levels;
-        _bloom.intensity = settings.bloom.intensity;
-        _bloom.threshold = settings.bloom.threshold;
-        _bloom.softThreshold = settings.bloom.softThreshold;
-        _bloom.filterRadius = settings.bloom.filterRadius;
     }
 } // namespace BreadEngine
