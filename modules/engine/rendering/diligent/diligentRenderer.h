@@ -104,6 +104,11 @@ namespace BreadEngine {
         /// count and the face resolution smaller than the spot array's.
         static constexpr size_t MAX_OMNI_SHADOWS = 4;
 
+        /// Blend modes the bloom glow can be combined through, which is every BloomMode but
+        /// Disabled. A pipeline's blend state is fixed once it exists, so this is also how
+        /// many combine pipelines there are.
+        static constexpr size_t BLOOM_BLEND_MODE_COUNT = 3;
+
         /// Faces of a cube map, in the order every graphics API agrees on: +X, -X, +Y, -Y,
         /// +Z, -Z. Diligent indexes a cube array in layer-faces, so a cube's first face is at
         /// slice * CUBE_FACE_COUNT.
@@ -175,6 +180,22 @@ namespace BreadEngine {
             float height = 0.0f;
             float heightFalloff = 0.0f;
             float skyAffect = 0.0f;
+        };
+
+        /// What the bloom chain is built and combined with. Held as values for the same reason
+        /// PostState and FogState are: the block it comes from belongs to the project's
+        /// settings and is handed over by reference per frame.
+        struct BloomState
+        {
+            BloomMode mode = BloomMode::Disabled;
+            /// How much of the chain the scene target has room for to actually build, from
+            /// one level at the fine end to all of them.
+            float levels = 0.0f;
+            float intensity = 0.0f;
+            float threshold = 0.0f;
+            float softThreshold = 0.0f;
+            /// Width of the upsample tent, in texels of the level it reads.
+            float filterRadius = 1.0f;
         };
 
         /// A material is exactly its binding, and mutable variables cannot be re-pointed, so
@@ -357,6 +378,23 @@ namespace BreadEngine {
         Diligent::RefCntAutoPtr<Diligent::IPipelineState> _fogPipeline;
         Diligent::RefCntAutoPtr<Diligent::IShaderResourceBinding> _fogBinding;
         Diligent::RefCntAutoPtr<Diligent::IBuffer> _fogConstants;
+        /// Filters the scene down the bloom chain and blurs it back up. Two pipelines over one
+        /// constant buffer, because the two directions differ only in their kernel and in
+        /// whether they blend into what is already there.
+        Diligent::RefCntAutoPtr<Diligent::IPipelineState> _bloomDownsamplePipeline;
+        Diligent::RefCntAutoPtr<Diligent::IShaderResourceBinding> _bloomDownsampleBinding;
+        Diligent::RefCntAutoPtr<Diligent::IPipelineState> _bloomUpsamplePipeline;
+        Diligent::RefCntAutoPtr<Diligent::IShaderResourceBinding> _bloomUpsampleBinding;
+        /// One per BloomMode past Disabled. The combine is the last upsample by another name -
+        /// same shaders, same resources - and the modes differ only in how the result meets
+        /// the scene, which is blend state and so fixed once a pipeline exists.
+        std::array<Diligent::RefCntAutoPtr<Diligent::IPipelineState>, BLOOM_BLEND_MODE_COUNT> _bloomCombinePipelines;
+        std::array<Diligent::RefCntAutoPtr<Diligent::IShaderResourceBinding>, BLOOM_BLEND_MODE_COUNT> _bloomCombineBindings;
+        Diligent::RefCntAutoPtr<Diligent::IBuffer> _bloomConstants;
+        /// The chain itself, finest first, each level half the size of the one before it. A
+        /// texture per level rather than the mips of one, because a level is a render target
+        /// and a shader resource in the same pass and only whole textures are both everywhere.
+        std::vector<Diligent::RefCntAutoPtr<Diligent::ITexture>> _bloomChain;
         Diligent::RefCntAutoPtr<Diligent::IPipelineState> _compositePipeline;
         Diligent::RefCntAutoPtr<Diligent::IShaderResourceBinding> _compositeBinding;
         Diligent::RefCntAutoPtr<Diligent::IBuffer> _postConstants;
@@ -405,6 +443,7 @@ namespace BreadEngine {
         float _skyBlur = 0.0f;
         PostState _post{};
         FogState _fog{};
+        BloomState _bloom{};
 
         void createSceneTarget(int width, int height);
 
@@ -415,6 +454,10 @@ namespace BreadEngine {
 
         void createCompositePipeline();
         void createFogPipeline();
+
+        /// Builds the two passes the bloom chain is filled with, and the three the glow meets
+        /// the scene through - one per blend mode.
+        void createBloomPipelines();
 
         /// Resolves an #include from the engine's own shader directory or, failing that, from
         /// DiligentFX - whose .fxh files are compiled into the library rather than shipped.
@@ -469,6 +512,21 @@ namespace BreadEngine {
         /// Runs after the background pass, so the sky is fogged by the same view ray the rest
         /// of the frame is, and before the composite, so what is tone mapped is one linear image.
         void drawFog();
+
+        /// Sizes the bloom chain to the scene target and to the level count currently asked
+        /// for. Nothing announces either changing, so both are compared rather than trusted.
+        void resizeBloomChain();
+
+        /// Draws one step of the bloom chain: @p source, read through @p binding, into
+        /// @p target. The constants are the caller's, because they are what differs between
+        /// filtering down the chain, blurring back up it, and reaching the scene.
+        void drawBloomStep(Diligent::IPipelineState *pipeline, Diligent::IShaderResourceBinding *binding,
+                           Diligent::ITexture *source, Diligent::ITextureView *target);
+
+        /// Filters the frame down the chain, blurs it back up, and blends the glow over the
+        /// scene target. Runs after the fog, so what glows is the frame as it will be seen,
+        /// and before the composite, so the glow is added in the linear space it belongs in.
+        void drawBloom();
 
         /// Tone maps and grades the scene into _sceneOutput. Leaves that target bound, which
         /// is what the overlay and the blit both go on to use.

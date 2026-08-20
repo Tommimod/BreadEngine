@@ -1,0 +1,120 @@
+// One step down the bloom chain: reads the level above at twice this one's resolution and
+// leaves the filtered average behind. The thirteen taps are four overlapping quads plus a
+// centre one, which is what keeps the chain from pulsing as the camera moves - a plain box
+// filter drops every other texel at each halving and the dropped set changes with subpixel
+// motion.
+//
+// The first step down is also the one that decides what glows at all. That belongs here
+// rather than in a pass of its own: brightness has to be judged before any averaging, or a
+// bright pixel would already be diluted by its dark neighbours by the time it is looked at.
+
+/// Rec. 709 luminance, as the composite uses it. The firefly weight below needs one
+/// brightness for a colour, and this is the one the rest of the pipeline assumes.
+#define LUMINANCE_WEIGHTS float3(0.2126, 0.7152, 0.0722)
+
+/// Taps of the downsample kernel, as five overlapping groups of four.
+#define BLOOM_GROUP_COUNT 5
+
+cbuffer BloomConstants
+{
+    /// x is the brightness a pixel has to carry before it contributes at all, y how wide the
+    /// soft shoulder below that is, z the radius of the upsample tent - which only the
+    /// upsample reads - and w whether this is the step that filters by brightness.
+    float4 g_BloomFilter;
+    /// x is how strongly the finished glow reaches the scene, which only the combine reads.
+    float4 g_BloomCombine;
+};
+
+Texture2D    g_BloomSource;
+SamplerState g_BloomSource_sampler;
+
+struct PSInput
+{
+    float4 Position     : SV_POSITION;
+    float2 NormalizedXY : NORMALIZED_XY;
+};
+
+struct PSOutput
+{
+    float4 Color : SV_TARGET;
+};
+
+float3 sampleSource(float2 uv, float2 offset)
+{
+    return g_BloomSource.SampleLevel(g_BloomSource_sampler, uv + offset, 0.0).rgb;
+}
+
+/// How much of a colour survives the brightness filter. Nothing below the threshold, all of
+/// it well above, and a quadratic ramp across the shoulder between the two - which is what
+/// keeps a highlight from popping into the glow whole as it brightens past the cutoff.
+float3 applyThreshold(float3 color)
+{
+    float brightness = max(color.r, max(color.g, color.b));
+    float knee = g_BloomFilter.x * g_BloomFilter.y;
+
+    float soft = clamp(brightness - g_BloomFilter.x + knee, 0.0, 2.0 * knee);
+    soft = soft * soft * 0.25 / (knee + 1e-5);
+
+    return color * (max(soft, brightness - g_BloomFilter.x) / max(brightness, 1e-5));
+}
+
+void main(in PSInput PSIn, out PSOutput PSOut)
+{
+    float2 resolution;
+    g_BloomSource.GetDimensions(resolution.x, resolution.y);
+    float2 texel = float2(1.0, 1.0) / resolution;
+    float2 uv = NormalizedDeviceXYToTexUV(PSIn.NormalizedXY);
+
+    float3 a = sampleSource(uv, texel * float2(-2.0, +2.0));
+    float3 b = sampleSource(uv, texel * float2(+0.0, +2.0));
+    float3 c = sampleSource(uv, texel * float2(+2.0, +2.0));
+    float3 d = sampleSource(uv, texel * float2(-2.0, +0.0));
+    float3 e = sampleSource(uv, texel * float2(+0.0, +0.0));
+    float3 f = sampleSource(uv, texel * float2(+2.0, +0.0));
+    float3 g = sampleSource(uv, texel * float2(-2.0, -2.0));
+    float3 h = sampleSource(uv, texel * float2(+0.0, -2.0));
+    float3 i = sampleSource(uv, texel * float2(+2.0, -2.0));
+    float3 j = sampleSource(uv, texel * float2(-1.0, +1.0));
+    float3 k = sampleSource(uv, texel * float2(+1.0, +1.0));
+    float3 l = sampleSource(uv, texel * float2(-1.0, -1.0));
+    float3 m = sampleSource(uv, texel * float2(+1.0, -1.0));
+
+    float3 groups[BLOOM_GROUP_COUNT];
+    groups[0] = (a + b + d + e) * 0.25;
+    groups[1] = (b + c + e + f) * 0.25;
+    groups[2] = (d + e + g + h) * 0.25;
+    groups[3] = (e + f + h + i) * 0.25;
+    // The inner quad straddles the centre and stands for half the result on its own.
+    groups[4] = (j + k + l + m) * 0.25;
+
+    float weights[BLOOM_GROUP_COUNT];
+    weights[0] = 0.125;
+    weights[1] = 0.125;
+    weights[2] = 0.125;
+    weights[3] = 0.125;
+    weights[4] = 0.5;
+
+    float3 color = float3(0.0, 0.0, 0.0);
+    if (g_BloomFilter.w > 0.0)
+    {
+        // Karis' average: weight each group down by its own brightness, then renormalize. A
+        // single very bright texel would otherwise carry its whole energy into the chain and
+        // flicker as a large soft blob whenever it moves - the one artefact a threshold on
+        // its own cannot prevent, because the texel is above the threshold by design.
+        float total = 0.0;
+        for (int karisGroup = 0; karisGroup < BLOOM_GROUP_COUNT; ++karisGroup)
+        {
+            float weight = weights[karisGroup] / (1.0 + dot(groups[karisGroup], LUMINANCE_WEIGHTS));
+            color += groups[karisGroup] * weight;
+            total += weight;
+        }
+
+        color = applyThreshold(color / max(total, 1e-5));
+    }
+    else
+    {
+        for (int group = 0; group < BLOOM_GROUP_COUNT; ++group) color += groups[group] * weights[group];
+    }
+
+    PSOut.Color = float4(color, 1.0);
+}

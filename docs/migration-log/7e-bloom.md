@@ -1,0 +1,31 @@
+*Part of the [migration log](../../DILIGENT_MIGRATION_LOG.md). History, not instructions — read it before working in this area, not otherwise. Anything here that must not be re-broken belongs in [DILIGENT_MIGRATION.md](../../DILIGENT_MIGRATION.md)'s Invariants instead.*
+
+### Phase 7.e — bloom
+
+Two decisions to the project owner up front, and the first one went against the plan as written.
+
+- **An engine-native pass, not DiligentFX's `Bloom` component.** The plan named `PostProcess/Bloom` as what 7.e reaches for; checking it changed the price. `Bloom::Execute` is only reachable through a `PostFXContext`, and `PostFXContext::Execute` dereferences `pCurrDepthBufferSRV`, `pPrevDepthBufferSRV` **and** `pMotionVectorsSRV` unconditionally (`PostFXContext.cpp:292`) — the engine has depth history for none of that and no motion vectors at all. It then runs four passes a frame (blue noise, reprojected depth, closest motion, previous depth) that bloom never reads. Its README's minimal example predates those requirements and would crash. And its last upsample bakes the combine in as a fixed `SourceColor + Intensity * ColorSum`, so `GetBloomTextureSRV` returns an already-combined image and `BloomMode`'s Mix and Screen could not be expressed at all. Written here it is two shaders and one chain, all six authored fields keep meaning, and 7.f gets to decide about `PostFXContext` on SSR's merits rather than bloom's.
+- **A standalone combine pass**, over folding the glow into `composite.psh`. Costs one full-res pass and three pipelines rather than one texture fetch and a branch, and keeps the composite about tone mapping. 7.d's own reason for a standalone fog pass — that folding it in put it on the wrong side of bloom — does not carry over, since nothing is downstream of bloom.
+
+**What it is.** A chain of textures, each half the one before it, starting at half the scene's size. `bloomDownsample.psh` walks down it with the thirteen-tap kernel (four overlapping quads plus a centre one, so a halving does not drop a fixed set of texels and pulse as the camera moves); the first step down is also the only one that filters by brightness, because brightness has to be judged before any averaging, and it Karis-weights the groups so a single very bright texel cannot carry its whole energy into the chain. `bloomUpsample.psh` walks back up with a tent, and the step that reaches the scene is the same pass through a different blend. The three `BloomMode` values are three pipelines because a pipeline's blend state is fixed once it exists — Mix `ONE/INV_SRC_ALPHA`, Additive `ONE/ONE`, Screen `INV_DEST_COLOR/ONE` — all three fed the glow already scaled by the intensity, with that intensity in the alpha, so no mode scales it twice.
+
+**The upsample blends rather than sums.** Adding on the way up — which is what DiligentFX and the froyok article both do — makes a flat colour come back N times brighter for an N-level chain, so `levels` would be a brightness control as much as a spread one, and every intensity would have to be re-authored whenever the slider moved. Interpolating at a half instead leaves the total weight at one. Measured: eight levels against one level, over flat regions, **1.0015**.
+
+**The bug: rlgl caches the blend *function*, not just whether blending is on.** Turning bloom on made the entire frame saturate to pure white — every pixel, dark objects included — and it stayed white with the glow forced to literal black, which `dst + 0` cannot do. Six shader probes said nothing, because the pipeline was never wrong. What found it was reading the truth back in order: `glGetIntegerv` after the combine draw said `GL_ONE`, `GL_ONE`, `GL_FUNC_ADD`, the right texture, the right FBO, the right viewport; then `glReadPixels` on the scene target before and after the combine read `0.7959` and `0.7974`, against `0.7959 + 0.002 * 0.7969 = 0.7974`. The pass was exactly right and the corruption was downstream. rlgl issues `glBlendFunc` once at startup and again only when its own cached blend mode changes, which nothing here makes it do; `yieldToRaylib` restored `glEnable(GL_BLEND)` and never the function behind it. Every function Diligent had set until now was fog's `SRC_ALPHA/INV_SRC_ALPHA` — rlgl's own default — so it had never mattered. Additive left `ONE/ONE` behind and raylib blitted the frame onto an uncleared back buffer through it, accumulating over itself to white in a few frames; Screen left `INV_DEST_COLOR/ONE` and converged on `0.99` instead, which is exactly the `fefefe` measured.
+
+**Why Mix hid it.** `ONE/INV_SRC_ALPHA` is rlgl's own `RL_BLEND_ALPHA_PREMULTIPLY`, and the blit's alpha is 1, so `SRC_ALPHA` and `ONE` are the same number. Mix was pixel-exact throughout — which is what made the failure look like a property of two specific pipelines rather than of the state they left behind.
+
+**A probe that multiplies by `1e-9` does not neutralise a value.** `Inf * 1e-9` is `Inf` and `NaN * 1e-9` is `NaN`, so two of the six probes proved less than they appeared to. Write a literal and keep the resource alive with an added vanishing term instead — plain `* 0.0` gets the texture dead-code-eliminated and `GetVariableByName` then returns null into an unchecked dereference, which is the same trap `scene.psh` already carries.
+
+**Verified**, against the un-bloomed frame, over every region flat enough that the kernel cannot change the answer:
+
+| check | expected | measured |
+| --- | --- | --- |
+| Additive, one level, intensity 0.25 | 1.1068 (`1.25^(1/2.2)`) | **1.1067** over 27169 channels |
+| eight levels against one, flat regions | 1.0000 | **1.0015** |
+| eight levels against no bloom | 1.1068 | **1.1070** |
+| threshold above every scene value | 1.0000 | **1.0000**, all 35620 channels |
+| Mix at intensity 1 (the chain reproducing its own input) | 1.0000 | **0.9998** |
+| Screen at intensity 1, floor at `e3` | `f9` (`0.7714 + 0.7714 * 0.2286`) | **`f9`** |
+
+Spread, across a dark object lying against a bright floor: one level lifts it by 4-10 of 255, eight levels by 20-24, while both lift the flat floor by the same 15-19. The editor was captured with bloom on and off — UI, text, grid and gizmos all intact, viewport differing by 0-2 levels on the bright half and not at all on the dark scooter at threshold 1.

@@ -1,0 +1,67 @@
+// One step back up the bloom chain, and the step that finally puts the glow on the scene -
+// they are the same pass. A tent filter over the level below, scaled by the filter radius,
+// added to whatever the target already holds. The sum of every level is what makes the
+// falloff smooth: each on its own is a blur of one width, and a chain of them read back
+// separately would show as rings.
+//
+// The pass blends rather than replaces, so the target keeps what it had. Which blend runs is
+// the pipeline's, not this shader's: the combine reads the scene target it is writing into,
+// and only the blend unit can see that value.
+
+cbuffer BloomConstants
+{
+    /// x is the brightness a pixel has to carry before it contributes at all and y how wide
+    /// the soft shoulder below that is - both the downsample's - while z is the radius of the
+    /// tent below, in texels of the level being read.
+    float4 g_BloomFilter;
+    /// x is how strongly the glow reaches its target: one while the chain is being summed
+    /// into itself, the authored intensity on the step that reaches the scene. It leaves as
+    /// the alpha as well, which is what the mix blend interpolates by.
+    float4 g_BloomCombine;
+};
+
+Texture2D    g_BloomSource;
+SamplerState g_BloomSource_sampler;
+
+struct PSInput
+{
+    float4 Position     : SV_POSITION;
+    float2 NormalizedXY : NORMALIZED_XY;
+};
+
+struct PSOutput
+{
+    float4 Color : SV_TARGET;
+};
+
+float3 sampleSource(float2 uv, float2 offset)
+{
+    return g_BloomSource.SampleLevel(g_BloomSource_sampler, uv + offset, 0.0).rgb;
+}
+
+void main(in PSInput PSIn, out PSOutput PSOut)
+{
+    float2 resolution;
+    g_BloomSource.GetDimensions(resolution.x, resolution.y);
+    // In texels of the source, not the target: the tent is what widens the level being read
+    // to cover the finer one, so its reach has to be measured where it is sampled.
+    float2 tap = (float2(1.0, 1.0) / resolution) * g_BloomFilter.z;
+    float2 uv = NormalizedDeviceXYToTexUV(PSIn.NormalizedXY);
+
+    float3 color = sampleSource(uv, float2(+0.0, +0.0)) * 0.25;
+
+    color += sampleSource(uv, tap * float2(+0.0, +1.0)) * 0.125;
+    color += sampleSource(uv, tap * float2(+0.0, -1.0)) * 0.125;
+    color += sampleSource(uv, tap * float2(-1.0, +0.0)) * 0.125;
+    color += sampleSource(uv, tap * float2(+1.0, +0.0)) * 0.125;
+
+    color += sampleSource(uv, tap * float2(-1.0, +1.0)) * 0.0625;
+    color += sampleSource(uv, tap * float2(+1.0, +1.0)) * 0.0625;
+    color += sampleSource(uv, tap * float2(-1.0, -1.0)) * 0.0625;
+    color += sampleSource(uv, tap * float2(+1.0, -1.0)) * 0.0625;
+
+    // Scaled here rather than by the blend, so that every mode receives the same source
+    // colour and differs only in how it is put on the target. The mix blend needs the
+    // strength on its own as well, and that is what the alpha carries.
+    PSOut.Color = float4(color * g_BloomCombine.x, g_BloomCombine.x);
+}
