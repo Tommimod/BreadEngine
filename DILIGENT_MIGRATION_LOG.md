@@ -6,6 +6,7 @@ History, not instructions. The working document — current status, the rules th
 
 | phase | what it records |
 | --- | --- |
+| [`7g-depth-of-field`](docs/migration-log/7g-depth-of-field.md) | Depth of field, landed after the phase closed: the CoC-weighted spiral gather, why it can't share reflections' same-texture trick, and the units gotcha the test scene's own default ran into |
 | [`7f-screen-space`](docs/migration-log/7f-screen-space.md) | Ambient occlusion and reflections: the ambient target, the packed surface target, and why DiligentFX lost again |
 | [`7-renderer-decomposition`](docs/migration-log/7-renderer-decomposition.md) | The renderer split into four objects: what each holds, what it borrows, and the order that was forced |
 | [`7e-bloom`](docs/migration-log/7e-bloom.md) | Bloom: the chain, why DiligentFX was turned down, and the rlgl blend-function bug |

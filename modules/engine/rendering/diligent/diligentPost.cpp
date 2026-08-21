@@ -50,6 +50,19 @@ namespace BreadEngine {
         Vector4 height;
     };
 
+    /// Mirrors dof.psh's cbuffer, float4-only like the blocks above it.
+    struct DOFConstants
+    {
+        float16 inverseViewProjection;
+        Vector4 cameraPosition;
+        Vector4 cameraForward;
+        /// x is the focus distance, y the depth of field's scale, z the near-side intensity,
+        /// w the maximum blur radius in texels.
+        Vector4 params;
+        /// xy is one texel of the target, in normalized device space.
+        Vector4 texelSize;
+    };
+
     /// Mirrors the cbuffer bloomDownsample.psh and bloomUpsample.psh both declare. One block
     /// for two shaders because they are two halves of one effect and every step of it uploads
     /// the whole thing anyway; float4-only like the blocks above it.
@@ -72,10 +85,15 @@ namespace BreadEngine {
         createCompositePipeline();
         createFogPipeline();
         createBloomPipelines();
+        createDepthOfFieldPipeline();
     }
 
     void PostChain::shutdown()
     {
+        _dofTarget.Release();
+        _dofBinding.Release();
+        _dofPipeline.Release();
+        _dofConstants.Release();
         _bloomChain.clear();
         _bloomCombineBindings = {};
         _bloomCombinePipelines = {};
@@ -115,6 +133,12 @@ namespace BreadEngine {
         _fog.heightFalloff = settings.fog.heightFalloff;
         _fog.skyAffect = settings.fog.skyAffect;
 
+        _dof.mode = settings.depthOfField.mode;
+        _dof.focusPoint = settings.depthOfField.focusPoint;
+        _dof.focusScale = settings.depthOfField.focusScale;
+        _dof.nearScale = settings.depthOfField.nearScale;
+        _dof.maxBlurSize = settings.depthOfField.maxBlurSize;
+
         _bloom.mode = settings.bloom.mode;
         _bloom.levels = settings.bloom.levels;
         _bloom.intensity = settings.bloom.intensity;
@@ -123,9 +147,10 @@ namespace BreadEngine {
         _bloom.filterRadius = settings.bloom.filterRadius;
     }
 
-    void PostChain::releaseBloomChain()
+    void PostChain::releaseTargets()
     {
         _bloomChain.clear();
+        _dofTarget.Release();
     }
 
     void PostChain::createCompositePipeline()
@@ -264,6 +289,72 @@ namespace BreadEngine {
 
         _fogPipeline->GetStaticVariableByName(Diligent::SHADER_TYPE_PIXEL, "FogConstants")->Set(_fogConstants);
         _fogPipeline->CreateShaderResourceBinding(&_fogBinding, true);
+    }
+
+    void PostChain::createDepthOfFieldPipeline()
+    {
+        if (!_device) return;
+
+        Diligent::BufferDesc constantsDesc;
+        constantsDesc.Name = "Depth of field constants";
+        constantsDesc.Usage = Diligent::USAGE_DYNAMIC;
+        constantsDesc.BindFlags = Diligent::BIND_UNIFORM_BUFFER;
+        constantsDesc.CPUAccessFlags = Diligent::CPU_ACCESS_WRITE;
+        constantsDesc.Size = sizeof(DOFConstants);
+        _device->CreateBuffer(constantsDesc, nullptr, &_dofConstants);
+
+        const auto shaderSources = createShaderSources();
+
+        Diligent::ShaderCreateInfo shaderInfo;
+        shaderInfo.SourceLanguage = Diligent::SHADER_SOURCE_LANGUAGE_HLSL;
+        shaderInfo.pShaderSourceStreamFactory = shaderSources;
+
+        Diligent::RefCntAutoPtr<Diligent::IShader> vertexShader;
+        shaderInfo.Desc = {"Depth of field VS", Diligent::SHADER_TYPE_VERTEX, true};
+        shaderInfo.FilePath = "fullscreen.vsh";
+        _device->CreateShader(shaderInfo, &vertexShader);
+
+        Diligent::RefCntAutoPtr<Diligent::IShader> pixelShader;
+        shaderInfo.Desc = {"Depth of field PS", Diligent::SHADER_TYPE_PIXEL, true};
+        shaderInfo.FilePath = "dof.psh";
+        _device->CreateShader(shaderInfo, &pixelShader);
+
+        if (!vertexShader || !pixelShader)
+        {
+            Logger::LogError("Diligent failed to compile the depth of field shaders");
+            return;
+        }
+
+        Diligent::GraphicsPipelineStateCreateInfo pipelineInfo;
+        pipelineInfo.PSODesc.Name = "Depth of field";
+        pipelineInfo.pVS = vertexShader;
+        pipelineInfo.pPS = pixelShader;
+
+        auto &graphics = pipelineInfo.GraphicsPipeline;
+        graphics.NumRenderTargets = 1;
+        graphics.RTVFormats[0] = SCENE_COLOR_FORMAT;
+        graphics.PrimitiveTopology = Diligent::PRIMITIVE_TOPOLOGY_TRIANGLE_LIST;
+        graphics.RasterizerDesc.CullMode = Diligent::CULL_MODE_NONE;
+        graphics.DepthStencilDesc.DepthEnable = Diligent::False;
+
+        // Dynamic, like every screen-space pass's own view of the scene's textures: both are
+        // rebuilt whenever the target resizes, so neither may be set for the pipeline's lifetime.
+        const Diligent::ShaderResourceVariableDesc variables[]{
+            {Diligent::SHADER_TYPE_PIXEL, "g_SceneColor", Diligent::SHADER_RESOURCE_VARIABLE_TYPE_DYNAMIC},
+            {Diligent::SHADER_TYPE_PIXEL, "g_SceneDepth", Diligent::SHADER_RESOURCE_VARIABLE_TYPE_DYNAMIC}
+        };
+        pipelineInfo.PSODesc.ResourceLayout.Variables = variables;
+        pipelineInfo.PSODesc.ResourceLayout.NumVariables = static_cast<Diligent::Uint32>(std::size(variables));
+
+        _device->CreateGraphicsPipelineState(pipelineInfo, &_dofPipeline);
+        if (!_dofPipeline)
+        {
+            Logger::LogError("Diligent failed to create the depth of field pipeline state");
+            return;
+        }
+
+        _dofPipeline->GetStaticVariableByName(Diligent::SHADER_TYPE_PIXEL, "DOFConstants")->Set(_dofConstants);
+        _dofPipeline->CreateShaderResourceBinding(&_dofBinding, true);
     }
 
     void PostChain::createBloomPipelines()
@@ -433,6 +524,67 @@ namespace BreadEngine {
         drawAttribs.NumVertices = 3;
         drawAttribs.Flags = Diligent::DRAW_FLAG_VERIFY_ALL;
         _context->Draw(drawAttribs);
+    }
+
+    void PostChain::resizeDepthOfFieldTarget(const Diligent::ITexture *sceneColor)
+    {
+        const auto &scene = sceneColor->GetDesc();
+        if (_dofTarget && _dofTarget->GetDesc().Width == scene.Width && _dofTarget->GetDesc().Height == scene.Height)
+        {
+            return;
+        }
+
+        Diligent::TextureDesc desc;
+        desc.Name = "Depth of field target";
+        desc.Type = Diligent::RESOURCE_DIM_TEX_2D;
+        desc.Width = scene.Width;
+        desc.Height = scene.Height;
+        desc.MipLevels = 1;
+        desc.Format = SCENE_COLOR_FORMAT;
+        desc.BindFlags = Diligent::BIND_RENDER_TARGET | Diligent::BIND_SHADER_RESOURCE;
+        _device->CreateTexture(desc, nullptr, &_dofTarget);
+
+        if (!_dofTarget) Logger::LogError("Diligent failed to create the depth of field target");
+    }
+
+    Diligent::ITexture *PostChain::drawDepthOfField(Diligent::ITexture *sceneColor, Diligent::ITexture *sceneDepth,
+                                                     const CameraView &camera, const Matrix &viewProjection)
+    {
+        if (!_dofPipeline || _dof.mode == DepthOfFieldMode::Disabled || _dof.maxBlurSize <= 0.0f) return sceneColor;
+
+        resizeDepthOfFieldTarget(sceneColor);
+        if (!_dofTarget) return sceneColor;
+
+        const auto &scene = sceneColor->GetDesc();
+        const auto forward = Vector3Normalize(Vector3Subtract(camera.target, camera.position));
+        const DOFConstants constants{
+            .inverseViewProjection = MatrixToFloatV(MatrixInvert(viewProjection)),
+            .cameraPosition = {camera.position.x, camera.position.y, camera.position.z, 1.0f},
+            .cameraForward = {forward.x, forward.y, forward.z, 0.0f},
+            .params = {
+                _dof.focusPoint, std::max(_dof.focusScale, 1e-4f),
+                std::max(_dof.nearScale, 0.0f), std::max(_dof.maxBlurSize, 0.0f)
+            },
+            .texelSize = {2.0f / static_cast<float>(scene.Width), 2.0f / static_cast<float>(scene.Height), 0.0f, 0.0f}
+        };
+        uploadConstants(_context, _dofConstants, &constants, sizeof(constants));
+
+        auto *target = _dofTarget->GetDefaultView(Diligent::TEXTURE_VIEW_RENDER_TARGET);
+        _context->SetRenderTargets(1, &target, nullptr, Diligent::RESOURCE_STATE_TRANSITION_MODE_TRANSITION);
+
+        _context->SetPipelineState(_dofPipeline);
+        _dofBinding->GetVariableByName(Diligent::SHADER_TYPE_PIXEL, "g_SceneColor")
+                   ->Set(sceneColor->GetDefaultView(Diligent::TEXTURE_VIEW_SHADER_RESOURCE));
+        _dofBinding->GetVariableByName(Diligent::SHADER_TYPE_PIXEL, "g_SceneDepth")
+                   ->Set(sceneDepth->GetDefaultView(Diligent::TEXTURE_VIEW_SHADER_RESOURCE));
+        _context->CommitShaderResources(_dofBinding, Diligent::RESOURCE_STATE_TRANSITION_MODE_TRANSITION);
+
+        Diligent::DrawAttribs drawAttribs;
+        drawAttribs.NumVertices = 3;
+        drawAttribs.Flags = Diligent::DRAW_FLAG_VERIFY_ALL;
+        _context->Draw(drawAttribs);
+
+        return _dofTarget;
     }
 
     void PostChain::resizeBloomChain(const Diligent::ITexture *sceneColor)

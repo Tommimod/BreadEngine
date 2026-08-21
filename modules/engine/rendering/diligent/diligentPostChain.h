@@ -7,13 +7,16 @@
 namespace BreadEngine {
     /**
      * Everything the frame passes through once the scene and the background have been drawn:
-     * fog over the whole image, a glow built from it, and the one composite that tone maps,
-     * grades and encodes the result into the displayable target.
+     * fog over the whole image, a glow built from it, a blur by how far a pixel sits from the
+     * focus distance, and the one composite that tone maps, grades and encodes the result into
+     * the displayable target.
      *
-     * The order is the reason these three sit together rather than apart. Fog runs first so
-     * the sky is fogged by the same view ray the geometry is; bloom runs after it so what
-     * glows is the frame as it will be seen; the composite runs last because it is the only
-     * encode, and everything before it works on one linear image.
+     * The order is the reason these four sit together rather than apart. Fog runs first so the
+     * sky is fogged by the same view ray the geometry is; bloom runs after it so what glows is
+     * the frame as it will be seen; depth of field runs after bloom so a blurred highlight
+     * spreads into the bokeh disk it would through a real lens rather than staying a sharp
+     * point; the composite runs last because it is the only encode, and everything before it
+     * works on one linear image.
      *
      * Owns its pipelines and the chain's own targets and nothing else. The scene's colour,
      * depth and output textures are handed in per pass instead of kept, because they are
@@ -33,8 +36,9 @@ namespace BreadEngine {
         /// settings belong to other parts of the renderer, which read them from the same call.
         void setSettings(const EnvironmentSettings &settings);
 
-        /// Drops the chain, whose levels are sized to a scene target that is going away.
-        void releaseBloomChain();
+        /// Drops the bloom chain and the depth-of-field target, both sized to a scene target
+        /// that is going away.
+        void releaseTargets();
 
         /**
          * Blends fog over everything in the scene target, geometry and background alike.
@@ -48,6 +52,16 @@ namespace BreadEngine {
         /// Filters the frame down the chain, blurs it back up, and blends the glow over the
         /// scene target in the linear space it belongs in.
         void drawBloom(Diligent::ITexture *sceneColor);
+
+        /**
+         * Blurs @p sceneColor by depth of field into the chain's own target and returns
+         * whichever texture holds the result the composite should read - @p sceneColor itself,
+         * untouched, while the effect is disabled or has nothing left to blur, or the blurred
+         * copy once it ran. Never mutates @p sceneColor: the gather reads a wide neighbourhood
+         * of texels a pass cannot also be writing.
+         */
+        [[nodiscard]] Diligent::ITexture *drawDepthOfField(Diligent::ITexture *sceneColor, Diligent::ITexture *sceneDepth,
+                                                            const CameraView &camera, const Matrix &viewProjection);
 
         /// Tone maps and grades @p sceneColor into @p sceneOutput, raising the graded result
         /// to @p encoding on the way. Leaves that target bound, which is what the overlay and
@@ -109,6 +123,12 @@ namespace BreadEngine {
 
         void createFogPipeline();
 
+        void createDepthOfFieldPipeline();
+
+        /// Sizes the chain's own depth-of-field target to @p sceneColor. Nothing announces
+        /// either changing, so it is compared rather than trusted.
+        void resizeDepthOfFieldTarget(const Diligent::ITexture *sceneColor);
+
         /// Builds the two passes the chain is filled with, and the three the glow meets the
         /// scene through - one per blend mode.
         void createBloomPipelines();
@@ -137,6 +157,27 @@ namespace BreadEngine {
         Diligent::RefCntAutoPtr<Diligent::IShaderResourceBinding> _fogBinding;
         Diligent::RefCntAutoPtr<Diligent::IBuffer> _fogConstants;
         FogState _fog{};
+
+        /// What the depth-of-field pass turns a pixel's own distance from the focus plane into
+        /// a blur radius with. Held as values for the same reason FogState is.
+        struct DOFState
+        {
+            DepthOfFieldMode mode = DepthOfFieldMode::Disabled;
+            float focusPoint = 10.0f;
+            float focusScale = 1.0f;
+            float nearScale = 1.0f;
+            float maxBlurSize = 20.0f;
+        };
+
+        Diligent::RefCntAutoPtr<Diligent::IPipelineState> _dofPipeline;
+        Diligent::RefCntAutoPtr<Diligent::IShaderResourceBinding> _dofBinding;
+        Diligent::RefCntAutoPtr<Diligent::IBuffer> _dofConstants;
+        /// The chain's own copy of the scene, blurred. Full scene size rather than the bloom
+        /// chain's downsampled levels: a gather this wide is already the effect, not something
+        /// a coarser mip could stand in for without losing exactly the near/far separation the
+        /// blur radius is built from.
+        Diligent::RefCntAutoPtr<Diligent::ITexture> _dofTarget;
+        DOFState _dof{};
 
         /// Filters the scene down the chain and blurs it back up. Two pipelines over one
         /// constant buffer, because the two directions differ only in their kernel and in

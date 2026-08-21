@@ -347,7 +347,7 @@ namespace BreadEngine {
             _overlay = {};
         }
 
-        _postChain.releaseBloomChain();
+        _postChain.releaseTargets();
         _screenSpace.releaseTargets();
         _sceneColor.Release();
         _sceneAmbient.Release();
@@ -471,7 +471,9 @@ namespace BreadEngine {
         probeFrame("fog", probeHeight);
         _postChain.drawBloom(_sceneColor);
         probeFrame("bloom", probeHeight);
-        _postChain.composite(_sceneColor, _sceneOutput, _outputEncoding);
+        auto *finalColor = _postChain.drawDepthOfField(_sceneColor, _sceneDepth, _camera, _viewProjection);
+        probeFrame("dof", probeHeight);
+        _postChain.composite(finalColor, _sceneOutput, _outputEncoding);
         probeFrame("composite", probeHeight);
 
         yieldToRaylib();

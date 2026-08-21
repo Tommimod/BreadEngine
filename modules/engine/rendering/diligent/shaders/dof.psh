@@ -1,0 +1,114 @@
+// Blurs the frame by how far each pixel's own depth sits from the focus distance: sharp at
+// the focus plane, spreading into a disk the further past it a pixel is. Runs after bloom, so
+// what glows is blurred along with everything else, and writes into a target of its own rather
+// than sceneColor - a gather this wide cannot safely read and write the same texture in one
+// draw the way a single-tap pass can.
+
+#include "sceneTargets.fxh"
+
+/// Consecutive samples separated by the golden angle land as far from each other as a spiral
+/// allows, so a fixed sample budget still covers the disk evenly. Declared identically to
+/// occlusion.psh's own for the same reason, not shared: the two spirals sit in unrelated spaces
+/// (a hemisphere around a normal against a screen-space disk).
+#define DOF_GOLDEN_ANGLE 2.3999632
+#define DOF_SAMPLE_COUNT 32
+
+cbuffer DOFConstants
+{
+    /// Takes a point in normalized device space back into the world, which is what turns the
+    /// depth buffer into the position a tap's own circle of confusion is measured from.
+    float4x4 g_InverseViewProjection;
+    float4   g_CameraPosition;
+    /// xyz is the direction the camera looks in. Depths are compared by projecting onto it,
+    /// which is a linear distance and free of any handedness convention.
+    float4   g_CameraForward;
+    /// x is the focus distance, y the depth of field's scale, z the near-side intensity, w the
+    /// maximum blur radius in texels.
+    float4   g_DOFParams;
+    /// xy is one texel of the target, in normalized device space rather than UV - the spiral
+    /// below is built in the same space the center pixel already arrives in.
+    float4   g_TexelSize;
+};
+
+Texture2D    g_SceneColor;
+SamplerState g_SceneColor_sampler;
+Texture2D    g_SceneDepth;
+SamplerState g_SceneDepth_sampler;
+
+struct PSInput
+{
+    float4 Position     : SV_POSITION;
+    float2 NormalizedXY : NORMALIZED_XY;
+};
+
+struct PSOutput
+{
+    float4 Color : SV_TARGET;
+};
+
+/// The blur radius, in texels, a point at @a viewDepth gets: zero at the focus distance,
+/// growing linearly with how far past it the depth sits, and clamped at the authored maximum.
+/// The near side is scaled by its own intensity separately, because a shallow lens still keeps
+/// its far side sharper for longer than its near side.
+float circleOfConfusion(float viewDepth, float focusPoint, float focusScale, float nearScale, float maxBlurSize)
+{
+    float signedCoc = (viewDepth - focusPoint) / focusScale;
+    if (signedCoc < 0.0) signedCoc *= nearScale;
+    return saturate(abs(signedCoc)) * maxBlurSize;
+}
+
+/// The camera-space depth of the point a normalized-device coordinate and its sampled scene
+/// depth were written from - the same projection every other screen-space pass reconstructs
+/// its own position through.
+float viewDepthAt(float2 normalizedXY, float depth)
+{
+    float3 worldPos = worldPositionAt(g_InverseViewProjection, normalizedXY, depth);
+    return dot(worldPos - g_CameraPosition.xyz, g_CameraForward.xyz);
+}
+
+void main(in PSInput PSIn, out PSOutput PSOut)
+{
+    float2 screenUV = NormalizedDeviceXYToTexUV(PSIn.NormalizedXY);
+    float centerDepth = g_SceneDepth.Sample(g_SceneDepth_sampler, screenUV).r;
+    float3 centerColor = g_SceneColor.Sample(g_SceneColor_sampler, screenUV).rgb;
+
+    float centerViewDepth = viewDepthAt(PSIn.NormalizedXY, centerDepth);
+    float centerRadius = circleOfConfusion(centerViewDepth, g_DOFParams.x, g_DOFParams.y, g_DOFParams.z, g_DOFParams.w);
+
+    // Below half a texel the spiral could not move a sample anywhere the point filter would
+    // not already land on, so there is nothing the loop below could change.
+    if (centerRadius < 0.5)
+    {
+        PSOut.Color = float4(centerColor, 1.0);
+        return;
+    }
+
+    float3 accumulated = centerColor;
+    float totalWeight = 1.0;
+
+    for (int i = 0; i < DOF_SAMPLE_COUNT; ++i)
+    {
+        float slice = (float(i) + 0.5) / float(DOF_SAMPLE_COUNT);
+        float angle = float(i) * DOF_GOLDEN_ANGLE;
+        // Samples bunch toward the centre rather than spreading evenly, because a uniform disk
+        // needs its radius to grow as the square root of the area it has covered so far.
+        float sampleDistance = sqrt(slice) * centerRadius;
+        float2 sampleNDC = PSIn.NormalizedXY + float2(cos(angle), sin(angle)) * sampleDistance * g_TexelSize.xy;
+        float2 sampleUV = NormalizedDeviceXYToTexUV(sampleNDC);
+
+        float sampleDepth = g_SceneDepth.Sample(g_SceneDepth_sampler, sampleUV).r;
+        float3 sampleColor = g_SceneColor.Sample(g_SceneColor_sampler, sampleUV).rgb;
+        float sampleViewDepth = viewDepthAt(sampleNDC, sampleDepth);
+        float sampleRadius = circleOfConfusion(sampleViewDepth, g_DOFParams.x, g_DOFParams.y, g_DOFParams.z, g_DOFParams.w);
+
+        // A tap only fully counts once its own blur reaches at least as far as the sample was
+        // taken from - otherwise a sharp point that happens to sit inside a wider blur radius
+        // sampled from elsewhere would smear into that blur rather than staying itself, which
+        // is what would happen from an unweighted average.
+        float weight = saturate(sampleRadius - sampleDistance + 1.0);
+        accumulated += sampleColor * weight;
+        totalWeight += weight;
+    }
+
+    PSOut.Color = float4(accumulated / totalWeight, 1.0);
+}
