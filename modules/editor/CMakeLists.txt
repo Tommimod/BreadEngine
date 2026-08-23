@@ -85,6 +85,7 @@ set_target_properties(BreadEditor PROPERTIES
 
 bread_copy_runtime_dlls(BreadEditor)
 bread_copy_engine_shaders(BreadEditor)
+bread_copy_editor_shaders(BreadEditor)
 
 message(STATUS "BreadEditor executable configured")
 message(STATUS "${CMAKE_BINARY_DIR}/bin")

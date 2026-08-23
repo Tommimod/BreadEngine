@@ -1,6 +1,7 @@
 #pragma once
 #include <string>
 
+#include "overlayTypes.h"
 #include "renderHandles.h"
 #include "renderTypes.h"
 #include "geometry/meshData.h"
@@ -54,6 +55,32 @@ namespace BreadEngine {
 
         /// Composites the offscreen scene into @p destination of the current draw target.
         virtual void drawSceneTexture(Rectangle destination) = 0;
+
+        // --- overlay ---
+
+        /**
+         * Compiles a shader pair the caller ships into a pipeline the overlay pass can draw
+         * through. The renderer never learns what the effect draws: everything specific to
+         * that lives in those sources and in the constant block they declare.
+         */
+        [[nodiscard]] virtual OverlayEffectHandle createOverlayEffect(const OverlayEffectDesc &desc) = 0;
+
+        virtual void destroyOverlayEffect(OverlayEffectHandle handle) = 0;
+
+        [[nodiscard]] virtual OverlayMeshHandle createOverlayMesh(const OverlayMeshData &data) = 0;
+
+        virtual void destroyOverlayMesh(OverlayMeshHandle handle) = 0;
+
+        /**
+         * Opens the pass that draws over the finished frame, against the depth the scene was
+         * rendered with. Only valid after endScene(), and only drawOverlay() may be called
+         * until endOverlay() closes it.
+         */
+        virtual void beginOverlay() = 0;
+
+        virtual void drawOverlay(const OverlayDrawDesc &draw) = 0;
+
+        virtual void endOverlay() = 0;
 
         // --- lights ---
 

@@ -1,0 +1,108 @@
+#include "overlay.fxh"
+
+// The ground plane, drawn analytically: every pixel finds where its own view ray meets y = 0
+// and asks how close that point is to a grid line. Lines are measured in pixels rather than in
+// world units, so one stays one line wide however far away it is, and the cell size steps up a
+// level whenever the finest one would fall below a pixel or two - which is what makes the grid
+// infinite without drawing anything at the horizon it cannot resolve.
+//
+// The depth of the point it found is written out, so the scene's own depth buffer occludes the
+// grid where geometry stands in front of it.
+
+cbuffer OverlayParameters
+{
+    float4 g_MajorColor;
+    float4 g_MinorColor;
+    float4 g_XAxisColor;
+    float4 g_ZAxisColor;
+    /// x is the finest cell in world units, y how many of them make up the next level, z the
+    /// width of a minor line and w of a major one, both in pixels.
+    float4 g_Cell;
+    /// x is the width of an axis line in pixels, y the distance the grid starts fading at and
+    /// z the one it has gone by, w how few pixels apart the finest visible cell may get.
+    float4 g_Axis;
+};
+
+struct PSInput
+{
+    float4 Position     : SV_POSITION;
+    float2 NormalizedXY : NORMALIZED_XY;
+};
+
+struct PSOutput
+{
+    float4 Color : SV_TARGET;
+    float  Depth : SV_DEPTH;
+};
+
+/// How much of this pixel the nearest line of a grid of @a cell world units covers. The
+/// distance to that line is taken to pixels first, which is what keeps a line one width wide
+/// at any distance, and the half pixel is the falloff that antialiases its edge.
+float lineCoverage(float2 position, float2 pixelSize, float cell, float width)
+{
+    float2 distanceToLine = abs(frac(position / cell - 0.5) - 0.5) * cell / pixelSize;
+    float nearest = min(distanceToLine.x, distanceToLine.y);
+    return saturate(0.5 * width - nearest + 0.5);
+}
+
+void main(in PSInput PSIn, out PSOutput PSOut)
+{
+    float4 nearPoint = mul(g_OverlayInverseViewProjection,
+                           float4(PSIn.NormalizedXY, DepthToNormalizedDeviceZ(0.0), 1.0));
+    float4 farPoint = mul(g_OverlayInverseViewProjection,
+                          float4(PSIn.NormalizedXY, DepthToNormalizedDeviceZ(1.0), 1.0));
+    float3 rayStart = nearPoint.xyz / nearPoint.w;
+    float3 rayDirection = normalize(farPoint.xyz / farPoint.w - rayStart);
+
+    // Held away from zero so a ray running along the plane still intersects it somewhere
+    // finite: that hit is then far enough out that the distance fade is what removes it.
+    float slope = rayDirection.y;
+    slope = max(abs(slope), 1e-6) * (slope < 0.0 ? -1.0 : 1.0);
+    float distanceToPlane = -rayStart.y / slope;
+    float3 position = rayStart + rayDirection * distanceToPlane;
+
+    // Everything below is measured against these, and a derivative is only defined where the
+    // whole quad took the same path - so they are taken before anything discards.
+    float2 pixelSize = max(fwidth(position.xz), float2(1e-8, 1e-8));
+
+    // The level whose cells are still at least g_Axis.w pixels apart. Its fractional part is
+    // how far it has climbed towards the next one, and so how far the finest level has faded.
+    float pixelSpan = max(pixelSize.x, pixelSize.y);
+    float level = max(0.0, log(pixelSpan * g_Axis.w / g_Cell.x) / log(g_Cell.y));
+    float levelFade = frac(level);
+    float cell = g_Cell.x * pow(g_Cell.y, floor(level));
+
+    float fine = lineCoverage(position.xz, pixelSize, cell, g_Cell.z) * (1.0 - levelFade);
+    float medium = lineCoverage(position.xz, pixelSize, cell * g_Cell.y, g_Cell.z);
+    float coarse = lineCoverage(position.xz, pixelSize, cell * g_Cell.y * g_Cell.y, g_Cell.w);
+
+    float coverage = max(coarse, max(medium, fine));
+    // The coarse lines are always the emphasised ones; the medium level takes that emphasis on
+    // as the fine level fades out from under it, so zooming never changes how much of the grid
+    // is drawn heavily.
+    float majorness = max(coarse, medium * levelFade);
+    float3 color = lerp(g_MinorColor.rgb, g_MajorColor.rgb, majorness);
+    float opacity = lerp(g_MinorColor.a, g_MajorColor.a, majorness);
+
+    // An axis is the line the other coordinate is zero along, so the distance to it is
+    // measured across: the X axis by how far the point is in z, and the Z axis by its x.
+    float2 distanceToAxis = abs(position.xz) / pixelSize;
+    float xAxis = saturate(0.5 * g_Axis.x - distanceToAxis.y + 0.5);
+    float zAxis = saturate(0.5 * g_Axis.x - distanceToAxis.x + 0.5);
+    float axis = max(xAxis, zAxis);
+    float4 axisColor = xAxis > zAxis ? g_XAxisColor : g_ZAxisColor;
+    color = lerp(color, axisColor.rgb, axis);
+    opacity = lerp(opacity, axisColor.a, axis);
+    coverage = max(coverage, axis);
+
+    float fade = saturate((g_Axis.z - distanceToPlane) / max(g_Axis.z - g_Axis.y, 1e-6));
+
+    PSOut.Color = float4(color, coverage * opacity * fade);
+    // Where the plane was met, in the depth the scene was drawn with, so the same comparison
+    // that hides one piece of geometry behind another hides the grid under the floor.
+    float4 clipPosition = mul(g_OverlayViewProjection, float4(position, 1.0));
+    PSOut.Depth = NormalizedDeviceZToDepth(clipPosition.z / clipPosition.w);
+
+    // Last, so every derivative above was taken with the quad intact.
+    if (distanceToPlane <= 0.0 || PSOut.Color.a <= 0.0) discard;
+}

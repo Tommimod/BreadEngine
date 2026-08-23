@@ -100,6 +100,17 @@ function(bread_copy_engine_shaders target)
     )
 endfunction()
 
+# The editor draws over the finished scene through shaders of its own, compiled at runtime like
+# the engine's - so they are copied the same way, and into a directory beside them, because the
+# renderer searches the engine's for whatever they include.
+function(bread_copy_editor_shaders target)
+    add_custom_command(TARGET ${target} POST_BUILD
+            COMMAND ${CMAKE_COMMAND} -E copy_directory
+            "${CMAKE_SOURCE_DIR}/modules/editor/rendering/shaders"
+            "$<TARGET_FILE_DIR:${target}>/shaders/editor"
+    )
+endfunction()
+
 # cpptrace (FetchContent'd below) bundles libdwarf, which does a bare find_package(ZLIB)
 # (no REQUIRED) to optionally enable compressed-debug-info support - a feature this project
 # never uses. DiligentTools (added further down) vendors its own zlib for TextureLoader's PNG

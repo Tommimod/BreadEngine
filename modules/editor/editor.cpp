@@ -47,6 +47,7 @@ namespace BreadEditor {
         mainWindow.drawInternal(0);
 
         Engine::getInstance().initializeSystems();
+        _gridRenderer.initialize();
         return _initialized;
     }
 
@@ -55,6 +56,7 @@ namespace BreadEditor {
         ZoneScoped;
         if (!_initialized) return;
 
+        _gridRenderer.shutdown();
         AssetsConfigUpdater::unsubscribe();
         FilesWatcher::stop();
         closeProject();
@@ -98,9 +100,12 @@ namespace BreadEditor {
         }
         renderer.endScene();
 
+        renderer.beginOverlay();
+        _gridRenderer.render();
+        renderer.endOverlay();
+
         renderer.beginSceneOverlay(); // editor 3D on top of the scene, sharing its depth
         BeginMode3D(cameraForViewport);
-        DrawGrid(1000, 1.0f);
         if (_isCameraRendered)
         {
             render3D(deltaTime);

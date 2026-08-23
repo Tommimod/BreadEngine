@@ -28,4 +28,6 @@ namespace BreadEngine {
     using MeshHandle = RenderHandle<struct MeshHandleTag>;
     using CubemapHandle = RenderHandle<struct CubemapHandleTag>;
     using AmbientMapHandle = RenderHandle<struct AmbientMapHandleTag>;
+    using OverlayEffectHandle = RenderHandle<struct OverlayEffectHandleTag>;
+    using OverlayMeshHandle = RenderHandle<struct OverlayMeshHandleTag>;
 } // namespace BreadEngine

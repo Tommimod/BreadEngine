@@ -5,6 +5,7 @@
 
 #include "diligentEnvironmentMaps.h"
 #include "diligentInternal.h"
+#include "diligentOverlay.h"
 #include "diligentPostChain.h"
 #include "diligentScreenSpace.h"
 #include "diligentShadowPass.h"
@@ -20,7 +21,8 @@ namespace BreadEngine {
      * the scene pass that draws into them. The passes on either side of that one are members
      * with their own state: ShadowPass fills the maps the scene shades with, EnvironmentMaps
      * holds the sky it is drawn against and lit by, ScreenSpaceEffects corrects the lighting
-     * from what landed on screen, and PostChain finishes the frame.
+     * from what landed on screen, PostChain finishes the frame, and OverlayPass draws whatever
+     * a client of the renderer puts over the finished image.
      */
     class DiligentRenderer final : public IRenderer
     {
@@ -44,6 +46,20 @@ namespace BreadEngine {
         void endSceneOverlay() override;
 
         void drawSceneTexture(Rectangle destination) override;
+
+        [[nodiscard]] OverlayEffectHandle createOverlayEffect(const OverlayEffectDesc &desc) override;
+
+        void destroyOverlayEffect(OverlayEffectHandle handle) override;
+
+        [[nodiscard]] OverlayMeshHandle createOverlayMesh(const OverlayMeshData &data) override;
+
+        void destroyOverlayMesh(OverlayMeshHandle handle) override;
+
+        void beginOverlay() override;
+
+        void drawOverlay(const OverlayDrawDesc &draw) override;
+
+        void endOverlay() override;
 
         [[nodiscard]] LightHandle createLight(LightType type) override;
 
@@ -177,6 +193,9 @@ namespace BreadEngine {
         ScreenSpaceEffects _screenSpace;
         /// Fog, bloom and the composite, in the order the frame passes through them.
         PostChain _postChain;
+        /// What a client of the renderer draws over the finished frame, through its own
+        /// shaders. Last, because it is the only pass that runs after the composite.
+        OverlayPass _overlayPass;
 
         void createSceneTarget(int width, int height);
 
@@ -194,6 +213,9 @@ namespace BreadEngine {
 
         /// Joins the background decode and creates the GPU texture, unless already created.
         void finalizeTexture(TextureSlot &slot);
+
+        /// The texture behind @p handle once it is resident, or null while it names none.
+        [[nodiscard]] Diligent::ITextureView *textureView(TextureHandle handle);
 
         /// What a material's texture slot binds: the texture behind @p handle once it is
         /// resident, or @p fallback when the material leaves the slot unset.

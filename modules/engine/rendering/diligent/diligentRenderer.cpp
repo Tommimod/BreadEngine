@@ -206,6 +206,7 @@ namespace BreadEngine {
         _shadowPass.initializePipeline(_drawConstants);
         _screenSpace.initialize(_device, _context);
         _postChain.initialize(_device, _context);
+        _overlayPass.initialize(_device, _context);
         _environment.initializeSky();
 
         // The BRDF table is integrated by a real pass, so this is the first work that draws
@@ -237,6 +238,7 @@ namespace BreadEngine {
         _environment.shutdown();
         _screenSpace.shutdown();
         _postChain.shutdown();
+        _overlayPass.shutdown();
         _scenePipeline.Release();
         _frameConstants.Release();
         _drawConstants.Release();
@@ -547,6 +549,10 @@ namespace BreadEngine {
         glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
         glBlendEquation(GL_FUNC_ADD);
         rlDisableDepthTest();
+        // Depth writes were rlgl's default by coincidence for as long as no pipeline turned
+        // them off. The overlay's do: it tests the scene's depth and writes none of its own,
+        // so that what the editor draws over it is not occluded by it.
+        glDepthMask(GL_TRUE);
         rlEnableBackfaceCulling();
         // Which winding faces front is the other half, and restoring the cull test without it
         // is worse than restoring neither: raylib winds counter-clockwise, so a pipeline that
@@ -559,6 +565,12 @@ namespace BreadEngine {
         // minification filter makes raylib's single-level textures incomplete - which samples
         // as opaque black, taking the whole editor UI with it.
         for (Diligent::Uint32 unit = 0; unit < MATERIAL_TEXTURE_COUNT; ++unit) glBindSampler(unit, 0);
+
+        // A pass writing into the output texture masks alpha off, because that channel is what
+        // raylib blends the finished frame into the window through and nothing in the pass has
+        // an opinion about it. The mask is global state, so rlgl would inherit it and draw its
+        // whole UI with no alpha at all.
+        glColorMask(GL_TRUE, GL_TRUE, GL_TRUE, GL_TRUE);
 
         // Diligent enables sRGB framebuffer conversion once at device creation and leaves it
         // on. It is a no-op for its own non-sRGB targets, but raylib's colours are already
@@ -585,6 +597,51 @@ namespace BreadEngine {
         if (_overlay.id == 0) return;
 
         EndTextureMode();
+    }
+
+    OverlayEffectHandle DiligentRenderer::createOverlayEffect(const OverlayEffectDesc &desc)
+    {
+        return _overlayPass.createEffect(desc);
+    }
+
+    void DiligentRenderer::destroyOverlayEffect(const OverlayEffectHandle handle)
+    {
+        _overlayPass.destroyEffect(handle);
+    }
+
+    OverlayMeshHandle DiligentRenderer::createOverlayMesh(const OverlayMeshData &data)
+    {
+        return _overlayPass.createMesh(data);
+    }
+
+    void DiligentRenderer::destroyOverlayMesh(const OverlayMeshHandle handle)
+    {
+        _overlayPass.destroyMesh(handle);
+    }
+
+    void DiligentRenderer::beginOverlay()
+    {
+        if (!_context || !_sceneOutput) return;
+
+        // endScene handed the context back to raylib, which has been drawing through it since,
+        // so what Diligent remembers about the GL state it left behind is stale again.
+        _context->InvalidateState();
+        _overlayPass.begin(_camera, _viewProjection, _sceneOutput, _sceneDepth);
+    }
+
+    void DiligentRenderer::drawOverlay(const OverlayDrawDesc &draw)
+    {
+        // Null wherever the draw names no texture: an effect whose shader reads none ignores
+        // it, and one that reads a texture it was not given is a client-side bug the binding
+        // reports for itself.
+        _overlayPass.draw(draw, textureView(draw.texture));
+    }
+
+    void DiligentRenderer::endOverlay()
+    {
+        if (!_context) return;
+
+        yieldToRaylib();
     }
 
     void DiligentRenderer::drawSceneTexture(const Rectangle destination)

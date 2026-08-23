@@ -6,6 +6,7 @@
 #include "component/camera.h"
 #include "configs/infrastructure/configsProvider.h"
 #include "models/editorModel.h"
+#include "rendering/gridRenderer.h"
 #include "systems/cameraSystem.h"
 #include "utils/filesWatcher.h"
 using namespace BreadEngine;
@@ -85,6 +86,7 @@ namespace BreadEditor {
         EditorModel _editorModel;
         ConfigsProvider _configsProvider;
         CameraSystem _cameraSystem;
+        GridRenderer _gridRenderer;
 
         static void processInput();
 

@@ -342,16 +342,20 @@ namespace BreadEngine {
 
     // --- materials ---
 
+    Diligent::ITextureView *DiligentRenderer::textureView(const TextureHandle handle)
+    {
+        auto *entry = _textures.get(handle);
+        if (entry == nullptr) return nullptr;
+
+        finalizeTexture(*entry);
+        return entry->texture ? entry->texture->GetDefaultView(Diligent::TEXTURE_VIEW_SHADER_RESOURCE) : nullptr;
+    }
+
     Diligent::ITextureView *DiligentRenderer::materialTextureView(const TextureHandle handle, Diligent::ITexture *fallback)
     {
-        Diligent::ITexture *texture = fallback;
-        if (auto *entry = _textures.get(handle))
-        {
-            finalizeTexture(*entry);
-            if (entry->texture) texture = entry->texture;
-        }
+        if (auto *view = textureView(handle)) return view;
 
-        return texture->GetDefaultView(Diligent::TEXTURE_VIEW_SHADER_RESOURCE);
+        return fallback->GetDefaultView(Diligent::TEXTURE_VIEW_SHADER_RESOURCE);
     }
 
     MaterialHandle DiligentRenderer::createMaterial(const MaterialDesc &desc)
