@@ -45,6 +45,14 @@ namespace BreadEngine {
         virtual void endScene() = 0;
 
         /**
+         * The matrix the scene was projected through, valid from beginScene() onward. Its
+         * inverse is what turns a pixel of the target back into a ray in the world, so
+         * anything picking against what was drawn asks for it here rather than rebuilding it
+         * - the aspect and the clip range it was built from are the renderer's own.
+         */
+        [[nodiscard]] virtual Matrix getViewProjection() const = 0;
+
+        /**
          * Makes the rendered scene the active raylib draw target, so the editor can draw its
          * 3D overlay on top of it and still be occluded by scene geometry. Only meaningful
          * for backends that share a GL context with raylib.

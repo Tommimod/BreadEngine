@@ -6,6 +6,7 @@ History, not instructions. The working document — current status, the rules th
 
 | phase | what it records |
 | --- | --- |
+| [`8b-editor-gizmo`](docs/migration-log/8b-editor-gizmo.md) | The gizmo off raylib: why every stroke became a solid, ordering without a depth test, what was dropped with `raygizmo.c`, and the GL viewport `EndTextureMode` had been restoring by coincidence |
 | [`8a-editor-grid`](docs/migration-log/8a-editor-grid.md) | The editor's analytic grid and the overlay channel under it: why the engine ships no grid, why DiligentFX's shader header lost too, and the two pieces of GL state it left behind |
 | [`7g-depth-of-field`](docs/migration-log/7g-depth-of-field.md) | Depth of field, landed after the phase closed: the CoC-weighted spiral gather, why it can't share reflections' same-texture trick, and the units gotcha the test scene's own default ran into |
 | [`7f-screen-space`](docs/migration-log/7f-screen-space.md) | Ambient occlusion and reflections: the ambient target, the packed surface target, and why DiligentFX lost again |

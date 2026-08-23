@@ -35,9 +35,14 @@ namespace BreadEditor {
 
         [[nodiscard]] bool isMouseOver() const;
 
+        /// Where the pointer sits in the viewport's own pixels. Not clamped to it: what is
+        /// under the pointer is isMouseOver()'s answer to give, and a drag that began inside
+        /// still has to be followed once it leaves.
         [[nodiscard]] Vector2 getMousePosition() const;
 
-        [[nodiscard]] static Ray getMouseRay(Vector2 virtualMouse, Camera3D camera, int width, int height);
+        /// The ray through the pointer, in world space. Unprojected with the matrix the scene
+        /// was actually drawn through, so what it reaches is what is on screen.
+        [[nodiscard]] Ray getMouseRay() const;
 
         [[nodiscard]] Rectangle getViewportSize() const;
 

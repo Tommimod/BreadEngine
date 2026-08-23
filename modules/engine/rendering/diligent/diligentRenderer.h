@@ -41,6 +41,8 @@ namespace BreadEngine {
 
         void endScene() override;
 
+        [[nodiscard]] Matrix getViewProjection() const override { return _viewProjection; }
+
         void beginSceneOverlay() override;
 
         void endSceneOverlay() override;

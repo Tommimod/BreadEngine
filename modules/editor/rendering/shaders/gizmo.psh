@@ -1,0 +1,18 @@
+// The handles are flat colour: they are a control surface rather than part of the scene, and
+// the overlay draws after the composite, so what is written here is what is shown.
+
+struct PSInput
+{
+    float4 Position : SV_POSITION;
+    float4 Color    : COLOR;
+};
+
+struct PSOutput
+{
+    float4 Color : SV_TARGET;
+};
+
+void main(in PSInput PSIn, out PSOutput PSOut)
+{
+    PSOut.Color = PSIn.Color;
+}

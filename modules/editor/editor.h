@@ -35,7 +35,7 @@ namespace BreadEditor {
 
         void render2D(float deltaTime);
 
-        void render3D(float deltaTime);
+        void renderOverlay(const Camera3D &camera);
 
         bool createProject(const std::string &name, const std::string &path);
 

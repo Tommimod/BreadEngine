@@ -123,11 +123,11 @@ namespace BreadEditor {
         return dynamic_cast<ViewportWindow &>(*findUiElementById(ViewportWindow::Id));
     }
 
-    void MainWindow::render3D(const float deltaTime)
+    void MainWindow::renderOverlay(const Camera3D &camera)
     {
         if (const auto &model = Editor::getInstance().getEditorModel(); model.getSelectedEngineNode() != nullptr)
         {
-            _gizmoSystem.render();
+            _gizmoSystem.render(camera);
         }
     }
 

@@ -48,6 +48,7 @@ namespace BreadEditor {
 
         Engine::getInstance().initializeSystems();
         _gridRenderer.initialize();
+        mainWindow.getGizmoSystem().initialize();
         return _initialized;
     }
 
@@ -56,6 +57,7 @@ namespace BreadEditor {
         ZoneScoped;
         if (!_initialized) return;
 
+        mainWindow.getGizmoSystem().shutdown();
         _gridRenderer.shutdown();
         AssetsConfigUpdater::unsubscribe();
         FilesWatcher::stop();
@@ -102,16 +104,11 @@ namespace BreadEditor {
 
         renderer.beginOverlay();
         _gridRenderer.render();
-        renderer.endOverlay();
-
-        renderer.beginSceneOverlay(); // editor 3D on top of the scene, sharing its depth
-        BeginMode3D(cameraForViewport);
         if (_isCameraRendered)
         {
-            render3D(deltaTime);
+            renderOverlay(cameraForViewport);
         }
-        EndMode3D();
-        renderer.endSceneOverlay();
+        renderer.endOverlay();
 
         if (!_isCameraRendered)
         {
@@ -146,12 +143,12 @@ namespace BreadEditor {
         _isFrameEnded = true;
     }
 
-    void Editor::render3D(const float deltaTime)
+    void Editor::renderOverlay(const Camera3D &camera)
     {
         ZoneScoped;
         if (!_initialized) return;
 
-        mainWindow.render3D(deltaTime);
+        mainWindow.renderOverlay(camera);
     }
 
     bool Editor::createProject(const std::string &name, const std::string &path)

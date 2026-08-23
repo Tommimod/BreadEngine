@@ -39,7 +39,10 @@ namespace BreadEditor {
 
         [[nodiscard]] ViewportWindow &getViewportWindow() const;
 
-        void render3D(float deltaTime);
+        /// Draws what the editor puts over the finished scene. Inside the renderer's overlay
+        /// pass, so it draws through the same channel the grid does.
+        /// @param camera the one the frame was rendered through.
+        void renderOverlay(const Camera3D &camera);
 
     protected:
         void awake() override;

@@ -1,9 +1,10 @@
 # BreadEditor - Game Editor Application
 project(BreadEditor_App)
 
+# lib/editor holds headers and raygizmo.c; the latter is no longer linked - the gizmo is drawn
+# and hit-tested by the editor itself, and the file stays only as a reference for its math.
 file(GLOB_RECURSE EDITOR_SOURCES
         "*.cpp"
-        ${CMAKE_SOURCE_DIR}/lib/editor/*.c
 )
 
 file(GLOB_RECURSE EDITOR_HEADERS

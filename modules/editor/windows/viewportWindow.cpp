@@ -6,6 +6,23 @@
 #include "uitoolkit/uiPool.h"
 
 namespace BreadEditor {
+    namespace {
+        /// A point in normalized device space taken back into the world, perspective divide and
+        /// all - which raymath's own transform leaves out.
+        [[nodiscard]] Vector3 unproject(const Vector3 &normalized, const Matrix &inverseViewProjection)
+        {
+            const Quaternion transformed = QuaternionTransform(
+                Quaternion{normalized.x, normalized.y, normalized.z, 1.0f}, inverseViewProjection);
+            if (transformed.w == 0.0f) return Vector3{transformed.x, transformed.y, transformed.z};
+
+            return Vector3{
+                transformed.x / transformed.w,
+                transformed.y / transformed.w,
+                transformed.z / transformed.w
+            };
+        }
+    }
+
     std::string ViewportWindow::Id = "Viewport";
 
     ViewportWindow::ViewportWindow(const std::string_view &id) : UiWindow(id)
@@ -151,51 +168,26 @@ namespace BreadEditor {
 
     Vector2 ViewportWindow::getMousePosition() const
     {
-        if (!isMouseOver()) return (Vector2){-1.0f, -1.0f};
-
         // The scene target is sized to the panel, so panel-local pixels are scene pixels.
         const auto size = getViewportSize();
-        return Vector2Subtract(GetMousePosition(), (Vector2){size.x, size.y});
+        return Vector2Subtract(GetMousePosition(), Vector2{size.x, size.y});
     }
 
-    Ray ViewportWindow::getMouseRay(Vector2 virtualMouse, Camera3D camera, int width, int height)
+    Ray ViewportWindow::getMouseRay() const
     {
-        Ray ray;
-        auto matView = MatrixLookAt(camera.position, camera.target, camera.up);
+        const auto size = getViewportSize();
+        const auto mouse = getMousePosition();
+        const Matrix inverseViewProjection = MatrixInvert(BreadEngine::Renderer::get().getViewProjection());
 
-        auto aspect = static_cast<double>(width) / static_cast<double>(height);
-        auto matProj = MatrixPerspective(camera.fovy * DEG2RAD, aspect, RL_CULL_DISTANCE_NEAR, RL_CULL_DISTANCE_FAR);
+        // The projection keeps OpenGL's depth range, so the near plane is at -1 and the far one
+        // at +1. Taking the origin from the near plane rather than from the eye is what lets the
+        // same two lines serve an orthographic camera, where there is no single eye to take.
+        const float normalizedX = 2.0f * mouse.x / size.width - 1.0f;
+        const float normalizedY = 1.0f - 2.0f * mouse.y / size.height;
+        const Vector3 nearPoint = unproject({normalizedX, normalizedY, -1.0f}, inverseViewProjection);
+        const Vector3 farPoint = unproject({normalizedX, normalizedY, 1.0f}, inverseViewProjection);
 
-        auto matViewProj = MatrixMultiply(matView, matProj);
-        auto matViewProjInv = MatrixInvert(matViewProj);
-
-        auto nx = (2.0f * virtualMouse.x) / static_cast<float>(width) - 1.0f;
-        auto ny = 1.0f - (2.0f * virtualMouse.y) / static_cast<float>(height);
-
-        auto MultiplyMatVec = [&](const float x, const float y, const float z, const float w) -> Vector3
-        {
-            float tx = matViewProjInv.m0 * x + matViewProjInv.m4 * y + matViewProjInv.m8 * z + matViewProjInv.m12 * w;
-            float ty = matViewProjInv.m1 * x + matViewProjInv.m5 * y + matViewProjInv.m9 * z + matViewProjInv.m13 * w;
-            float tz = matViewProjInv.m2 * x + matViewProjInv.m6 * y + matViewProjInv.m10 * z + matViewProjInv.m14 * w;
-            const float tw = matViewProjInv.m3 * x + matViewProjInv.m7 * y + matViewProjInv.m11 * z + matViewProjInv.m15 * w;
-
-            if (tw != 0.0f)
-            {
-                tx /= tw;
-                ty /= tw;
-                tz /= tw;
-            }
-
-            return (Vector3){tx, ty, tz};
-        };
-
-        Vector3 nearPoint = MultiplyMatVec(nx, ny, -1.0f, 1.0f);
-        Vector3 farPoint = MultiplyMatVec(nx, ny, 1.0f, 1.0f);
-
-        ray.position = nearPoint;
-        ray.direction = Vector3Normalize(Vector3Subtract(farPoint, nearPoint));
-
-        return ray;
+        return Ray{.position = nearPoint, .direction = Vector3Normalize(Vector3Subtract(farPoint, nearPoint))};
     }
 
     Rectangle ViewportWindow::getViewportSize() const

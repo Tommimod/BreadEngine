@@ -119,6 +119,7 @@ namespace BreadEngine {
         static Diligent::Uint32 reported = 0;
         static bool samplersReported = false;
         static bool writeMaskReported = false;
+        static bool viewportReported = false;
 
         for (Diligent::Uint32 item = 0; item < std::size(RAYLIB_STATE); ++item)
         {
@@ -135,7 +136,24 @@ namespace BreadEngine {
                                ". Restore it in yieldToRaylib - rlgl will not.");
         }
 
-        // Two more that do not fit the single-integer shape above.
+        // Three more that do not fit the single-integer shape above.
+        if (!viewportReported)
+        {
+            GLint viewport[4]{};
+            glGetIntegerv(GL_VIEWPORT, viewport);
+            const GLint width = GetRenderWidth();
+            const GLint height = GetRenderHeight();
+            if (viewport[0] != 0 || viewport[1] != 0 || viewport[2] != width || viewport[3] != height)
+            {
+                viewportReported = true;
+                Logger::LogWarning("GL state left for raylib is wrong: the viewport is " +
+                                   std::to_string(viewport[2]) + "x" + std::to_string(viewport[3]) + " at " +
+                                   std::to_string(viewport[0]) + "," + std::to_string(viewport[1]) +
+                                   ", raylib expects " + std::to_string(width) + "x" + std::to_string(height) +
+                                   " at 0,0. Restore it in yieldToRaylib - rlgl will not.");
+            }
+        }
+
         if (!writeMaskReported)
         {
             GLboolean mask[4]{};
@@ -539,6 +557,13 @@ namespace BreadEngine {
         // are needed, so every piece of state a pipeline sets differently has to be put back by
         // hand. Depth writes still match rlgl's own defaults; blending, the depth test and
         // both halves of the face-culling state do not.
+        // The viewport is rlgl's state too, and the one piece of it rlgl neither tracks nor
+        // reissues: raylib sets it when the window is created or resized and then only inside
+        // Begin/EndTextureMode. Every Diligent pass sets it to the target it is drawing into,
+        // so without this raylib draws its whole frame squeezed into whatever the last pass
+        // was sized for - which is what EndTextureMode used to put back by coincidence, while
+        // the editor still drew its 3D overlay through rlgl.
+        rlViewport(0, 0, GetRenderWidth(), GetRenderHeight());
         rlEnableColorBlend();
         // Turning blending back on says nothing about which function it runs, and that is the
         // half rlgl caches hardest: it issues glBlendFunc once at startup and again only when
